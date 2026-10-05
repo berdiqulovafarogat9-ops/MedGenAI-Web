@@ -191,7 +191,9 @@ async function molecularAnalyze() {
       '/molecules/analyze',
       {
         method: 'POST',
-        body: JSON.stringify({ smiles })
+        body: JSON.stringify({
+         smiles
+        })
       }
     );
 
