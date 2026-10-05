@@ -1,7 +1,10 @@
-
-const CONFIG={apiBase:(window.MEDGEN_API_BASE||'/api/v1').replace(/\/$/,'')};
-const $=id=>document.getElementById(id);
-const state={token:sessionStorage.getItem('medgen_access_token')||'',user:null};
+const CONFIG = {
+    apiBase: (
+        window.MEDGEN_API_BASE ||
+        'https://medgenai-web-1.onrender.com/api/v1'
+    ),
+    tokenKey: 'medgen_access_token'
+};
 
 async function api(path,options={}){
   if(!path.startsWith('/')) throw new Error('Invalid API path');
