@@ -1,6 +1,18 @@
 services:
+  medgen-api:
+    build: ./backend
+    restart: unless-stopped
+    environment:
+      MEDGEN_ADMIN_USERNAME: admin
+      MEDGEN_ADMIN_PASSWORD: MedGenAI-Admin-2026
+      MEDGEN_SECRET_KEY: medgen-development-secret-change-later
+    expose:
+      - "8000"
+
   medgen-web:
     build: .
     ports:
       - "8080:8080"
+    depends_on:
+      - medgen-api
     restart: unless-stopped
