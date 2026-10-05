@@ -14,7 +14,12 @@ const CONFIG = {
 };
 
 
+/* =========================
+   API
+========================= */
+
 async function api(path, options = {}) {
+
   if (!path.startsWith('/')) {
     throw new Error('Invalid API path');
   }
@@ -56,34 +61,11 @@ async function api(path, options = {}) {
 
 
 /* =========================
-   LOGIN / DASHBOARD
+   HELPERS
 ========================= */
 
-function showLogin() {
-  $('dashboardView').classList.add('hidden');
-  $('loginView').classList.remove('hidden');
-}
-
-
-function showDashboard() {
-  $('loginView').classList.add('hidden');
-  $('dashboardView').classList.remove('hidden');
-
-  updateRole();
-  checkHealth();
-}
-
-
-function updateRole() {
-  const role = state.user?.role || 'USER';
-
-  if ($('roleBadge')) {
-    $('roleBadge').textContent = role;
-  }
-}
-
-
 function setStatus(id, msg, ok = false) {
+
   const e = $(id);
 
   if (e) {
@@ -93,10 +75,66 @@ function setStatus(id, msg, ok = false) {
 }
 
 
+function showLogin() {
+
+  if ($('dashboardView')) {
+    $('dashboardView')
+      .classList
+      .add('hidden');
+  }
+
+  if ($('loginView')) {
+    $('loginView')
+      .classList
+      .remove('hidden');
+  }
+}
+
+
+function showDashboard() {
+
+  if ($('loginView')) {
+    $('loginView')
+      .classList
+      .add('hidden');
+  }
+
+  if ($('dashboardView')) {
+    $('dashboardView')
+      .classList
+      .remove('hidden');
+  }
+
+  updateRole();
+  checkHealth();
+}
+
+
+function updateRole() {
+
+  const role =
+    state.user?.role || 'USER';
+
+  if ($('roleBadge')) {
+    $('roleBadge').textContent =
+      role;
+  }
+}
+
+
+/* =========================
+   HEALTH
+========================= */
+
 async function checkHealth() {
+
   try {
+
     const r = await fetch(
-      CONFIG.apiBase.replace(/\/api\/v1$/, '') +
+      CONFIG.apiBase.replace(
+        /\/api\/v1$/,
+        ''
+      ) +
       '/api/v1/health/live'
     );
 
@@ -113,7 +151,9 @@ async function checkHealth() {
       $('apiText').textContent =
         'online';
     }
+
   } catch {
+
     if ($('healthBadge')) {
       $('healthBadge').textContent =
         'API: offline';
@@ -131,88 +171,99 @@ async function checkHealth() {
    LOGIN
 ========================= */
 
-$('loginForm').addEventListener(
-  'submit',
-  async (e) => {
+if ($('loginForm')) {
 
-    e.preventDefault();
+  $('loginForm').addEventListener(
+    'submit',
+    async (e) => {
 
-    setStatus(
-      'loginStatus',
-      'Signing in…'
-    );
-
-    try {
-
-      const body = {
-        username:
-          $('loginUser').value.trim(),
-
-        password:
-          $('loginPassword').value
-      };
-
-      const data = await api(
-        '/auth/login',
-        {
-          method: 'POST',
-          body: JSON.stringify(body)
-        }
-      );
-
-      state.token =
-        data.access_token;
-
-      sessionStorage.setItem(
-        CONFIG.tokenKey,
-        state.token
-      );
-
-      state.user =
-        await api('/auth/me');
-
-      showDashboard();
+      e.preventDefault();
 
       setStatus(
         'loginStatus',
-        ''
+        'Signing in…'
       );
 
-    } catch (err) {
+      try {
 
-      console.error(
-        'Login error:',
-        err
-      );
+        const body = {
+          username:
+            $('loginUser')
+              .value
+              .trim(),
 
-      setStatus(
-        'loginStatus',
-        err.message ||
-        'Login failed.'
-      );
+          password:
+            $('loginPassword')
+              .value
+        };
+
+        const data =
+          await api(
+            '/auth/login',
+            {
+              method: 'POST',
+              body:
+                JSON.stringify(body)
+            }
+          );
+
+        state.token =
+          data.access_token;
+
+        sessionStorage.setItem(
+          CONFIG.tokenKey,
+          state.token
+        );
+
+        state.user =
+          await api('/auth/me');
+
+        showDashboard();
+
+        setStatus(
+          'loginStatus',
+          ''
+        );
+
+      } catch (err) {
+
+        console.error(
+          'Login error:',
+          err
+        );
+
+        setStatus(
+          'loginStatus',
+          err.message ||
+          'Login failed.'
+        );
+      }
     }
-  }
-);
+  );
+}
 
 
 /* =========================
    LOGOUT
 ========================= */
 
-$('logoutBtn').addEventListener(
-  'click',
-  () => {
+if ($('logoutBtn')) {
 
-    state.token = '';
-    state.user = null;
+  $('logoutBtn').addEventListener(
+    'click',
+    () => {
 
-    sessionStorage.removeItem(
-      CONFIG.tokenKey
-    );
+      state.token = '';
+      state.user = null;
 
-    showLogin();
-  }
-);
+      sessionStorage.removeItem(
+        CONFIG.tokenKey
+      );
+
+      showLogin();
+    }
+  );
+}
 
 
 /* =========================
@@ -222,13 +273,17 @@ $('logoutBtn').addEventListener(
 async function molecularAnalyze() {
 
   const smiles =
-    $('smilesInput').value.trim();
+    $('smilesInput')
+      ?.value
+      .trim();
 
   if (!smiles) {
+
     setStatus(
       'molecularStatus',
       'Enter a SMILES string.'
     );
+
     return;
   }
 
@@ -239,22 +294,27 @@ async function molecularAnalyze() {
 
   try {
 
-    const data = await api(
-      '/molecules/analyze',
-      {
-        method: 'POST',
-        body: JSON.stringify({
-          smiles
-        })
-      }
-    );
-
-    $('molecularResult').textContent =
-      JSON.stringify(
-        data,
-        null,
-        2
+    const data =
+      await api(
+        '/molecules/analyze',
+        {
+          method: 'POST',
+          body:
+            JSON.stringify({
+              smiles
+            })
+        }
       );
+
+    if ($('molecularResult')) {
+      $('molecularResult')
+        .textContent =
+        JSON.stringify(
+          data,
+          null,
+          2
+        );
+    }
 
     setStatus(
       'molecularStatus',
@@ -279,13 +339,17 @@ async function molecularAnalyze() {
 async function bioinformaticsRun() {
 
   const seq =
-    $('bioSequence').value.trim();
+    $('bioSequence')
+      ?.value
+      .trim();
 
   if (!seq) {
+
     setStatus(
       'bioStatus',
       'Enter a DNA/RNA/protein sequence.'
     );
+
     return;
   }
 
@@ -296,23 +360,28 @@ async function bioinformaticsRun() {
 
   try {
 
-    const data = await api(
-      '/bioinformatics/analyze',
-      {
-        method: 'POST',
-        body: JSON.stringify({
-          sequence: seq,
-          sequence_type: 'AUTO'
-        })
-      }
-    );
-
-    $('bioResult').textContent =
-      JSON.stringify(
-        data,
-        null,
-        2
+    const data =
+      await api(
+        '/bioinformatics/analyze',
+        {
+          method: 'POST',
+          body:
+            JSON.stringify({
+              sequence: seq,
+              sequence_type: 'AUTO'
+            })
+        }
       );
+
+    if ($('bioResult')) {
+      $('bioResult')
+        .textContent =
+        JSON.stringify(
+          data,
+          null,
+          2
+        );
+    }
 
     setStatus(
       'bioStatus',
@@ -338,15 +407,17 @@ async function pdbLookup() {
 
   const id =
     $('pdbInput')
-      .value
+      ?.value
       .trim()
       .toUpperCase();
 
   if (!id) {
+
     setStatus(
       'pdbStatus',
       'Enter a PDB ID.'
     );
+
     return;
   }
 
@@ -357,17 +428,21 @@ async function pdbLookup() {
 
   try {
 
-    const data = await api(
-      '/pdb/structures/' +
-      encodeURIComponent(id)
-    );
-
-    $('pdbResult').textContent =
-      JSON.stringify(
-        data,
-        null,
-        2
+    const data =
+      await api(
+        '/pdb/structures/' +
+        encodeURIComponent(id)
       );
+
+    if ($('pdbResult')) {
+      $('pdbResult')
+        .textContent =
+        JSON.stringify(
+          data,
+          null,
+          2
+        );
+    }
 
     setStatus(
       'pdbStatus',
@@ -453,6 +528,7 @@ CC(=O)O"
     $('discoveryRun');
 
   if (button) {
+
     button.textContent =
       'Run Screening';
 
@@ -460,14 +536,16 @@ CC(=O)O"
       wrapper,
       button
     );
+
   } else {
+
     tool.appendChild(wrapper);
   }
 }
 
 
 /* =========================
-   DRUG DISCOVERY SCREENING
+   DRUG DISCOVERY
 ========================= */
 
 async function discoveryCreate() {
@@ -476,7 +554,7 @@ async function discoveryCreate() {
 
   const target =
     $('discoveryTarget')
-      .value
+      ?.value
       .trim();
 
   const moleculesText =
@@ -512,16 +590,6 @@ async function discoveryCreate() {
       )
       .filter(Boolean);
 
-  if (!molecules.length) {
-
-    setStatus(
-      'discoveryStatus',
-      'Enter at least one molecule.'
-    );
-
-    return;
-  }
-
   setStatus(
     'discoveryStatus',
     'Running virtual screening…'
@@ -529,24 +597,28 @@ async function discoveryCreate() {
 
   try {
 
-    const data = await api(
-      '/discovery/screen',
-      {
-        method: 'POST',
-
-        body: JSON.stringify({
-          target,
-          molecules
-        })
-      }
-    );
-
-    $('discoveryResult').textContent =
-      JSON.stringify(
-        data,
-        null,
-        2
+    const data =
+      await api(
+        '/discovery/screen',
+        {
+          method: 'POST',
+          body:
+            JSON.stringify({
+              target,
+              molecules
+            })
+        }
       );
+
+    if ($('discoveryResult')) {
+      $('discoveryResult')
+        .textContent =
+        JSON.stringify(
+          data,
+          null,
+          2
+        );
+    }
 
     setStatus(
       'discoveryStatus',
@@ -571,10 +643,114 @@ async function discoveryCreate() {
 
 
 /* =========================
+   JOBS UI
+========================= */
+
+function prepareJobsUI() {
+
+  const tool =
+    $('jobsTool');
+
+  if (!tool) {
+    return;
+  }
+
+  if ($('jobsStatusPanel')) {
+    return;
+  }
+
+  const wrapper =
+    document.createElement('div');
+
+  wrapper.id =
+    'jobsStatusPanel';
+
+  wrapper.style.marginTop =
+    '16px';
+
+  wrapper.innerHTML = `
+    <div
+      style="
+        margin-bottom:10px;
+        font-weight:600;
+      "
+    >
+      Scientific Worker
+    </div>
+
+    <div
+      id="jobsStatusLive"
+      style="
+        padding:10px;
+        border-radius:8px;
+        background:rgba(255,255,255,.05);
+        margin-bottom:12px;
+      "
+    >
+      Checking worker…
+    </div>
+
+    <button
+      id="jobsStatusRefresh"
+      type="button"
+    >
+      Refresh Worker
+    </button>
+  `;
+
+  tool.prepend(wrapper);
+
+  $('jobsStatusRefresh')
+    .addEventListener(
+      'click',
+      loadJobStatus
+    );
+}
+
+
+async function loadJobStatus() {
+
+  prepareJobsUI();
+
+  if ($('jobsStatusLive')) {
+    $('jobsStatusLive')
+      .textContent =
+      'Checking worker…';
+  }
+
+  try {
+
+    const data =
+      await api(
+        '/jobs/status'
+      );
+
+    if ($('jobsStatusLive')) {
+      $('jobsStatusLive')
+        .textContent =
+        `Worker: ${data.worker || 'unknown'} | Queue: ${data.queue || 'unknown'} | Active: ${data.active_jobs ?? 0}`;
+    }
+
+    return data;
+
+  } catch (err) {
+
+    if ($('jobsStatusLive')) {
+      $('jobsStatusLive')
+        .textContent =
+        `Worker error: ${err.message}`;
+    }
+  }
+}
+
+
+/* =========================
    JOBS
 ========================= */
 
 async function loadJobs() {
+
+  prepareJobsUI();
 
   setStatus(
     'jobsStatus',
@@ -586,12 +762,17 @@ async function loadJobs() {
     const data =
       await api('/jobs');
 
-    $('jobsResult').textContent =
-      JSON.stringify(
-        data,
-        null,
-        2
-      );
+    if ($('jobsResult')) {
+      $('jobsResult')
+        .textContent =
+        JSON.stringify(
+          data,
+          null,
+          2
+        );
+    }
+
+    await loadJobStatus();
 
     setStatus(
       'jobsStatus',
@@ -605,6 +786,8 @@ async function loadJobs() {
       'jobsStatus',
       err.message
     );
+
+    await loadJobStatus();
   }
 }
 
@@ -612,7 +795,9 @@ async function loadJobs() {
 async function createJob() {
 
   const type =
-    $('jobType').value;
+    $('jobType')
+      ?.value ||
+    'scientific_analysis';
 
   setStatus(
     'jobCreateStatus',
@@ -626,27 +811,33 @@ async function createJob() {
         '/jobs',
         {
           method: 'POST',
-          body: JSON.stringify({
-            job_type: type,
-            input: {
-              source: 'web'
-            }
-          })
+          body:
+            JSON.stringify({
+              job_type: type,
+              input: {
+                source: 'web'
+              }
+            })
         }
       );
 
-    $('jobCreateResult').textContent =
-      JSON.stringify(
-        data,
-        null,
-        2
-      );
+    if ($('jobCreateResult')) {
+      $('jobCreateResult')
+        .textContent =
+        JSON.stringify(
+          data,
+          null,
+          2
+        );
+    }
 
     setStatus(
       'jobCreateStatus',
       'Job submitted.',
       true
     );
+
+    await loadJobStatus();
 
   } catch (err) {
 
@@ -659,10 +850,103 @@ async function createJob() {
 
 
 /* =========================
+   REPORTS UI
+========================= */
+
+function prepareReportsUI() {
+
+  const tool =
+    $('reportsTool');
+
+  if (!tool) {
+    return;
+  }
+
+  if ($('reportGeneratorPanel')) {
+    return;
+  }
+
+  const wrapper =
+    document.createElement('div');
+
+  wrapper.id =
+    'reportGeneratorPanel';
+
+  wrapper.style.marginTop =
+    '16px';
+
+  wrapper.innerHTML = `
+    <div
+      style="
+        margin-bottom:8px;
+        font-weight:600;
+      "
+    >
+      Generate Scientific Report
+    </div>
+
+    <input
+      id="reportType"
+      type="text"
+      value="Biomedical Research Report"
+      placeholder="Report type"
+      style="
+        width:100%;
+        box-sizing:border-box;
+        margin-bottom:8px;
+      "
+    />
+
+    <textarea
+      id="reportInput"
+      rows="5"
+      placeholder="Describe the research, target, experiment or analysis..."
+      style="
+        width:100%;
+        box-sizing:border-box;
+        resize:vertical;
+      "
+    ></textarea>
+
+    <button
+      id="reportGenerate"
+      type="button"
+      style="margin-top:8px;"
+    >
+      Generate Report
+    </button>
+
+    <div
+      id="reportGenerateStatus"
+      style="margin-top:8px;"
+    ></div>
+
+    <pre
+      id="reportGenerateResult"
+      style="
+        white-space:pre-wrap;
+        margin-top:12px;
+      "
+    ></pre>
+  `;
+
+  tool.prepend(wrapper);
+
+  $('reportGenerate')
+    .addEventListener(
+      'click',
+      generateReport
+    );
+}
+
+
+/* =========================
    REPORTS
 ========================= */
 
 async function loadReports() {
+
+  prepareReportsUI();
 
   setStatus(
     'reportsStatus',
@@ -674,12 +958,15 @@ async function loadReports() {
     const data =
       await api('/reports');
 
-    $('reportsResult').textContent =
-      JSON.stringify(
-        data,
-        null,
-        2
-      );
+    if ($('reportsResult')) {
+      $('reportsResult')
+        .textContent =
+        JSON.stringify(
+          data,
+          null,
+          2
+        );
+    }
 
     setStatus(
       'reportsStatus',
@@ -697,15 +984,219 @@ async function loadReports() {
 }
 
 
+async function generateReport() {
+
+  const type =
+    $('reportType')
+      ?.value
+      .trim() ||
+    'Biomedical Research Report';
+
+  const input =
+    $('reportInput')
+      ?.value
+      .trim() || '';
+
+  setStatus(
+    'reportGenerateStatus',
+    'Generating report…'
+  );
+
+  try {
+
+    const data =
+      await api(
+        '/reports/generate',
+        {
+          method: 'POST',
+          body:
+            JSON.stringify({
+              workflow_type: type,
+              input
+            })
+        }
+      );
+
+    if ($('reportGenerateResult')) {
+      $('reportGenerateResult')
+        .textContent =
+        JSON.stringify(
+          data,
+          null,
+          2
+        );
+    }
+
+    setStatus(
+      'reportGenerateStatus',
+      'Report generated.',
+      true
+    );
+
+  } catch (err) {
+
+    setStatus(
+      'reportGenerateStatus',
+      err.message
+    );
+  }
+}
+
+
 /* =========================
-   RESEARCH
+   RESEARCH UI
+========================= */
+
+function prepareResearchUI() {
+
+  const tool =
+    $('researchTool');
+
+  if (!tool) {
+    return;
+  }
+
+  if ($('researchAssistantPanel')) {
+    return;
+  }
+
+  const wrapper =
+    document.createElement('div');
+
+  wrapper.id =
+    'researchAssistantPanel';
+
+  wrapper.style.marginTop =
+    '16px';
+
+  wrapper.innerHTML = `
+    <div
+      style="
+        margin-bottom:8px;
+        font-weight:600;
+      "
+    >
+      AI Research Assistant
+    </div>
+
+    <textarea
+      id="assistantQuery"
+      rows="5"
+      placeholder="Ask a biomedical research question..."
+      style="
+        width:100%;
+        box-sizing:border-box;
+        resize:vertical;
+      "
+    ></textarea>
+
+    <button
+      id="assistantRun"
+      type="button"
+      style="margin-top:8px;"
+    >
+      Run Research Assistant
+    </button>
+
+    <div
+      id="assistantStatus"
+      style="margin-top:8px;"
+    ></div>
+
+    <pre
+      id="assistantResult"
+      style="
+        white-space:pre-wrap;
+        margin-top:12px;
+      "
+    ></pre>
+  `;
+
+  tool.prepend(wrapper);
+
+  $('assistantRun')
+    .addEventListener(
+      'click',
+      researchAssistant
+    );
+}
+
+
+/* =========================
+   RESEARCH ASSISTANT
+========================= */
+
+async function researchAssistant() {
+
+  const query =
+    $('assistantQuery')
+      ?.value
+      .trim();
+
+  if (!query) {
+
+    setStatus(
+      'assistantStatus',
+      'Enter a research question.'
+    );
+
+    return;
+  }
+
+  setStatus(
+    'assistantStatus',
+    'Running research pipeline…'
+  );
+
+  try {
+
+    const data =
+      await api(
+        '/research/assistant',
+        {
+          method: 'POST',
+          body:
+            JSON.stringify({
+              query
+            })
+        }
+      );
+
+    if ($('assistantResult')) {
+      $('assistantResult')
+        .textContent =
+        JSON.stringify(
+          data,
+          null,
+          2
+        );
+    }
+
+    setStatus(
+      'assistantStatus',
+      'Research Assistant completed.',
+      true
+    );
+
+  } catch (err) {
+
+    setStatus(
+      'assistantStatus',
+      err.message
+    );
+  }
+}
+
+
+/* =========================
+   RESEARCH SEARCH
 ========================= */
 
 async function researchSearch() {
 
   const q =
     $('researchQuery')
-      .value
+      ?.value
       .trim();
 
   if (!q) {
@@ -730,19 +1221,23 @@ async function researchSearch() {
         '/research/search',
         {
           method: 'POST',
-          body: JSON.stringify({
-            query: q,
-            limit: 10
-          })
+          body:
+            JSON.stringify({
+              query: q,
+              limit: 10
+            })
         }
       );
 
-    $('researchResult').textContent =
-      JSON.stringify(
-        data,
-        null,
-        2
-      );
+    if ($('researchResult')) {
+      $('researchResult')
+        .textContent =
+        JSON.stringify(
+          data,
+          null,
+          2
+        );
+    }
 
     setStatus(
       'researchStatus',
@@ -754,6 +1249,177 @@ async function researchSearch() {
 
     setStatus(
       'researchStatus',
+      err.message
+    );
+  }
+}
+
+
+/* =========================
+   VIRTUAL LAB UI
+========================= */
+
+function prepareVirtualLabUI() {
+
+  const tool =
+    $('workflowTool');
+
+  if (!tool) {
+    return;
+  }
+
+  if ($('virtualLabPanel')) {
+    return;
+  }
+
+  const wrapper =
+    document.createElement('div');
+
+  wrapper.id =
+    'virtualLabPanel';
+
+  wrapper.style.marginTop =
+    '16px';
+
+  wrapper.innerHTML = `
+    <div
+      style="
+        margin-bottom:8px;
+        font-weight:600;
+      "
+    >
+      Virtual Laboratory
+    </div>
+
+    <select
+      id="labExperimentType"
+      style="
+        width:100%;
+        margin-bottom:8px;
+      "
+    >
+      <option value="molecular_analysis">
+        Molecular Analysis
+      </option>
+
+      <option value="bioinformatics">
+        Bioinformatics Experiment
+      </option>
+
+      <option value="drug_discovery">
+        Drug Discovery Experiment
+      </option>
+
+      <option value="structural_biology">
+        Structural Biology
+      </option>
+
+      <option value="custom">
+        Custom Experiment
+      </option>
+    </select>
+
+    <textarea
+      id="labExperimentInput"
+      rows="6"
+      placeholder="Experiment input..."
+      style="
+        width:100%;
+        box-sizing:border-box;
+        resize:vertical;
+      "
+    ></textarea>
+
+    <button
+      id="labExperimentCreate"
+      type="button"
+      style="margin-top:8px;"
+    >
+      Create Experiment
+    </button>
+
+    <div
+      id="labExperimentStatus"
+      style="margin-top:8px;"
+    ></div>
+
+    <pre
+      id="labExperimentResult"
+      style="
+        white-space:pre-wrap;
+        margin-top:12px;
+      "
+    ></pre>
+  `;
+
+  tool.prepend(wrapper);
+
+  $('labExperimentCreate')
+    .addEventListener(
+      'click',
+      createExperiment
+    );
+}
+
+
+/* =========================
+   VIRTUAL LAB
+========================= */
+
+async function createExperiment() {
+
+  const workflowType =
+    $('labExperimentType')
+      ?.value ||
+    'custom';
+
+  const input =
+    $('labExperimentInput')
+      ?.value
+      .trim() || '';
+
+  setStatus(
+    'labExperimentStatus',
+    'Creating experiment…'
+  );
+
+  try {
+
+    const data =
+      await api(
+        '/lab/experiments',
+        {
+          method: 'POST',
+          body:
+            JSON.stringify({
+              workflow_type:
+                workflowType,
+
+              input
+            })
+        }
+      );
+
+    if ($('labExperimentResult')) {
+      $('labExperimentResult')
+        .textContent =
+        JSON.stringify(
+          data,
+          null,
+          2
+        );
+    }
+
+    setStatus(
+      'labExperimentStatus',
+      'Experiment created.',
+      true
+    );
+
+  } catch (err) {
+
+    setStatus(
+      'labExperimentStatus',
       err.message
     );
   }
@@ -776,12 +1442,15 @@ async function workflowList() {
     const data =
       await api('/workflows');
 
-    $('workflowResult').textContent =
-      JSON.stringify(
-        data,
-        null,
-        2
-      );
+    if ($('workflowResult')) {
+      $('workflowResult')
+        .textContent =
+        JSON.stringify(
+          data,
+          null,
+          2
+        );
+    }
 
     setStatus(
       'workflowStatus',
@@ -805,12 +1474,16 @@ async function workflowList() {
 
 function openModule(name) {
 
-  $('workspace')
-    .classList
-    .remove('hidden');
+  if ($('workspace')) {
+    $('workspace')
+      .classList
+      .remove('hidden');
+  }
 
-  $('workspaceTitle')
-    .textContent = name;
+  if ($('workspaceTitle')) {
+    $('workspaceTitle')
+      .textContent = name;
+  }
 
   document
     .querySelectorAll('.tool')
@@ -818,6 +1491,12 @@ function openModule(name) {
       e =>
         e.classList.add('hidden')
     );
+
+  if ($('comingSoon')) {
+    $('comingSoon')
+      .classList
+      .add('hidden');
+  }
 
   const map = {
 
@@ -849,18 +1528,21 @@ function openModule(name) {
   const id =
     map[name];
 
-  if (id) {
+  if (id && $(id)) {
 
     $(id)
       .classList
       .remove('hidden');
 
-  } else {
+  } else if ($('comingSoon')) {
 
     $('comingSoon')
       .classList
       .remove('hidden');
   }
+
+
+  /* Drug Discovery */
 
   if (
     name ===
@@ -869,31 +1551,76 @@ function openModule(name) {
     prepareDiscoveryUI();
   }
 
+
+  /* Scientific Jobs */
+
   if (
     name ===
     'Scientific Jobs'
   ) {
+    prepareJobsUI();
     loadJobs();
+    loadJobStatus();
   }
+
+
+  /* Research Assistant */
+
+  if (
+    name ===
+    'Research Assistant'
+  ) {
+    prepareResearchUI();
+  }
+
+
+  /* Virtual Laboratory */
+
+  if (
+    name ===
+    'Virtual Laboratory'
+  ) {
+    prepareVirtualLabUI();
+  }
+
+
+  /* Reports */
 
   if (
     name ===
     'Reports & History'
   ) {
+    prepareReportsUI();
     loadReports();
   }
 
-  $('workspace')
-    .scrollIntoView({
-      behavior: 'smooth',
-      block: 'start'
-    });
+
+  if ($('workspace')) {
+    $('workspace')
+      .scrollIntoView({
+        behavior: 'smooth',
+        block: 'start'
+      });
+  }
 }
 
 
 /* =========================
    EVENT LISTENERS
 ========================= */
+
+function bind(id, event, fn) {
+
+  const element = $(id);
+
+  if (element) {
+    element.addEventListener(
+      event,
+      fn
+    );
+  }
+}
+
 
 document
   .querySelectorAll('.module')
@@ -909,77 +1636,81 @@ document
   );
 
 
-$('molecularRun')
-  .addEventListener(
-    'click',
-    molecularAnalyze
-  );
+bind(
+  'molecularRun',
+  'click',
+  molecularAnalyze
+);
 
 
-$('jobsRefresh')
-  .addEventListener(
-    'click',
-    loadJobs
-  );
+bind(
+  'jobsRefresh',
+  'click',
+  loadJobs
+);
 
 
-$('reportsRefresh')
-  .addEventListener(
-    'click',
-    loadReports
-  );
+bind(
+  'reportsRefresh',
+  'click',
+  loadReports
+);
 
 
-$('workspaceClose')
-  .addEventListener(
-    'click',
-    () =>
+bind(
+  'workspaceClose',
+  'click',
+  () => {
+
+    if ($('workspace')) {
       $('workspace')
         .classList
-        .add('hidden')
-  );
+        .add('hidden');
+    }
+  }
+);
 
 
-$('pdbRun')
-  .addEventListener(
-    'click',
-    pdbLookup
-  );
+bind(
+  'pdbRun',
+  'click',
+  pdbLookup
+);
 
 
-$('discoveryRun')
-  .addEventListener(
-    'click',
-    discoveryCreate
-  );
+bind(
+  'discoveryRun',
+  'click',
+  discoveryCreate
+);
 
 
-$('workflowRefresh')
-  .addEventListener(
-    'click',
-    workflowList
-  );
+bind(
+  'workflowRefresh',
+  'click',
+  workflowList
+);
 
 
-$('bioRun')
-  .addEventListener(
-    'click',
-    bioinformaticsRun
-  );
+bind(
+  'bioRun',
+  'click',
+  bioinformaticsRun
+);
 
 
-$('researchRun')
-  .addEventListener(
-    'click',
-    researchSearch
-  );
+bind(
+  'researchRun',
+  'click',
+  researchSearch
+);
 
 
-$('jobCreate')
-  .addEventListener(
-    'click',
-    createJob
-  );
+bind(
+  'jobCreate',
+  'click',
+  createJob
+);
 
 
 /* =========================
@@ -989,25 +1720,30 @@ $('jobCreate')
 if (state.token) {
 
   api('/auth/me')
-    .then(user => {
+    .then(
+      user => {
 
-      state.user = user;
+        state.user =
+          user;
 
-      showDashboard();
-    })
-    .catch(() => {
+        showDashboard();
+      }
+    )
+    .catch(
+      () => {
 
-      state.token = '';
-      state.user = null;
+        state.token = '';
+        state.user = null;
 
-      sessionStorage.removeItem(
-        CONFIG.tokenKey
-      );
+        sessionStorage.removeItem(
+          CONFIG.tokenKey
+        );
 
-      showLogin();
-    });
+        showLogin();
+      }
+    );
 
 } else {
 
   showLogin();
-}
+    }
