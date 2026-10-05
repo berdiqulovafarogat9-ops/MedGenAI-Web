@@ -296,15 +296,13 @@ async function bioinformaticsRun() {
 
   try {
     const data = await api(
-      '/workflows',
+      '/bioinformatics/analyze',
       {
-        method: 'POST',
-        body: JSON.stringify({
-          workflow_type: 'BIOINFORMATICS',
-          input: {
-            sequence: seq
-          }
-        })
+       method: 'POST',
+       body: JSON.stringify({
+         sequence: seq,
+         sequence_type: 'AUTO'
+       })
       }
     );
 
