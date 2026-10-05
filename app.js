@@ -13,6 +13,7 @@ const CONFIG = {
   tokenKey: 'medgen_access_token'
 };
 
+
 async function api(path, options = {}) {
   if (!path.startsWith('/')) {
     throw new Error('Invalid API path');
@@ -24,13 +25,17 @@ async function api(path, options = {}) {
   };
 
   if (state.token) {
-    headers.Authorization = `Bearer ${state.token}`;
+    headers.Authorization =
+      `Bearer ${state.token}`;
   }
 
-  const r = await fetch(CONFIG.apiBase + path, {
-    ...options,
-    headers
-  });
+  const r = await fetch(
+    CONFIG.apiBase + path,
+    {
+      ...options,
+      headers
+    }
+  );
 
   let data = null;
 
@@ -49,10 +54,16 @@ async function api(path, options = {}) {
   return data;
 }
 
+
+/* =========================
+   LOGIN / DASHBOARD
+========================= */
+
 function showLogin() {
   $('dashboardView').classList.add('hidden');
   $('loginView').classList.remove('hidden');
 }
+
 
 function showDashboard() {
   $('loginView').classList.add('hidden');
@@ -62,6 +73,7 @@ function showDashboard() {
   checkHealth();
 }
 
+
 function updateRole() {
   const role = state.user?.role || 'USER';
 
@@ -69,6 +81,7 @@ function updateRole() {
     $('roleBadge').textContent = role;
   }
 }
+
 
 function setStatus(id, msg, ok = false) {
   const e = $(id);
@@ -78,6 +91,7 @@ function setStatus(id, msg, ok = false) {
     e.style.color = ok ? '#8eeed2' : '';
   }
 }
+
 
 async function checkHealth() {
   try {
@@ -91,19 +105,23 @@ async function checkHealth() {
     }
 
     if ($('healthBadge')) {
-      $('healthBadge').textContent = 'API: online';
+      $('healthBadge').textContent =
+        'API: online';
     }
 
     if ($('apiText')) {
-      $('apiText').textContent = 'online';
+      $('apiText').textContent =
+        'online';
     }
   } catch {
     if ($('healthBadge')) {
-      $('healthBadge').textContent = 'API: offline';
+      $('healthBadge').textContent =
+        'API: offline';
     }
 
     if ($('apiText')) {
-      $('apiText').textContent = 'not connected';
+      $('apiText').textContent =
+        'not connected';
     }
   }
 }
@@ -113,57 +131,88 @@ async function checkHealth() {
    LOGIN
 ========================= */
 
-$('loginForm').addEventListener('submit', async (e) => {
-  e.preventDefault();
+$('loginForm').addEventListener(
+  'submit',
+  async (e) => {
 
-  setStatus('loginStatus', 'Signing in…');
-
-  try {
-    const body = {
-      username: $('loginUser').value.trim(),
-      password: $('loginPassword').value
-    };
-
-    const data = await api('/auth/login', {
-      method: 'POST',
-      body: JSON.stringify(body)
-    });
-
-    state.token = data.access_token;
-
-    sessionStorage.setItem(
-      CONFIG.tokenKey,
-      state.token
-    );
-
-    state.user = await api('/auth/me');
-
-    showDashboard();
-
-    setStatus('loginStatus', '');
-  } catch (err) {
-    console.error('Login error:', err);
+    e.preventDefault();
 
     setStatus(
       'loginStatus',
-      err.message || 'Login failed.'
+      'Signing in…'
     );
+
+    try {
+
+      const body = {
+        username:
+          $('loginUser').value.trim(),
+
+        password:
+          $('loginPassword').value
+      };
+
+      const data = await api(
+        '/auth/login',
+        {
+          method: 'POST',
+          body: JSON.stringify(body)
+        }
+      );
+
+      state.token =
+        data.access_token;
+
+      sessionStorage.setItem(
+        CONFIG.tokenKey,
+        state.token
+      );
+
+      state.user =
+        await api('/auth/me');
+
+      showDashboard();
+
+      setStatus(
+        'loginStatus',
+        ''
+      );
+
+    } catch (err) {
+
+      console.error(
+        'Login error:',
+        err
+      );
+
+      setStatus(
+        'loginStatus',
+        err.message ||
+        'Login failed.'
+      );
+    }
   }
-});
+);
 
 
 /* =========================
    LOGOUT
 ========================= */
 
-$('logoutBtn').addEventListener('click', () => {
-  state.token = '';
-  state.user = null;
+$('logoutBtn').addEventListener(
+  'click',
+  () => {
 
-  sessionStorage.removeItem(CONFIG.tokenKey);
+    state.token = '';
+    state.user = null;
 
-  showLogin();
-});
+    sessionStorage.removeItem(
+      CONFIG.tokenKey
+    );
+
+    showLogin();
+  }
+);
 
 
 /* =========================
@@ -171,7 +220,9 @@ $('logoutBtn').addEventListener('click', () => {
 ========================= */
 
 async function molecularAnalyze() {
-  const smiles = $('smilesInput').value.trim();
+
+  const smiles =
+    $('smilesInput').value.trim();
 
   if (!smiles) {
     setStatus(
@@ -187,87 +238,34 @@ async function molecularAnalyze() {
   );
 
   try {
+
     const data = await api(
       '/molecules/analyze',
       {
         method: 'POST',
         body: JSON.stringify({
-         smiles
+          smiles
         })
       }
     );
 
     $('molecularResult').textContent =
-      JSON.stringify(data, null, 2);
+      JSON.stringify(
+        data,
+        null,
+        2
+      );
 
     setStatus(
       'molecularStatus',
       'Analysis completed.',
       true
     );
+
   } catch (err) {
+
     setStatus(
       'molecularStatus',
-      err.message
-    );
-  }
-}
-
-
-/* =========================
-   JOBS
-========================= */
-
-async function loadJobs() {
-  setStatus(
-    'jobsStatus',
-    'Loading…'
-  );
-
-  try {
-    const data = await api('/jobs');
-
-    $('jobsResult').textContent =
-      JSON.stringify(data, null, 2);
-
-    setStatus(
-      'jobsStatus',
-      'Loaded.',
-      true
-    );
-  } catch (err) {
-    setStatus(
-      'jobsStatus',
-      err.message
-    );
-  }
-}
-
-
-/* =========================
-   REPORTS
-========================= */
-
-async function loadReports() {
-  setStatus(
-    'reportsStatus',
-    'Loading…'
-  );
-
-  try {
-    const data = await api('/reports');
-
-    $('reportsResult').textContent =
-      JSON.stringify(data, null, 2);
-
-    setStatus(
-      'reportsStatus',
-      'Loaded.',
-      true
-    );
-  } catch (err) {
-    setStatus(
-      'reportsStatus',
       err.message
     );
   }
@@ -279,7 +277,9 @@ async function loadReports() {
 ========================= */
 
 async function bioinformaticsRun() {
-  const seq = $('bioSequence').value.trim();
+
+  const seq =
+    $('bioSequence').value.trim();
 
   if (!seq) {
     setStatus(
@@ -295,120 +295,35 @@ async function bioinformaticsRun() {
   );
 
   try {
+
     const data = await api(
       '/bioinformatics/analyze',
       {
-       method: 'POST',
-       body: JSON.stringify({
-         sequence: seq,
-         sequence_type: 'AUTO'
-       })
+        method: 'POST',
+        body: JSON.stringify({
+          sequence: seq,
+          sequence_type: 'AUTO'
+        })
       }
     );
 
     $('bioResult').textContent =
-      JSON.stringify(data, null, 2);
+      JSON.stringify(
+        data,
+        null,
+        2
+      );
 
     setStatus(
       'bioStatus',
-      'Workflow submitted.',
+      'Analysis completed.',
       true
     );
+
   } catch (err) {
+
     setStatus(
       'bioStatus',
-      err.message
-    );
-  }
-}
-
-
-/* =========================
-   RESEARCH SEARCH
-========================= */
-
-async function researchSearch() {
-  const q = $('researchQuery').value.trim();
-
-  if (!q) {
-    setStatus(
-      'researchStatus',
-      'Enter a research query.'
-    );
-    return;
-  }
-
-  setStatus(
-    'researchStatus',
-    'Searching…'
-  );
-
-  try {
-    const data = await api(
-      '/research/search',
-      {
-        method: 'POST',
-        body: JSON.stringify({
-          query: q,
-          limit: 10
-        })
-      }
-    );
-
-    $('researchResult').textContent =
-      JSON.stringify(data, null, 2);
-
-    setStatus(
-      'researchStatus',
-      'Search completed.',
-      true
-    );
-  } catch (err) {
-    setStatus(
-      'researchStatus',
-      err.message
-    );
-  }
-}
-
-
-/* =========================
-   SCIENTIFIC JOB
-========================= */
-
-async function createJob() {
-  const type = $('jobType').value;
-
-  setStatus(
-    'jobCreateStatus',
-    'Submitting…'
-  );
-
-  try {
-    const data = await api(
-      '/jobs',
-      {
-        method: 'POST',
-        body: JSON.stringify({
-          job_type: type,
-          input: {
-            source: 'web'
-          }
-        })
-      }
-    );
-
-    $('jobCreateResult').textContent =
-      JSON.stringify(data, null, 2);
-
-    setStatus(
-      'jobCreateStatus',
-      'Job submitted.',
-      true
-    );
-  } catch (err) {
-    setStatus(
-      'jobCreateStatus',
       err.message
     );
   }
@@ -420,10 +335,12 @@ async function createJob() {
 ========================= */
 
 async function pdbLookup() {
-  const id = $('pdbInput')
-    .value
-    .trim()
-    .toUpperCase();
+
+  const id =
+    $('pdbInput')
+      .value
+      .trim()
+      .toUpperCase();
 
   if (!id) {
     setStatus(
@@ -439,20 +356,27 @@ async function pdbLookup() {
   );
 
   try {
+
     const data = await api(
       '/pdb/structures/' +
       encodeURIComponent(id)
     );
 
     $('pdbResult').textContent =
-      JSON.stringify(data, null, 2);
+      JSON.stringify(
+        data,
+        null,
+        2
+      );
 
     setStatus(
       'pdbStatus',
       'Loaded.',
       true
     );
+
   } catch (err) {
+
     setStatus(
       'pdbStatus',
       err.message
@@ -462,48 +386,374 @@ async function pdbLookup() {
 
 
 /* =========================
-   DRUG DISCOVERY
+   DRUG DISCOVERY UI
+========================= */
+
+function prepareDiscoveryUI() {
+
+  const tool =
+    $('discoveryTool');
+
+  if (!tool) {
+    return;
+  }
+
+  if ($('discoveryMolecules')) {
+    return;
+  }
+
+  const wrapper =
+    document.createElement('div');
+
+  wrapper.style.marginTop =
+    '16px';
+
+  wrapper.innerHTML = `
+    <label
+      for="discoveryMolecules"
+      style="
+        display:block;
+        margin-bottom:8px;
+        font-weight:600;
+      "
+    >
+      Molecules / SMILES
+    </label>
+
+    <textarea
+      id="discoveryMolecules"
+      rows="6"
+      placeholder="Enter one SMILES per line
+
+Example:
+CCO
+C1=CC=CC=C1
+CC(=O)O"
+      style="
+        width:100%;
+        min-height:130px;
+        resize:vertical;
+        box-sizing:border-box;
+      "
+    ></textarea>
+
+    <div
+      style="
+        margin-top:8px;
+        font-size:13px;
+        opacity:.75;
+      "
+    >
+      One molecule per line.
+      Screening will rank the molecules.
+    </div>
+  `;
+
+  const button =
+    $('discoveryRun');
+
+  if (button) {
+    button.textContent =
+      'Run Screening';
+
+    button.parentNode.insertBefore(
+      wrapper,
+      button
+    );
+  } else {
+    tool.appendChild(wrapper);
+  }
+}
+
+
+/* =========================
+   DRUG DISCOVERY SCREENING
 ========================= */
 
 async function discoveryCreate() {
+
+  prepareDiscoveryUI();
+
   const target =
-    $('discoveryTarget').value.trim();
+    $('discoveryTarget')
+      .value
+      .trim();
+
+  const moleculesText =
+    $('discoveryMolecules')
+      ?.value
+      .trim() || '';
 
   if (!target) {
+
     setStatus(
       'discoveryStatus',
       'Enter a target.'
     );
+
+    return;
+  }
+
+  if (!moleculesText) {
+
+    setStatus(
+      'discoveryStatus',
+      'Enter at least one molecule.'
+    );
+
+    return;
+  }
+
+  const molecules =
+    moleculesText
+      .split('\n')
+      .map(
+        item => item.trim()
+      )
+      .filter(Boolean);
+
+  if (!molecules.length) {
+
+    setStatus(
+      'discoveryStatus',
+      'Enter at least one molecule.'
+    );
+
     return;
   }
 
   setStatus(
     'discoveryStatus',
-    'Creating session…'
+    'Running virtual screening…'
   );
 
   try {
+
     const data = await api(
-      '/discovery/sessions',
+      '/discovery/screen',
       {
         method: 'POST',
+
         body: JSON.stringify({
-          target
+          target,
+          molecules
         })
       }
     );
 
     $('discoveryResult').textContent =
-      JSON.stringify(data, null, 2);
+      JSON.stringify(
+        data,
+        null,
+        2
+      );
 
     setStatus(
       'discoveryStatus',
-      'Session created.',
+      `Screening completed: ${data.molecule_count} molecules ranked.`,
       true
     );
+
   } catch (err) {
+
+    console.error(
+      'Drug Discovery error:',
+      err
+    );
+
     setStatus(
       'discoveryStatus',
+      err.message ||
+      'Screening failed.'
+    );
+  }
+}
+
+
+/* =========================
+   JOBS
+========================= */
+
+async function loadJobs() {
+
+  setStatus(
+    'jobsStatus',
+    'Loading…'
+  );
+
+  try {
+
+    const data =
+      await api('/jobs');
+
+    $('jobsResult').textContent =
+      JSON.stringify(
+        data,
+        null,
+        2
+      );
+
+    setStatus(
+      'jobsStatus',
+      'Loaded.',
+      true
+    );
+
+  } catch (err) {
+
+    setStatus(
+      'jobsStatus',
+      err.message
+    );
+  }
+}
+
+
+async function createJob() {
+
+  const type =
+    $('jobType').value;
+
+  setStatus(
+    'jobCreateStatus',
+    'Submitting…'
+  );
+
+  try {
+
+    const data =
+      await api(
+        '/jobs',
+        {
+          method: 'POST',
+          body: JSON.stringify({
+            job_type: type,
+            input: {
+              source: 'web'
+            }
+          })
+        }
+      );
+
+    $('jobCreateResult').textContent =
+      JSON.stringify(
+        data,
+        null,
+        2
+      );
+
+    setStatus(
+      'jobCreateStatus',
+      'Job submitted.',
+      true
+    );
+
+  } catch (err) {
+
+    setStatus(
+      'jobCreateStatus',
+      err.message
+    );
+  }
+}
+
+
+/* =========================
+   REPORTS
+========================= */
+
+async function loadReports() {
+
+  setStatus(
+    'reportsStatus',
+    'Loading…'
+  );
+
+  try {
+
+    const data =
+      await api('/reports');
+
+    $('reportsResult').textContent =
+      JSON.stringify(
+        data,
+        null,
+        2
+      );
+
+    setStatus(
+      'reportsStatus',
+      'Loaded.',
+      true
+    );
+
+  } catch (err) {
+
+    setStatus(
+      'reportsStatus',
+      err.message
+    );
+  }
+}
+
+
+/* =========================
+   RESEARCH
+========================= */
+
+async function researchSearch() {
+
+  const q =
+    $('researchQuery')
+      .value
+      .trim();
+
+  if (!q) {
+
+    setStatus(
+      'researchStatus',
+      'Enter a research query.'
+    );
+
+    return;
+  }
+
+  setStatus(
+    'researchStatus',
+    'Searching…'
+  );
+
+  try {
+
+    const data =
+      await api(
+        '/research/search',
+        {
+          method: 'POST',
+          body: JSON.stringify({
+            query: q,
+            limit: 10
+          })
+        }
+      );
+
+    $('researchResult').textContent =
+      JSON.stringify(
+        data,
+        null,
+        2
+      );
+
+    setStatus(
+      'researchStatus',
+      'Search completed.',
+      true
+    );
+
+  } catch (err) {
+
+    setStatus(
+      'researchStatus',
       err.message
     );
   }
@@ -515,23 +765,32 @@ async function discoveryCreate() {
 ========================= */
 
 async function workflowList() {
+
   setStatus(
     'workflowStatus',
     'Loading…'
   );
 
   try {
-    const data = await api('/workflows');
+
+    const data =
+      await api('/workflows');
 
     $('workflowResult').textContent =
-      JSON.stringify(data, null, 2);
+      JSON.stringify(
+        data,
+        null,
+        2
+      );
 
     setStatus(
       'workflowStatus',
       'Loaded.',
       true
     );
+
   } catch (err) {
+
     setStatus(
       'workflowStatus',
       err.message
@@ -545,45 +804,90 @@ async function workflowList() {
 ========================= */
 
 function openModule(name) {
-  $('workspace').classList.remove('hidden');
 
-  $('workspaceTitle').textContent = name;
+  $('workspace')
+    .classList
+    .remove('hidden');
+
+  $('workspaceTitle')
+    .textContent = name;
 
   document
     .querySelectorAll('.tool')
-    .forEach(e => e.classList.add('hidden'));
+    .forEach(
+      e =>
+        e.classList.add('hidden')
+    );
 
   const map = {
-    'Molecular Analysis': 'molecularTool',
-    'Bioinformatics': 'bioTool',
-    'PDB & Structure': 'pdbTool',
-    'Drug Discovery': 'discoveryTool',
-    'Scientific Jobs': 'jobsTool',
-    'Research Assistant': 'researchTool',
-    'Virtual Laboratory': 'workflowTool',
-    'Reports & History': 'reportsTool'
+
+    'Molecular Analysis':
+      'molecularTool',
+
+    'Bioinformatics':
+      'bioTool',
+
+    'PDB & Structure':
+      'pdbTool',
+
+    'Drug Discovery':
+      'discoveryTool',
+
+    'Scientific Jobs':
+      'jobsTool',
+
+    'Research Assistant':
+      'researchTool',
+
+    'Virtual Laboratory':
+      'workflowTool',
+
+    'Reports & History':
+      'reportsTool'
   };
 
-  const id = map[name];
+  const id =
+    map[name];
 
   if (id) {
-    $(id).classList.remove('hidden');
+
+    $(id)
+      .classList
+      .remove('hidden');
+
   } else {
-    $('comingSoon').classList.remove('hidden');
+
+    $('comingSoon')
+      .classList
+      .remove('hidden');
   }
 
-  if (name === 'Scientific Jobs') {
+  if (
+    name ===
+    'Drug Discovery'
+  ) {
+    prepareDiscoveryUI();
+  }
+
+  if (
+    name ===
+    'Scientific Jobs'
+  ) {
     loadJobs();
   }
 
-  if (name === 'Reports & History') {
+  if (
+    name ===
+    'Reports & History'
+  ) {
     loadReports();
   }
 
-  $('workspace').scrollIntoView({
-    behavior: 'smooth',
-    block: 'start'
-  });
+  $('workspace')
+    .scrollIntoView({
+      behavior: 'smooth',
+      block: 'start'
+    });
 }
 
 
@@ -593,12 +897,17 @@ function openModule(name) {
 
 document
   .querySelectorAll('.module')
-  .forEach(b =>
-    b.addEventListener(
-      'click',
-      () => openModule(b.dataset.module)
-    )
+  .forEach(
+    b =>
+      b.addEventListener(
+        'click',
+        () =>
+          openModule(
+            b.dataset.module
+          )
+      )
   );
+
 
 $('molecularRun')
   .addEventListener(
@@ -606,11 +915,13 @@ $('molecularRun')
     molecularAnalyze
   );
 
+
 $('jobsRefresh')
   .addEventListener(
     'click',
     loadJobs
   );
+
 
 $('reportsRefresh')
   .addEventListener(
@@ -618,12 +929,16 @@ $('reportsRefresh')
     loadReports
   );
 
+
 $('workspaceClose')
   .addEventListener(
     'click',
     () =>
-      $('workspace').classList.add('hidden')
+      $('workspace')
+        .classList
+        .add('hidden')
   );
+
 
 $('pdbRun')
   .addEventListener(
@@ -631,11 +946,13 @@ $('pdbRun')
     pdbLookup
   );
 
+
 $('discoveryRun')
   .addEventListener(
     'click',
     discoveryCreate
   );
+
 
 $('workflowRefresh')
   .addEventListener(
@@ -643,17 +960,20 @@ $('workflowRefresh')
     workflowList
   );
 
+
 $('bioRun')
   .addEventListener(
     'click',
     bioinformaticsRun
   );
 
+
 $('researchRun')
   .addEventListener(
     'click',
     researchSearch
   );
+
 
 $('jobCreate')
   .addEventListener(
@@ -667,12 +987,16 @@ $('jobCreate')
 ========================= */
 
 if (state.token) {
+
   api('/auth/me')
     .then(user => {
+
       state.user = user;
+
       showDashboard();
     })
     .catch(() => {
+
       state.token = '';
       state.user = null;
 
@@ -682,6 +1006,8 @@ if (state.token) {
 
       showLogin();
     });
+
 } else {
+
   showLogin();
 }
