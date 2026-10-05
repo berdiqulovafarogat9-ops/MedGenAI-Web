@@ -14,29 +14,57 @@ from fastapi.security import HTTPAuthorizationCredentials, HTTPBearer
 from pydantic import BaseModel
 
 
+# =========================================================
+# APP
+# =========================================================
+
 app = FastAPI(
     title="MedGen AI API",
     version="1.1.0",
     docs_url="/api/docs",
 )
 
+
+# =========================================================
+# CORS
+# =========================================================
+
 app.add_middleware(
     CORSMiddleware,
     allow_origins=[
         "https://medgen-web.onrender.com",
+        "http://localhost:8080",
+        "http://127.0.0.1:8080",
     ],
     allow_credentials=True,
-    allow_methods=["*"],
+    allow_methods=[
+        "GET",
+        "POST",
+        "PUT",
+        "PATCH",
+        "DELETE",
+        "OPTIONS",
+    ],
     allow_headers=["*"],
 )
 
+
+# =========================================================
+# SECURITY
+# =========================================================
+
 security = HTTPBearer(auto_error=False)
 
-ADMIN_USERNAME = os.getenv("MEDGEN_ADMIN_USERNAME", "admin")
+ADMIN_USERNAME = os.getenv(
+    "MEDGEN_ADMIN_USERNAME",
+    "admin",
+)
+
 ADMIN_PASSWORD = os.getenv(
     "MEDGEN_ADMIN_PASSWORD",
     "MedGenAI-Admin-2026",
 )
+
 SECRET_KEY = os.getenv(
     "MEDGEN_SECRET_KEY",
     "CHANGE-ME-IN-PRODUCTION",
@@ -45,9 +73,9 @@ SECRET_KEY = os.getenv(
 tokens = {}
 
 
-# =========================
+# =========================================================
 # MODELS
-# =========================
+# =========================================================
 
 class LoginRequest(BaseModel):
     username: str
@@ -82,9 +110,9 @@ class SequenceRequest(BaseModel):
     sequence_type: str = "AUTO"
 
 
-# =========================
-# AUTH
-# =========================
+# =========================================================
+# AUTH FUNCTIONS
+# =========================================================
 
 def make_token(username: str) -> str:
     raw = (
@@ -94,11 +122,15 @@ def make_token(username: str) -> str:
         f"{SECRET_KEY}"
     )
 
-    return hashlib.sha256(raw.encode()).hexdigest()
+    return hashlib.sha256(
+        raw.encode()
+    ).hexdigest()
 
 
 def get_current_user(
-    credentials: HTTPAuthorizationCredentials = Depends(security),
+    credentials: HTTPAuthorizationCredentials = Depends(
+        security
+    ),
 ):
     if not credentials:
         raise HTTPException(
@@ -106,7 +138,9 @@ def get_current_user(
             detail="Authentication required",
         )
 
-    username = tokens.get(credentials.credentials)
+    username = tokens.get(
+        credentials.credentials
+    )
 
     if not username:
         raise HTTPException(
@@ -124,9 +158,9 @@ def get_current_user(
     }
 
 
-# =========================
+# =========================================================
 # HEALTH
-# =========================
+# =========================================================
 
 @app.get("/api/v1/health/live")
 def health_live():
@@ -134,16 +168,19 @@ def health_live():
         "status": "ok",
         "service": "medgen-api",
         "version": "1.1.0",
-        "timestamp": datetime.now(timezone.utc).isoformat(),
+        "timestamp": datetime.now(
+            timezone.utc
+        ).isoformat(),
     }
 
 
-# =========================
+# =========================================================
 # AUTH
-# =========================
+# =========================================================
 
 @app.post("/api/v1/auth/login")
 def login(data: LoginRequest):
+
     if (
         data.username != ADMIN_USERNAME
         or data.password != ADMIN_PASSWORD
@@ -153,7 +190,10 @@ def login(data: LoginRequest):
             detail="Invalid username or password",
         )
 
-    token = make_token(data.username)
+    token = make_token(
+        data.username
+    )
+
     tokens[token] = data.username
 
     return {
@@ -163,19 +203,22 @@ def login(data: LoginRequest):
 
 
 @app.get("/api/v1/auth/me")
-def me(user=Depends(get_current_user)):
+def me(
+    user=Depends(get_current_user),
+):
     return user
 
 
-# =========================
+# =========================================================
 # MOLECULAR ANALYSIS
-# =========================
+# =========================================================
 
 @app.post("/api/v1/molecules/analyze")
 def molecule_analyze(
     data: MoleculeRequest,
     user=Depends(get_current_user),
 ):
+
     smiles = data.smiles.strip()
 
     if not smiles:
@@ -184,40 +227,57 @@ def molecule_analyze(
             detail="SMILES is required",
         )
 
-    result = {
+    uppercase_atoms = sum(
+        1
+        for char in smiles
+        if char.isalpha()
+        and char.isupper()
+    )
+
+    ring_digits = sum(
+        1
+        for char in smiles
+        if char.isdigit()
+    )
+
+    formal_charge = (
+        smiles.count("+")
+        - smiles.count("-")
+    )
+
+    return {
         "status": "completed",
         "module": "Molecular Analysis",
         "smiles": smiles,
         "user": user["username"],
         "analysis": {
-            "length": len(smiles),
-            "heavy_atom_estimate": sum(
-                1 for c in smiles
-                if c.isalpha() and c.isupper()
-            ),
-            "rings": sum(
-                1 for c in smiles
-                if c.isdigit()
-            ) // 2,
-            "formal_charge_markers": (
-                smiles.count("+") - smiles.count("-")
-            ),
+            "smiles_length": len(smiles),
+            "heavy_atom_estimate": uppercase_atoms,
+            "ring_digit_count": ring_digits,
+            "estimated_rings": ring_digits // 2,
+            "formal_charge_markers": formal_charge,
         },
         "message": (
-            "Basic molecular analysis completed. "
-            "Advanced RDKit analysis can be added next."
+            "Basic molecular analysis completed."
         ),
     }
 
-    return result
 
-
-# =========================
+# =========================================================
 # BIOINFORMATICS
-# =========================
+# =========================================================
 
-def detect_sequence_type(sequence: str) -> str:
-    clean = sequence.upper().replace(" ", "").replace("\n", "")
+def detect_sequence_type(
+    sequence: str,
+) -> str:
+
+    clean = (
+        sequence
+        .upper()
+        .replace(" ", "")
+        .replace("\n", "")
+        .replace("\r", "")
+    )
 
     if not clean:
         return "UNKNOWN"
@@ -236,11 +296,14 @@ def detect_sequence_type(sequence: str) -> str:
     return "PROTEIN"
 
 
-@app.post("/api/v1/bioinformatics/analyze")
+@app.post(
+    "/api/v1/bioinformatics/analyze"
+)
 def bioinformatics_analyze(
     data: SequenceRequest,
     user=Depends(get_current_user),
 ):
+
     sequence = (
         data.sequence
         .upper()
@@ -255,17 +318,43 @@ def bioinformatics_analyze(
             detail="Sequence is required",
         )
 
-    detected = detect_sequence_type(sequence)
+    detected_type = detect_sequence_type(
+        sequence
+    )
 
-    if data.sequence_type.upper() != "AUTO":
-        detected = data.sequence_type.upper()
+    requested_type = (
+        data.sequence_type.upper()
+    )
 
-    gc_count = sequence.count("G") + sequence.count("C")
-    at_count = sequence.count("A") + sequence.count("T")
+    if requested_type != "AUTO":
+        detected_type = requested_type
+
+    a_count = sequence.count("A")
+    c_count = sequence.count("C")
+    g_count = sequence.count("G")
+    t_count = sequence.count("T")
+    u_count = sequence.count("U")
+
+    gc_count = g_count + c_count
+    at_count = a_count + t_count
+
+    length = len(sequence)
 
     gc_content = (
-        round((gc_count / len(sequence)) * 100, 2)
-        if sequence
+        round(
+            (gc_count / length) * 100,
+            2,
+        )
+        if length
+        else 0
+    )
+
+    at_content = (
+        round(
+            (at_count / length) * 100,
+            2,
+        )
+        if length
         else 0
     )
 
@@ -273,43 +362,54 @@ def bioinformatics_analyze(
         "status": "completed",
         "module": "Bioinformatics",
         "user": user["username"],
-        "sequence_type": detected,
-        "length": len(sequence),
+        "sequence_type": detected_type,
+        "length": length,
         "composition": {
-            "A": sequence.count("A"),
-            "C": sequence.count("C"),
-            "G": sequence.count("G"),
-            "T": sequence.count("T"),
-            "U": sequence.count("U"),
+            "A": a_count,
+            "C": c_count,
+            "G": g_count,
+            "T": t_count,
+            "U": u_count,
         },
         "gc_content_percent": gc_content,
-        "at_content_percent": (
-            round((at_count / len(sequence)) * 100, 2)
-            if sequence
-            else 0
+        "at_content_percent": at_content,
+        "message": (
+            "Sequence analysis completed."
         ),
-        "message": "Sequence analysis completed.",
     }
 
 
-@app.post("/api/v1/workflows/bioinformatics")
+@app.post(
+    "/api/v1/workflows/bioinformatics"
+)
 def bioinformatics_workflow(
     data: SequenceRequest,
     user=Depends(get_current_user),
 ):
-    return bioinformatics_analyze(data, user)
+
+    return bioinformatics_analyze(
+        data,
+        user,
+    )
 
 
-# =========================
+# =========================================================
 # PDB / STRUCTURE
-# =========================
+# =========================================================
 
-@app.get("/api/v1/pdb/structures/{pdb_id}")
+@app.get(
+    "/api/v1/pdb/structures/{pdb_id}"
+)
 def pdb_structure(
     pdb_id: str,
     user=Depends(get_current_user),
 ):
-    pdb_id = pdb_id.strip().upper()
+
+    pdb_id = (
+        pdb_id
+        .strip()
+        .upper()
+    )
 
     if len(pdb_id) != 4:
         raise HTTPException(
@@ -323,6 +423,7 @@ def pdb_structure(
     )
 
     try:
+
         request = Request(
             url,
             headers={
@@ -330,52 +431,85 @@ def pdb_structure(
             },
         )
 
-        with urlopen(request, timeout=15) as response:
-            raw = response.read().decode("utf-8")
+        with urlopen(
+            request,
+            timeout=15,
+        ) as response:
+
+            raw = (
+                response
+                .read()
+                .decode("utf-8")
+            )
 
         data = json.loads(raw)
 
     except HTTPError as exc:
+
         if exc.code == 404:
             raise HTTPException(
                 status_code=404,
-                detail=f"PDB structure {pdb_id} not found.",
+                detail=(
+                    f"PDB structure "
+                    f"{pdb_id} not found."
+                ),
             )
 
         raise HTTPException(
             status_code=502,
-            detail="RCSB PDB service returned an error.",
+            detail=(
+                "RCSB PDB service returned "
+                "an error."
+            ),
         )
 
-    except (URLError, TimeoutError):
+    except (
+        URLError,
+        TimeoutError,
+    ):
+
         raise HTTPException(
             status_code=503,
-            detail="Unable to connect to RCSB PDB.",
+            detail=(
+                "Unable to connect "
+                "to RCSB PDB."
+            ),
         )
 
-    entry = data.get("struct", {})
-    rcsb_id = data.get("rcsb_id", pdb_id)
+    entry = data.get(
+        "struct",
+        {},
+    )
+
+    rcsb_id = data.get(
+        "rcsb_id",
+        pdb_id,
+    )
 
     return {
         "status": "completed",
         "module": "PDB & Structure",
         "user": user["username"],
         "pdb_id": rcsb_id,
-        "title": entry.get("title"),
-        "deposition_date": entry.get(
-            "pdbx_descriptor"
+        "title": entry.get(
+            "title"
         ),
-        "source": "RCSB Protein Data Bank",
+        "source": (
+            "RCSB Protein Data Bank"
+        ),
         "data": data,
     }
 
 
-# =========================
+# =========================================================
 # JOBS
-# =========================
+# =========================================================
 
 @app.get("/api/v1/jobs")
-def list_jobs(user=Depends(get_current_user)):
+def list_jobs(
+    user=Depends(get_current_user),
+):
+
     return {
         "jobs": [],
         "count": 0,
@@ -388,6 +522,7 @@ def create_job(
     data: JobRequest,
     user=Depends(get_current_user),
 ):
+
     return {
         "status": "submitted",
         "job_type": data.job_type,
@@ -399,12 +534,15 @@ def create_job(
     }
 
 
-# =========================
+# =========================================================
 # REPORTS
-# =========================
+# =========================================================
 
 @app.get("/api/v1/reports")
-def reports(user=Depends(get_current_user)):
+def reports(
+    user=Depends(get_current_user),
+):
+
     return {
         "reports": [],
         "count": 0,
@@ -412,15 +550,16 @@ def reports(user=Depends(get_current_user)):
     }
 
 
-# =========================
+# =========================================================
 # WORKFLOWS
-# =========================
+# =========================================================
 
 @app.post("/api/v1/workflows")
 def create_workflow(
     data: WorkflowRequest,
     user=Depends(get_current_user),
 ):
+
     return {
         "status": "submitted",
         "workflow_type": data.workflow_type,
@@ -430,7 +569,10 @@ def create_workflow(
 
 
 @app.get("/api/v1/workflows")
-def list_workflows(user=Depends(get_current_user)):
+def list_workflows(
+    user=Depends(get_current_user),
+):
+
     return {
         "workflows": [],
         "count": 0,
@@ -438,34 +580,41 @@ def list_workflows(user=Depends(get_current_user)):
     }
 
 
-# =========================
+# =========================================================
 # DRUG DISCOVERY
-# =========================
+# =========================================================
 
-@app.post("/api/v1/discovery/sessions")
+@app.post(
+    "/api/v1/discovery/sessions"
+)
 def discovery_session(
     data: DiscoveryRequest,
     user=Depends(get_current_user),
 ):
+
     return {
         "status": "created",
         "target": data.target,
         "user": user["username"],
         "message": (
-            "Drug Discovery session created."
+            "Drug Discovery session "
+            "created."
         ),
     }
 
 
-# =========================
+# =========================================================
 # RESEARCH
-# =========================
+# =========================================================
 
-@app.post("/api/v1/research/search")
+@app.post(
+    "/api/v1/research/search"
+)
 def research_search(
     data: ResearchRequest,
     user=Depends(get_current_user),
 ):
+
     return {
         "status": "completed",
         "query": data.query,
@@ -473,7 +622,8 @@ def research_search(
         "results": [],
         "user": user["username"],
         "message": (
-            "Research search endpoint is ready "
-            "for external scientific databases."
+            "Research search endpoint "
+            "is ready for external "
+            "scientific databases."
         ),
     }
