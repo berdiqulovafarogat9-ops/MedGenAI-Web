@@ -627,3 +627,302 @@ def research_search(
             "scientific databases."
         ),
     }
+# =========================================================
+# DRUG DISCOVERY PIPELINE
+# =========================================================
+
+class ScreeningRequest(BaseModel):
+    target: str
+    molecules: list[str] = []
+
+
+def calculate_molecule_score(smiles: str) -> dict:
+    """
+    Development-stage heuristic scoring.
+    This is NOT a validated docking/ADMET model.
+    """
+
+    smiles = smiles.strip()
+
+    if not smiles:
+        return {
+            "score": 0,
+            "size_score": 0,
+            "ring_score": 0,
+            "charge_score": 0,
+        }
+
+    atom_count = sum(
+        1
+        for char in smiles
+        if char.isalpha()
+        and char.isupper()
+    )
+
+    ring_count = sum(
+        1
+        for char in smiles
+        if char.isdigit()
+    ) // 2
+
+    charge_markers = (
+        smiles.count("+")
+        + smiles.count("-")
+    )
+
+    size_score = max(
+        0,
+        min(
+            40,
+            40 - abs(atom_count - 20) * 2
+        )
+    )
+
+    ring_score = min(
+        25,
+        ring_count * 8
+    )
+
+    charge_score = max(
+        0,
+        20 - charge_markers * 10
+    )
+
+    complexity_score = min(
+        15,
+        len(smiles)
+    )
+
+    total = round(
+        size_score
+        + ring_score
+        + charge_score
+        + complexity_score,
+        2,
+    )
+
+    return {
+        "score": total,
+        "atom_estimate": atom_count,
+        "ring_estimate": ring_count,
+        "charge_markers": charge_markers,
+        "size_score": size_score,
+        "ring_score": ring_score,
+        "charge_score": charge_score,
+        "complexity_score": complexity_score,
+    }
+
+
+@app.post(
+    "/api/v1/discovery/screen"
+)
+def discovery_screen(
+    data: ScreeningRequest,
+    user=Depends(get_current_user),
+):
+
+    if not data.target.strip():
+        raise HTTPException(
+            status_code=400,
+            detail="Target is required",
+        )
+
+    if not data.molecules:
+        raise HTTPException(
+            status_code=400,
+            detail="At least one molecule is required",
+        )
+
+    results = []
+
+    for smiles in data.molecules:
+
+        analysis = calculate_molecule_score(
+            smiles
+        )
+
+        results.append({
+            "smiles": smiles,
+            **analysis,
+        })
+
+    results.sort(
+        key=lambda item: item["score"],
+        reverse=True,
+    )
+
+    for index, item in enumerate(
+        results,
+        start=1,
+    ):
+        item["rank"] = index
+
+    return {
+        "status": "completed",
+        "module": "Drug Discovery",
+        "workflow": "virtual_screening",
+        "target": data.target,
+        "molecule_count": len(results),
+        "results": results,
+        "user": user["username"],
+        "warning": (
+            "Development-stage heuristic "
+            "screening only. No validated "
+            "docking, binding affinity, "
+            "ADMET, or clinical prediction "
+            "is performed."
+        ),
+    }
+
+
+# =========================================================
+# DISCOVERY SESSION DETAILS
+# =========================================================
+
+@app.get(
+    "/api/v1/discovery/sessions/{target}"
+)
+def discovery_target(
+    target: str,
+    user=Depends(get_current_user),
+):
+
+    target = target.strip()
+
+    if not target:
+        raise HTTPException(
+            status_code=400,
+            detail="Target is required",
+        )
+
+    return {
+        "status": "ready",
+        "module": "Drug Discovery",
+        "target": target,
+        "pipeline": [
+            "Target definition",
+            "Structure retrieval",
+            "Molecule preparation",
+            "Virtual screening",
+            "Ranking",
+            "Scientific report",
+        ],
+        "user": user["username"],
+    }
+
+
+# =========================================================
+# SCIENTIFIC JOBS
+# =========================================================
+
+@app.get(
+    "/api/v1/jobs/status"
+)
+def jobs_status(
+    user=Depends(get_current_user),
+):
+
+    return {
+        "status": "online",
+        "worker": "development",
+        "queue": "ready",
+        "active_jobs": 0,
+        "completed_jobs": 0,
+        "failed_jobs": 0,
+        "user": user["username"],
+    }
+
+
+# =========================================================
+# RESEARCH ASSISTANT
+# =========================================================
+
+@app.post(
+    "/api/v1/research/assistant"
+)
+def research_assistant(
+    data: ResearchRequest,
+    user=Depends(get_current_user),
+):
+
+    query = data.query.strip()
+
+    if not query:
+        raise HTTPException(
+            status_code=400,
+            detail="Research query is required",
+        )
+
+    return {
+        "status": "completed",
+        "module": "Research Assistant",
+        "query": query,
+        "results": [],
+        "citations": [],
+        "message": (
+            "Research Assistant pipeline "
+            "is ready for scientific database "
+            "connectors."
+        ),
+        "user": user["username"],
+    }
+
+
+# =========================================================
+# VIRTUAL LABORATORY
+# =========================================================
+
+@app.post(
+    "/api/v1/lab/experiments"
+)
+def create_experiment(
+    data: WorkflowRequest,
+    user=Depends(get_current_user),
+):
+
+    return {
+        "status": "created",
+        "module": "Virtual Laboratory",
+        "experiment_type": data.workflow_type,
+        "input": data.input,
+        "steps": [
+            "Experiment created",
+            "Input validation",
+            "Execution pending",
+            "Result generation",
+            "Report generation",
+        ],
+        "user": user["username"],
+    }
+
+
+# =========================================================
+# REPORT GENERATION
+# =========================================================
+
+@app.post(
+    "/api/v1/reports/generate"
+)
+def generate_report(
+    data: WorkflowRequest,
+    user=Depends(get_current_user),
+):
+
+    return {
+        "status": "completed",
+        "module": "Reports",
+        "report_type": data.workflow_type,
+        "input": data.input,
+        "sections": [
+            "Executive Summary",
+            "Target",
+            "Molecular Analysis",
+            "Structural Information",
+            "Screening Results",
+            "Limitations",
+        ],
+        "user": user["username"],
+        "created_at": datetime.now(
+            timezone.utc
+        ).isoformat(),
+            }
