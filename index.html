@@ -1,0 +1,97 @@
+<!doctype html>
+<html lang="uz">
+<head>
+<meta charset="utf-8"><meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self'; style-src 'self' 'unsafe-inline'; connect-src 'self' https:; img-src 'self' data:; object-src 'none'; base-uri 'self'; frame-ancestors 'none'"><meta name="viewport" content="width=device-width,initial-scale=1">
+<title>MedGen AI — Private</title><link rel="stylesheet" href="styles.css">
+</head>
+<body>
+<section id="loginView" class="screen">
+ <div class="login-card">
+  <div class="brand">MEDGEN <span>AI</span></div><span class="private-tag">PRIVATE • DEVELOPMENT</span><p class="eyebrow">PRIVATE RESEARCH PLATFORM</p>
+  <h1>Welcome back</h1><p class="muted">Private development mode — public registration is disabled.</p>
+  <form id="loginForm">
+   <label>Username<input id="loginUser" autocomplete="username" required></label>
+   <label>Password<input id="loginPassword" type="password" autocomplete="current-password" required></label>
+   <button class="primary" type="submit">Sign in</button>
+  </form><div id="loginStatus" class="status"></div>
+ </div>
+</section>
+
+<section id="dashboardView" class="hidden">
+<header class="topbar"><div class="brand">MEDGEN <span>AI</span></div>
+ <div class="top-actions"><span id="roleBadge" class="badge">GUEST</span><button id="logoutBtn" class="ghost">Logout</button></div>
+</header>
+<main class="container">
+ <div class="hero"><div><p class="eyebrow">PRIVATE WORKSPACE</p><h1>Biomedical AI Platform</h1>
+ <p class="muted">Research, molecular analysis, structures, discovery and scientific workflows.</p></div>
+ <div id="healthBadge" class="health">API: checking…</div></div>
+
+ <section class="grid">
+  <button class="module" data-module="Bioinformatics"><b>🧬</b><strong>Bioinformatics</strong><span>DNA / RNA / protein analysis</span></button>
+  <button class="module" data-module="Molecular Analysis"><b>⚗️</b><strong>Molecular Analysis</strong><span>Real backend molecular descriptors</span></button>
+  <button class="module" data-module="PDB & Structure"><b>🧫</b><strong>PDB & Structure</strong><span>Structures and viewers</span></button>
+  <button class="module" data-module="Drug Discovery"><b>💊</b><strong>Drug Discovery</strong><span>Screening and discovery workflows</span></button>
+  <button class="module" data-module="Scientific Jobs"><b>⚙️</b><strong>Scientific Jobs</strong><span>Queue and worker status</span></button>
+  <button class="module" data-module="Research Assistant"><b>📚</b><strong>Research Assistant</strong><span>Literature and citations</span></button>
+  <button class="module" data-module="Virtual Laboratory"><b>🧪</b><strong>Virtual Laboratory</strong><span>Experiments and workflows</span></button>
+  <button class="module" data-module="Reports & History"><b>📊</b><strong>Reports & History</strong><span>Results and reports</span></button>
+ </section>
+
+ <section id="workspace" class="panel hidden">
+  <div style="width:100%">
+   <div class="workspace-head"><div><p class="eyebrow">WORKSPACE</p><h2 id="workspaceTitle">Module</h2></div><button id="workspaceClose" class="ghost">Close</button></div>
+   <div id="molecularTool" class="tool hidden">
+    <p class="muted">Run the existing MedGen RDKit backend directly from the Web interface.</p>
+    <input id="smilesInput" placeholder="SMILES, e.g. CCO">
+    <button id="molecularRun" class="primary small">Analyze molecule</button>
+    <div id="molecularStatus" class="status"></div><pre id="molecularResult" class="result"></pre>
+   </div>
+   
+   
+   <div id="bioTool" class="tool hidden">
+    <p class="muted">Submit a protected bioinformatics workflow to the backend.</p>
+    <textarea id="bioSequence" placeholder="DNA / RNA / protein sequence"></textarea>
+    <button id="bioRun" class="primary small">Run bioinformatics</button>
+    <div id="bioStatus" class="status"></div><pre id="bioResult" class="result"></pre>
+   </div>
+
+<div id="pdbTool" class="tool hidden">
+    <p class="muted">Load a structure from the MedGen PDB backend.</p>
+    <input id="pdbInput" placeholder="PDB ID, e.g. 6WC8"><button id="pdbRun" class="primary small">Load PDB</button>
+    <div id="pdbStatus" class="status"></div><pre id="pdbResult" class="result"></pre>
+   </div>
+   <div id="discoveryTool" class="tool hidden">
+    <p class="muted">Create a computational drug-discovery session.</p>
+    <input id="discoveryTarget" placeholder="Target, e.g. HIV-1 Integrase"><button id="discoveryRun" class="primary small">Create session</button>
+    <div id="discoveryStatus" class="status"></div><pre id="discoveryResult" class="result"></pre>
+   </div>
+   <div id="workflowTool" class="tool hidden">
+    <p class="muted">View persisted scientific workflows.</p>
+    <button id="workflowRefresh" class="ghost">Refresh workflows</button>
+    <div id="workflowStatus" class="status"></div><pre id="workflowResult" class="result"></pre>
+   </div>
+
+
+   <div id="researchTool" class="tool hidden">
+    <p class="muted">Search the research backend for citation-oriented results.</p>
+    <input id="researchQuery" placeholder="e.g. HIV integrase inhibitors"><button id="researchRun" class="primary small">Search research</button>
+    <div id="researchStatus" class="status"></div><pre id="researchResult" class="result"></pre>
+   </div>
+
+<div id="jobsTool" class="tool hidden">
+    <select id="jobType"><option value="MOLECULAR">Molecular</option><option value="DOCKING">Docking</option><option value="STRUCTURE_PREDICTION">Structure prediction</option></select>
+    <button id="jobCreate" class="primary small">Create job</button>
+    <div id="jobCreateStatus" class="status"></div><pre id="jobCreateResult" class="result"></pre>
+    <button id="jobsRefresh" class="ghost">Refresh jobs</button><div id="jobsStatus" class="status"></div><pre id="jobsResult" class="result"></pre></div>
+   <div id="reportsTool" class="tool hidden"><button id="reportsRefresh" class="ghost">Refresh reports</button><div id="reportsStatus" class="status"></div><pre id="reportsResult" class="result"></pre></div>
+   <div id="comingSoon" class="tool hidden"><p class="muted">Web UI shell is ready. This module will be connected to the existing backend in the next integration phases.</p></div>
+  </div>
+ </section>
+
+ <section class="panel"><div><p class="eyebrow">SYSTEM</p><h2>Private development environment</h2>
+ <p class="muted">Only authenticated users can reach the dashboard.</p></div>
+ <div class="system-list"><div>API status: <b id="apiText">checking</b></div><div>Registration: <b>disabled</b></div><div>Environment: <b>private</b></div></div></section>
+</main>
+</section>
+<script src="app.js"></script>
+</body></html>
