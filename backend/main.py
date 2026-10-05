@@ -1,12 +1,13 @@
-from datetime import datetime, timedelta, timezone
+from datetime import datetime, timezone
 import hashlib
 import os
 import secrets
-
-from fastapi import FastAPI, HTTPException, Depends
-from fastapi.security import HTTPBearer, HTTPAuthorizationCredentials
-from pydantic import BaseModel
 from typing import Any
+
+from fastapi import Depends, FastAPI, HTTPException
+from fastapi.middleware.cors import CORSMiddleware
+from fastapi.security import HTTPAuthorizationCredentials, HTTPBearer
+from pydantic import BaseModel
 
 
 app = FastAPI(
@@ -15,12 +16,27 @@ app = FastAPI(
     docs_url="/api/docs",
 )
 
+app.add_middleware(
+    CORSMiddleware,
+    allow_origins=[
+        "https://medgen-web.onrender.com",
+    ],
+    allow_credentials=True,
+    allow_methods=["*"],
+    allow_headers=["*"],
+)
+
 security = HTTPBearer(auto_error=False)
 
 ADMIN_USERNAME = os.getenv("MEDGEN_ADMIN_USERNAME", "admin")
-ADMIN_PASSWORD = os.getenv("MEDGEN_ADMIN_PASSWORD", "MedGenAI-Admin-2026")
-SECRET_KEY = os.getenv("MEDGEN_SECRET_KEY", "CHANGE-ME-IN-PRODUCTION")
-
+ADMIN_PASSWORD = os.getenv(
+    "MEDGEN_ADMIN_PASSWORD",
+    "MedGenAI-Admin-2026",
+)
+SECRET_KEY = os.getenv(
+    "MEDGEN_SECRET_KEY",
+    "CHANGE-ME-IN-PRODUCTION",
+)
 
 tokens = {}
 
@@ -54,7 +70,13 @@ class DiscoveryRequest(BaseModel):
 
 
 def make_token(username: str) -> str:
-    raw = f"{username}:{datetime.now(timezone.utc).timestamp()}:{secrets.token_hex(16)}:{SECRET_KEY}"
+    raw = (
+        f"{username}:"
+        f"{datetime.now(timezone.utc).timestamp()}:"
+        f"{secrets.token_hex(16)}:"
+        f"{SECRET_KEY}"
+    )
+
     return hashlib.sha256(raw.encode()).hexdigest()
 
 
@@ -62,16 +84,26 @@ def get_current_user(
     credentials: HTTPAuthorizationCredentials = Depends(security),
 ):
     if not credentials:
-        raise HTTPException(status_code=401, detail="Authentication required")
+        raise HTTPException(
+            status_code=401,
+            detail="Authentication required",
+        )
 
     username = tokens.get(credentials.credentials)
 
     if not username:
-        raise HTTPException(status_code=401, detail="Invalid or expired token")
+        raise HTTPException(
+            status_code=401,
+            detail="Invalid or expired token",
+        )
 
     return {
         "username": username,
-        "role": "SUPER_ADMIN" if username == ADMIN_USERNAME else "USER",
+        "role": (
+            "SUPER_ADMIN"
+            if username == ADMIN_USERNAME
+            else "USER"
+        ),
     }
 
 
@@ -119,7 +151,9 @@ def molecule_analyze(
         "module": "Molecular Analysis",
         "smiles": data.smiles,
         "user": user["username"],
-        "message": "Molecular analysis endpoint is connected.",
+        "message": (
+            "Molecular analysis endpoint is connected."
+        ),
     }
 
 
@@ -185,7 +219,9 @@ def pdb_structure(
     return {
         "status": "received",
         "pdb_id": pdb_id.upper(),
-        "message": "PDB integration point is connected.",
+        "message": (
+            "PDB integration point is connected."
+        ),
         "user": user["username"],
     }
 
@@ -199,7 +235,9 @@ def discovery_session(
         "status": "created",
         "target": data.target,
         "user": user["username"],
-        "message": "Drug Discovery session endpoint is connected.",
+        "message": (
+            "Drug Discovery session endpoint is connected."
+        ),
     }
 
 
