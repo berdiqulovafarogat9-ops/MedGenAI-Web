@@ -244,13 +244,16 @@ frame-ancestors 'none'">
           Password
         </span>
 
-        <input
-          id="loginPassword"
-          type="password"
-          autocomplete="current-password"
-          required
-          data-i18n-placeholder="passwordPlaceholder"
-          placeholder="Enter password">
+        <div class="password-wrap">
+          <input
+            id="loginPassword"
+            type="password"
+            autocomplete="current-password"
+            required
+            data-i18n-placeholder="passwordPlaceholder"
+            placeholder="Enter password">
+          <button id="toggleLoginPassword" type="button" class="password-toggle" aria-label="Show password">👁</button>
+        </div>
       </label>
 
       <label class="remember-row">
@@ -1874,5 +1877,18 @@ frame-ancestors 'none'">
 #adminDashboard .admin-card{cursor:pointer;text-align:left;border:1px solid rgba(255,255,255,.12)}
 </style>
 
+<script>
+document.addEventListener("DOMContentLoaded", function () {
+  const input = document.getElementById("loginPassword");
+  const toggle = document.getElementById("toggleLoginPassword");
+  if (!input || !toggle) return;
+  toggle.addEventListener("click", function () {
+    const visible = input.type === "text";
+    input.type = visible ? "password" : "text";
+    toggle.textContent = visible ? "👁" : "🙈";
+    toggle.setAttribute("aria-label", visible ? "Show password" : "Hide password");
+  });
+});
+</script>
 </body>
   </html>
