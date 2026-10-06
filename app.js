@@ -1069,6 +1069,27 @@ function updateUserUI() {
    DASHBOARD
 ========================================================= */
 
+function isSuperAdmin() {
+  return String(state.user?.role || '').toUpperCase() === 'SUPER_ADMIN';
+}
+
+async function loadAdminDashboard() {
+  if (!isSuperAdmin()) return;
+  const box = $('adminDashboard'); if (!box) return;
+  try {
+    const d = await api('/admin/overview');
+    const cards = [['Users',d.users],['Tokens',d.active_tokens],['Jobs',d.jobs],['Docking',d.docking_jobs],['Experiments',d.experiments],['Reports',d.reports],['Workflows',d.workflows]];
+    box.innerHTML='<h2>Super Admin Dashboard</h2><div class="grid">'+cards.map(c=>'<div class="card"><strong>'+c[1]+'</strong><div>'+c[0]+'</div></div>').join('')+'</div><h3>Recent Activity</h3><pre class="result">'+JSON.stringify(d.recent_activity,null,2)+'</pre>';
+  } catch(e) { box.innerHTML='<div class="status">'+e.message+'</div>'; }
+}
+
+function ensureAdminDashboard() {
+  if (!isSuperAdmin() || $('adminDashboard')) return;
+  const dash=$('dashboardView'); if(!dash) return;
+  const box=document.createElement('section'); box.id='adminDashboard'; box.className='tool'; box.style.marginTop='20px'; dash.appendChild(box); loadAdminDashboard();
+}
+
+
 function showDashboard() {
 
   const loginView =
@@ -1086,6 +1107,7 @@ function showDashboard() {
   }
 
   checkHealth();
+  ensureAdminDashboard();
 }
 
 
