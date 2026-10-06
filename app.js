@@ -12,7 +12,8 @@ const TOKEN_KEY = 'medgen_access_token';
 
 const state = {
   token: sessionStorage.getItem(TOKEN_KEY) || '',
-  user: null
+  user: null,
+  profileEditMode: false
 };
 
 
@@ -1093,8 +1094,9 @@ async function openProfile() {
     card.querySelector('.modal-close')?.insertAdjacentElement('afterend', edit);
     edit.addEventListener('click', openProfileEditor);
   }
-  document.querySelectorAll('#profileModal input, #profileModal textarea').forEach(el => el.disabled = true);
-  $('profileSave')?.style && ($('profileSave').style.display = 'none');
+  document.querySelectorAll('#profileModal input, #profileModal textarea').forEach(el => el.disabled = !state.profileEditMode);
+  const profileSave = $('profileSave');
+  if (profileSave) profileSave.style.display = state.profileEditMode ? '' : 'none';
   const status = $('profileStatus');
   if (status) status.textContent = 'Yuklanmoqda...';
 
@@ -1129,10 +1131,13 @@ async function openProfile() {
 
     const profileSaveButton = $('profileSave');
     if (profileSaveButton) {
-      profileSaveButton.style.display = isProfileComplete(p) ? 'none' : '';
+      profileSaveButton.style.display = state.profileEditMode ? '' : 'none';
       profileSaveButton.disabled = false;
       profileSaveButton.textContent = 'Saqlash';
     }
+    document.querySelectorAll('#profileModal input, #profileModal textarea').forEach(el => {
+      el.disabled = !state.profileEditMode;
+    });
 
     const avatar = $('profileAvatarPreview');
     if (avatar) {
@@ -1183,6 +1188,7 @@ function enforceProfileCompletion() {
 }
 
 function closeProfile() {
+  state.profileEditMode = false;
   $('profileModal')?.classList.add('hidden');
 }
 
@@ -1276,6 +1282,8 @@ async function saveProfile() {
 
     document.querySelectorAll('.profile-locked').forEach(el => el.classList.remove('profile-locked'));
 
+    state.profileEditMode = false;
+    document.querySelectorAll('#profileModal input, #profileModal textarea').forEach(el => el.disabled = true);
     if (status) status.textContent = '✅ Profil muvaffaqiyatli saqlandi.';
     if (button) {
       button.style.display = 'none';
@@ -1343,16 +1351,8 @@ async function acceptLegalConsent() {
 
 
 function openProfileEditor() {
-  const modal = $('profileModal');
-  const button = $('profileSave');
-  if (!modal) return;
-  modal.classList.remove('hidden');
-  document.querySelectorAll('#profileModal input, #profileModal textarea').forEach(el => el.disabled = false);
-  if (button) {
-    button.style.display = '';
-    button.disabled = false;
-    button.textContent = 'Saqlash';
-  }
+  if (!$('profileModal')) return;
+  state.profileEditMode = true;
   openProfile();
 }
 
@@ -1391,11 +1391,11 @@ async function loadAdminDashboard() {
       '</div>' +
       '<div id="adminDetails"></div>';
 
-    box.querySelectorAll('[data-admin]').forEach(button => {
-      button.addEventListener('click', async () => {
-        await loadAdminDetails(button.dataset.admin);
-      });
-    });
+    box.onclick = async (event) => {
+      const button = event.target.closest('[data-admin]');
+      if (!button || !box.contains(button)) return;
+      await loadAdminDetails(button.dataset.admin);
+    };
 
     
   } catch (e) {
@@ -1552,7 +1552,7 @@ function ensureAdminDashboard() {
 
   const box = document.createElement('section');
   box.id = 'adminDashboard';
-  box.className = 'tool';
+  box.className = '';
   box.style.marginTop = '20px';
   dash.appendChild(box);
 
