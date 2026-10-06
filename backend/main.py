@@ -1075,12 +1075,33 @@ def docking_run(
             cwd=str(work),
         )
 
+        # Prepare a protein-only PDB for Meeko. PDB 1M17 contains the
+        # co-crystallized ligand AQ4 as residue A:999; keeping that ligand in
+        # the receptor causes Meeko to build an unknown-residue template and
+        # can stall receptor preparation. Keep only ATOM records belonging to
+        # the 20 standard amino acids.
+        standard_residues = {
+            "ALA", "ARG", "ASN", "ASP", "CYS", "GLN", "GLU", "GLY",
+            "HIS", "ILE", "LEU", "LYS", "MET", "PHE", "PRO", "SER",
+            "THR", "TRP", "TYR", "VAL",
+        }
+        protein_pdb = work / f"{pdb_id}_protein.pdb"
+        with open(receptor_pdb, "r", encoding="utf-8", errors="ignore") as source, open(
+            protein_pdb, "w", encoding="utf-8"
+        ) as dest:
+            for line in source:
+                if line.startswith(("ATOM  ", "TER", "END")):
+                    if line.startswith("ATOM  ") and line[17:20].strip() not in standard_residues:
+                        continue
+                    dest.write(line)
+            dest.write("END\\n")
+
         # Receptor preparation follows the documented Meeko workflow.
         _run_command(
             [
                 "mk_prepare_receptor.py",
                 "-i",
-                str(receptor_pdb),
+                str(protein_pdb),
                 "-o",
                 str(work / f"{pdb_id}_receptor"),
                 "-p",
