@@ -330,7 +330,7 @@ def health_live():
     return {
         "status": "ok",
         "service": "medgen-api",
-        "version": "1.1.0",
+        "version": app.version,
         "timestamp": datetime.now(
             timezone.utc
         ).isoformat(),
@@ -1421,7 +1421,7 @@ def admin_overview(user=Depends(get_current_user)):
     return {
         "status": "ready",
         "role": user["role"],
-        "users": len(set(tokens.values()) | set(user_profiles.keys()) | set(user_consents.keys())),
+        "users": len(set(tokens.values()) | set(user_accounts.keys()) | set(user_profiles.keys()) | set(user_consents.keys())),
         "active_tokens": len(tokens),
         "jobs": len(jobs_store),
         "docking_jobs": len(docking_jobs_store),
@@ -1436,7 +1436,7 @@ def admin_overview(user=Depends(get_current_user)):
 @app.get("/api/v1/admin/users")
 def admin_users(user=Depends(get_current_user)):
     require_super_admin(user)
-    usernames = sorted(set(tokens.values()) | set(user_profiles.keys()) | set(user_consents.keys()))
+    usernames = sorted(set(tokens.values()) | set(user_accounts.keys()) | set(user_profiles.keys()) | set(user_consents.keys()))
     return {
         "users": [
             {
