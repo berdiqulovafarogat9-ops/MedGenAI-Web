@@ -141,7 +141,7 @@ def _db_load():
         _db_init()
         with psycopg.connect(DATABASE_URL) as conn:
             rows = conn.execute("SELECT state_key, state_value FROM medgen_state").fetchall()
-        stores={"user_accounts":user_accounts,"user_profiles":user_profiles,"user_consents":user_consents,"experiments_store":experiments_store,"reports_store":reports_store,"activity_log":activity_log,"knowledge_entities_store":knowledge_entities_store,"knowledge_relations_store":knowledge_relations_store,"organizations_store":organizations_store,"memberships_store":memberships_store,"workspaces_store":workspaces_store,"projects_store":projects_store,"api_keys_store":api_keys_store,"platform_audit_log":platform_audit_log,"usage_store":usage_store}
+        stores={"user_accounts":user_accounts,"user_profiles":user_profiles,"user_consents":user_consents,"experiments_store":experiments_store,"reports_store":reports_store,"activity_log":activity_log,"knowledge_entities_store":knowledge_entities_store,"knowledge_relations_store":knowledge_relations_store,"organizations_store":organizations_store,"memberships_store":memberships_store,"workspaces_store":workspaces_store,"projects_store":projects_store,"api_keys_store":api_keys_store,"platform_audit_log":platform_audit_log,"usage_store":usage_store,"webhooks_store":webhooks_store}
         for key,value in rows:
             if key in stores and isinstance(value,(dict,list)):
                 stores[key].clear()
@@ -2177,6 +2177,87 @@ def public_platform_overview(request: Request):
         "capabilities": ["knowledge_stats", "api_keys", "usage"],
         "api_key_id": item["id"],
     }
+
+
+# =========================================================
+# PHASE 8.3 — PLAN / QUOTA / WEBHOOK FOUNDATION
+# =========================================================
+
+PLATFORM_PLANS = {
+    "foundation": {"api_requests": 10000, "research_runs": 1000, "discovery_runs": 1000, "workflows_created": 1000},
+    "research": {"api_requests": 100000, "research_runs": 10000, "discovery_runs": 10000, "workflows_created": 10000},
+    "enterprise": {"api_requests": 1000000, "research_runs": 100000, "discovery_runs": 100000, "workflows_created": 100000},
+}
+
+webhooks_store = {}
+
+class PlanUpdateRequest(BaseModel):
+    organization_id: str
+    plan: str
+
+class WebhookCreateRequest(BaseModel):
+    organization_id: str
+    url: str
+    events: list[str] = []
+
+def _plan_for_org(organization_id: str):
+    org = organizations_store.get(organization_id, {})
+    return org.get("plan", "foundation")
+
+def _check_quota(username: str, metric: str):
+    usage = _usage(username)
+    orgs = [x for x in organizations_store.values() if _org_role({"username": username, "role": "USER"}, x["id"])]
+    plan = _plan_for_org(orgs[0]["id"]) if orgs else "foundation"
+    limit = PLATFORM_PLANS.get(plan, PLATFORM_PLANS["foundation"]).get(metric)
+    if limit is not None and usage.get(metric, 0) >= limit:
+        raise HTTPException(status_code=429, detail=f"{metric} quota exceeded for {plan} plan.")
+    return plan
+
+@app.post("/api/v1/platform/plan")
+def platform_update_plan(data: PlanUpdateRequest, user=Depends(get_current_user)):
+    _require_org(user, data.organization_id, "OWNER")
+    plan = data.plan.strip().lower()
+    if plan not in PLATFORM_PLANS:
+        raise HTTPException(status_code=400, detail="Invalid plan.")
+    organizations_store[data.organization_id]["plan"] = plan
+    _platform_audit(user, "organization.plan_updated", "organization", data.organization_id, {"organization_id": data.organization_id, "plan": plan})
+    _db_save()
+    return {"status": "updated", "organization_id": data.organization_id, "plan": plan, "limits": PLATFORM_PLANS[plan]}
+
+@app.get("/api/v1/platform/plans")
+def platform_plans():
+    return {"plans": PLATFORM_PLANS}
+
+@app.post("/api/v1/platform/webhooks")
+def platform_create_webhook(data: WebhookCreateRequest, user=Depends(get_current_user)):
+    _require_org(user, data.organization_id, "ADMIN")
+    url = data.url.strip()
+    if not (url.startswith("https://") or url.startswith("http://localhost")):
+        raise HTTPException(status_code=400, detail="Webhook URL must use HTTPS (localhost allowed for development).")
+    wid = secrets.token_hex(10)
+    secret = secrets.token_urlsafe(24)
+    item = {"id": wid, "organization_id": data.organization_id, "url": url, "events": data.events[:50], "secret": hashlib.sha256(secret.encode()).hexdigest(), "secret_prefix": secret[:8], "created_at": datetime.now(timezone.utc).isoformat(), "active": True}
+    webhooks_store[wid] = item
+    _platform_audit(user, "webhook.created", "webhook", wid, {"organization_id": data.organization_id})
+    _db_save()
+    return {"status": "created", "webhook": {k:v for k,v in item.items() if k != "secret"}, "signing_secret": secret, "warning": "Store the signing secret now. It will not be shown again."}
+
+@app.get("/api/v1/platform/webhooks")
+def platform_list_webhooks(organization_id: str, user=Depends(get_current_user)):
+    _require_org(user, organization_id, "ADMIN")
+    return {"webhooks": [{k:v for k,v in x.items() if k != "secret"} for x in webhooks_store.values() if x["organization_id"] == organization_id]}
+
+@app.delete("/api/v1/platform/webhooks/{webhook_id}")
+def platform_delete_webhook(webhook_id: str, user=Depends(get_current_user)):
+    item = webhooks_store.get(webhook_id)
+    if not item:
+        raise HTTPException(status_code=404, detail="Webhook not found.")
+    _require_org(user, item["organization_id"], "ADMIN")
+    item["active"] = False
+    item["disabled_at"] = datetime.now(timezone.utc).isoformat()
+    _platform_audit(user, "webhook.disabled", "webhook", webhook_id, {"organization_id": item["organization_id"]})
+    _db_save()
+    return {"status": "disabled", "id": webhook_id}
 
 # =========================================================
 # ADVANCED DRUG DISCOVERY — REPRODUCIBLE PIPELINE
