@@ -1286,6 +1286,49 @@ def research_agent(data: ResearchAgentRequest, user=Depends(get_current_user)):
     return report
 
 
+@app.post("/api/v1/research/autonomous")
+def autonomous_research(data: ResearchAgentRequest, user=Depends(get_current_user)):
+    query = data.query.strip()
+    if not query:
+        raise HTTPException(status_code=400, detail="Research query is required")
+    normalized = normalize_pubmed_query(query)
+    if data.focus.strip():
+        normalized += " " + normalize_pubmed_query(data.focus.strip())
+    try:
+        articles = _pubmed_articles(normalized, data.limit)
+    except (URLError, TimeoutError, ET.ParseError):
+        raise HTTPException(status_code=503, detail="PubMed service unavailable")
+    for article in articles:
+        article["relevance_score"] = _evidence_score(normalized, article)
+        article["evidence"] = _extract_evidence_sentences(normalized, article.get("abstract", ""))
+    articles.sort(key=lambda x: (x.get("relevance_score", 0), x.get("publication_date", "")), reverse=True)
+    top = articles[:8]
+    evidence = [{"pmid":a["pmid"],"title":a["title"],"score":a["relevance_score"],"evidence":a["evidence"],"url":a["url"]} for a in top]
+    qid = normalize_entity(query)
+    if not any(x["id"] == qid for x in knowledge_entities_store):
+        knowledge_entities_store.append(make_entity(query, "research_question", "PubMed"))
+    added = 0
+    for item in evidence:
+        pid = normalize_entity("PMID:" + item["pmid"])
+        if not any(x["id"] == pid for x in knowledge_entities_store):
+            knowledge_entities_store.append(make_entity("PMID:" + item["pmid"], "publication", "PubMed"))
+        rel = make_relation(query, "supported_by", "PMID:" + item["pmid"], "PubMed", (item["evidence"] or [item["title"]])[0])
+        if rel not in knowledge_relations_store:
+            knowledge_relations_store.append(rel)
+            added += 1
+    now = datetime.now(timezone.utc).isoformat()
+    report = {
+        "status":"completed","module":"Autonomous Research","query":query,"normalized_query":normalized,
+        "steps":["question","evidence","knowledge_graph","report"],
+        "evidence_count":len(evidence),"evidence":evidence,
+        "knowledge_graph":{"query_entity":qid,"relations_added":added},
+        "reproducibility":{"source":"NCBI PubMed E-utilities","query":query,"normalized_query":normalized,"limit":data.limit,"focus":data.focus.strip(),"pmids":[x["pmid"] for x in evidence],"generated_at":now},
+        "limitations":["Retrieved abstracts are not clinical evidence of efficacy.","Results require expert review and independent validation."]
+    }
+    reports_store.insert(0,{"id":secrets.token_hex(10),"type":"autonomous_research","title":"Autonomous Research — "+query,"user":user["username"],"created_at":now,"report":report})
+    activity_log.insert(0,{"type":"autonomous_research","username":user["username"],"query":query,"evidence_count":len(evidence),"at":now})
+    return report
+
 @app.get("/api/v1/research/history")
 def research_history(user=Depends(get_current_user)):
     items = [x for x in reports_store if x.get("type") == "research_intelligence" and x.get("user") == user["username"]]
