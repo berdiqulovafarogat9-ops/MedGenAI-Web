@@ -80,6 +80,10 @@ SECRET_KEY = os.getenv(
 )
 
 tokens = {}
+token_created_at = {}
+user_profiles = {}
+user_consents = {}
+activity_log = []
 jobs_store = []
 docking_jobs_store = {}
 workflows_store = []
