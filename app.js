@@ -99,6 +99,22 @@ const dynamicTranslations = {
       'virtual screening',
 
     developmentWarning:
+
+    superAdminDashboard: 'Super Admin Dashboard',
+    users: 'Users',
+    activeTokens: 'Active tokens',
+    jobs: 'Jobs',
+    docking: 'Docking',
+    experiments: 'Experiments',
+    reports: 'Reports',
+    workflows: 'Workflows',
+    details: 'Details',
+    viewDetails: 'View',
+    close: 'Close',
+    loadingDetails: 'Loading...',
+    total: 'Total',
+    search: 'Search...',
+    noMatchingData: 'No matching data found.',
       'Development-stage heuristic screening only. No validated docking, binding affinity, ADMET, or clinical prediction is performed.'
   },
 
@@ -232,6 +248,22 @@ const dynamicTranslations = {
       'virtual screening',
 
     developmentWarning:
+
+    superAdminDashboard: 'Super Admin Dashboard',
+    users: 'Foydalanuvchilar',
+    activeTokens: 'Faol tokenlar',
+    jobs: 'Vazifalar',
+    docking: 'Docking',
+    experiments: 'Tajribalar',
+    reports: 'Hisobotlar',
+    workflows: 'Workflowlar',
+    details: 'Batafsil',
+    viewDetails: 'Ko‘rish',
+    close: 'Yopish',
+    loadingDetails: 'Yuklanmoqda...',
+    total: 'Jami',
+    search: 'Qidirish...',
+    noMatchingData: 'Mos ma’lumot topilmadi.',
       'Faqat ishlab chiqish bosqichidagi evristik screening. Tasdiqlangan docking, bog‘lanish affiniteti, ADMET yoki klinik prognoz amalga oshirilmaydi.'
   },
 
@@ -392,6 +424,22 @@ const resultKeys = {
   status: {
     uz: 'holat',
     ru: 'статус',
+
+    superAdminDashboard: 'Панель супер-администратора',
+    users: 'Пользователи',
+    activeTokens: 'Активные токены',
+    jobs: 'Задачи',
+    docking: 'Docking',
+    experiments: 'Эксперименты',
+    reports: 'Отчёты',
+    workflows: 'Workflow',
+    details: 'Подробнее',
+    viewDetails: 'Просмотр',
+    close: 'Закрыть',
+    loadingDetails: 'Загрузка...',
+    total: 'Всего',
+    search: 'Поиск...',
+    noMatchingData: 'Совпадений не найдено.',
     en: 'status'
   },
 
@@ -502,6 +550,10 @@ const resultKeys = {
     ru: 'название',
     en: 'title'
   },
+
+  publication_date: { uz: 'nashr_sanasi', ru: 'дата_публикации', en: 'publication_date' },
+  journal: { uz: 'jurnal', ru: 'журнал', en: 'journal' },
+  pmid: { uz: 'PMID', ru: 'PMID', en: 'PMID' },
 
   source: {
     uz: 'manba',
@@ -626,6 +678,9 @@ function translateResultValue(value) {
   }
 
   const translations = {
+    'PubMed': { uz: 'PubMed', ru: 'PubMed', en: 'PubMed' },
+    'NCBI PubMed E-utilities': { uz: 'NCBI PubMed E-utilities', ru: 'NCBI PubMed E-utilities', en: 'NCBI PubMed E-utilities' },
+    'Scientific Research': { uz: 'Ilmiy tadqiqot', ru: 'Научное исследование', en: 'Scientific Research' },
 
     'completed': {
       uz: 'tugallandi',
@@ -1208,6 +1263,8 @@ function readAvatar(file) {
   });
 }
 
+let profileAvatarRemoved = false;
+
 async function saveProfile() {
   const button = $('profileSave');
   const status = $('profileStatus');
@@ -1220,6 +1277,7 @@ async function saveProfile() {
     if (status) status.textContent = '';
 
     const avatar = await readAvatar($('profileAvatar')?.files?.[0]);
+    const savedAvatar = profileAvatarRemoved ? '' : (avatar || state.user?.profile?.avatar || '');
 
     const birthDateRaw = $('profileBirthDate')?.value?.trim() || '';
     const birthMatch = birthDateRaw.match(/^(\d{1,2})\.(\d{1,2})\.(\d{4})$/);
@@ -1237,7 +1295,7 @@ async function saveProfile() {
       birth_day: birthDayRaw ? Number(birthDayRaw) : null,
       research_interests: $('profileInterests')?.value?.trim() || '',
       bio: $('profileBio')?.value?.trim() || '',
-      avatar: avatar || state.user?.profile?.avatar || ''
+      avatar: savedAvatar
     };
 
     if (!payload.full_name || !payload.email || !payload.country ||
@@ -1379,13 +1437,13 @@ async function loadAdminDashboard() {
     ];
 
     box.innerHTML =
-      '<h2>Super Admin Dashboard</h2>' +
+      '<h2>' + escapeHtml(t('superAdminDashboard')) + '</h2>' +
       '<div class="grid">' +
       cards.map(c =>
         '<button type="button" class="card admin-card" data-admin="' + c[2] + '">' +
         '<strong>' + c[1] + '</strong>' +
-        '<div>' + c[0] + '</div>' +
-        '<small>Batafsil ko‘rish →</small>' +
+        '<div>' + escapeHtml(t(c[2] === 'tokens' ? 'activeTokens' : c[2])) + '</div>' +
+        '<small>' + escapeHtml(t('details')) + ' →</small>' +
         '</button>'
       ).join('') +
       '</div>' +
@@ -1408,13 +1466,13 @@ async function loadAdminDetails(kind) {
   if (!out) return;
 
   const titles = {
-    users: 'Foydalanuvchilar',
-    tokens: 'Faol tokenlar',
-    jobs: 'Jobs',
-    docking: 'Docking',
-    experiments: 'Experiments',
-    reports: 'Reports',
-    workflows: 'Workflows'
+    users: t('users'),
+    tokens: t('activeTokens'),
+    jobs: t('jobs'),
+    docking: t('docking'),
+    experiments: t('experiments'),
+    reports: t('reports'),
+    workflows: t('workflows')
   };
 
   out.innerHTML = '<div class="status">Yuklanmoqda...</div>';
@@ -1452,7 +1510,7 @@ async function loadAdminDetails(kind) {
       '<div style="display:flex;justify-content:space-between;align-items:center;gap:12px;flex-wrap:wrap">' +
       '<div><h3 style="margin:0">' + escapeHtml(titles[kind] || 'Details') + '</h3>' +
       '<div class="status">Jami: ' + items.length + '</div></div>' +
-      '<input id="' + searchId + '" type="search" placeholder="Qidirish..." style="min-width:220px;padding:10px;border-radius:8px">' +
+      '<input id="' + searchId + '" type="search" placeholder="' + t('search') + '" style="min-width:220px;padding:10px;border-radius:8px">' +
       '</div>' +
       '<div id="adminTable_' + kind + '" style="margin-top:12px"></div>' +
       '<div id="adminRecord_' + kind + '" style="margin-top:14px"></div>';
@@ -1469,7 +1527,7 @@ async function loadAdminDetails(kind) {
       );
 
       if (!filtered.length) {
-        tableOut.innerHTML = '<p class="muted">Mos ma’lumot topilmadi.</p>';
+        tableOut.innerHTML = '<p class="muted">' + escapeHtml(t('noMatchingData')) + '</p>';
         return;
       }
 
@@ -1484,7 +1542,7 @@ async function loadAdminDetails(kind) {
         '<table class="admin-table" style="min-width:900px"><thead><tr>' +
         '<th>#</th>' +
         visibleKeys.map(k => '<th>' + escapeHtml(k) + '</th>').join('') +
-        '<th>Ko‘rish</th>' +
+        '<th>' + escapeHtml(t('viewDetails')) + '</th>' +
         '</tr></thead><tbody>' +
         filtered.map((item, index) =>
           '<tr>' +
@@ -1512,8 +1570,8 @@ async function loadAdminDetails(kind) {
           record.innerHTML =
             '<div style="border:1px solid rgba(255,255,255,.16);border-radius:10px;padding:16px">' +
             '<div style="display:flex;justify-content:space-between;align-items:center;gap:10px">' +
-            '<h4 style="margin:0">Batafsil ma’lumot</h4>' +
-            '<button type="button" class="admin-close-record">Yopish</button>' +
+            '<h4 style="margin:0">' + escapeHtml(t('details')) + '</h4>' +
+            '<button type="button" class="admin-close-record">' + escapeHtml(t('close')) + '</button>' +
             '</div>' +
             '<pre style="white-space:pre-wrap;overflow:auto;max-height:500px;margin-top:12px">' +
             escapeHtml(JSON.stringify(item, null, 2)) +
@@ -2688,8 +2746,11 @@ function bindEvents() {
   if (profileClose) profileClose.addEventListener('click', closeProfile);
 
   const profileAvatar = $('profileAvatar');
+  const profileAvatarRemove = $('profileAvatarRemove');
+  if (profileAvatarRemove) profileAvatarRemove.addEventListener('click', () => { profileAvatarRemoved = true; if (profileAvatar) profileAvatar.value = ''; const preview = $('profileAvatarPreview'); if (preview) { preview.src = ''; preview.style.display = 'none'; } });
   if (profileAvatar) profileAvatar.addEventListener('change', async () => {
     try {
+      profileAvatarRemoved = false;
       const data = await readAvatar(profileAvatar.files?.[0]);
       const preview = $('profileAvatarPreview');
       if (preview) { preview.src = data; preview.style.display = data ? 'block' : 'none'; }
