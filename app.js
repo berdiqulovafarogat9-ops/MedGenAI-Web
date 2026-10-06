@@ -1178,6 +1178,10 @@ async function saveProfile() {
     }
 
     if (status) status.textContent = '✅ Profil muvaffaqiyatli saqlandi.';
+    setTimeout(() => {
+      closeProfile();
+      if (status) status.textContent = '';
+    }, 500);
   } catch (e) {
     if (status) status.textContent = '❌ ' + e.message;
   } finally {
@@ -1306,11 +1310,37 @@ async function loadAdminDetails(kind) {
       data = await api('/admin/activity');
     }
 
-    out.innerHTML =
+    const raw = data?.users || data?.tokens || data?.activity || data || [];
+    const items = Array.isArray(raw) ? raw : [raw];
+
+    let html =
       '<h3>' + (titles[kind] || 'Details') + '</h3>' +
-      '<pre class="result">' +
-      escapeHtml(JSON.stringify(data, null, 2)) +
-      '</pre>';
+      '<div class="status">Jami: ' + items.length + '</div>';
+
+    if (items.length) {
+      const keys = [...new Set(items.flatMap(x =>
+        x && typeof x === 'object' ? Object.keys(x) : []
+      ))].slice(0, 8);
+
+      html += '<div style="overflow:auto"><table class="admin-table"><thead><tr>' +
+        keys.map(k => '<th>' + escapeHtml(k) + '</th>').join('') +
+        '</tr></thead><tbody>' +
+        items.map(item => '<tr>' +
+          keys.map(k => {
+            const value = item?.[k];
+            return '<td>' + escapeHtml(
+              value && typeof value === 'object'
+                ? JSON.stringify(value)
+                : String(value ?? '')
+            ) + '</td>';
+          }).join('') +
+        '</tr>').join('') +
+        '</tbody></table></div>';
+    } else {
+      html += '<p class="muted">Hozircha ma’lumot yo‘q.</p>';
+    }
+
+    out.innerHTML = html;
   } catch (e) {
     out.innerHTML = '<div class="status">❌ ' + e.message + '</div>';
   }
