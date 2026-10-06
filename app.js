@@ -1688,7 +1688,7 @@ async function loadJobs() {
    CREATE JOB
 ========================================================= */
 
-async function createJob() {
+async async function createJob() {
 
   const jobType =
     $('jobType')?.value ||
@@ -1709,7 +1709,8 @@ async function createJob() {
           method: 'POST',
 
           body: JSON.stringify({
-            type: jobType
+            job_type: jobType,
+            input: {}
           })
         }
       );
