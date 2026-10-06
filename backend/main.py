@@ -1122,9 +1122,14 @@ def docking_run(
             center=[data.center_x, data.center_y, data.center_z],
             box_size=[data.size_x, data.size_y, data.size_z],
         )
+        # Keep the web request bounded for the first smoke test. Vina's
+        # max_evals limits the number of scoring evaluations; exhaustiveness
+        # remains user-configurable but the first deployment should not sit
+        # indefinitely on a small Render instance.
         v.dock(
-            exhaustiveness=data.exhaustiveness,
-            n_poses=data.n_poses,
+            exhaustiveness=min(data.exhaustiveness, 4),
+            n_poses=min(data.n_poses, 3),
+            max_evals=50000,
         )
         v.write_poses(str(output_pdbqt), n_poses=data.n_poses, overwrite=True)
 
