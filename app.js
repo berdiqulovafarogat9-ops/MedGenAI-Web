@@ -1908,6 +1908,33 @@ async function loadPlatformOverview() {
   }
 }
 
+async function loadPlatformMembers() {
+  const org = (state.platformOrganizations || [])[0];
+  if (!org) return;
+  try {
+    const data = await api('/platform/members/' + encodeURIComponent(org.id));
+    renderResult($('platformResult'), data);
+  } catch (error) { if ($('platformStatus')) $('platformStatus').textContent = error.message; }
+}
+
+async function loadPlatformAudit() {
+  const org = (state.platformOrganizations || [])[0];
+  if (!org) return;
+  try {
+    const data = await api('/platform/audit?organization_id=' + encodeURIComponent(org.id));
+    renderResult($('platformResult'), data);
+  } catch (error) { if ($('platformStatus')) $('platformStatus').textContent = error.message; }
+}
+
+async function loadPlatformKeys() {
+  const org = (state.platformOrganizations || [])[0];
+  if (!org) return;
+  try {
+    const data = await api('/platform/api-keys?organization_id=' + encodeURIComponent(org.id));
+    renderResult($('platformResult'), data);
+  } catch (error) { if ($('platformStatus')) $('platformStatus').textContent = error.message; }
+}
+
 async function createPlatformOrganization() {
   const name = $('platformOrgName')?.value?.trim() || '';
   if (!name) return;
@@ -3166,6 +3193,15 @@ function bindEvents() {
 
   const platformRefresh = $('platformRefresh');
   if (platformRefresh) platformRefresh.addEventListener('click', loadPlatformOverview);
+
+  const platformMembers = $('platformMembers');
+  if (platformMembers) platformMembers.addEventListener('click', loadPlatformMembers);
+
+  const platformAudit = $('platformAudit');
+  if (platformAudit) platformAudit.addEventListener('click', loadPlatformAudit);
+
+  const platformKeys = $('platformKeys');
+  if (platformKeys) platformKeys.addEventListener('click', loadPlatformKeys);
 
   const platformCreateOrg = $('platformCreateOrg');
   if (platformCreateOrg) platformCreateOrg.addEventListener('click', createPlatformOrganization);
