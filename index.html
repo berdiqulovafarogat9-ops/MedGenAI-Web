@@ -780,17 +780,12 @@ frame-ancestors 'none'">
           Search the research backend for citation-oriented results.
         </p>
 
-        <input
-          id="researchQuery"
-          placeholder="e.g. HIV integrase inhibitors"
-          data-i18n-placeholder="researchPlaceholder">
-
-        <button
-          id="researchRun"
-          class="primary small"
-          data-i18n="searchResearch">
-          Search research
-        </button>
+        <input id="researchQuery" placeholder="e.g. EGFR mutations in lung cancer" data-i18n-placeholder="researchPlaceholder">
+        <input id="researchFocus" placeholder="Optional focus: mechanism, biomarker, target...">
+        <div style="display:flex;gap:8px;flex-wrap:wrap">
+          <button id="researchAgentRun" class="primary small" type="button">🧠 Research Agent</button>
+          <button id="researchRun" class="ghost small" type="button" data-i18n="searchResearch">Search research</button>
+        </div>
 
         <div
           id="researchStatus"
