@@ -1215,7 +1215,7 @@ async function saveProfile() {
       throw new Error('Profilni to‘liq to‘ldiring: ism, email, mamlakat va tug‘ilgan sana majburiy.');
     }
 
-    if (!/^\\S+@\\S+\\.\\S+$/.test(payload.email)) {
+    if (!/^\S+@\S+\.\S+$/.test(payload.email)) {
       throw new Error('Email manzilini to‘g‘ri kiriting.');
     }
 
