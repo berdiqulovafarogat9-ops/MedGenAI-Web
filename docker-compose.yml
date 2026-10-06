@@ -6,8 +6,21 @@ services:
       MEDGEN_ADMIN_USERNAME: admin
       MEDGEN_ADMIN_PASSWORD: ${MEDGEN_ADMIN_PASSWORD:?Set MEDGEN_ADMIN_PASSWORD}
       MEDGEN_SECRET_KEY: ${MEDGEN_SECRET_KEY:?Set MEDGEN_SECRET_KEY}
+      DATABASE_URL: postgresql://medgen:${POSTGRES_PASSWORD:-medgen_local_password}@medgen-db:5432/medgen
     expose:
       - "8000"
+    depends_on:
+      - medgen-db
+
+  medgen-db:
+    image: postgres:16-alpine
+    restart: unless-stopped
+    environment:
+      POSTGRES_DB: medgen
+      POSTGRES_USER: medgen
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-medgen_local_password}
+    volumes:
+      - medgen_pgdata:/var/lib/postgresql/data
 
   medgen-web:
     build: .
@@ -16,3 +29,6 @@ services:
     depends_on:
       - medgen-api
     restart: unless-stopped
+
+volumes:
+  medgen_pgdata:
