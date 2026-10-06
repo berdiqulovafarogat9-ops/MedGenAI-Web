@@ -742,28 +742,20 @@ frame-ancestors 'none'">
         id="workflowTool"
         class="tool hidden">
 
-        <p
-          class="muted"
-          data-i18n="workflowDescription">
-          View persisted scientific workflows.
-        </p>
-
-        <button
-          id="workflowRefresh"
-          class="ghost"
-          data-i18n="refreshWorkflows">
-          Refresh workflows
-        </button>
-
-        <div
-          id="workflowStatus"
-          class="status">
-        </div>
-
-        <pre
-          id="workflowResult"
-          class="result">
-        </pre>
+        <p class="muted">Build and run a reproducible virtual-lab workflow.</p>
+        <input id="labName" placeholder="Experiment name, e.g. EGFR screening">
+        <select id="labType">
+          <option value="drug_discovery">Drug discovery</option>
+          <option value="molecular_analysis">Molecular analysis</option>
+          <option value="bioinformatics">Bioinformatics</option>
+          <option value="structure_analysis">Structure analysis</option>
+          <option value="custom">Custom workflow</option>
+        </select>
+        <textarea id="labInput" placeholder='Workflow input JSON, e.g. {"target":"EGFR","molecules":["CCO"]}'></textarea>
+        <button id="labRun" class="primary small" type="button">🧪 Create workflow</button>
+        <button id="workflowRefresh" class="ghost" type="button" data-i18n="refreshWorkflows">Refresh workflows</button>
+        <div id="workflowStatus" class="status"></div>
+        <pre id="workflowResult" class="result"></pre>
 
       </div>
 
