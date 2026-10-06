@@ -96,6 +96,7 @@ jobs_store = []
 docking_jobs_store = {}
 workflows_store = []
 reports_store = []
+experiments_store = []
 
 
 # =========================================================
@@ -144,6 +145,22 @@ class ResearchRequest(BaseModel):
 class WorkflowRequest(BaseModel):
     workflow_type: str
     input: dict[str, Any] = {}
+
+
+class ExperimentRequest(BaseModel):
+    name: str = ""
+    workflow_type: str = "drug_discovery"
+    target: str = ""
+    input: dict[str, Any] = {}
+    parameters: dict[str, Any] = {}
+    results: dict[str, Any] = {}
+    status: str = "completed"
+
+
+class ExperimentUpdateRequest(BaseModel):
+    status: str | None = None
+    parameters: dict[str, Any] | None = None
+    results: dict[str, Any] | None = None
 
 
 class DiscoveryRequest(BaseModel):
@@ -768,6 +785,95 @@ def discovery_session(
 
 
 # =========================================================
+# REPRODUCIBLE EXPERIMENTS
+# =========================================================
+
+@app.post("/api/v1/experiments")
+def create_experiment(
+    data: ExperimentRequest,
+    user=Depends(get_current_user),
+):
+    target = data.target.strip()
+    if data.workflow_type == "drug_discovery" and not target:
+        raise HTTPException(status_code=400, detail="Target is required for drug discovery experiments")
+
+    now = datetime.now(timezone.utc).isoformat()
+    experiment = {
+        "id": secrets.token_hex(10),
+        "name": data.name.strip() or f"{data.workflow_type.replace('_', ' ').title()} Experiment",
+        "workflow_type": data.workflow_type.strip() or "drug_discovery",
+        "target": target,
+        "status": data.status.strip() or "completed",
+        "input": data.input,
+        "parameters": data.parameters,
+        "results": data.results,
+        "user": user["username"],
+        "created_at": now,
+        "updated_at": now,
+        "reproducibility": {
+            "api_version": app.version,
+            "rdkit_available": True,
+            "docking_engine_available": VINA_AVAILABLE,
+        },
+    }
+    experiments_store.insert(0, experiment)
+    activity_log.insert(0, {
+        "type": "experiment_created",
+        "username": user["username"],
+        "experiment_id": experiment["id"],
+        "workflow_type": experiment["workflow_type"],
+        "target": target,
+        "at": now,
+    })
+    return experiment
+
+
+@app.get("/api/v1/experiments")
+def list_experiments(user=Depends(get_current_user)):
+    items = [e for e in experiments_store if e["user"] == user["username"]]
+    return {"experiments": items, "count": len(items), "user": user["username"]}
+
+
+@app.get("/api/v1/experiments/{experiment_id}")
+def get_experiment(experiment_id: str, user=Depends(get_current_user)):
+    experiment = next((e for e in experiments_store if e["id"] == experiment_id), None)
+    if not experiment:
+        raise HTTPException(status_code=404, detail="Experiment not found")
+    if experiment["user"] != user["username"] and user["role"] != "SUPER_ADMIN":
+        raise HTTPException(status_code=403, detail="Access denied")
+    return experiment
+
+
+@app.patch("/api/v1/experiments/{experiment_id}")
+def update_experiment(
+    experiment_id: str,
+    data: ExperimentUpdateRequest,
+    user=Depends(get_current_user),
+):
+    experiment = next((e for e in experiments_store if e["id"] == experiment_id), None)
+    if not experiment:
+        raise HTTPException(status_code=404, detail="Experiment not found")
+    if experiment["user"] != user["username"] and user["role"] != "SUPER_ADMIN":
+        raise HTTPException(status_code=403, detail="Access denied")
+
+    if data.status is not None:
+        experiment["status"] = data.status.strip() or experiment["status"]
+    if data.parameters is not None:
+        experiment["parameters"] = data.parameters
+    if data.results is not None:
+        experiment["results"] = data.results
+    experiment["updated_at"] = datetime.now(timezone.utc).isoformat()
+    activity_log.insert(0, {
+        "type": "experiment_updated",
+        "username": user["username"],
+        "experiment_id": experiment_id,
+        "status": experiment["status"],
+        "at": experiment["updated_at"],
+    })
+    return experiment
+
+
+# =========================================================
 # RESEARCH
 # =========================================================
 
@@ -1082,7 +1188,7 @@ def admin_overview(user=Depends(get_current_user)):
         "jobs": len(jobs_store),
         "docking_jobs": len(docking_jobs_store),
         "docking_running": sum(1 for x in docking_jobs_store.values() if x.get("status") in ("queued", "running")),
-        "experiments": 0,
+        "experiments": len(experiments_store),
         "reports": len(reports_store),
         "workflows": len(workflows_store),
         "recent_activity": activity_log[:50],
@@ -1138,7 +1244,7 @@ def admin_docking(user=Depends(get_current_user)):
 @app.get("/api/v1/admin/experiments")
 def admin_experiments(user=Depends(get_current_user)):
     require_super_admin(user)
-    return {"experiments": [], "count": 0}
+    return {"experiments": experiments_store, "count": len(experiments_store)}
 
 
 @app.get("/api/v1/admin/reports")
