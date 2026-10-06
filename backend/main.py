@@ -2117,6 +2117,37 @@ def platform_overview(user=Depends(get_current_user)):
     }
 
 # =========================================================
+
+def _api_key_context(request: Request):
+    raw = request.headers.get("X-API-Key", "").strip()
+    if not raw:
+        raise HTTPException(status_code=401, detail="X-API-Key is required.")
+    digest = hashlib.sha256(raw.encode()).hexdigest()
+    item = next((x for x in api_keys_store.values() if x.get("key_hash") == digest and not x.get("revoked")), None)
+    if not item:
+        raise HTTPException(status_code=401, detail="Invalid or revoked API key.")
+    item["last_used_at"] = datetime.now(timezone.utc).isoformat()
+    usage = _usage(item["created_by"])
+    usage["api_requests"] += 1
+    usage["last_activity"] = item["last_used_at"]
+    return item
+
+@app.get("/api/v1/public/knowledge/stats")
+def public_knowledge_stats(request: Request):
+    item = _api_key_context(request)
+    return {"status": "ok", "organization_id": item["organization_id"], **graph_stats(knowledge_entities_store, knowledge_relations_store)}
+
+@app.get("/api/v1/public/platform/overview")
+def public_platform_overview(request: Request):
+    item = _api_key_context(request)
+    org = organizations_store.get(item["organization_id"], {})
+    return {
+        "status": "ok",
+        "organization": {"id": org.get("id"), "name": org.get("name"), "slug": org.get("slug")},
+        "capabilities": ["knowledge_stats", "api_keys", "usage"],
+        "api_key_id": item["id"],
+    }
+
 # =========================================================
 # ADVANCED DRUG DISCOVERY — REPRODUCIBLE PIPELINE
 # =========================================================
