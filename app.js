@@ -1688,7 +1688,7 @@ async function loadJobs() {
    CREATE JOB
 ========================================================= */
 
-async async function createJob() {
+async function createJob() {
 
   const jobType =
     $('jobType')?.value ||
