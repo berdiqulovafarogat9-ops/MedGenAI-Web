@@ -1421,7 +1421,13 @@ function openProfileEditor() {
 }
 
 function isSuperAdmin() {
-  return String(state.user?.role || '').toUpperCase() === 'SUPER_ADMIN';
+  const role = String(
+    state.user?.role ||
+    state.user?.user_role ||
+    state.user?.type ||
+    ''
+  ).trim().toUpperCase();
+  return role === 'SUPER_ADMIN' || role === 'ADMIN';
 }
 
 async function loadAdminDashboard() {
