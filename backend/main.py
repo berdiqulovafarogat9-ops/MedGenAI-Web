@@ -1310,6 +1310,7 @@ def knowledge_entity(data: KnowledgeEntityRequest, user=Depends(get_current_user
     if not entity["name"]: raise HTTPException(status_code=400, detail="Entity name is required")
     if not any(x["id"]==entity["id"] for x in knowledge_entities_store):
         knowledge_entities_store.append(entity)
+        _db_save()
     return {"status":"created","entity":entity}
 
 @app.delete("/api/v1/knowledge/entities/{entity_id}")
@@ -1319,6 +1320,7 @@ def knowledge_entity_delete(entity_id: str, user=Depends(get_current_user)):
     knowledge_entities_store[:]=[e for e in knowledge_entities_store if e.get("id")!=key]
     knowledge_relations_store[:]=[r for r in knowledge_relations_store if r.get("subject")!=key and r.get("object")!=key]
     if len(knowledge_entities_store)==before: raise HTTPException(status_code=404,detail="Entity not found")
+    _db_save()
     return {"status":"deleted","entity_id":key}
 
 
@@ -1329,7 +1331,9 @@ def knowledge_relation(data: KnowledgeRelationRequest, user=Depends(get_current_
     for name in (data.subject,data.object):
         if not any(x["id"]==normalize_entity(name) for x in knowledge_entities_store):
             knowledge_entities_store.append(make_entity(name,"concept",data.source))
-    if rel not in knowledge_relations_store: knowledge_relations_store.append(rel)
+    if rel not in knowledge_relations_store:
+        knowledge_relations_store.append(rel)
+        _db_save()
     return {"status":"created","relation":rel}
 
 @app.post("/api/v1/knowledge/search")
@@ -1349,6 +1353,37 @@ def knowledge_validate(user=Depends(get_current_user)):
 @app.get("/api/v1/knowledge/stats")
 def knowledge_stats(user=Depends(get_current_user)):
     return {"status":"ok", **graph_stats(knowledge_entities_store, knowledge_relations_store)}
+
+
+@app.get("/api/v1/knowledge/evidence")
+def knowledge_evidence(query: str = "", source: str = "", relation: str = "", limit: int = 50, user=Depends(get_current_user)):
+    q = query.strip().lower()
+    src = source.strip().lower()
+    rel = relation.strip().lower().replace(" ", "_")
+    items = []
+    for item in knowledge_relations_store:
+        if rel and item.get("relation") != rel:
+            continue
+        if src and src not in str(item.get("source", "")).lower():
+            continue
+        hay = " ".join(str(item.get(k, "")) for k in ("subject", "relation", "object", "evidence", "source")).lower()
+        if q and q not in hay:
+            continue
+        items.append(item)
+    items.sort(key=lambda x: (bool(x.get("evidence")), x.get("source", "")), reverse=True)
+    return {"status":"ok","query":query,"source":source,"relation":relation,"count":len(items),"evidence":items[:max(1,min(limit,200))]}
+
+
+@app.get("/api/v1/knowledge/export")
+def knowledge_export(user=Depends(get_current_user)):
+    return {
+        "status":"ok",
+        "format":"medgen-knowledge-v1",
+        "generated_at":datetime.now(timezone.utc).isoformat(),
+        "entities":knowledge_entities_store,
+        "relations":knowledge_relations_store,
+        "stats":graph_stats(knowledge_entities_store, knowledge_relations_store),
+    }
 
 class KnowledgePathRequest(BaseModel):
     start: str
