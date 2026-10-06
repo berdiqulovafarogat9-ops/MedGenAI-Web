@@ -936,6 +936,7 @@ def create_workflow(
     data: WorkflowRequest,
     user=Depends(get_current_user),
 ):
+    _check_quota(user["username"], "workflows_created")
 
     workflow = {
         "id": secrets.token_hex(8),
@@ -1379,6 +1380,7 @@ def research_search(
 
 @app.post("/api/v1/research/agent")
 def research_agent(data: ResearchAgentRequest, user=Depends(get_current_user)):
+    _check_quota(user["username"], "research_runs")
     query=data.query.strip()
     if not query: raise HTTPException(status_code=400, detail="Research query is required")
     normalized=normalize_pubmed_query(query)
