@@ -1115,6 +1115,13 @@ async function openProfile() {
     $('profileInterests').value = p.research_interests || '';
     $('profileBio').value = p.bio || '';
 
+    const profileSaveButton = $('profileSave');
+    if (profileSaveButton) {
+      profileSaveButton.style.display = isProfileComplete(p) ? 'none' : '';
+      profileSaveButton.disabled = false;
+      profileSaveButton.textContent = 'Saqlash';
+    }
+
     const avatar = $('profileAvatarPreview');
     if (avatar) {
       avatar.src = p.avatar || '';
@@ -1258,6 +1265,10 @@ async function saveProfile() {
     document.querySelectorAll('.profile-locked').forEach(el => el.classList.remove('profile-locked'));
 
     if (status) status.textContent = '✅ Profil muvaffaqiyatli saqlandi.';
+    if (button) {
+      button.style.display = 'none';
+      button.disabled = false;
+    }
     setTimeout(() => {
       closeProfile();
       if (status) status.textContent = '';
@@ -1265,9 +1276,10 @@ async function saveProfile() {
   } catch (e) {
     if (status) status.textContent = '❌ ' + e.message;
   } finally {
-    if (button) {
+    if (button && !state.user?.profile_complete) {
       button.disabled = false;
       button.textContent = 'Saqlash';
+      button.style.display = '';
     }
   }
 }
