@@ -2742,17 +2742,32 @@ function bindEvents() {
   if (profileClose) profileClose.addEventListener('click', closeProfile);
 
   const profileAvatar = $('profileAvatar');
+  const profileAvatarUpload = $('profileAvatarUpload');
   const profileAvatarRemove = $('profileAvatarRemove');
-  if (profileAvatarRemove) profileAvatarRemove.addEventListener('click', () => { profileAvatarRemoved = true; if (profileAvatar) profileAvatar.value = ''; const preview = $('profileAvatarPreview'); if (preview) { preview.src = ''; preview.style.display = 'none'; } });
+  if (profileAvatarUpload) profileAvatarUpload.addEventListener('click', (event) => {
+    if (!state.profileEditMode) { event.preventDefault(); return; }
+  });
+  if (profileAvatarRemove) profileAvatarRemove.addEventListener('click', () => {
+    profileAvatarRemoved = true;
+    if (profileAvatar) profileAvatar.value = '';
+    const preview = $('profileAvatarPreview');
+    if (preview) { preview.src = ''; preview.style.display = 'none'; }
+    if (profileAvatarRemove) profileAvatarRemove.style.display = 'none';
+    if (profileAvatarUpload) profileAvatarUpload.style.display = '';
+  });
   if (profileAvatar) profileAvatar.addEventListener('change', async () => {
     try {
       profileAvatarRemoved = false;
       const data = await readAvatar(profileAvatar.files?.[0]);
       const preview = $('profileAvatarPreview');
       if (preview) { preview.src = data; preview.style.display = data ? 'block' : 'none'; }
+      if (profileAvatarUpload) profileAvatarUpload.style.display = '';
+      if (profileAvatarRemove) profileAvatarRemove.style.display = data ? '' : 'none';
     } catch (e) {
       const status = $('profileStatus'); if (status) status.textContent = e.message;
       profileAvatar.value = '';
+      if (profileAvatarRemove) profileAvatarRemove.style.display = 'none';
+      if (profileAvatarUpload) profileAvatarUpload.style.display = '';
     }
   });
 
