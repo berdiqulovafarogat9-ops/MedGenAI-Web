@@ -558,24 +558,22 @@ def create_workflow(
     user=Depends(get_current_user),
 ):
 
-    return {
+    workflow = {
+        "id": secrets.token_hex(8),
         "status": "submitted",
         "workflow_type": data.workflow_type,
         "input": data.input,
         "user": user["username"],
+        "created_at": datetime.now(timezone.utc).isoformat(),
     }
+    workflows_store.insert(0, workflow)
+    return workflow
 
 
 @app.get("/api/v1/workflows")
-def list_workflows(
-    user=Depends(get_current_user),
-):
-
-    return {
-        "workflows": [],
-        "count": 0,
-        "user": user["username"],
-    }
+def list_workflows(user=Depends(get_current_user)):
+    items = [w for w in workflows_store if w["user"] == user["username"]]
+    return {"workflows": items, "count": len(items), "user": user["username"]}
 
 
 # =========================================================
