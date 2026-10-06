@@ -303,11 +303,8 @@ frame-ancestors 'none'">
 
     </select>
 
-    <span
-      id="roleBadge"
-      class="badge">
-      GUEST
-    </span>
+    <span id="roleBadge" class="badge">GUEST</span>
+    <button id="profileBtn" class="ghost">Profilim</button>
 
     <button
       id="logoutBtn"
@@ -1728,6 +1725,54 @@ frame-ancestors 'none'">
 })();
 
 </script>
+
+
+<!-- =================================
+     PROFILE + LEGAL MODALS
+================================= -->
+<div id="profileModal" class="modal hidden">
+  <div class="modal-card">
+    <button id="profileClose" class="modal-close">×</button>
+    <h2>👤 Mening profilim</h2>
+    <p class="muted">Bu ma’lumotlarni siz o‘zingiz kiritasiz. MedGen AI siz haqingizda avtomatik ravishda shaxsiy ma’lumot bilmaydi.</p>
+    <label>To‘liq ism<input id="profileFullName" placeholder="Ism Familiya"></label>
+    <label>Email<input id="profileEmail" type="email" placeholder="email@example.com"></label>
+    <label>Tashkilot / universitet<input id="profileOrganization" placeholder="Universitet yoki tashkilot"></label>
+    <label>Mamlakat<input id="profileCountry" placeholder="O‘zbekiston"></label>
+    <label>Ilmiy qiziqishlar<input id="profileInterests" placeholder="Bioinformatika, drug discovery..."></label>
+    <label>Bio<textarea id="profileBio" rows="3" placeholder="O‘zingiz haqingizda qisqacha"></textarea></label>
+    <div id="profileStatus" class="status"></div>
+    <button id="profileSave" class="primary">Saqlash</button>
+  </div>
+</div>
+
+<div id="legalModal" class="modal hidden">
+  <div class="modal-card legal-card">
+    <h2>🔐 Xavfsizlik, maxfiylik va rozilik</h2>
+    <p class="muted">Platformadan foydalanishdan oldin quyidagi hujjatlarni o‘qib, roziligingizni tasdiqlang.</p>
+    <div id="legalDocuments" class="legal-docs"></div>
+    <label class="consent-row"><input id="consentTerms" type="checkbox"> Ommaviy oferta va foydalanish shartlariga roziman.</label>
+    <label class="consent-row"><input id="consentPrivacy" type="checkbox"> Maxfiylik siyosatiga roziman.</label>
+    <label class="consent-row"><input id="consentData" type="checkbox"> Ma’lumotlarni qayta ishlashga roziman.</label>
+    <label class="consent-row"><input id="consentResearch" type="checkbox"> Ilmiy natijalar klinik tasdiq emasligi haqidagi ogohlantirishni qabul qilaman.</label>
+    <div id="legalStatus" class="status"></div>
+    <button id="legalAccept" class="primary">Roziman va davom etaman</button>
+  </div>
+</div>
+
+<style>
+.modal{position:fixed;inset:0;z-index:100000;background:rgba(0,0,0,.72);display:flex;align-items:center;justify-content:center;padding:20px}
+.modal.hidden{display:none}
+.modal-card{position:relative;width:min(620px,100%);max-height:90vh;overflow:auto;background:#0b1420;border:1px solid rgba(255,255,255,.14);border-radius:18px;padding:24px;box-shadow:0 20px 70px rgba(0,0,0,.45)}
+.modal-card label{display:block;margin:12px 0;font-size:13px}
+.modal-card input,.modal-card textarea{width:100%;box-sizing:border-box;margin-top:6px;padding:10px;border-radius:9px;border:1px solid rgba(255,255,255,.14);background:rgba(255,255,255,.06);color:inherit}
+.modal-close{position:absolute;right:14px;top:10px;border:0;background:transparent;color:inherit;font-size:28px;cursor:pointer}
+.legal-docs{display:grid;gap:10px;margin:15px 0}
+.legal-docs details{border:1px solid rgba(255,255,255,.1);border-radius:10px;padding:10px}
+.consent-row{display:flex!important;gap:9px;align-items:flex-start}
+.consent-row input{width:auto!important;margin:2px 0 0!important}
+#adminDashboard .admin-card{cursor:pointer;text-align:left;border:1px solid rgba(255,255,255,.12)}
+</style>
 
 </body>
   </html>
