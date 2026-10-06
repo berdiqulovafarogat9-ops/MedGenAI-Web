@@ -3057,7 +3057,7 @@ function bindEvents() {
   }
 
   const researchAgentRun = $('researchAgentRun');
-  if (researchAgentRun) researchAgentRun.addEventListener('click', runResearchAgent);
+  if (researchAgentRun) researchAgentRun.addEventListener('click', runResearchAgent);\n  const ke=$('knowledgeAddEntity'); if(ke) ke.addEventListener('click',addKnowledgeEntity);\n  const kr=$('knowledgeAddRelation'); if(kr) kr.addEventListener('click',addKnowledgeRelation);\n  const ks=$('knowledgeSearch'); if(ks) ks.addEventListener('click',searchKnowledge);
 
 
   bindLanguageSelectors();
