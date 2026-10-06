@@ -598,9 +598,6 @@ def discovery_session(
 # RESEARCH
 # =========================================================
 
-@app.post(
-    "/api/v1/research/search"
-)
 def normalize_pubmed_query(query: str) -> str:
     q = query.strip()
     replacements = {
@@ -625,6 +622,9 @@ def normalize_pubmed_query(query: str) -> str:
         low = low.replace(uz, en)
     return low
 
+@app.post(
+    "/api/v1/research/search"
+)
 def research_search(
     data: ResearchRequest,
     user=Depends(get_current_user),
