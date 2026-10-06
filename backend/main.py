@@ -1228,10 +1228,55 @@ def research_agent(data: ResearchAgentRequest, user=Depends(get_current_user)):
     for item in evidence[:5]:
         if item["evidence"]:
             synthesis.append({"pmid":item["pmid"],"claim":item["evidence"][0],"source":item["citation"]})
+
+    # Autonomous Research pipeline:
+    # Question -> Evidence -> Knowledge Graph -> Reproducible Report
+    graph_entities_added = []
+    graph_relations_added = []
+    query_entity = normalize_entity(query)
+    if query and not any(x["id"] == query_entity for x in knowledge_entities_store):
+        knowledge_entities_store.append(make_entity(query, "research_question", "Research Agent"))
+        graph_entities_added.append(query_entity)
+
+    for item in evidence[:8]:
+        pmid = item["pmid"]
+        paper_name = f"PMID:{pmid}"
+        paper_id = normalize_entity(paper_name)
+        if not any(x["id"] == paper_id for x in knowledge_entities_store):
+            knowledge_entities_store.append(make_entity(paper_name, "publication", "PubMed"))
+            graph_entities_added.append(paper_id)
+        claim = item["evidence"][0] if item["evidence"] else item["title"]
+        rel = make_relation(query, "supported_by", paper_name, "PubMed", claim)
+        if rel not in knowledge_relations_store:
+            knowledge_relations_store.append(rel)
+            graph_relations_added.append(rel)
+
     report={
-        "status":"completed", "module":"Research Intelligence", "query":query,
-        "normalized_query":normalized, "plan":["normalize_query","retrieve_pubmed_evidence","rank_relevance","extract_evidence","build_cited_synthesis"],
+        "status":"completed", "module":"Autonomous Research", "query":query,
+        "normalized_query":normalized,
+        "plan":["normalize_query","retrieve_pubmed_evidence","rank_relevance","extract_evidence","update_knowledge_graph","build_reproducible_report"],
+        "pipeline":{
+            "question": query,
+            "evidence_retrieved": len(evidence),
+            "knowledge_graph_updated": bool(graph_entities_added or graph_relations_added),
+            "report_generated": True
+        },
         "evidence_count":len(evidence), "evidence":evidence, "synthesis":synthesis,
+        "knowledge_graph":{
+            "entities_added":len(graph_entities_added),
+            "relations_added":len(graph_relations_added),
+            "query_entity":query_entity
+        },
+        "reproducibility":{
+            "engine":"MedGen Research Agent",
+            "source":"NCBI PubMed E-utilities",
+            "query":query,
+            "normalized_query":normalized,
+            "limit":data.limit,
+            "focus":data.focus.strip(),
+            "evidence_pmids":[x["pmid"] for x in evidence],
+            "generated_at":datetime.now(timezone.utc).isoformat()
+        },
         "limitations":["Evidence is limited to retrieved PubMed records and abstracts.","The synthesis is extractive and does not establish causality, clinical efficacy, or treatment advice."],
         "source":"NCBI PubMed E-utilities", "user":user["username"]
     }
