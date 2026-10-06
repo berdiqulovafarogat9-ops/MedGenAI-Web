@@ -1135,6 +1135,9 @@ async function openProfile() {
     edit.addEventListener('click', openProfileEditor);
   }
   document.querySelectorAll('#profileModal input, #profileModal textarea').forEach(el => el.disabled = !state.profileEditMode);
+  const changePasswordBtn = $('changePasswordBtn');
+  if (changePasswordBtn) changePasswordBtn.addEventListener('click', changeAccountPassword);
+
   const profileSave = $('profileSave');
   if (profileSave) profileSave.style.display = state.profileEditMode ? '' : 'none';
   const status = $('profileStatus');
@@ -2735,6 +2738,52 @@ function refreshDynamicUI() {
    EVENT BINDING
 ========================================================= */
 
+async function registerAccount() {
+  const username = $('registerUsername')?.value?.trim() || '';
+  const full_name = $('registerFullName')?.value?.trim() || '';
+  const email = $('registerEmail')?.value?.trim() || '';
+  const phone = $('registerPhone')?.value?.trim() || '';
+  const password = $('registerPassword')?.value || '';
+  const password2 = $('registerPassword2')?.value || '';
+  const status = $('loginStatus');
+
+  if (password !== password2) {
+    if (status) status.textContent = 'Parollar bir xil emas.';
+    return;
+  }
+
+  try {
+    await api('/auth/register', {
+      method: 'POST',
+      body: JSON.stringify({ username, password, full_name, email, phone })
+    });
+    if (status) status.textContent = 'Ro‘yxatdan o‘tish muvaffaqiyatli. Endi kiring.';
+    $('registerForm')?.classList.add('hidden');
+    $('loginForm')?.classList.remove('hidden');
+    if ($('loginUser')) $('loginUser').value = username;
+  } catch (error) {
+    if (status) status.textContent = error.message;
+  }
+}
+
+
+async function changeAccountPassword() {
+  const current_password = $('currentPassword')?.value || '';
+  const new_password = $('newPassword')?.value || '';
+  const status = $('profileStatus');
+  try {
+    await api('/account/password', {
+      method: 'POST',
+      body: JSON.stringify({ current_password, new_password })
+    });
+    if (status) status.textContent = 'Parol o‘zgartirildi. Qayta login qiling.';
+    logout();
+  } catch (error) {
+    if (status) status.textContent = error.message;
+  }
+}
+
+
 function bindEvents() {
 
   const loginForm =
@@ -2753,6 +2802,22 @@ function bindEvents() {
     );
   }
 
+
+  const showRegister = $('showRegister');
+  const hideRegister = $('hideRegister');
+  if (showRegister) showRegister.addEventListener('click', () => {
+    $('registerForm')?.classList.remove('hidden');
+    $('loginForm')?.classList.add('hidden');
+  });
+  if (hideRegister) hideRegister.addEventListener('click', () => {
+    $('registerForm')?.classList.add('hidden');
+    $('loginForm')?.classList.remove('hidden');
+  });
+  const registerForm = $('registerForm');
+  if (registerForm) registerForm.addEventListener('submit', e => {
+    e.preventDefault();
+    registerAccount();
+  });
 
   const logoutBtn =
     $('logoutBtn');
