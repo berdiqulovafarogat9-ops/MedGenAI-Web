@@ -289,6 +289,14 @@ def update_profile(
     data: ProfileRequest,
     user=Depends(get_current_user),
 ):
+    if not data.full_name.strip():
+        raise HTTPException(status_code=400, detail="To‘liq ism majburiy.")
+    if not data.email.strip() or "@" not in data.email:
+        raise HTTPException(status_code=400, detail="To‘g‘ri email manzili majburiy.")
+    if not data.country.strip():
+        raise HTTPException(status_code=400, detail="Mamlakat majburiy.")
+    if data.birth_year is None or data.birth_month is None or data.birth_day is None:
+        raise HTTPException(status_code=400, detail="Tug‘ilgan yil, oy va kun majburiy.")
     if data.birth_month is not None and not 1 <= data.birth_month <= 12:
         raise HTTPException(
             status_code=400,
@@ -1031,3 +1039,107 @@ class DockingRequest(BaseModel):
 
 @app.get("/api/v1/docking/status")
 def docking_status(user=Depends(get_current_user)):
+    items = list(docking_jobs_store.values())
+    return {
+        "status": "ready",
+        "count": len(items),
+        "jobs": items,
+        "user": user["username"],
+    }
+
+
+# =========================================================
+# SUPER ADMIN
+# =========================================================
+
+def require_super_admin(user):
+    if user.get("role") != "SUPER_ADMIN":
+        raise HTTPException(status_code=403, detail="Super Admin access required")
+
+
+@app.get("/api/v1/admin/overview")
+def admin_overview(user=Depends(get_current_user)):
+    require_super_admin(user)
+    return {
+        "status": "ready",
+        "role": user["role"],
+        "users": len(set(tokens.values()) | set(user_profiles.keys()) | set(user_consents.keys())),
+        "active_tokens": len(tokens),
+        "jobs": len(jobs_store),
+        "docking_jobs": len(docking_jobs_store),
+        "docking_running": sum(1 for x in docking_jobs_store.values() if x.get("status") in ("queued", "running")),
+        "experiments": 0,
+        "reports": len(reports_store),
+        "workflows": len(workflows_store),
+        "recent_activity": activity_log[:50],
+    }
+
+
+@app.get("/api/v1/admin/users")
+def admin_users(user=Depends(get_current_user)):
+    require_super_admin(user)
+    usernames = sorted(set(tokens.values()) | set(user_profiles.keys()) | set(user_consents.keys()))
+    return {
+        "users": [
+            {
+                "username": u,
+                "role": "SUPER_ADMIN" if u == ADMIN_USERNAME else "USER",
+                "profile": user_profiles.get(u, {}),
+                "consent": user_consents.get(u, {}),
+                "active_tokens": sum(1 for x in tokens.values() if x == u),
+            }
+            for u in usernames
+        ]
+    }
+
+
+@app.get("/api/v1/admin/tokens")
+def admin_tokens(user=Depends(get_current_user)):
+    require_super_admin(user)
+    return {
+        "tokens": [
+            {
+                "username": username,
+                "created_at": token_created_at.get(token),
+                "active": True,
+            }
+            for token, username in tokens.items()
+        ]
+    }
+
+
+@app.get("/api/v1/admin/jobs")
+def admin_jobs(user=Depends(get_current_user)):
+    require_super_admin(user)
+    return {"jobs": jobs_store, "count": len(jobs_store)}
+
+
+@app.get("/api/v1/admin/docking")
+def admin_docking(user=Depends(get_current_user)):
+    require_super_admin(user)
+    items = list(docking_jobs_store.values())
+    return {"docking": items, "count": len(items)}
+
+
+@app.get("/api/v1/admin/experiments")
+def admin_experiments(user=Depends(get_current_user)):
+    require_super_admin(user)
+    return {"experiments": [], "count": 0}
+
+
+@app.get("/api/v1/admin/reports")
+def admin_reports(user=Depends(get_current_user)):
+    require_super_admin(user)
+    return {"reports": reports_store, "count": len(reports_store)}
+
+
+@app.get("/api/v1/admin/workflows")
+def admin_workflows(user=Depends(get_current_user)):
+    require_super_admin(user)
+    return {"workflows": workflows_store, "count": len(workflows_store)}
+
+
+@app.get("/api/v1/admin/activity")
+def admin_activity(user=Depends(get_current_user)):
+    require_super_admin(user)
+    return {"activity": activity_log[:100]}
