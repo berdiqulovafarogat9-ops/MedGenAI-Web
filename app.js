@@ -15,7 +15,7 @@ const CONFIG = {
 
 
 /* =========================================================
-   MEDGEN AI — LANGUAGE SYSTEM
+   LANGUAGE
 ========================================================= */
 
 const LANG = {
@@ -45,37 +45,63 @@ const LANG = {
     runScreening: 'Run Screening',
     enterTarget: 'Enter a target.',
     enterMolecule: 'Enter at least one molecule.',
-    virtualScreening: 'Running virtual screening…',
+
+    virtualScreening:
+      'Running virtual screening…',
 
     screeningCompleted:
       'Screening completed: {count} molecules ranked.',
 
-    screeningFailed: 'Screening failed.',
+    screeningFailed:
+      'Screening failed.',
 
-    scientificWorker: 'Scientific Worker',
-    checkingWorker: 'Checking worker…',
-    refreshWorker: 'Refresh Worker',
-    worker: 'Worker',
-    queue: 'Queue',
-    active: 'Active',
+    scientificWorker:
+      'Scientific Worker',
+
+    checkingWorker:
+      'Checking worker…',
+
+    refreshWorker:
+      'Refresh Worker',
+
+    worker:
+      'Worker',
+
+    queue:
+      'Queue',
+
+    active:
+      'Active',
 
     workerError:
       'Worker error: {error}',
 
-    submitting: 'Submitting…',
-    jobSubmitted: 'Job submitted.',
+    submitting:
+      'Submitting…',
+
+    jobSubmitted:
+      'Job submitted.',
+
+    noJobs:
+      'No scientific jobs available yet.',
 
     generateScientificReport:
       'Generate Scientific Report',
 
-    reportType: 'Report type',
+    reportType:
+      'Report type',
 
     reportPlaceholder:
       'Describe the research, target, experiment or analysis...',
 
-    generateReport: 'Generate Report',
-    generatingReport: 'Generating report…',
-    reportGenerated: 'Report generated.',
+    generateReport:
+      'Generate Report',
+
+    generatingReport:
+      'Generating report…',
+
+    reportGenerated:
+      'Report generated.',
 
     aiResearchAssistant:
       'AI Research Assistant',
@@ -95,66 +121,119 @@ const LANG = {
     researchCompleted:
       'Research Assistant completed.',
 
-    searchResearch: 'Search research',
-    enterResearchQuery: 'Enter a research query.',
-    searching: 'Searching…',
-    searchCompleted: 'Search completed.',
+    searchResearch:
+      'Search research',
 
-    virtualLaboratory: 'Virtual Laboratory',
+    enterResearchQuery:
+      'Enter a research query.',
 
-    molecularAnalysis: 'Molecular Analysis',
-    bioinformaticsExperiment: 'Bioinformatics Experiment',
-    drugDiscoveryExperiment: 'Drug Discovery Experiment',
-    structuralBiology: 'Structural Biology',
-    customExperiment: 'Custom Experiment',
+    searching:
+      'Searching…',
 
-    experimentInput: 'Experiment input...',
-    createExperiment: 'Create Experiment',
-    creatingExperiment: 'Creating experiment…',
-    experimentCreated: 'Experiment created.',
+    searchCompleted:
+      'Search completed.',
 
-    workflowLoaded: 'Loaded.',
+    virtualLaboratory:
+      'Virtual Laboratory',
 
-    molecular: 'Molecular',
-    docking: 'Docking',
-    structurePrediction: 'Structure prediction',
+    molecularAnalysis:
+      'Molecular Analysis',
 
-    molecularBackend:
-      'Run the existing MedGen molecular backend directly from the Web interface.',
+    bioinformaticsExperiment:
+      'Bioinformatics Experiment',
 
-    bioBackend:
-      'Submit a protected bioinformatics workflow to the backend.',
+    drugDiscoveryExperiment:
+      'Drug Discovery Experiment',
 
-    pdbBackend:
-      'Load a structure from the MedGen PDB backend.',
+    structuralBiology:
+      'Structural Biology',
 
-    discoverySession:
-      'Create a computational drug-discovery session.',
+    customExperiment:
+      'Custom Experiment',
 
-    workflowView:
-      'View persisted scientific workflows.',
+    experimentInput:
+      'Experiment input...',
 
-    researchBackend:
-      'Search the research backend for citation-oriented results.'
+    createExperiment:
+      'Create Experiment',
+
+    creatingExperiment:
+      'Creating experiment…',
+
+    experimentCreated:
+      'Experiment created.',
+
+    workflowLoaded:
+      'Loaded.',
+
+    molecular:
+      'Molecular',
+
+    docking:
+      'Docking',
+
+    structurePrediction:
+      'Structure prediction',
+
+    development:
+      'development',
+
+    ready:
+      'ready',
+
+    pending:
+      'pending',
+
+    running:
+      'running',
+
+    idle:
+      'idle',
+
+    unknown:
+      'unknown'
   },
 
 
   uz: {
-    signingIn: 'Tizimga kirilmoqda…',
-    loginFailed: 'Tizimga kirishda xatolik yuz berdi.',
-    apiOnline: 'API: online',
-    apiOffline: 'API: offline',
-    notConnected: 'ulanmagan',
+    signingIn:
+      'Tizimga kirilmoqda…',
 
-    enterSmiles: 'SMILES qatorini kiriting.',
-    analyzing: 'Tahlil qilinmoqda…',
-    analysisCompleted: 'Tahlil yakunlandi.',
-    enterSequence: 'DNK/RNK/oqsil ketma-ketligini kiriting.',
-    enterPdb: 'PDB ID ni kiriting.',
-    loading: 'Yuklanmoqda…',
-    loaded: 'Yuklandi.',
+    loginFailed:
+      'Tizimga kirishda xatolik yuz berdi.',
 
-    moleculesSmiles: 'Molekulalar / SMILES',
+    apiOnline:
+      'API: online',
+
+    apiOffline:
+      'API: offline',
+
+    notConnected:
+      'ulanmagan',
+
+    enterSmiles:
+      'SMILES qatorini kiriting.',
+
+    analyzing:
+      'Tahlil qilinmoqda…',
+
+    analysisCompleted:
+      'Tahlil yakunlandi.',
+
+    enterSequence:
+      'DNK/RNK/oqsil ketma-ketligini kiriting.',
+
+    enterPdb:
+      'PDB ID ni kiriting.',
+
+    loading:
+      'Yuklanmoqda…',
+
+    loaded:
+      'Yuklandi.',
+
+    moleculesSmiles:
+      'Molekulalar / SMILES',
 
     smilesPlaceholder:
       'Har bir SMILESni alohida qatorda kiriting\n\nMisol:\nCCO\nC1=CC=CC=C1\nCC(=O)O',
@@ -162,9 +241,14 @@ const LANG = {
     oneMolecule:
       'Har bir molekula alohida qatorda. Skrining molekulalarni reyting bo‘yicha tartiblaydi.',
 
-    runScreening: 'Skriningni ishga tushirish',
-    enterTarget: 'Nishonni kiriting.',
-    enterMolecule: 'Kamida bitta molekulani kiriting.',
+    runScreening:
+      'Skriningni ishga tushirish',
+
+    enterTarget:
+      'Nishonni kiriting.',
+
+    enterMolecule:
+      'Kamida bitta molekulani kiriting.',
 
     virtualScreening:
       'Virtual skrining bajarilmoqda…',
@@ -175,30 +259,53 @@ const LANG = {
     screeningFailed:
       'Skriningda xatolik yuz berdi.',
 
-    scientificWorker: 'Ilmiy ishchi',
-    checkingWorker: 'Ishchi tekshirilmoqda…',
-    refreshWorker: 'Ishchini yangilash',
-    worker: 'Ishchi',
-    queue: 'Navbat',
-    active: 'Faol',
+    scientificWorker:
+      'Ilmiy ishchi',
+
+    checkingWorker:
+      'Ishchi tekshirilmoqda…',
+
+    refreshWorker:
+      'Ishchini yangilash',
+
+    worker:
+      'Ishchi',
+
+    queue:
+      'Navbat',
+
+    active:
+      'Faol',
 
     workerError:
       'Ishchi xatosi: {error}',
 
-    submitting: 'Yuborilmoqda…',
-    jobSubmitted: 'Vazifa yuborildi.',
+    submitting:
+      'Yuborilmoqda…',
+
+    jobSubmitted:
+      'Vazifa yuborildi.',
+
+    noJobs:
+      'Hozircha ilmiy vazifalar mavjud emas.',
 
     generateScientificReport:
       'Ilmiy hisobot yaratish',
 
-    reportType: 'Hisobot turi',
+    reportType:
+      'Hisobot turi',
 
     reportPlaceholder:
       'Tadqiqot, nishon, tajriba yoki tahlilni tavsiflang...',
 
-    generateReport: 'Hisobot yaratish',
-    generatingReport: 'Hisobot yaratilmoqda…',
-    reportGenerated: 'Hisobot yaratildi.',
+    generateReport:
+      'Hisobot yaratish',
+
+    generatingReport:
+      'Hisobot yaratilmoqda…',
+
+    reportGenerated:
+      'Hisobot yaratildi.',
 
     aiResearchAssistant:
       'AI ilmiy tadqiqot yordamchisi',
@@ -218,69 +325,119 @@ const LANG = {
     researchCompleted:
       'Ilmiy yordamchi ishini yakunladi.',
 
-    searchResearch: 'Ilmiy qidiruv',
+    searchResearch:
+      'Ilmiy qidiruv',
 
     enterResearchQuery:
       'Ilmiy qidiruv so‘rovini kiriting.',
 
-    searching: 'Qidirilmoqda…',
-    searchCompleted: 'Qidiruv yakunlandi.',
+    searching:
+      'Qidirilmoqda…',
 
-    virtualLaboratory: 'Virtual laboratoriya',
+    searchCompleted:
+      'Qidiruv yakunlandi.',
 
-    molecularAnalysis: 'Molekulyar tahlil',
-    bioinformaticsExperiment: 'Bioinformatika tajribasi',
-    drugDiscoveryExperiment: 'Dori yaratish tajribasi',
-    structuralBiology: 'Strukturaviy biologiya',
-    customExperiment: 'Maxsus tajriba',
+    virtualLaboratory:
+      'Virtual laboratoriya',
 
-    experimentInput: 'Tajriba ma’lumotlari...',
-    createExperiment: 'Tajriba yaratish',
-    creatingExperiment: 'Tajriba yaratilmoqda…',
-    experimentCreated: 'Tajriba yaratildi.',
+    molecularAnalysis:
+      'Molekulyar tahlil',
 
-    workflowLoaded: 'Yuklandi.',
+    bioinformaticsExperiment:
+      'Bioinformatika tajribasi',
 
-    molecular: 'Molekulyar',
-    docking: 'Dokking',
-    structurePrediction: 'Tuzilmani bashorat qilish',
+    drugDiscoveryExperiment:
+      'Dori yaratish tajribasi',
 
-    molecularBackend:
-      'Mavjud MedGen molekulyar backendini Web interfeysi orqali to‘g‘ridan-to‘g‘ri ishga tushiring.',
+    structuralBiology:
+      'Strukturaviy biologiya',
 
-    bioBackend:
-      'Himoyalangan bioinformatika ish jarayonini backendga yuboring.',
+    customExperiment:
+      'Maxsus tajriba',
 
-    pdbBackend:
-      'MedGen PDB backendidan tuzilmani yuklang.',
+    experimentInput:
+      'Tajriba ma’lumotlari...',
 
-    discoverySession:
-      'Hisoblash asosidagi dori yaratish sessiyasini yarating.',
+    createExperiment:
+      'Tajriba yaratish',
 
-    workflowView:
-      'Saqlangan ilmiy ish jarayonlarini ko‘ring.',
+    creatingExperiment:
+      'Tajriba yaratilmoqda…',
 
-    researchBackend:
-      'Iqtiboslarga yo‘naltirilgan natijalar uchun ilmiy backenddan qidiring.'
+    experimentCreated:
+      'Tajriba yaratildi.',
+
+    workflowLoaded:
+      'Yuklandi.',
+
+    molecular:
+      'Molekulyar',
+
+    docking:
+      'Dokking',
+
+    structurePrediction:
+      'Tuzilmani bashorat qilish',
+
+    development:
+      'ishlab chiqish',
+
+    ready:
+      'tayyor',
+
+    pending:
+      'kutilmoqda',
+
+    running:
+      'bajarilmoqda',
+
+    idle:
+      'kutish holatida',
+
+    unknown:
+      'noma’lum'
   },
 
 
   ru: {
-    signingIn: 'Выполняется вход…',
-    loginFailed: 'Ошибка входа.',
-    apiOnline: 'API: онлайн',
-    apiOffline: 'API: офлайн',
-    notConnected: 'не подключено',
+    signingIn:
+      'Выполняется вход…',
 
-    enterSmiles: 'Введите строку SMILES.',
-    analyzing: 'Выполняется анализ…',
-    analysisCompleted: 'Анализ завершён.',
-    enterSequence: 'Введите последовательность ДНК/РНК/белка.',
-    enterPdb: 'Введите PDB ID.',
-    loading: 'Загрузка…',
-    loaded: 'Загружено.',
+    loginFailed:
+      'Ошибка входа.',
 
-    moleculesSmiles: 'Молекулы / SMILES',
+    apiOnline:
+      'API: онлайн',
+
+    apiOffline:
+      'API: офлайн',
+
+    notConnected:
+      'не подключено',
+
+    enterSmiles:
+      'Введите строку SMILES.',
+
+    analyzing:
+      'Выполняется анализ…',
+
+    analysisCompleted:
+      'Анализ завершён.',
+
+    enterSequence:
+      'Введите последовательность ДНК/РНК/белка.',
+
+    enterPdb:
+      'Введите PDB ID.',
+
+    loading:
+      'Загрузка…',
+
+    loaded:
+      'Загружено.',
+
+    moleculesSmiles:
+      'Молекулы / SMILES',
 
     smilesPlaceholder:
       'Введите по одному SMILES в каждой строке\n\nПример:\nCCO\nC1=CC=CC=C1\nCC(=O)O',
@@ -288,9 +445,14 @@ const LANG = {
     oneMolecule:
       'Одна молекула на строку. Скрининг ранжирует молекулы.',
 
-    runScreening: 'Запустить скрининг',
-    enterTarget: 'Введите мишень.',
-    enterMolecule: 'Введите хотя бы одну молекулу.',
+    runScreening:
+      'Запустить скрининг',
+
+    enterTarget:
+      'Введите мишень.',
+
+    enterMolecule:
+      'Введите хотя бы одну молекулу.',
 
     virtualScreening:
       'Выполняется виртуальный скрининг…',
@@ -298,32 +460,56 @@ const LANG = {
     screeningCompleted:
       'Скрининг завершён: ранжировано молекул — {count}.',
 
-    screeningFailed: 'Ошибка скрининга.',
+    screeningFailed:
+      'Ошибка скрининга.',
 
-    scientificWorker: 'Научный рабочий процесс',
-    checkingWorker: 'Проверка рабочего процесса…',
-    refreshWorker: 'Обновить рабочий процесс',
-    worker: 'Рабочий процесс',
-    queue: 'Очередь',
-    active: 'Активные',
+    scientificWorker:
+      'Научный рабочий процесс',
+
+    checkingWorker:
+      'Проверка рабочего процесса…',
+
+    refreshWorker:
+      'Обновить рабочий процесс',
+
+    worker:
+      'Рабочий процесс',
+
+    queue:
+      'Очередь',
+
+    active:
+      'Активные',
 
     workerError:
       'Ошибка рабочего процесса: {error}',
 
-    submitting: 'Отправка…',
-    jobSubmitted: 'Задача отправлена.',
+    submitting:
+      'Отправка…',
+
+    jobSubmitted:
+      'Задача отправлена.',
+
+    noJobs:
+      'Научных задач пока нет.',
 
     generateScientificReport:
       'Создать научный отчёт',
 
-    reportType: 'Тип отчёта',
+    reportType:
+      'Тип отчёта',
 
     reportPlaceholder:
       'Опишите исследование, мишень, эксперимент или анализ...',
 
-    generateReport: 'Создать отчёт',
-    generatingReport: 'Создание отчёта…',
-    reportGenerated: 'Отчёт создан.',
+    generateReport:
+      'Создать отчёт',
+
+    generatingReport:
+      'Создание отчёта…',
+
+    reportGenerated:
+      'Отчёт создан.',
 
     aiResearchAssistant:
       'AI-помощник по научным исследованиям',
@@ -343,47 +529,77 @@ const LANG = {
     researchCompleted:
       'Научный помощник завершил работу.',
 
-    searchResearch: 'Поиск исследований',
-    enterResearchQuery: 'Введите поисковый запрос.',
-    searching: 'Поиск…',
-    searchCompleted: 'Поиск завершён.',
+    searchResearch:
+      'Поиск исследований',
 
-    virtualLaboratory: 'Виртуальная лаборатория',
+    enterResearchQuery:
+      'Введите поисковый запрос.',
 
-    molecularAnalysis: 'Молекулярный анализ',
-    bioinformaticsExperiment: 'Биоинформационный эксперимент',
-    drugDiscoveryExperiment: 'Эксперимент по разработке лекарств',
-    structuralBiology: 'Структурная биология',
-    customExperiment: 'Пользовательский эксперимент',
+    searching:
+      'Поиск…',
 
-    experimentInput: 'Данные эксперимента...',
-    createExperiment: 'Создать эксперимент',
-    creatingExperiment: 'Создание эксперимента…',
-    experimentCreated: 'Эксперимент создан.',
+    searchCompleted:
+      'Поиск завершён.',
 
-    workflowLoaded: 'Загружено.',
+    virtualLaboratory:
+      'Виртуальная лаборатория',
 
-    molecular: 'Молекулярный',
-    docking: 'Докинг',
-    structurePrediction: 'Предсказание структуры',
+    molecularAnalysis:
+      'Молекулярный анализ',
 
-    molecularBackend:
-      'Запустите существующий молекулярный backend MedGen непосредственно через Web-интерфейс.',
+    bioinformaticsExperiment:
+      'Биоинформационный эксперимент',
 
-    bioBackend:
-      'Отправьте защищённый биоинформационный процесс в backend.',
+    drugDiscoveryExperiment:
+      'Эксперимент по разработке лекарств',
 
-    pdbBackend:
-      'Загрузите структуру из PDB backend MedGen.',
+    structuralBiology:
+      'Структурная биология',
 
-    discoverySession:
-      'Создайте вычислительную сессию по разработке лекарств.',
+    customExperiment:
+      'Пользовательский эксперимент',
 
-    workflowView:
-      'Просмотрите сохранённые научные рабочие процессы.',
+    experimentInput:
+      'Данные эксперимента...',
 
-    researchBackend:
-      'Выполните поиск в научном backend для результатов с цитированием.'
+    createExperiment:
+      'Создать эксперимент',
+
+    creatingExperiment:
+      'Создание эксперимента…',
+
+    experimentCreated:
+      'Эксперимент создан.',
+
+    workflowLoaded:
+      'Загружено.',
+
+    molecular:
+      'Молекулярный',
+
+    docking:
+      'Докинг',
+
+    structurePrediction:
+      'Предсказание структуры',
+
+    development:
+      'разработка',
+
+    ready:
+      'готов',
+
+    pending:
+      'ожидание',
+
+    running:
+      'выполняется',
+
+    idle:
+      'простаивает',
+
+    unknown:
+      'неизвестно'
   }
 };
 
@@ -393,10 +609,18 @@ const LANG = {
 ========================================================= */
 
 function currentLanguage() {
-  const lang = localStorage.getItem('medgen_language');
 
-  if (lang === 'en' || lang === 'uz' || lang === 'ru') {
-    return lang;
+  const saved =
+    localStorage.getItem(
+      'medgen_language'
+    );
+
+  if (
+    saved === 'en' ||
+    saved === 'uz' ||
+    saved === 'ru'
+  ) {
+    return saved;
   }
 
   return 'uz';
@@ -405,36 +629,87 @@ function currentLanguage() {
 
 function t(key, values = {}) {
 
-  const lang = currentLanguage();
+  const lang =
+    currentLanguage();
 
   let value =
     LANG[lang]?.[key] ??
     LANG.en?.[key] ??
     key;
 
-  Object.keys(values).forEach((name) => {
-    value = value.replace(
-      new RegExp(`\\{${name}\\}`, 'g'),
-      String(values[name])
-    );
-  });
+  Object.keys(values).forEach(
+    (name) => {
+
+      value =
+        value.replace(
+          new RegExp(
+            `\\{${name}\\}`,
+            'g'
+          ),
+          String(
+            values[name]
+          )
+        );
+    }
+  );
 
   return value;
 }
 
 
 /* =========================================================
-   DYNAMIC TRANSLATION
+   BACKEND VALUE TRANSLATION
+========================================================= */
+
+function translateBackendValue(value) {
+
+  if (
+    value === null ||
+    value === undefined ||
+    value === ''
+  ) {
+    return t('unknown');
+  }
+
+  const normalized =
+    String(value)
+      .trim()
+      .toLowerCase();
+
+  const known = [
+    'development',
+    'develop',
+    'ready',
+    'pending',
+    'running',
+    'idle',
+    'unknown'
+  ];
+
+  if (known.includes(normalized)) {
+    return t(
+      normalized === 'develop'
+        ? 'development'
+        : normalized
+    );
+  }
+
+  return value;
+}
+
+
+/* =========================================================
+   DYNAMIC UI TRANSLATION
 ========================================================= */
 
 function translateDynamicUI() {
 
   /* Drug Discovery */
 
-  const discoveryMolecules = $('discoveryMolecules');
+  if ($('discoveryMolecules')) {
 
-  if (discoveryMolecules) {
-    discoveryMolecules.placeholder =
+    $('discoveryMolecules')
+      .placeholder =
       t('smilesPlaceholder');
   }
 
@@ -444,158 +719,197 @@ function translateDynamicUI() {
     );
 
   if (discoveryLabel) {
+
     discoveryLabel.textContent =
       t('moleculesSmiles');
   }
 
-  const discoveryHint =
-    $('discoveryMoleculesHint');
+  if ($('discoveryMoleculesHint')) {
 
-  if (discoveryHint) {
-    discoveryHint.textContent =
+    $('discoveryMoleculesHint')
+      .textContent =
       t('oneMolecule');
   }
 
   if ($('discoveryRun')) {
-    $('discoveryRun').textContent =
+
+    $('discoveryRun')
+      .textContent =
       t('runScreening');
   }
 
 
-  /* Scientific Jobs */
+  /* Jobs */
 
-  if ($('jobsStatusPanel')) {
+  if ($('jobsStatusTitle')) {
 
-    if ($('jobsStatusTitle')) {
-      $('jobsStatusTitle').textContent =
-        t('scientificWorker');
-    }
+    $('jobsStatusTitle')
+      .textContent =
+      t('scientificWorker');
+  }
 
-    if ($('jobsStatusRefresh')) {
-      $('jobsStatusRefresh').textContent =
-        t('refreshWorker');
-    }
+  if ($('jobsStatusRefresh')) {
+
+    $('jobsStatusRefresh')
+      .textContent =
+      t('refreshWorker');
   }
 
 
   /* Reports */
 
-  if ($('reportGeneratorPanel')) {
+  if ($('reportGeneratorTitle')) {
 
-    if ($('reportGeneratorTitle')) {
-      $('reportGeneratorTitle').textContent =
-        t('generateScientificReport');
-    }
+    $('reportGeneratorTitle')
+      .textContent =
+      t('generateScientificReport');
+  }
 
-    if ($('reportType')) {
-      $('reportType').placeholder =
-        t('reportType');
-    }
+  if ($('reportType')) {
 
-    if ($('reportInput')) {
-      $('reportInput').placeholder =
-        t('reportPlaceholder');
-    }
+    $('reportType')
+      .placeholder =
+      t('reportType');
+  }
 
-    if ($('reportGenerate')) {
-      $('reportGenerate').textContent =
-        t('generateReport');
-    }
+  if ($('reportInput')) {
+
+    $('reportInput')
+      .placeholder =
+      t('reportPlaceholder');
+  }
+
+  if ($('reportGenerate')) {
+
+    $('reportGenerate')
+      .textContent =
+      t('generateReport');
   }
 
 
-  /* Research Assistant */
+  /* Research */
 
-  if ($('researchAssistantPanel')) {
+  if ($('researchAssistantTitle')) {
 
-    if ($('researchAssistantTitle')) {
-      $('researchAssistantTitle').textContent =
-        t('aiResearchAssistant');
-    }
+    $('researchAssistantTitle')
+      .textContent =
+      t('aiResearchAssistant');
+  }
 
-    if ($('assistantQuery')) {
-      $('assistantQuery').placeholder =
-        t('researchQuestion');
-    }
+  if ($('assistantQuery')) {
 
-    if ($('assistantRun')) {
-      $('assistantRun').textContent =
-        t('runResearchAssistant');
-    }
+    $('assistantQuery')
+      .placeholder =
+      t('researchQuestion');
+  }
+
+  if ($('assistantRun')) {
+
+    $('assistantRun')
+      .textContent =
+      t('runResearchAssistant');
   }
 
 
   /* Virtual Laboratory */
 
-  if ($('virtualLabPanel')) {
+  if ($('virtualLabTitle')) {
 
-    if ($('virtualLabTitle')) {
-      $('virtualLabTitle').textContent =
-        t('virtualLaboratory');
-    }
+    $('virtualLabTitle')
+      .textContent =
+      t('virtualLaboratory');
+  }
 
-    if ($('labExperimentInput')) {
-      $('labExperimentInput').placeholder =
-        t('experimentInput');
-    }
+  if ($('labExperimentInput')) {
 
-    if ($('labExperimentCreate')) {
-      $('labExperimentCreate').textContent =
-        t('createExperiment');
-    }
+    $('labExperimentInput')
+      .placeholder =
+      t('experimentInput');
+  }
 
-    const select =
-      $('labExperimentType');
+  if ($('labExperimentCreate')) {
 
-    if (select && select.options.length >= 5) {
+    $('labExperimentCreate')
+      .textContent =
+      t('createExperiment');
+  }
 
-      select.options[0].textContent =
+  if ($('labExperimentType')) {
+
+    const options =
+      $('labExperimentType').options;
+
+    if (options.length >= 5) {
+
+      options[0].textContent =
         t('molecularAnalysis');
 
-      select.options[1].textContent =
+      options[1].textContent =
         t('bioinformaticsExperiment');
 
-      select.options[2].textContent =
+      options[2].textContent =
         t('drugDiscoveryExperiment');
 
-      select.options[3].textContent =
+      options[3].textContent =
         t('structuralBiology');
 
-      select.options[4].textContent =
+      options[4].textContent =
         t('customExperiment');
     }
   }
 
 
-  /* Static job type options */
+  /* Job type */
 
-  const jobType = $('jobType');
+  if ($('jobType')) {
 
-  if (jobType) {
+    Array.from(
+      $('jobType').options
+    ).forEach(
+      option => {
 
-    Array.from(jobType.options).forEach((option) => {
+        const value =
+          option.value;
 
-      const value = option.value;
+        if (
+          value ===
+          'scientific_analysis'
+        ) {
+          option.textContent =
+            t('molecular');
+        }
 
-      if (
-        value === 'scientific_analysis' ||
-        value === 'molecular'
-      ) {
-        option.textContent =
-          t('molecular');
+        if (
+          value ===
+          'molecular'
+        ) {
+          option.textContent =
+            t('molecular');
+        }
+
+        if (
+          value ===
+          'docking'
+        ) {
+          option.textContent =
+            t('docking');
+        }
+
+        if (
+          value ===
+          'structure_prediction'
+        ) {
+          option.textContent =
+            t('structurePrediction');
+        }
       }
-
-      if (value === 'docking') {
-        option.textContent =
-          t('docking');
-      }
-
-      if (value === 'structure_prediction') {
-        option.textContent =
-          t('structurePrediction');
-      }
-    });
+    );
   }
+
+
+  /* API */
+
+  checkHealth();
 }
 
 
@@ -603,18 +917,26 @@ function translateDynamicUI() {
    API
 ========================================================= */
 
-async function api(path, options = {}) {
+async function api(
+  path,
+  options = {}
+) {
 
   if (!path.startsWith('/')) {
-    throw new Error('Invalid API path');
+    throw new Error(
+      'Invalid API path'
+    );
   }
 
   const headers = {
-    'Content-Type': 'application/json',
+    'Content-Type':
+      'application/json',
+
     ...(options.headers || {})
   };
 
   if (state.token) {
+
     headers.Authorization =
       `Bearer ${state.token}`;
   }
@@ -631,7 +953,10 @@ async function api(path, options = {}) {
   let data = null;
 
   try {
-    data = await response.json();
+
+    data =
+      await response.json();
+
   } catch {}
 
   if (!response.ok) {
@@ -648,32 +973,48 @@ async function api(path, options = {}) {
 
 
 /* =========================================================
-   HELPERS
+   STATUS
 ========================================================= */
 
-function setStatus(id, message, success = false) {
+function setStatus(
+  id,
+  message,
+  success = false
+) {
 
-  const element = $(id);
+  const element =
+    $(id);
 
   if (!element) return;
 
-  element.textContent = message;
+  element.textContent =
+    message;
 
   element.style.color =
-    success ? '#8eeed2' : '';
+    success
+      ? '#8eeed2'
+      : '';
 }
 
+
+/* =========================================================
+   LOGIN / DASHBOARD
+========================================================= */
 
 function showLogin() {
 
   if ($('dashboardView')) {
+
     $('dashboardView')
-      .classList.add('hidden');
+      .classList
+      .add('hidden');
   }
 
   if ($('loginView')) {
+
     $('loginView')
-      .classList.remove('hidden');
+      .classList
+      .remove('hidden');
   }
 }
 
@@ -681,17 +1022,20 @@ function showLogin() {
 function showDashboard() {
 
   if ($('loginView')) {
+
     $('loginView')
-      .classList.add('hidden');
+      .classList
+      .add('hidden');
   }
 
   if ($('dashboardView')) {
+
     $('dashboardView')
-      .classList.remove('hidden');
+      .classList
+      .remove('hidden');
   }
 
   updateRole();
-  checkHealth();
   translateDynamicUI();
 }
 
@@ -699,10 +1043,13 @@ function showDashboard() {
 function updateRole() {
 
   const role =
-    state.user?.role || 'USER';
+    state.user?.role ||
+    'USER';
 
   if ($('roleBadge')) {
-    $('roleBadge').textContent =
+
+    $('roleBadge')
+      .textContent =
       role;
   }
 }
@@ -724,7 +1071,8 @@ async function checkHealth() {
 
     const response =
       await fetch(
-        base + '/api/v1/health/live'
+        base +
+        '/api/v1/health/live'
       );
 
     if (!response.ok) {
@@ -732,28 +1080,34 @@ async function checkHealth() {
     }
 
     if ($('healthBadge')) {
-      $('healthBadge').textContent =
+
+      $('healthBadge')
+        .textContent =
         t('apiOnline');
     }
 
     if ($('apiText')) {
-      $('apiText').textContent =
-        currentLanguage() === 'en'
-          ? 'online'
-          : currentLanguage() === 'ru'
-            ? 'онлайн'
-            : 'online';
+
+      $('apiText')
+        .textContent =
+        currentLanguage() === 'ru'
+          ? 'онлайн'
+          : 'online';
     }
 
   } catch {
 
     if ($('healthBadge')) {
-      $('healthBadge').textContent =
+
+      $('healthBadge')
+        .textContent =
         t('apiOffline');
     }
 
     if ($('apiText')) {
-      $('apiText').textContent =
+
+      $('apiText')
+        .textContent =
         t('notConnected');
     }
   }
@@ -766,69 +1120,75 @@ async function checkHealth() {
 
 if ($('loginForm')) {
 
-  $('loginForm').addEventListener(
-    'submit',
-    async (event) => {
+  $('loginForm')
+    .addEventListener(
+      'submit',
+      async (event) => {
 
-      event.preventDefault();
+        event.preventDefault();
 
-      setStatus(
-        'loginStatus',
-        t('signingIn')
-      );
+        setStatus(
+          'loginStatus',
+          t('signingIn')
+        );
 
-      try {
+        try {
 
-        const body = {
-          username:
-            $('loginUser')?.value.trim(),
+          const body = {
 
-          password:
-            $('loginPassword')?.value || ''
-        };
+            username:
+              $('loginUser')
+                ?.value
+                .trim(),
 
-        const data =
-          await api(
-            '/auth/login',
-            {
-              method: 'POST',
-              body: JSON.stringify(body)
-            }
+            password:
+              $('loginPassword')
+                ?.value || ''
+          };
+
+          const data =
+            await api(
+              '/auth/login',
+              {
+                method: 'POST',
+                body:
+                  JSON.stringify(body)
+              }
+            );
+
+          state.token =
+            data.access_token;
+
+          sessionStorage.setItem(
+            CONFIG.tokenKey,
+            state.token
           );
 
-        state.token =
-          data.access_token;
+          state.user =
+            await api('/auth/me');
 
-        sessionStorage.setItem(
-          CONFIG.tokenKey,
-          state.token
-        );
+          showDashboard();
 
-        state.user =
-          await api('/auth/me');
+          setStatus(
+            'loginStatus',
+            ''
+          );
 
-        showDashboard();
+        } catch (error) {
 
-        setStatus(
-          'loginStatus',
-          ''
-        );
+          console.error(
+            'Login error:',
+            error
+          );
 
-      } catch (error) {
-
-        console.error(
-          'Login error:',
-          error
-        );
-
-        setStatus(
-          'loginStatus',
-          error.message ||
-          t('loginFailed')
-        );
+          setStatus(
+            'loginStatus',
+            error.message ||
+            t('loginFailed')
+          );
+        }
       }
-    }
-  );
+    );
 }
 
 
@@ -838,20 +1198,21 @@ if ($('loginForm')) {
 
 if ($('logoutBtn')) {
 
-  $('logoutBtn').addEventListener(
-    'click',
-    () => {
+  $('logoutBtn')
+    .addEventListener(
+      'click',
+      () => {
 
-      state.token = '';
-      state.user = null;
+        state.token = '';
+        state.user = null;
 
-      sessionStorage.removeItem(
-        CONFIG.tokenKey
-      );
+        sessionStorage.removeItem(
+          CONFIG.tokenKey
+        );
 
-      showLogin();
-    }
-  );
+        showLogin();
+      }
+    );
 }
 
 
@@ -862,7 +1223,9 @@ if ($('logoutBtn')) {
 async function molecularAnalyze() {
 
   const smiles =
-    $('smilesInput')?.value.trim();
+    $('smilesInput')
+      ?.value
+      .trim();
 
   if (!smiles) {
 
@@ -886,9 +1249,10 @@ async function molecularAnalyze() {
         '/molecules/analyze',
         {
           method: 'POST',
-          body: JSON.stringify({
-            smiles
-          })
+          body:
+            JSON.stringify({
+              smiles
+            })
         }
       );
 
@@ -926,7 +1290,9 @@ async function molecularAnalyze() {
 async function bioinformaticsRun() {
 
   const sequence =
-    $('bioSequence')?.value.trim();
+    $('bioSequence')
+      ?.value
+      .trim();
 
   if (!sequence) {
 
@@ -950,10 +1316,11 @@ async function bioinformaticsRun() {
         '/bioinformatics/analyze',
         {
           method: 'POST',
-          body: JSON.stringify({
-            sequence,
-            sequence_type: 'AUTO'
-          })
+          body:
+            JSON.stringify({
+              sequence,
+              sequence_type: 'AUTO'
+            })
         }
       );
 
@@ -1058,7 +1425,9 @@ function prepareDiscoveryUI() {
   if (!tool) return;
 
   if ($('discoveryMolecules')) {
+
     translateDynamicUI();
+
     return;
   }
 
@@ -1070,14 +1439,15 @@ function prepareDiscoveryUI() {
 
   wrapper.innerHTML = `
     <label
-      id="discoveryMoleculesLabel"
       for="discoveryMolecules"
       style="
         display:block;
         margin-bottom:8px;
         font-weight:600;
       "
-    ></label>
+    >
+      ${t('moleculesSmiles')}
+    </label>
 
     <textarea
       id="discoveryMolecules"
@@ -1088,6 +1458,7 @@ function prepareDiscoveryUI() {
         resize:vertical;
         box-sizing:border-box;
       "
+      placeholder="${t('smilesPlaceholder')}"
     ></textarea>
 
     <div
@@ -1097,7 +1468,9 @@ function prepareDiscoveryUI() {
         font-size:13px;
         opacity:.75;
       "
-    ></div>
+    >
+      ${t('oneMolecule')}
+    </div>
   `;
 
   const button =
@@ -1105,14 +1478,17 @@ function prepareDiscoveryUI() {
 
   if (button) {
 
-    button.parentNode.insertBefore(
-      wrapper,
-      button
-    );
+    button.parentNode
+      .insertBefore(
+        wrapper,
+        button
+      );
 
   } else {
 
-    tool.appendChild(wrapper);
+    tool.appendChild(
+      wrapper
+    );
   }
 
   translateDynamicUI();
@@ -1160,7 +1536,10 @@ async function discoveryCreate() {
   const molecules =
     moleculesText
       .split('\n')
-      .map(item => item.trim())
+      .map(
+        item =>
+          item.trim()
+      )
       .filter(Boolean);
 
   setStatus(
@@ -1175,10 +1554,11 @@ async function discoveryCreate() {
         '/discovery/screen',
         {
           method: 'POST',
-          body: JSON.stringify({
-            target,
-            molecules
-          })
+          body:
+            JSON.stringify({
+              target,
+              molecules
+            })
         }
       );
 
@@ -1234,7 +1614,9 @@ function prepareJobsUI() {
   if (!tool) return;
 
   if ($('jobsStatusPanel')) {
+
     translateDynamicUI();
+
     return;
   }
 
@@ -1254,7 +1636,9 @@ function prepareJobsUI() {
         margin-bottom:10px;
         font-weight:600;
       "
-    ></div>
+    >
+      ${t('scientificWorker')}
+    </div>
 
     <div
       id="jobsStatusLive"
@@ -1264,15 +1648,21 @@ function prepareJobsUI() {
         background:rgba(255,255,255,.05);
         margin-bottom:12px;
       "
-    ></div>
+    >
+      ${t('checkingWorker')}
+    </div>
 
     <button
       id="jobsStatusRefresh"
       type="button"
-    ></button>
+    >
+      ${t('refreshWorker')}
+    </button>
   `;
 
-  tool.prepend(wrapper);
+  tool.prepend(
+    wrapper
+  );
 
   $('jobsStatusRefresh')
     .addEventListener(
@@ -1281,11 +1671,12 @@ function prepareJobsUI() {
     );
 
   translateDynamicUI();
-
-  $('jobsStatusLive').textContent =
-    t('checkingWorker');
 }
 
+
+/* =========================================================
+   JOB STATUS
+========================================================= */
 
 async function loadJobStatus() {
 
@@ -1301,13 +1692,28 @@ async function loadJobStatus() {
   try {
 
     const data =
-      await api('/jobs/status');
+      await api(
+        '/jobs/status'
+      );
+
+    const worker =
+      translateBackendValue(
+        data.worker
+      );
+
+    const queue =
+      translateBackendValue(
+        data.queue
+      );
+
+    const active =
+      data.active_jobs ?? 0;
 
     if ($('jobsStatusLive')) {
 
       $('jobsStatusLive')
         .textContent =
-        `${t('worker')}: ${data.worker || 'unknown'} | ${t('queue')}: ${data.queue || 'unknown'} | ${t('active')}: ${data.active_jobs ?? 0}`;
+        `${t('worker')}: ${worker} | ${t('queue')}: ${queue} | ${t('active')}: ${active}`;
     }
 
     return data;
@@ -1321,7 +1727,8 @@ async function loadJobStatus() {
         t(
           'workerError',
           {
-            error: error.message
+            error:
+              error.message
           }
         );
     }
@@ -1345,17 +1752,31 @@ async function loadJobs() {
   try {
 
     const data =
-      await api('/jobs');
+      await api(
+        '/jobs'
+      );
 
     if ($('jobsResult')) {
 
-      $('jobsResult')
-        .textContent =
-        JSON.stringify(
-          data,
-          null,
-          2
-        );
+      if (
+        !data.jobs ||
+        data.jobs.length === 0
+      ) {
+
+        $('jobsResult')
+          .textContent =
+          t('noJobs');
+
+      } else {
+
+        $('jobsResult')
+          .textContent =
+          JSON.stringify(
+            data,
+            null,
+            2
+          );
+      }
     }
 
     await loadJobStatus();
@@ -1396,12 +1817,16 @@ async function createJob() {
         '/jobs',
         {
           method: 'POST',
-          body: JSON.stringify({
-            job_type: type,
-            input: {
-              source: 'web'
-            }
-          })
+          body:
+            JSON.stringify({
+              job_type:
+                type,
+
+              input: {
+                source:
+                  'web'
+              }
+            })
         }
       );
 
@@ -1423,6 +1848,7 @@ async function createJob() {
     );
 
     await loadJobStatus();
+    await loadJobs();
 
   } catch (error) {
 
@@ -1435,7 +1861,7 @@ async function createJob() {
 
 
 /* =========================================================
-   REPORTS UI
+   REPORT UI
 ========================================================= */
 
 function prepareReportsUI() {
@@ -1446,7 +1872,9 @@ function prepareReportsUI() {
   if (!tool) return;
 
   if ($('reportGeneratorPanel')) {
+
     translateDynamicUI();
+
     return;
   }
 
@@ -1466,12 +1894,15 @@ function prepareReportsUI() {
         margin-bottom:8px;
         font-weight:600;
       "
-    ></div>
+    >
+      ${t('generateScientificReport')}
+    </div>
 
     <input
       id="reportType"
       type="text"
       value="Biomedical Research Report"
+      placeholder="${t('reportType')}"
       style="
         width:100%;
         box-sizing:border-box;
@@ -1482,6 +1913,7 @@ function prepareReportsUI() {
     <textarea
       id="reportInput"
       rows="5"
+      placeholder="${t('reportPlaceholder')}"
       style="
         width:100%;
         box-sizing:border-box;
@@ -1493,7 +1925,9 @@ function prepareReportsUI() {
       id="reportGenerate"
       type="button"
       style="margin-top:8px;"
-    ></button>
+    >
+      ${t('generateReport')}
+    </button>
 
     <div
       id="reportGenerateStatus"
@@ -1509,7 +1943,9 @@ function prepareReportsUI() {
     ></pre>
   `;
 
-  tool.prepend(wrapper);
+  tool.prepend(
+    wrapper
+  );
 
   $('reportGenerate')
     .addEventListener(
@@ -1537,7 +1973,9 @@ async function loadReports() {
   try {
 
     const data =
-      await api('/reports');
+      await api(
+        '/reports'
+      );
 
     if ($('reportsResult')) {
 
@@ -1591,10 +2029,13 @@ async function generateReport() {
         '/reports/generate',
         {
           method: 'POST',
-          body: JSON.stringify({
-            workflow_type: type,
-            input
-          })
+          body:
+            JSON.stringify({
+              workflow_type:
+                type,
+
+              input
+            })
         }
       );
 
@@ -1637,7 +2078,9 @@ function prepareResearchUI() {
   if (!tool) return;
 
   if ($('researchAssistantPanel')) {
+
     translateDynamicUI();
+
     return;
   }
 
@@ -1657,11 +2100,14 @@ function prepareResearchUI() {
         margin-bottom:8px;
         font-weight:600;
       "
-    ></div>
+    >
+      ${t('aiResearchAssistant')}
+    </div>
 
     <textarea
       id="assistantQuery"
       rows="5"
+      placeholder="${t('researchQuestion')}"
       style="
         width:100%;
         box-sizing:border-box;
@@ -1673,7 +2119,9 @@ function prepareResearchUI() {
       id="assistantRun"
       type="button"
       style="margin-top:8px;"
-    ></button>
+    >
+      ${t('runResearchAssistant')}
+    </button>
 
     <div
       id="assistantStatus"
@@ -1689,7 +2137,9 @@ function prepareResearchUI() {
     ></pre>
   `;
 
-  tool.prepend(wrapper);
+  tool.prepend(
+    wrapper
+  );
 
   $('assistantRun')
     .addEventListener(
@@ -1734,9 +2184,10 @@ async function researchAssistant() {
         '/research/assistant',
         {
           method: 'POST',
-          body: JSON.stringify({
-            query
-          })
+          body:
+            JSON.stringify({
+              query
+            })
         }
       );
 
@@ -1800,10 +2251,11 @@ async function researchSearch() {
         '/research/search',
         {
           method: 'POST',
-          body: JSON.stringify({
-            query,
-            limit: 10
-          })
+          body:
+            JSON.stringify({
+              query,
+              limit: 10
+            })
         }
       );
 
@@ -1835,7 +2287,7 @@ async function researchSearch() {
 
 
 /* =========================================================
-   VIRTUAL LAB UI
+   VIRTUAL LAB
 ========================================================= */
 
 function prepareVirtualLabUI() {
@@ -1846,7 +2298,9 @@ function prepareVirtualLabUI() {
   if (!tool) return;
 
   if ($('virtualLabPanel')) {
+
     translateDynamicUI();
+
     return;
   }
 
@@ -1866,7 +2320,9 @@ function prepareVirtualLabUI() {
         margin-bottom:8px;
         font-weight:600;
       "
-    ></div>
+    >
+      ${t('virtualLaboratory')}
+    </div>
 
     <select
       id="labExperimentType"
@@ -1875,16 +2331,31 @@ function prepareVirtualLabUI() {
         margin-bottom:8px;
       "
     >
-      <option value="molecular_analysis"></option>
-      <option value="bioinformatics"></option>
-      <option value="drug_discovery"></option>
-      <option value="structural_biology"></option>
-      <option value="custom"></option>
+      <option value="molecular_analysis">
+        ${t('molecularAnalysis')}
+      </option>
+
+      <option value="bioinformatics">
+        ${t('bioinformaticsExperiment')}
+      </option>
+
+      <option value="drug_discovery">
+        ${t('drugDiscoveryExperiment')}
+      </option>
+
+      <option value="structural_biology">
+        ${t('structuralBiology')}
+      </option>
+
+      <option value="custom">
+        ${t('customExperiment')}
+      </option>
     </select>
 
     <textarea
       id="labExperimentInput"
       rows="6"
+      placeholder="${t('experimentInput')}"
       style="
         width:100%;
         box-sizing:border-box;
@@ -1896,7 +2367,9 @@ function prepareVirtualLabUI() {
       id="labExperimentCreate"
       type="button"
       style="margin-top:8px;"
-    ></button>
+    >
+      ${t('createExperiment')}
+    </button>
 
     <div
       id="labExperimentStatus"
@@ -1912,7 +2385,9 @@ function prepareVirtualLabUI() {
     ></pre>
   `;
 
-  tool.prepend(wrapper);
+  tool.prepend(
+    wrapper
+  );
 
   $('labExperimentCreate')
     .addEventListener(
@@ -1925,7 +2400,7 @@ function prepareVirtualLabUI() {
 
 
 /* =========================================================
-   VIRTUAL LAB
+   CREATE EXPERIMENT
 ========================================================= */
 
 async function createExperiment() {
@@ -1952,11 +2427,13 @@ async function createExperiment() {
         '/lab/experiments',
         {
           method: 'POST',
-          body: JSON.stringify({
-            workflow_type:
-              workflowType,
-            input
-          })
+          body:
+            JSON.stringify({
+              workflow_type:
+                workflowType,
+
+              input
+            })
         }
       );
 
@@ -2001,7 +2478,9 @@ async function workflowList() {
   try {
 
     const data =
-      await api('/workflows');
+      await api(
+        '/workflows'
+      );
 
     if ($('workflowResult')) {
 
@@ -2065,6 +2544,7 @@ const MODULE_KEYS = {
 function openModule(name) {
 
   if ($('workspace')) {
+
     $('workspace')
       .classList
       .remove('hidden');
@@ -2084,12 +2564,16 @@ function openModule(name) {
     .querySelectorAll('.tool')
     .forEach(
       element =>
-        element.classList.add('hidden')
+        element
+          .classList
+          .add('hidden')
     );
 
   if ($('comingSoon')) {
+
     $('comingSoon')
-      .classList.add('hidden');
+      .classList
+      .add('hidden');
   }
 
   const map = {
@@ -2122,7 +2606,10 @@ function openModule(name) {
   const toolId =
     map[name];
 
-  if (toolId && $(toolId)) {
+  if (
+    toolId &&
+    $(toolId)
+  ) {
 
     $(toolId)
       .classList
@@ -2136,28 +2623,45 @@ function openModule(name) {
   }
 
 
-  if (name === 'Drug Discovery') {
+  if (
+    name ===
+    'Drug Discovery'
+  ) {
     prepareDiscoveryUI();
   }
 
 
-  if (name === 'Scientific Jobs') {
+  if (
+    name ===
+    'Scientific Jobs'
+  ) {
+
     prepareJobsUI();
     loadJobs();
   }
 
 
-  if (name === 'Research Assistant') {
+  if (
+    name ===
+    'Research Assistant'
+  ) {
     prepareResearchUI();
   }
 
 
-  if (name === 'Virtual Laboratory') {
+  if (
+    name ===
+    'Virtual Laboratory'
+  ) {
     prepareVirtualLabUI();
   }
 
 
-  if (name === 'Reports & History') {
+  if (
+    name ===
+    'Reports & History'
+  ) {
+
     prepareReportsUI();
     loadReports();
   }
@@ -2175,24 +2679,30 @@ function openModule(name) {
 
 
 /* =========================================================
-   EVENT LISTENER HELPER
+   BIND
 ========================================================= */
 
-function bind(id, event, fn) {
+function bind(
+  id,
+  event,
+  handler
+) {
 
-  const element = $(id);
+  const element =
+    $(id);
 
   if (element) {
+
     element.addEventListener(
       event,
-      fn
+      handler
     );
   }
 }
 
 
 /* =========================================================
-   MODULE EVENTS
+   EVENTS
 ========================================================= */
 
 document
@@ -2235,6 +2745,7 @@ bind(
   () => {
 
     if ($('workspace')) {
+
       $('workspace')
         .classList
         .add('hidden');
@@ -2280,7 +2791,7 @@ bind(
 
 
 /* =========================================================
-   LANGUAGE CHANGE
+   LANGUAGE SELECTORS
 ========================================================= */
 
 function setupLanguageRefresh() {
@@ -2307,35 +2818,33 @@ function setupLanguageRefresh() {
         'change',
         () => {
 
+          const language =
+            selector.value;
+
           localStorage.setItem(
             'medgen_language',
-            selector.value
+            language
           );
+
+          document
+            .querySelectorAll(
+              '#languageSelector, #loginLanguageSelector'
+            )
+            .forEach(
+              item => {
+                item.value =
+                  language;
+              }
+            );
 
           translateDynamicUI();
 
-          checkHealth();
-
           /*
-           * Agar Scientific Jobs ochiq bo‘lsa,
-           * statusni yangi tilda qayta chiqaramiz.
+           * Dynamic Jobs status ham
+           * yangi tilga o'tadi.
            */
           if ($('jobsStatusLive')) {
             loadJobStatus();
-          }
-
-          /*
-           * Workspace sarlavhasini yangilash.
-           */
-          const activeModule =
-            document.querySelector(
-              '.module.active'
-            );
-
-          if (activeModule) {
-            openModule(
-              activeModule.dataset.module
-            );
           }
         }
       );
@@ -2350,35 +2859,35 @@ function setupLanguageRefresh() {
 
 function initializeLanguage() {
 
-  let lang =
+  let language =
     localStorage.getItem(
       'medgen_language'
     );
 
   if (
-    lang !== 'en' &&
-    lang !== 'uz' &&
-    lang !== 'ru'
+    language !== 'en' &&
+    language !== 'uz' &&
+    language !== 'ru'
   ) {
 
-    lang = 'uz';
+    language = 'uz';
 
     localStorage.setItem(
       'medgen_language',
-      lang
+      language
     );
   }
 
-  const selectors = [
-    $('languageSelector'),
-    $('loginLanguageSelector')
-  ].filter(Boolean);
-
-  selectors.forEach(
-    selector => {
-      selector.value = lang;
-    }
-  );
+  document
+    .querySelectorAll(
+      '#languageSelector, #loginLanguageSelector'
+    )
+    .forEach(
+      selector => {
+        selector.value =
+          language;
+      }
+    );
 
   translateDynamicUI();
 }
@@ -2421,4 +2930,4 @@ if (state.token) {
 } else {
 
   showLogin();
-}
+        }
