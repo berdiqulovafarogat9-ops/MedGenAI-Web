@@ -8,3 +8,6 @@ gemmi
 prody
 vina
 meeko
+
+pwdlib[argon2]
+psycopg[binary]
