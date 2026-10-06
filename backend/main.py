@@ -24,7 +24,7 @@ from fastapi.security import HTTPAuthorizationCredentials, HTTPBearer
 try:
     from .knowledge_engine import make_entity, make_relation, search_graph, neighborhood, validate_graph, normalize_entity, graph_stats, find_paths
 except ImportError:
-    from knowledge_engine import make_entity, make_relation, search_graph, neighborhood, validate_graph, normalize_entity
+    from knowledge_engine import make_entity, make_relation, search_graph, neighborhood, validate_graph, normalize_entity, graph_stats
 from pydantic import BaseModel
 from rdkit import Chem, DataStructs
 from rdkit.Chem import AllChem, Descriptors, Lipinski, QED, rdMolDescriptors
