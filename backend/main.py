@@ -1130,44 +1130,72 @@ def _extract_evidence_sentences(query: str, abstract: str, max_sentences: int = 
 
 
 def _evidence_grade(article: dict) -> str:
-    """Lightweight evidence tiering from publication metadata; not a clinical evidence assessment."""
-    title=(article.get("title","") or "").lower()
-    abstract=(article.get("abstract","") or "").lower()
-    text=title+" "+abstract
-    if any(x in text for x in ["randomized","randomised","phase 3","meta-analysis","systematic review"]):
+    """Study-design tier, not a clinical recommendation or formal evidence hierarchy."""
+    text=((article.get("title","") or "")+" "+(article.get("abstract","") or "")).lower()
+    if any(x in text for x in ("randomized controlled trial","randomised controlled trial","meta-analysis","systematic review")):
         return "A"
-    if any(x in text for x in ["phase 2","prospective","multicentre","multicenter","cohort"]):
+    if any(x in text for x in ("phase 3","randomized","randomised")):
+        return "A"
+    if any(x in text for x in ("phase 2","prospective","multicentre","multicenter")):
         return "B"
-    if any(x in text for x in ["retrospective","case-control","observational"]):
+    if any(x in text for x in ("cohort","retrospective","case-control","observational")):
         return "C"
-    if any(x in text for x in ["case report","case series"]):
+    if any(x in text for x in ("case report","case series")):
         return "D"
     return "E"
 
 
+def _claim_polarity(claim: str) -> str:
+    text=(claim or "").lower()
+    positive=("improved","benefit","effective","promising","favorable","favourable","longer os","longer survival")
+    negative=("limited","uncertain","inferior","no significant","not significant","failed","poorer os","shorter os")
+    p=sum(x in text for x in positive)
+    n=sum(x in text for x in negative)
+    if p and n: return "mixed"
+    if p: return "positive"
+    if n: return "negative"
+    return "neutral"
+
+
 def _detect_evidence_tensions(evidence: list[dict]) -> list[dict]:
-    """Flag possible disagreement signals for expert review; does not infer true contradiction."""
-    positive_terms=("improved","benefit","effective","associated with longer","promising","favorable","favourable")
-    negative_terms=("limited","uncertain","inferior","poor","resistance","no significant","not significant","failed")
-    pos=[]; neg=[]
-    for item in evidence:
-        claim=(item.get("evidence") or [""])[0].lower()
-        if any(t in claim for t in positive_terms): pos.append(item.get("pmid"))
-        if any(t in claim for t in negative_terms): neg.append(item.get("pmid"))
-    if pos and neg:
-        return [{"type":"possible_tension","positive_pmids":pos[:5],"negative_pmids":neg[:5],"note":"Keyword-based signal only; inspect full papers before concluding that findings conflict."}]
-    return []
+    """Only reports review-needed tension signals; never declares a true contradiction."""
+    signals=[]
+    positive=[x.get("pmid") for x in evidence if _claim_polarity((x.get("evidence") or [""])[0])=="positive"]
+    negative=[x.get("pmid") for x in evidence if _claim_polarity((x.get("evidence") or [""])[0])=="negative"]
+    if positive and negative:
+        signals.append({
+            "type":"review_needed",
+            "positive_pmids":positive[:5],
+            "negative_pmids":negative[:5],
+            "note":"Claims have different directional language. This is not proof of contradiction; compare populations, interventions, endpoints and study designs."
+        })
+    return signals
 
 
 def _build_research_synthesis(evidence: list[dict]) -> dict:
-    themes=[]
-    for item in evidence:
-        claim=(item.get("evidence") or [item.get("title","")])[0]
-        themes.append({"pmid":item.get("pmid"),"claim":claim,"evidence_grade":item.get("evidence_grade","E"),"citation":item.get("citation","")})
+    findings=[]
     grades={}
     for item in evidence:
-        g=item.get("evidence_grade","E"); grades[g]=grades.get(g,0)+1
-    return {"key_findings":themes[:8],"grade_distribution":grades,"possible_tensions":_detect_evidence_tensions(evidence)}
+        claim=(item.get("evidence") or [item.get("title","")])[0]
+        grade=item.get("evidence_grade","E")
+        grades[grade]=grades.get(grade,0)+1
+        findings.append({
+            "pmid":item.get("pmid"),
+            "claim":claim,
+            "claim_polarity":_claim_polarity(claim),
+            "study_evidence_grade":grade,
+            "citation":item.get("citation","")
+        })
+    return {
+        "key_findings":findings[:8],
+        "grade_distribution":grades,
+        "claim_evidence_map":[
+            {"claim":x["claim"],"supporting_citation":x["citation"],"study_evidence_grade":x["study_evidence_grade"]}
+            for x in findings[:8]
+        ],
+        "possible_tensions":_detect_evidence_tensions(evidence),
+        "method_note":"Automated metadata/text classification for research triage; expert review required."
+    }
 
 def normalize_pubmed_query(query: str) -> str:
     q = query.strip()
