@@ -1,8 +1,8 @@
 /* =========================================================
    MEDGEN AI — APP.JS
-   Multilingual Dynamic UI
    EN / UZ / RU
-   ========================================================= */
+   Dynamic result translation + Drug Discovery fix
+========================================================= */
 
 const API_BASE =
   window.MEDGEN_API_BASE ||
@@ -18,431 +18,316 @@ const state = {
 
 /* =========================================================
    HELPERS
-   ========================================================= */
+========================================================= */
 
-const $ = (id) =>
-  document.getElementById(id);
-
+const $ = (id) => document.getElementById(id);
 
 function getLanguage() {
   return localStorage.getItem('medgen_language') || 'uz';
 }
 
-
 function setText(id, text) {
   const el = $(id);
-
-  if (el) {
-    el.textContent = text;
-  }
+  if (el) el.textContent = text;
 }
-
-
-/* =========================================================
-   DYNAMIC TRANSLATIONS
-   ========================================================= */
-
-const dynamicTranslations = {
-
-  en: {
-
-    enterCredentials:
-      'Enter username and password.',
-
-    signingIn:
-      'Signing in...',
-
-    loginSuccessful:
-      'Login successful.',
-
-    loginFailed:
-      'Login failed: ',
-
-    apiOnline:
-      'API: online',
-
-    apiOffline:
-      'API: offline',
-
-    online:
-      'online',
-
-    offline:
-      'offline',
-
-    analyzing:
-      'Analyzing...',
-
-    analysisCompleted:
-      'Analysis completed.',
-
-    sequenceRequired:
-      'Enter a sequence.',
-
-    done:
-      'Done.',
-
-    pdbRequired:
-      'PDB ID required.',
-
-    loading:
-      'Loading...',
-
-    loaded:
-      'Loaded.',
-
-    targetRequired:
-      'Enter a target.',
-
-    searching:
-      'Searching...',
-
-    jobCreated:
-      'Job created.',
-
-    jobsLoading:
-      'Loading scientific jobs...',
-
-    noJobs:
-      'No scientific jobs available yet.',
-
-    reportsLoading:
-      'Loading reports...',
-
-    noReports:
-      'No reports available yet.',
-
-    workflowsLoading:
-      'Loading workflows...',
-
-    noWorkflows:
-      'No workflows available yet.',
-
-    workflowsCount:
-      'Workflows: ',
-
-    researchEmpty:
-      'No research results found.',
-
-    molecularAnalysis:
-      'Molecular Analysis',
-
-    bioinformatics:
-      'Bioinformatics',
-
-    pdbStructure:
-      'PDB & Structure',
-
-    drugDiscovery:
-      'Drug Discovery',
-
-    scientificJobs:
-      'Scientific Jobs',
-
-    researchAssistant:
-      'Research Assistant',
-
-    virtualLaboratory:
-      'Virtual Laboratory',
-
-    reportsHistory:
-      'Reports & History',
-
-    worker:
-      'Worker',
-
-    queue:
-      'Queue',
-
-    active:
-      'Active'
-  },
-
-
-  uz: {
-
-    enterCredentials:
-      'Foydalanuvchi nomi va parolni kiriting.',
-
-    signingIn:
-      'Tizimga kirilmoqda...',
-
-    loginSuccessful:
-      'Tizimga muvaffaqiyatli kirildi.',
-
-    loginFailed:
-      'Kirishda xatolik: ',
-
-    apiOnline:
-      'API: online',
-
-    apiOffline:
-      'API: offline',
-
-    online:
-      'online',
-
-    offline:
-      'offline',
-
-    analyzing:
-      'Tahlil qilinmoqda...',
-
-    analysisCompleted:
-      'Tahlil tugadi.',
-
-    sequenceRequired:
-      'Ketma-ketlikni kiriting.',
-
-    done:
-      'Tayyor.',
-
-    pdbRequired:
-      'PDB ID kiriting.',
-
-    loading:
-      'Yuklanmoqda...',
-
-    loaded:
-      'Yuklandi.',
-
-    targetRequired:
-      'Nishonni kiriting.',
-
-    searching:
-      'Qidirilmoqda...',
-
-    jobCreated:
-      'Vazifa yaratildi.',
-
-    jobsLoading:
-      'Ilmiy vazifalar yuklanmoqda...',
-
-    noJobs:
-      'Hozircha ilmiy vazifalar mavjud emas.',
-
-    reportsLoading:
-      'Hisobotlar yuklanmoqda...',
-
-    noReports:
-      'Hozircha hisobotlar mavjud emas.',
-
-    workflowsLoading:
-      'Workflowlar yuklanmoqda...',
-
-    noWorkflows:
-      'Hozircha workflowlar mavjud emas.',
-
-    workflowsCount:
-      'Workflowlar soni: ',
-
-    researchEmpty:
-      'Tadqiqot natijalari topilmadi.',
-
-    molecularAnalysis:
-      'Molekulyar tahlil',
-
-    bioinformatics:
-      'Bioinformatika',
-
-    pdbStructure:
-      'PDB va struktura',
-
-    drugDiscovery:
-      'Dori vositalarini kashf qilish',
-
-    scientificJobs:
-      'Ilmiy vazifalar',
-
-    researchAssistant:
-      'Tadqiqot yordamchisi',
-
-    virtualLaboratory:
-      'Virtual laboratoriya',
-
-    reportsHistory:
-      'Hisobotlar va tarix',
-
-    worker:
-      'Worker',
-
-    queue:
-      'Navbat',
-
-    active:
-      'Faol'
-  },
-
-
-  ru: {
-
-    enterCredentials:
-      'Введите имя пользователя и пароль.',
-
-    signingIn:
-      'Выполняется вход...',
-
-    loginSuccessful:
-      'Вход выполнен.',
-
-    loginFailed:
-      'Ошибка входа: ',
-
-    apiOnline:
-      'API: онлайн',
-
-    apiOffline:
-      'API: офлайн',
-
-    online:
-      'онлайн',
-
-    offline:
-      'офлайн',
-
-    analyzing:
-      'Анализ выполняется...',
-
-    analysisCompleted:
-      'Анализ завершён.',
-
-    sequenceRequired:
-      'Введите последовательность.',
-
-    done:
-      'Готово.',
-
-    pdbRequired:
-      'Введите PDB ID.',
-
-    loading:
-      'Загрузка...',
-
-    loaded:
-      'Загружено.',
-
-    targetRequired:
-      'Введите мишень.',
-
-    searching:
-      'Поиск...',
-
-    jobCreated:
-      'Задача создана.',
-
-    jobsLoading:
-      'Загрузка научных задач...',
-
-    noJobs:
-      'На данный момент научных задач нет.',
-
-    reportsLoading:
-      'Загрузка отчётов...',
-
-    noReports:
-      'Отчётов пока нет.',
-
-    workflowsLoading:
-      'Загрузка workflow...',
-
-    noWorkflows:
-      'Пока нет доступных workflow.',
-
-    workflowsCount:
-      'Количество workflow: ',
-
-    researchEmpty:
-      'Результаты исследований не найдены.',
-
-    molecularAnalysis:
-      'Молекулярный анализ',
-
-    bioinformatics:
-      'Биоинформатика',
-
-    pdbStructure:
-      'PDB и структура',
-
-    drugDiscovery:
-      'Разработка лекарств',
-
-    scientificJobs:
-      'Научные задачи',
-
-    researchAssistant:
-      'Исследовательский помощник',
-
-    virtualLaboratory:
-      'Виртуальная лаборатория',
-
-    reportsHistory:
-      'Отчёты и история',
-
-    worker:
-      'Worker',
-
-    queue:
-      'Очередь',
-
-    active:
-      'Активных'
-  }
-
-};
-
 
 function t(key) {
+  const lang = getLanguage();
 
-  const language =
-    getLanguage();
+  const dictionary = {
 
-  return (
-    dynamicTranslations[language]?.[key] ||
-    dynamicTranslations.en[key] ||
-    key
-  );
+    en: {
+      loading: 'Loading...',
+      analyzing: 'Analyzing...',
+      analysisCompleted: 'Analysis completed.',
+      sequenceCompleted: 'Sequence analysis completed.',
+      loaded: 'Loaded.',
+      done: 'Done.',
+      searching: 'Searching...',
+      loginSuccessful: 'Login successful.',
+      signingIn: 'Signing in...',
+      loginFailed: 'Login failed: ',
+      enterCredentials: 'Enter username and password.',
+      usernameRequired: 'Username required.',
+      passwordRequired: 'Password required.',
+      sequenceRequired: 'Enter a sequence.',
+      pdbRequired: 'PDB ID required.',
+      targetRequired: 'Enter a target.',
+      moleculeRequired: 'Enter at least one molecule.',
+      noJobs: 'No scientific jobs available yet.',
+      noReports: 'No reports available yet.',
+      noWorkflows: 'No workflows available yet.',
+      noResearch: 'No research results available.',
+      jobCreated: 'Job created.',
+      jobLoading: 'Loading scientific jobs...',
+      reportLoading: 'Loading reports...',
+      workflowLoading: 'Loading workflows...',
+      online: 'online',
+      offline: 'offline',
+      apiOnline: 'API: online',
+      apiOffline: 'API: offline',
+      workflowsCount: 'Workflows',
+      jobsCount: 'Jobs',
+      reportsCount: 'Reports',
+      searchCompleted: 'Search completed.',
+      discoveryCompleted: 'Virtual screening completed.',
+      discoveryLoading: 'Running virtual screening...',
+      moleculeAnalysis: 'Molecular Analysis',
+      bioinformatics: 'Bioinformatics',
+      pdbStructure: 'PDB & Structure',
+      drugDiscovery: 'Drug Discovery',
+      scientificJobs: 'Scientific Jobs',
+      researchAssistant: 'Research Assistant',
+      virtualLaboratory: 'Virtual Laboratory',
+      reportsHistory: 'Reports & History'
+    },
+
+    uz: {
+      loading: 'Yuklanmoqda...',
+      analyzing: 'Tahlil qilinmoqda...',
+      analysisCompleted: 'Tahlil tugadi.',
+      sequenceCompleted: 'Ketma-ketlik tahlili tugadi.',
+      loaded: 'Yuklandi.',
+      done: 'Tayyor.',
+      searching: 'Qidirilmoqda...',
+      loginSuccessful: 'Tizimga muvaffaqiyatli kirildi.',
+      signingIn: 'Tizimga kirilmoqda...',
+      loginFailed: 'Kirishda xatolik: ',
+      enterCredentials: 'Foydalanuvchi nomi va parolni kiriting.',
+      usernameRequired: 'Foydalanuvchi nomini kiriting.',
+      passwordRequired: 'Parolni kiriting.',
+      sequenceRequired: 'Ketma-ketlikni kiriting.',
+      pdbRequired: 'PDB ID kiriting.',
+      targetRequired: 'Nishonni kiriting.',
+      moleculeRequired: 'Kamida bitta molekula kiriting.',
+      noJobs: 'Hozircha ilmiy vazifalar mavjud emas.',
+      noReports: 'Hozircha hisobotlar mavjud emas.',
+      noWorkflows: 'Hozircha workflowlar mavjud emas.',
+      noResearch: 'Hozircha tadqiqot natijalari mavjud emas.',
+      jobCreated: 'Vazifa yaratildi.',
+      jobLoading: 'Ilmiy vazifalar yuklanmoqda...',
+      reportLoading: 'Hisobotlar yuklanmoqda...',
+      workflowLoading: 'Workflowlar yuklanmoqda...',
+      online: 'online',
+      offline: 'offline',
+      apiOnline: 'API: online',
+      apiOffline: 'API: offline',
+      workflowsCount: 'Workflowlar soni',
+      jobsCount: 'Vazifalar soni',
+      reportsCount: 'Hisobotlar soni',
+      searchCompleted: 'Qidiruv tugadi.',
+      discoveryCompleted: 'Virtual screening tugadi.',
+      discoveryLoading: 'Virtual screening bajarilmoqda...',
+      moleculeAnalysis: 'Molekulyar tahlil',
+      bioinformatics: 'Bioinformatika',
+      pdbStructure: 'PDB va struktura',
+      drugDiscovery: 'Dori vositalarini kashf qilish',
+      scientificJobs: 'Ilmiy vazifalar',
+      researchAssistant: 'Tadqiqot yordamchisi',
+      virtualLaboratory: 'Virtual laboratoriya',
+      reportsHistory: 'Hisobotlar va tarix'
+    },
+
+    ru: {
+      loading: 'Загрузка...',
+      analyzing: 'Выполняется анализ...',
+      analysisCompleted: 'Анализ завершён.',
+      sequenceCompleted: 'Анализ последовательности завершён.',
+      loaded: 'Загружено.',
+      done: 'Готово.',
+      searching: 'Поиск...',
+      loginSuccessful: 'Вход выполнен.',
+      signingIn: 'Выполняется вход...',
+      loginFailed: 'Ошибка входа: ',
+      enterCredentials: 'Введите имя пользователя и пароль.',
+      usernameRequired: 'Введите имя пользователя.',
+      passwordRequired: 'Введите пароль.',
+      sequenceRequired: 'Введите последовательность.',
+      pdbRequired: 'Введите PDB ID.',
+      targetRequired: 'Введите мишень.',
+      moleculeRequired: 'Введите хотя бы одну молекулу.',
+      noJobs: 'На данный момент научных задач нет.',
+      noReports: 'Отчётов пока нет.',
+      noWorkflows: 'Пока нет доступных workflow.',
+      noResearch: 'Результатов исследований пока нет.',
+      jobCreated: 'Задача создана.',
+      jobLoading: 'Загрузка научных задач...',
+      reportLoading: 'Загрузка отчётов...',
+      workflowLoading: 'Загрузка workflow...',
+      online: 'онлайн',
+      offline: 'офлайн',
+      apiOnline: 'API: онлайн',
+      apiOffline: 'API: офлайн',
+      workflowsCount: 'Количество workflow',
+      jobsCount: 'Количество задач',
+      reportsCount: 'Количество отчётов',
+      searchCompleted: 'Поиск завершён.',
+      discoveryCompleted: 'Виртуальный скрининг завершён.',
+      discoveryLoading: 'Выполняется виртуальный скрининг...',
+      moleculeAnalysis: 'Молекулярный анализ',
+      bioinformatics: 'Биоинформатика',
+      pdbStructure: 'PDB и структура',
+      drugDiscovery: 'Поиск лекарственных средств',
+      scientificJobs: 'Научные задачи',
+      researchAssistant: 'Исследовательский помощник',
+      virtualLaboratory: 'Виртуальная лаборатория',
+      reportsHistory: 'Отчёты и история'
+    }
+
+  };
+
+  return dictionary[lang]?.[key] ||
+         dictionary.en[key] ||
+         key;
 }
 
 
 /* =========================================================
-   MODULE TITLES
-   ========================================================= */
+   RESULT TRANSLATION
+========================================================= */
 
-function translateModuleTitle(moduleName) {
+function translateValue(value) {
+
+  const lang = getLanguage();
+
+  if (typeof value === 'string') {
+
+    const translations = {
+
+      'completed': {
+        uz: 'tugallandi',
+        ru: 'завершено',
+        en: 'completed'
+      },
+
+      'online': {
+        uz: 'online',
+        ru: 'онлайн',
+        en: 'online'
+      },
+
+      'offline': {
+        uz: 'offline',
+        ru: 'офлайн',
+        en: 'offline'
+      },
+
+      'Basic molecular analysis completed.': {
+        uz: 'Asosiy molekulyar tahlil tugallandi.',
+        ru: 'Базовый молекулярный анализ завершён.',
+        en: 'Basic molecular analysis completed.'
+      },
+
+      'Sequence analysis completed.': {
+        uz: 'Ketma-ketlik tahlili tugallandi.',
+        ru: 'Анализ последовательности завершён.',
+        en: 'Sequence analysis completed.'
+      },
+
+      'No scientific jobs available yet.': {
+        uz: 'Hozircha ilmiy vazifalar mavjud emas.',
+        ru: 'На данный момент научных задач нет.',
+        en: 'No scientific jobs available yet.'
+      },
+
+      'No reports available yet.': {
+        uz: 'Hozircha hisobotlar mavjud emas.',
+        ru: 'Отчётов пока нет.',
+        en: 'No reports available yet.'
+      },
+
+      'No workflows available yet.': {
+        uz: 'Hozircha workflowlar mavjud emas.',
+        ru: 'Пока нет доступных workflow.',
+        en: 'No workflows available yet.'
+      },
+
+      'Virtual screening completed.': {
+        uz: 'Virtual screening tugallandi.',
+        ru: 'Виртуальный скрининг завершён.',
+        en: 'Virtual screening completed.'
+      },
+
+      'Search completed.': {
+        uz: 'Qidiruv tugallandi.',
+        ru: 'Поиск завершён.',
+        en: 'Search completed.'
+      }
+    };
+
+    if (translations[value]) {
+      return translations[value][lang] ||
+             translations[value].en;
+    }
+
+    return value;
+  }
+
+  if (Array.isArray(value)) {
+    return value.map(item =>
+      translateValue(item)
+    );
+  }
+
+  if (
+    value !== null &&
+    typeof value === 'object'
+  ) {
+
+    const result = {};
+
+    for (const key in value) {
+      result[key] =
+        translateValue(value[key]);
+    }
+
+    return result;
+  }
+
+  return value;
+}
+
+
+/* =========================================================
+   RESULT RENDER
+========================================================= */
+
+function renderResult(element, data) {
+
+  if (!element) return;
+
+  const translated =
+    translateValue(data);
+
+  element.textContent =
+    JSON.stringify(
+      translated,
+      null,
+      2
+    );
+}
+
+
+/* =========================================================
+   MODULE TITLE
+========================================================= */
+
+function translateModuleTitle(name) {
 
   const map = {
-
-    'Molecular Analysis':
-      'molecularAnalysis',
-
-    'Bioinformatics':
-      'bioinformatics',
-
-    'PDB & Structure':
-      'pdbStructure',
-
-    'Drug Discovery':
-      'drugDiscovery',
-
-    'Scientific Jobs':
-      'scientificJobs',
-
-    'Research Assistant':
-      'researchAssistant',
-
-    'Virtual Laboratory':
-      'virtualLaboratory',
-
-    'Reports & History':
-      'reportsHistory'
+    'Molecular Analysis': 'moleculeAnalysis',
+    'Bioinformatics': 'bioinformatics',
+    'PDB & Structure': 'pdbStructure',
+    'Drug Discovery': 'drugDiscovery',
+    'Scientific Jobs': 'scientificJobs',
+    'Research Assistant': 'researchAssistant',
+    'Virtual Laboratory': 'virtualLaboratory',
+    'Reports & History': 'reportsHistory'
   };
 
-  const key =
-    map[moduleName];
-
-  return key
-    ? t(key)
-    : moduleName;
+  return map[name]
+    ? t(map[name])
+    : name;
 }
 
 
@@ -556,12 +441,10 @@ async function login() {
         '/auth/login',
         {
           method: 'POST',
-
-          body:
-            JSON.stringify({
-              username,
-              password
-            })
+          body: JSON.stringify({
+            username,
+            password
+          })
         }
       );
 
@@ -570,14 +453,12 @@ async function login() {
       data?.token;
 
     if (!token) {
-
       throw new Error(
         'Access token was not returned by the server.'
       );
     }
 
-    state.token =
-      token;
+    state.token = token;
 
     sessionStorage.setItem(
       TOKEN_KEY,
@@ -601,42 +482,11 @@ async function login() {
     );
 
     if (status) {
-
       status.textContent =
         t('loginFailed') +
         error.message;
     }
   }
-}
-
-
-/* =========================================================
-   LOGIN FORM EVENT
-========================================================= */
-
-function bindLoginForm() {
-
-  const form =
-    $('loginForm');
-
-  if (!form) {
-
-    console.error(
-      'loginForm not found'
-    );
-
-    return;
-  }
-
-  form.addEventListener(
-    'submit',
-    function (event) {
-
-      event.preventDefault();
-
-      login();
-    }
-  );
 }
 
 
@@ -651,8 +501,7 @@ async function loadCurrentUser() {
     const data =
       await api('/auth/me');
 
-    state.user =
-      data;
+    state.user = data;
 
     updateUserUI();
 
@@ -676,9 +525,7 @@ async function loadCurrentUser() {
 
 function updateUserUI() {
 
-  if (!state.user) {
-    return;
-  }
+  if (!state.user) return;
 
   const role =
     state.user.role ||
@@ -690,7 +537,6 @@ function updateUserUI() {
     $('roleBadge');
 
   if (badge) {
-
     badge.textContent =
       String(role).toUpperCase();
   }
@@ -710,17 +556,11 @@ function showDashboard() {
     $('dashboardView');
 
   if (loginView) {
-
-    loginView.classList.add(
-      'hidden'
-    );
+    loginView.classList.add('hidden');
   }
 
   if (dashboardView) {
-
-    dashboardView.classList.remove(
-      'hidden'
-    );
+    dashboardView.classList.remove('hidden');
   }
 
   checkHealth();
@@ -747,17 +587,11 @@ function logout() {
     $('loginView');
 
   if (dashboardView) {
-
-    dashboardView.classList.add(
-      'hidden'
-    );
+    dashboardView.classList.add('hidden');
   }
 
   if (loginView) {
-
-    loginView.classList.remove(
-      'hidden'
-    );
+    loginView.classList.remove('hidden');
   }
 
   const password =
@@ -790,9 +624,7 @@ async function checkHealth() {
 
   try {
 
-    await api(
-      '/health/live'
-    );
+    await api('/health/live');
 
     if (text) {
       text.textContent =
@@ -832,14 +664,10 @@ function openWorkspace(title) {
     $('workspaceTitle');
 
   if (workspace) {
-
-    workspace.classList.remove(
-      'hidden'
-    );
+    workspace.classList.remove('hidden');
   }
 
   if (workspaceTitle) {
-
     workspaceTitle.textContent =
       translateModuleTitle(title);
   }
@@ -852,22 +680,14 @@ function closeWorkspace() {
     $('workspace');
 
   if (workspace) {
-
-    workspace.classList.add(
-      'hidden'
-    );
+    workspace.classList.add('hidden');
   }
 
   document
     .querySelectorAll('.tool')
-    .forEach(
-      (tool) => {
-
-        tool.classList.add(
-          'hidden'
-        );
-      }
-    );
+    .forEach(tool => {
+      tool.classList.add('hidden');
+    });
 }
 
 
@@ -877,20 +697,13 @@ function closeWorkspace() {
 
 function openModule(moduleName) {
 
-  openWorkspace(
-    moduleName
-  );
+  openWorkspace(moduleName);
 
   document
     .querySelectorAll('.tool')
-    .forEach(
-      (tool) => {
-
-        tool.classList.add(
-          'hidden'
-        );
-      }
-    );
+    .forEach(tool => {
+      tool.classList.add('hidden');
+    });
 
   const map = {
 
@@ -928,34 +741,19 @@ function openModule(moduleName) {
       $(toolId);
 
     if (tool) {
-
-      tool.classList.remove(
-        'hidden'
-      );
+      tool.classList.remove('hidden');
     }
   }
 
-  if (
-    moduleName ===
-    'Scientific Jobs'
-  ) {
-
+  if (moduleName === 'Scientific Jobs') {
     loadJobs();
   }
 
-  if (
-    moduleName ===
-    'Reports & History'
-  ) {
-
+  if (moduleName === 'Reports & History') {
     loadReports();
   }
 
-  if (
-    moduleName ===
-    'Virtual Laboratory'
-  ) {
-
+  if (moduleName === 'Virtual Laboratory') {
     loadWorkflows();
   }
 }
@@ -979,20 +777,14 @@ async function analyzeMolecule() {
   if (!smiles) {
 
     if (status) {
-
       status.textContent =
-        getLanguage() === 'ru'
-          ? 'Введите SMILES.'
-          : getLanguage() === 'uz'
-            ? 'SMILES kiriting.'
-            : 'Enter SMILES.';
+        'SMILES required.';
     }
 
     return;
   }
 
   if (status) {
-
     status.textContent =
       t('analyzing');
   }
@@ -1004,26 +796,18 @@ async function analyzeMolecule() {
         '/molecules/analyze',
         {
           method: 'POST',
-
-          body:
-            JSON.stringify({
-              smiles
-            })
+          body: JSON.stringify({
+            smiles
+          })
         }
       );
 
-    if (result) {
-
-      result.textContent =
-        JSON.stringify(
-          data,
-          null,
-          2
-        );
-    }
+    renderResult(
+      result,
+      data
+    );
 
     if (status) {
-
       status.textContent =
         t('analysisCompleted');
     }
@@ -1031,7 +815,6 @@ async function analyzeMolecule() {
   } catch (error) {
 
     if (status) {
-
       status.textContent =
         error.message;
     }
@@ -1057,7 +840,6 @@ async function runBioinformatics() {
   if (!sequence) {
 
     if (status) {
-
       status.textContent =
         t('sequenceRequired');
     }
@@ -1066,7 +848,6 @@ async function runBioinformatics() {
   }
 
   if (status) {
-
     status.textContent =
       t('analyzing');
   }
@@ -1078,34 +859,25 @@ async function runBioinformatics() {
         '/bioinformatics/analyze',
         {
           method: 'POST',
-
-          body:
-            JSON.stringify({
-              sequence
-            })
+          body: JSON.stringify({
+            sequence
+          })
         }
       );
 
-    if (result) {
-
-      result.textContent =
-        JSON.stringify(
-          data,
-          null,
-          2
-        );
-    }
+    renderResult(
+      result,
+      data
+    );
 
     if (status) {
-
       status.textContent =
-        t('done');
+        t('sequenceCompleted');
     }
 
   } catch (error) {
 
     if (status) {
-
       status.textContent =
         error.message;
     }
@@ -1131,7 +903,6 @@ async function loadPDB() {
   if (!pdbId) {
 
     if (status) {
-
       status.textContent =
         t('pdbRequired');
     }
@@ -1142,7 +913,6 @@ async function loadPDB() {
   try {
 
     if (status) {
-
       status.textContent =
         t('loading');
     }
@@ -1152,18 +922,12 @@ async function loadPDB() {
         `/pdb/structures/${encodeURIComponent(pdbId)}`
       );
 
-    if (result) {
-
-      result.textContent =
-        JSON.stringify(
-          data,
-          null,
-          2
-        );
-    }
+    renderResult(
+      result,
+      data
+    );
 
     if (status) {
-
       status.textContent =
         t('loaded');
     }
@@ -1171,7 +935,6 @@ async function loadPDB() {
   } catch (error) {
 
     if (status) {
-
       status.textContent =
         error.message;
     }
@@ -1180,7 +943,7 @@ async function loadPDB() {
 
 
 /* =========================================================
-   DRUG DISCOVERY
+   DRUG DISCOVERY / VIRTUAL SCREENING
 ========================================================= */
 
 async function createDiscoverySession() {
@@ -1197,7 +960,6 @@ async function createDiscoverySession() {
   if (!target) {
 
     if (status) {
-
       status.textContent =
         t('targetRequired');
     }
@@ -1205,10 +967,48 @@ async function createDiscoverySession() {
     return;
   }
 
-  if (status) {
+  /*
+   * The backend requires at least one molecule.
+   *
+   * We use a SMILES molecule here.
+   * The user can enter a molecule in the same
+   * discovery field using:
+   *
+   * Target | Molecule
+   *
+   * Example:
+   * EGFR | CCO
+   */
 
+  let targetValue = target;
+  let molecule = '';
+
+  if (target.includes('|')) {
+
+    const parts =
+      target
+        .split('|')
+        .map(x => x.trim());
+
+    targetValue =
+      parts[0] || '';
+
+    molecule =
+      parts[1] || '';
+  }
+
+  if (!molecule) {
+
+    /*
+     * Default valid test molecule.
+     * CCO = ethanol.
+     */
+    molecule = 'CCO';
+  }
+
+  if (status) {
     status.textContent =
-      t('loading');
+      t('discoveryLoading');
   }
 
   try {
@@ -1218,34 +1018,26 @@ async function createDiscoverySession() {
         '/discovery/screen',
         {
           method: 'POST',
-
-          body:
-            JSON.stringify({
-              target
-            })
+          body: JSON.stringify({
+            target: targetValue,
+            molecules: [molecule]
+          })
         }
       );
 
-    if (result) {
-
-      result.textContent =
-        JSON.stringify(
-          data,
-          null,
-          2
-        );
-    }
+    renderResult(
+      result,
+      data
+    );
 
     if (status) {
-
       status.textContent =
-        t('done');
+        t('discoveryCompleted');
     }
 
   } catch (error) {
 
     if (status) {
-
       status.textContent =
         error.message;
     }
@@ -1265,9 +1057,7 @@ async function loadJobStatus() {
   try {
 
     const data =
-      await api(
-        '/jobs/status'
-      );
+      await api('/jobs/status');
 
     if (status) {
 
@@ -1283,29 +1073,13 @@ async function loadJobStatus() {
         data?.active ??
         0;
 
-      if (getLanguage() === 'ru') {
-
-        status.textContent =
-          `Worker: ${worker} | Очередь: ${queue} | Активных: ${active}`;
-
-      } else if (
-        getLanguage() === 'uz'
-      ) {
-
-        status.textContent =
-          `Worker: ${worker} | Navbat: ${queue} | Faol: ${active}`;
-
-      } else {
-
-        status.textContent =
-          `Worker: ${worker} | Queue: ${queue} | Active: ${active}`;
-      }
+      status.textContent =
+        `${worker} | ${queue} | ${t('jobsCount')}: ${active}`;
     }
 
   } catch (error) {
 
     if (status) {
-
       status.textContent =
         error.message;
     }
@@ -1323,17 +1097,14 @@ async function loadJobs() {
     $('jobsResult');
 
   if (result) {
-
     result.textContent =
-      t('jobsLoading');
+      t('jobLoading');
   }
 
   try {
 
     const data =
-      await api(
-        '/jobs'
-      );
+      await api('/jobs');
 
     const jobs =
       data?.jobs || [];
@@ -1341,30 +1112,21 @@ async function loadJobs() {
     if (!jobs.length) {
 
       if (result) {
-
         result.textContent =
           t('noJobs');
       }
 
-      await loadJobStatus();
-
       return;
     }
 
-    if (result) {
-
-      result.textContent =
-        JSON.stringify(
-          data,
-          null,
-          2
-        );
-    }
+    renderResult(
+      result,
+      data
+    );
 
   } catch (error) {
 
     if (result) {
-
       result.textContent =
         error.message;
     }
@@ -1390,12 +1152,6 @@ async function createJob() {
   const result =
     $('jobCreateResult');
 
-  if (status) {
-
-    status.textContent =
-      t('loading');
-  }
-
   try {
 
     const data =
@@ -1403,36 +1159,27 @@ async function createJob() {
         '/jobs',
         {
           method: 'POST',
-
-          body:
-            JSON.stringify({
-              type: jobType
-            })
+          body: JSON.stringify({
+            type: jobType
+          })
         }
       );
 
     if (status) {
-
       status.textContent =
         t('jobCreated');
     }
 
-    if (result) {
-
-      result.textContent =
-        JSON.stringify(
-          data,
-          null,
-          2
-        );
-    }
+    renderResult(
+      result,
+      data
+    );
 
     loadJobs();
 
   } catch (error) {
 
     if (status) {
-
       status.textContent =
         error.message;
     }
@@ -1455,15 +1202,12 @@ async function loadReports() {
   try {
 
     if (status) {
-
       status.textContent =
-        t('reportsLoading');
+        t('reportLoading');
     }
 
     const data =
-      await api(
-        '/reports'
-      );
+      await api('/reports');
 
     const reports =
       data?.reports || [];
@@ -1471,26 +1215,19 @@ async function loadReports() {
     if (!reports.length) {
 
       if (result) {
-
         result.textContent =
           t('noReports');
       }
 
     } else {
 
-      if (result) {
-
-        result.textContent =
-          JSON.stringify(
-            data,
-            null,
-            2
-          );
-      }
+      renderResult(
+        result,
+        data
+      );
     }
 
     if (status) {
-
       status.textContent =
         t('loaded');
     }
@@ -1498,7 +1235,6 @@ async function loadReports() {
   } catch (error) {
 
     if (status) {
-
       status.textContent =
         error.message;
     }
@@ -1507,7 +1243,7 @@ async function loadReports() {
 
 
 /* =========================================================
-   WORKFLOWS / VIRTUAL LABORATORY
+   WORKFLOWS
 ========================================================= */
 
 async function loadWorkflows() {
@@ -1521,72 +1257,47 @@ async function loadWorkflows() {
   try {
 
     if (status) {
-
       status.textContent =
-        t('workflowsLoading');
+        t('workflowLoading');
     }
 
     const data =
-      await api(
-        '/workflows'
-      );
+      await api('/workflows');
 
     const workflows =
       data?.workflows || [];
 
-    /*
-     * IMPORTANT:
-     * Empty workflow list is NOT an API error.
-     */
-
     if (!workflows.length) {
 
       if (result) {
-
         result.textContent =
           t('noWorkflows');
       }
 
-      if (status) {
+    } else {
 
-        const count =
-          data?.count ?? 0;
-
-        status.textContent =
-          t('workflowsCount') +
-          count;
-      }
-
-      return;
-    }
-
-    if (result) {
-
-      result.textContent =
-        JSON.stringify(
-          data,
-          null,
-          2
-        );
+      renderResult(
+        result,
+        data
+      );
     }
 
     if (status) {
 
+      const count =
+        workflows.length;
+
+      const label =
+        t('workflowsCount');
+
       status.textContent =
-        t('loaded');
+        `${label}: ${count}`;
     }
 
   } catch (error) {
 
     if (status) {
-
       status.textContent =
-        error.message;
-    }
-
-    if (result) {
-
-      result.textContent =
         error.message;
     }
   }
@@ -1609,20 +1320,12 @@ async function searchResearch() {
     $('researchResult');
 
   if (!query) {
-
-    if (result) {
-
-      result.textContent =
-        t('researchEmpty');
-    }
-
     return;
   }
 
   try {
 
     if (status) {
-
       status.textContent =
         t('searching');
     }
@@ -1632,41 +1335,26 @@ async function searchResearch() {
         '/research/search',
         {
           method: 'POST',
-
-          body:
-            JSON.stringify({
-              query
-            })
+          body: JSON.stringify({
+            query
+          })
         }
       );
 
-    if (result) {
-
-      result.textContent =
-        JSON.stringify(
-          data,
-          null,
-          2
-        );
-    }
+    renderResult(
+      result,
+      data
+    );
 
     if (status) {
-
       status.textContent =
-        t('done');
+        t('searchCompleted');
     }
 
   } catch (error) {
 
     if (status) {
-
       status.textContent =
-        error.message;
-    }
-
-    if (result) {
-
-      result.textContent =
         error.message;
     }
   }
@@ -1674,242 +1362,147 @@ async function searchResearch() {
 
 
 /* =========================================================
-   REFRESH DYNAMIC TEXT
+   REFRESH DYNAMIC UI
 ========================================================= */
 
 function refreshDynamicUI() {
 
   /*
-   * API status
+   * Re-render current visible results using
+   * the currently selected language.
+   *
+   * Existing raw API objects are not stored,
+   * therefore statuses are refreshed here.
    */
-  const apiText =
-    $('apiText');
 
-  const healthBadge =
-    $('healthBadge');
+  checkHealth();
 
-  if (apiText) {
-
-    const current =
-      apiText.textContent
-        .toLowerCase();
-
-    if (
-      current.includes('online') ||
-      current.includes('онлайн')
-    ) {
-
-      apiText.textContent =
-        t('online');
-
-    } else if (
-      current.includes('offline') ||
-      current.includes('офлайн')
-    ) {
-
-      apiText.textContent =
-        t('offline');
-    }
-  }
-
-  if (healthBadge) {
-
-    const current =
-      healthBadge.textContent
-        .toLowerCase();
-
-    if (
-      current.includes('online') ||
-      current.includes('онлайн')
-    ) {
-
-      healthBadge.textContent =
-        t('apiOnline');
-
-    } else if (
-      current.includes('offline') ||
-      current.includes('офлайн')
-    ) {
-
-      healthBadge.textContent =
-        t('apiOffline');
-    }
-  }
-
-
-  /*
-   * Workspace title
-   */
-  const workspaceTitle =
-    $('workspaceTitle');
+  const workspace =
+    $('workspace');
 
   if (
-    workspaceTitle &&
-    !workspaceTitle.closest('.hidden')
+    workspace &&
+    !workspace.classList.contains('hidden')
   ) {
 
-    const moduleButtons =
-      document.querySelectorAll(
-        '.module'
+    const activeTool =
+      document.querySelector(
+        '.tool:not(.hidden)'
       );
 
-    moduleButtons.forEach(
-      (button) => {
+    if (activeTool) {
 
-        const original =
-          button.dataset.module;
+      const toolToModule = {
 
-        if (
-          original &&
-          workspaceTitle.textContent ===
-            translateModuleTitle(original)
-        ) {
+        molecularTool:
+          'Molecular Analysis',
 
-          workspaceTitle.textContent =
-            translateModuleTitle(
-              original
-            );
-        }
+        bioTool:
+          'Bioinformatics',
+
+        pdbTool:
+          'PDB & Structure',
+
+        discoveryTool:
+          'Drug Discovery',
+
+        jobsTool:
+          'Scientific Jobs',
+
+        researchTool:
+          'Research Assistant',
+
+        workflowTool:
+          'Virtual Laboratory',
+
+        reportsTool:
+          'Reports & History'
+      };
+
+      const moduleName =
+        toolToModule[
+          activeTool.id
+        ];
+
+      if (moduleName) {
+        openWorkspace(moduleName);
       }
-    );
-  }
-
-
-  /*
-   * Existing empty states
-   */
-
-  const jobsResult =
-    $('jobsResult');
-
-  if (jobsResult) {
-
-    const text =
-      jobsResult.textContent;
-
-    if (
-      text ===
-        'No scientific jobs available yet.' ||
-      text ===
-        'Hozircha ilmiy vazifalar mavjud emas.' ||
-      text ===
-        'На данный момент научных задач нет.'
-    ) {
-
-      jobsResult.textContent =
-        t('noJobs');
-    }
-  }
-
-
-  const reportsResult =
-    $('reportsResult');
-
-  if (reportsResult) {
-
-    const text =
-      reportsResult.textContent;
-
-    if (
-      text ===
-        'No reports available yet.' ||
-      text ===
-        'Hozircha hisobotlar mavjud emas.' ||
-      text ===
-        'Отчётов пока нет.'
-    ) {
-
-      reportsResult.textContent =
-        t('noReports');
-    }
-  }
-
-
-  const workflowResult =
-    $('workflowResult');
-
-  if (workflowResult) {
-
-    const text =
-      workflowResult.textContent;
-
-    if (
-      text ===
-        'No workflows available yet.' ||
-      text ===
-        'Hozircha workflowlar mavjud emas.' ||
-      text ===
-        'Пока нет доступных workflow.'
-    ) {
-
-      workflowResult.textContent =
-        t('noWorkflows');
     }
   }
 }
 
 
 /* =========================================================
-   LANGUAGE SELECTOR
+   LANGUAGE SELECTORS
 ========================================================= */
 
 function bindLanguageSelectors() {
 
-  const selectors =
-    [
-      $('loginLanguageSelector'),
-      $('languageSelector')
-    ].filter(Boolean);
+  const selectors = [
+    $('loginLanguageSelector'),
+    $('languageSelector')
+  ];
 
-  selectors.forEach(
-    (selector) => {
+  selectors.forEach(selector => {
 
-      selector.addEventListener(
-        'change',
-        function () {
+    if (!selector) return;
 
-          const language =
-            selector.value;
+    selector.value =
+      getLanguage();
 
-          localStorage.setItem(
-            'medgen_language',
-            language
-          );
+    selector.addEventListener(
+      'change',
+      function () {
 
-          /*
-           * index.html owns the main
-           * static translation engine.
-           *
-           * We only refresh dynamic content.
-           */
+        const lang =
+          this.value || 'uz';
 
-          setTimeout(
-            refreshDynamicUI,
-            0
-          );
-        }
-      );
-    }
-  );
+        localStorage.setItem(
+          'medgen_language',
+          lang
+        );
+
+        selectors.forEach(other => {
+
+          if (other) {
+            other.value = lang;
+          }
+        });
+
+        refreshDynamicUI();
+      }
+    );
+  });
 }
 
 
 /* =========================================================
-   EVENT BINDING
+   EVENTS
 ========================================================= */
 
 function bindEvents() {
 
-  bindLoginForm();
+  const loginForm =
+    $('loginForm');
 
-  bindLanguageSelectors();
+  if (loginForm) {
+
+    loginForm.addEventListener(
+      'submit',
+      function(event) {
+
+        event.preventDefault();
+
+        login();
+      }
+    );
+  }
 
 
   const logoutBtn =
     $('logoutBtn');
 
   if (logoutBtn) {
-
     logoutBtn.addEventListener(
       'click',
       logout
@@ -1921,7 +1514,6 @@ function bindEvents() {
     $('workspaceClose');
 
   if (workspaceClose) {
-
     workspaceClose.addEventListener(
       'click',
       closeWorkspace
@@ -1931,27 +1523,24 @@ function bindEvents() {
 
   document
     .querySelectorAll('.module')
-    .forEach(
-      (button) => {
+    .forEach(button => {
 
-        button.addEventListener(
-          'click',
-          () => {
+      button.addEventListener(
+        'click',
+        () => {
 
-            openModule(
-              button.dataset.module
-            );
-          }
-        );
-      }
-    );
+          openModule(
+            button.dataset.module
+          );
+        }
+      );
+    });
 
 
   const molecularRun =
     $('molecularRun');
 
   if (molecularRun) {
-
     molecularRun.addEventListener(
       'click',
       analyzeMolecule
@@ -1963,7 +1552,6 @@ function bindEvents() {
     $('bioRun');
 
   if (bioRun) {
-
     bioRun.addEventListener(
       'click',
       runBioinformatics
@@ -1975,7 +1563,6 @@ function bindEvents() {
     $('pdbRun');
 
   if (pdbRun) {
-
     pdbRun.addEventListener(
       'click',
       loadPDB
@@ -1987,7 +1574,6 @@ function bindEvents() {
     $('discoveryRun');
 
   if (discoveryRun) {
-
     discoveryRun.addEventListener(
       'click',
       createDiscoverySession
@@ -1999,7 +1585,6 @@ function bindEvents() {
     $('jobCreate');
 
   if (jobCreate) {
-
     jobCreate.addEventListener(
       'click',
       createJob
@@ -2011,7 +1596,6 @@ function bindEvents() {
     $('jobsRefresh');
 
   if (jobsRefresh) {
-
     jobsRefresh.addEventListener(
       'click',
       loadJobs
@@ -2023,7 +1607,6 @@ function bindEvents() {
     $('reportsRefresh');
 
   if (reportsRefresh) {
-
     reportsRefresh.addEventListener(
       'click',
       loadReports
@@ -2035,7 +1618,6 @@ function bindEvents() {
     $('workflowRefresh');
 
   if (workflowRefresh) {
-
     workflowRefresh.addEventListener(
       'click',
       loadWorkflows
@@ -2047,12 +1629,14 @@ function bindEvents() {
     $('researchRun');
 
   if (researchRun) {
-
     researchRun.addEventListener(
       'click',
       searchResearch
     );
   }
+
+
+  bindLanguageSelectors();
 }
 
 
@@ -2063,14 +1647,6 @@ function bindEvents() {
 async function init() {
 
   bindEvents();
-
-  /*
-   * index.html handles static
-   * translation.
-   */
-
-  refreshDynamicUI();
-
 
   if (state.token) {
 
@@ -2133,17 +1709,13 @@ window.loadPDB =
 window.searchResearch =
   searchResearch;
 
-window.refreshDynamicUI =
-  refreshDynamicUI;
-
 
 /* =========================================================
    START
 ========================================================= */
 
 if (
-  document.readyState ===
-  'loading'
+  document.readyState === 'loading'
 ) {
 
   document.addEventListener(
