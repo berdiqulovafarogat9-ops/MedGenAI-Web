@@ -2748,8 +2748,9 @@ function bindEvents() {
   const profileAvatar = $('profileAvatar');
   const profileAvatarUpload = $('profileAvatarUpload');
   const profileAvatarRemove = $('profileAvatarRemove');
-  if (profileAvatarUpload) profileAvatarUpload.addEventListener('click', (event) => {
-    if (!state.profileEditMode) { event.preventDefault(); return; }
+  if (profileAvatarUpload) profileAvatarUpload.addEventListener('click', () => {
+    if (!state.profileEditMode || !profileAvatar) return;
+    profileAvatar.click();
   });
   if (profileAvatarRemove) profileAvatarRemove.addEventListener('click', () => {
     profileAvatarRemoved = true;
