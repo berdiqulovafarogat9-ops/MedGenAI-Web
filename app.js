@@ -1226,6 +1226,9 @@ function isProfileComplete(p) {
 }
 
 function enforceProfileCompletion() {
+  // Super Admin must always be able to enter the control center,
+  // even when the administrative account has no research profile yet.
+  if (isSuperAdmin()) return true;
   if (!state.user || isProfileComplete(state.user.profile || {})) return true;
 
   document.querySelectorAll('.module, #workspace, #adminDashboard').forEach(el => {
@@ -1369,6 +1372,8 @@ async function saveProfile() {
 }
 
 async function ensureLegalConsent() {
+  // Administrative access is not blocked by end-user consent onboarding.
+  if (isSuperAdmin()) return;
   if (!state.user || state.user.consent_complete) return;
   const modal = $('legalModal');
   if (!modal) return;
