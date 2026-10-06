@@ -1192,7 +1192,7 @@ def docking_run(
             docking_jobs_store[job_id]["status"] = "failed"
             docking_jobs_store[job_id]["error"] = exc.detail
         except Exception as exc:
-            jobs_store[job_id]["status"] = "failed"
+            docking_jobs_store[job_id]["status"] = "failed"
             docking_jobs_store[job_id]["error"] = str(exc)
         docking_jobs_store[job_id]["finished_at"] = datetime.now(timezone.utc).isoformat()
 
