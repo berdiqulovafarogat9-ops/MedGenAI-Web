@@ -657,6 +657,44 @@ def research_search(
 
 
 # =========================================================
+# PUBMED ARTICLE DETAILS
+# =========================================================
+
+@app.get("/api/v1/research/pubmed/{pmid}")
+def pubmed_article(pmid: str, user=Depends(get_current_user)):
+    pmid = pmid.strip()
+    if not pmid.isdigit():
+        raise HTTPException(status_code=400, detail="PMID must be numeric")
+    url = (
+        "https://eutils.ncbi.nlm.nih.gov/entrez/eutils/efetch.fcgi"
+        "?db=pubmed&id=" + quote(pmid) + "&retmode=xml&rettype=abstract"
+    )
+    try:
+        req = Request(url, headers={"User-Agent": "MedGenAI/1.0"})
+        with urlopen(req, timeout=15) as response:
+            root = ET.fromstring(response.read())
+    except (URLError, TimeoutError, ET.ParseError):
+        raise HTTPException(status_code=503, detail="PubMed service unavailable")
+    article = root.find(".//PubmedArticle")
+    if article is None:
+        raise HTTPException(status_code=404, detail="PubMed article not found")
+    title_node = article.find(".//ArticleTitle")
+    abstract_nodes = article.findall(".//Abstract/AbstractText")
+    abstract = " ".join("".join(x.itertext()) for x in abstract_nodes)
+    return {
+        "status": "completed",
+        "module": "Scientific Research",
+        "pmid": pmid,
+        "title": "".join(title_node.itertext()) if title_node is not None else "",
+        "abstract": abstract,
+        "journal": article.findtext(".//Journal/Title") or "",
+        "source": "PubMed",
+        "pubmed_url": "https://pubmed.ncbi.nlm.nih.gov/" + pmid + "/",
+        "user": user["username"],
+    }
+
+
+# =========================================================
 # DRUG DISCOVERY PIPELINE
 # =========================================================
 
