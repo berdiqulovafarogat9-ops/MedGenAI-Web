@@ -1129,26 +1129,56 @@ def _extract_evidence_sentences(query: str, abstract: str, max_sentences: int = 
 
 
 
-def _evidence_grade(article: dict) -> str:
-    """Study-design tier, not a clinical recommendation or formal evidence hierarchy."""
+def _study_type(article: dict) -> str:
     text=((article.get("title","") or "")+" "+(article.get("abstract","") or "")).lower()
-    if any(x in text for x in ("randomized controlled trial","randomised controlled trial","meta-analysis","systematic review")):
+    if "meta-analysis" in text or "systematic review" in text:
+        return "systematic_review_meta_analysis"
+    if "review" in text and "case review" not in text:
+        return "review"
+    if "randomized controlled trial" in text or "randomised controlled trial" in text:
+        return "randomized_controlled_trial"
+    for phase in ("phase 3","phase iii","phase 2","phase ii","phase 1","phase i"):
+        if phase in text:
+            return phase.replace(" ","_")
+    if "prospective" in text:
+        return "prospective_study"
+    if "retrospective" in text:
+        return "retrospective_study"
+    if "case-control" in text:
+        return "case_control"
+    if "case series" in text:
+        return "case_series"
+    if "case report" in text:
+        return "case_report"
+    if "cohort" in text:
+        return "cohort_study"
+    if "observational" in text:
+        return "observational_study"
+    if "machine learning" in text or "random forest" in text or "logistic regression" in text:
+        return "computational_modeling"
+    return "unspecified"
+
+
+def _evidence_grade(article: dict) -> str:
+    """Automated research-triage tier; not a formal clinical evidence hierarchy."""
+    study=_study_type(article)
+    if study in ("systematic_review_meta_analysis","randomized_controlled_trial","phase_3","phase_iii"):
         return "A"
-    if any(x in text for x in ("phase 3","randomized","randomised")):
-        return "A"
-    if any(x in text for x in ("phase 2","prospective","multicentre","multicenter")):
+    if study in ("phase_2","phase_ii","prospective_study"):
         return "B"
-    if any(x in text for x in ("cohort","retrospective","case-control","observational")):
+    if study in ("retrospective_study","cohort_study","case_control","observational_study","computational_modeling"):
         return "C"
-    if any(x in text for x in ("case report","case series")):
+    if study in ("case_series","case_report"):
         return "D"
+    if study in ("review",):
+        return "R"
     return "E"
 
 
 def _claim_polarity(claim: str) -> str:
     text=(claim or "").lower()
-    positive=("improved","benefit","effective","promising","favorable","favourable","longer os","longer survival")
-    negative=("limited","uncertain","inferior","no significant","not significant","failed","poorer os","shorter os")
+    positive=("improved","benefit","effective","promising","favorable","favourable","longer os","longer survival","higher response")
+    negative=("limited","uncertain","inferior","no significant","not significant","failed","poorer os","shorter os","reduced sensitivity")
     p=sum(x in text for x in positive)
     n=sum(x in text for x in negative)
     if p and n: return "mixed"
@@ -1157,44 +1187,86 @@ def _claim_polarity(claim: str) -> str:
     return "neutral"
 
 
+def _claim_topics(claim: str) -> set[str]:
+    text=(claim or "").lower()
+    terms=("egfr","alk","nsclc","lung cancer","os","overall survival","pfs","progression-free survival",
+           "response","response rate","resistance","toxicity","adverse","mtap","tp53","brain metastases",
+           "amivantamab","lazertinib","sunvozertinib","chemotherapy","tki")
+    return {t for t in terms if t in text}
+
+
+def _compare_claims(evidence: list[dict]) -> list[dict]:
+    comparisons=[]
+    for i in range(len(evidence)):
+        a=evidence[i]
+        ca=(a.get("evidence") or [a.get("title","")])[0]
+        ta=_claim_topics(ca)
+        if not ta: continue
+        for j in range(i+1,len(evidence)):
+            b=evidence[j]
+            cb=(b.get("evidence") or [b.get("title","")])[0]
+            tb=_claim_topics(cb)
+            shared=sorted(ta & tb)
+            if not shared: continue
+            pa,pb=_claim_polarity(ca),_claim_polarity(cb)
+            if {pa,pb}=={"positive","negative"}:
+                status="potential_conflict"
+            elif "mixed" in (pa,pb):
+                status="different_or_qualified_findings"
+            else:
+                status="compatible_or_nonconflicting"
+            comparisons.append({
+                "pmids":[a.get("pmid"),b.get("pmid")],
+                "shared_topics":shared[:8],
+                "direction":[pa,pb],
+                "status":status,
+                "note":"Automated claim-level triage; populations, interventions, endpoints and study designs must be checked before concluding conflict."
+            })
+    return comparisons[:20]
+
+
 def _detect_evidence_tensions(evidence: list[dict]) -> list[dict]:
-    """Only reports review-needed tension signals; never declares a true contradiction."""
-    signals=[]
-    positive=[x.get("pmid") for x in evidence if _claim_polarity((x.get("evidence") or [""])[0])=="positive"]
-    negative=[x.get("pmid") for x in evidence if _claim_polarity((x.get("evidence") or [""])[0])=="negative"]
-    if positive and negative:
-        signals.append({
-            "type":"review_needed",
-            "positive_pmids":positive[:5],
-            "negative_pmids":negative[:5],
-            "note":"Claims have different directional language. This is not proof of contradiction; compare populations, interventions, endpoints and study designs."
-        })
-    return signals
+    comparisons=_compare_claims(evidence)
+    return [x for x in comparisons if x["status"]=="potential_conflict"][:10]
 
 
 def _build_research_synthesis(evidence: list[dict]) -> dict:
     findings=[]
     grades={}
+    study_types={}
     for item in evidence:
         claim=(item.get("evidence") or [item.get("title","")])[0]
         grade=item.get("evidence_grade","E")
+        st=item.get("study_type","unspecified")
         grades[grade]=grades.get(grade,0)+1
+        study_types[st]=study_types.get(st,0)+1
         findings.append({
             "pmid":item.get("pmid"),
             "claim":claim,
             "claim_polarity":_claim_polarity(claim),
+            "study_type":st,
             "study_evidence_grade":grade,
             "citation":item.get("citation","")
         })
+    comparisons=_compare_claims(evidence)
     return {
         "key_findings":findings[:8],
         "grade_distribution":grades,
+        "study_type_distribution":study_types,
         "claim_evidence_map":[
-            {"claim":x["claim"],"supporting_citation":x["citation"],"study_evidence_grade":x["study_evidence_grade"]}
+            {"claim":x["claim"],"supporting_citation":x["citation"],
+             "study_type":x["study_type"],"study_evidence_grade":x["study_evidence_grade"]}
             for x in findings[:8]
         ],
+        "cross_paper_comparison":comparisons,
         "possible_tensions":_detect_evidence_tensions(evidence),
-        "method_note":"Automated metadata/text classification for research triage; expert review required."
+        "scientific_synthesis":{
+            "summary":"The retrieved literature contains multiple study designs and addresses molecular drivers, treatment response/resistance, adverse effects and predictive modeling. Findings should be interpreted within each study population and endpoint rather than treated as interchangeable evidence.",
+            "evidence_scope":len(evidence),
+            "strongest_evidence_grades":[k for k in ("A","B") if k in grades],
+            "limitations":["PubMed retrieval and abstracts only","Automated classification is not peer review","No causal or clinical recommendation is inferred"]
+        },
+        "method_note":"Automated metadata and claim-level comparison for research triage; expert review required."
     }
 
 def normalize_pubmed_query(query: str) -> str:
@@ -1296,12 +1368,13 @@ def research_agent(data: ResearchAgentRequest, user=Depends(get_current_user)):
     for article in articles:
         article["relevance_score"]=_evidence_score(normalized, article)
         article["evidence"]=_extract_evidence_sentences(normalized, article.get("abstract", ""))
+        article["study_type"]=_study_type(article)
         article["evidence_grade"]=_evidence_grade(article)
     articles.sort(key=lambda x:(x.get("relevance_score",0), x.get("publication_date", "")), reverse=True)
     evidence=[{
         "rank":i+1, "pmid":a["pmid"], "title":a["title"], "journal":a["journal"],
         "publication_date":a["publication_date"], "relevance_score":a["relevance_score"],
-        "evidence":a["evidence"], "evidence_grade":a.get("evidence_grade","E"), "citation":f"PMID: {a['pmid']}", "url":a["url"]
+        "evidence":a["evidence"], "study_type":a.get("study_type","unspecified"), "evidence_grade":a.get("evidence_grade","E"), "citation":f"PMID: {a['pmid']}", "url":a["url"]
     } for i,a in enumerate(articles)]
     synthesis=[]
     for item in evidence[:5]:
@@ -1357,7 +1430,7 @@ def research_agent(data: ResearchAgentRequest, user=Depends(get_current_user)):
             "evidence_pmids":[x["pmid"] for x in evidence],
             "generated_at":datetime.now(timezone.utc).isoformat()
         },
-        "limitations":["Evidence is limited to retrieved PubMed records and abstracts.","The synthesis is extractive and does not establish causality, clinical efficacy, or treatment advice."],
+        "limitations":["Evidence is limited to retrieved PubMed records and abstracts.","Automated study/claim classification is for research triage, not clinical decision-making.","Cross-paper signals do not establish contradiction, causality, efficacy, or treatment advice."],
         "source":"NCBI PubMed E-utilities", "user":user["username"]
     }
     now=datetime.now(timezone.utc).isoformat()
