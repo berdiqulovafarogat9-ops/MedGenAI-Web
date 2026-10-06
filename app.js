@@ -3062,7 +3062,10 @@ function bindEvents() {
   }
 
   const researchAgentRun = $('researchAgentRun');
-  if (researchAgentRun) researchAgentRun.addEventListener('click', runResearchAgent);\n  const ke=$('knowledgeAddEntity'); if(ke) ke.addEventListener('click',addKnowledgeEntity);\n  const kr=$('knowledgeAddRelation'); if(kr) kr.addEventListener('click',addKnowledgeRelation);\n  const ks=$('knowledgeSearch'); if(ks) ks.addEventListener('click',searchKnowledge);
+  if (researchAgentRun) researchAgentRun.addEventListener('click', runResearchAgent);
+  const ke=$('knowledgeAddEntity'); if(ke) ke.addEventListener('click',addKnowledgeEntity);
+  const kr=$('knowledgeAddRelation'); if(kr) kr.addEventListener('click',addKnowledgeRelation);
+  const ks=$('knowledgeSearch'); if(ks) ks.addEventListener('click',searchKnowledge);
 
 
   bindLanguageSelectors();
@@ -3086,7 +3089,8 @@ async function searchKnowledge(){
   const r=await api('/knowledge/search',{method:'POST',body:JSON.stringify({query:q,limit:25})});
   if(!r.ok) return;
   const d=await r.json(); const s=await api('/knowledge/stats');
-  let stats=''; if(s.ok){const x=await s.json(); stats='\nStats: '+x.entities+' entities · '+x.relations+' relations';}
+  let stats=''; if(s.ok){const x=await s.json(); stats='
+Stats: '+x.entities+' entities · '+x.relations+' relations';}
   $('knowledgeResult').textContent=JSON.stringify(d,null,2)+stats;
   $('knowledgeStatus').textContent='Knowledge graph ready';
 }
