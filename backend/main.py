@@ -99,6 +99,22 @@ class LoginRequest(BaseModel):
     password: str
 
 
+class ProfileRequest(BaseModel):
+    full_name: str = ""
+    email: str = ""
+    organization: str = ""
+    country: str = ""
+    research_interests: str = ""
+    bio: str = ""
+
+
+class ConsentRequest(BaseModel):
+    terms_accepted: bool
+    privacy_accepted: bool
+    data_processing_accepted: bool
+    research_disclaimer_accepted: bool
+
+
 class MoleculeRequest(BaseModel):
     smiles: str
 
