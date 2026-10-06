@@ -1082,6 +1082,8 @@ async function openProfile() {
     $('profileCountry').value = p.country || '';
     $('profileInterests').value = p.research_interests || '';
     $('profileBio').value = p.bio || '';
+    const avatar = $('profileAvatarPreview');
+    if (avatar) { avatar.src = p.avatar || ''; avatar.style.display = p.avatar ? 'block' : 'none'; }
   } catch (e) {
     $('profileStatus').textContent = e.message;
   }
@@ -1091,9 +1093,22 @@ function closeProfile() {
   $('profileModal')?.classList.add('hidden');
 }
 
+function readAvatar(file) {
+  return new Promise((resolve, reject) => {
+    if (!file) return resolve('');
+    if (!['image/png','image/jpeg','image/webp'].includes(file.type)) return reject(new Error('Faqat PNG, JPEG yoki WebP rasm tanlang.'));
+    if (file.size > 2 * 1024 * 1024) return reject(new Error('Profil rasmi 2 MB dan katta bo‘lmasin.'));
+    const reader = new FileReader();
+    reader.onload = () => resolve(String(reader.result));
+    reader.onerror = () => reject(new Error('Rasmni o‘qib bo‘lmadi.'));
+    reader.readAsDataURL(file);
+  });
+}
+
 async function saveProfile() {
   const status = $('profileStatus');
   try {
+    const avatar = await readAvatar($('profileAvatar')?.files?.[0]);
     const data = await api('/profile', {
       method: 'PUT',
       body: JSON.stringify({
@@ -1102,7 +1117,8 @@ async function saveProfile() {
         organization: $('profileOrganization')?.value?.trim() || '',
         country: $('profileCountry')?.value?.trim() || '',
         research_interests: $('profileInterests')?.value?.trim() || '',
-        bio: $('profileBio')?.value?.trim() || ''
+        bio: $('profileBio')?.value?.trim() || '',
+        avatar: avatar || state.user?.profile?.avatar || ''
       })
     });
     if (state.user) {
@@ -2326,6 +2342,18 @@ function bindEvents() {
 
   const profileClose = $('profileClose');
   if (profileClose) profileClose.addEventListener('click', closeProfile);
+
+  const profileAvatar = $('profileAvatar');
+  if (profileAvatar) profileAvatar.addEventListener('change', async () => {
+    try {
+      const data = await readAvatar(profileAvatar.files?.[0]);
+      const preview = $('profileAvatarPreview');
+      if (preview) { preview.src = data; preview.style.display = data ? 'block' : 'none'; }
+    } catch (e) {
+      const status = $('profileStatus'); if (status) status.textContent = e.message;
+      profileAvatar.value = '';
+    }
+  });
 
   const profileSave = $('profileSave');
   if (profileSave) profileSave.addEventListener('click', saveProfile);
