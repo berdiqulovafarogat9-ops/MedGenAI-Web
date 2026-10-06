@@ -1106,9 +1106,12 @@ async function openProfile() {
     $('profileEmail').value = p.email || '';
     $('profileOrganization').value = p.organization || '';
     $('profileCountry').value = p.country || '';
-    $('profileBirthYear').value = p.birth_year ?? '';
-    $('profileBirthMonth').value = p.birth_month ?? '';
-    $('profileBirthDay').value = p.birth_day ?? '';
+    $('profileBirthDate').value =
+      p.birth_day && p.birth_month && p.birth_year
+        ? String(p.birth_day).padStart(2, '0') + '.' +
+          String(p.birth_month).padStart(2, '0') + '.' +
+          String(p.birth_year)
+        : '';
     $('profileInterests').value = p.research_interests || '';
     $('profileBio').value = p.bio || '';
 
@@ -1193,9 +1196,11 @@ async function saveProfile() {
 
     const avatar = await readAvatar($('profileAvatar')?.files?.[0]);
 
-    const birthYearRaw = $('profileBirthYear')?.value?.trim() || '';
-    const birthMonthRaw = $('profileBirthMonth')?.value?.trim() || '';
-    const birthDayRaw = $('profileBirthDay')?.value?.trim() || '';
+    const birthDateRaw = $('profileBirthDate')?.value?.trim() || '';
+    const birthMatch = birthDateRaw.match(/^(\\d{1,2})\\.(\\d{1,2})\\.(\\d{4})$/);
+    const birthDayRaw = birthMatch ? birthMatch[1] : '';
+    const birthMonthRaw = birthMatch ? birthMatch[2] : '';
+    const birthYearRaw = birthMatch ? birthMatch[3] : '';
 
     const payload = {
       full_name: $('profileFullName')?.value?.trim() || '',
