@@ -1,39 +1,194 @@
 <!doctype html>
 <html lang="uz">
-
 <head>
 <meta charset="utf-8">
 
-<meta
-  http-equiv="Content-Security-Policy"
-  content="default-src 'self';
-  script-src 'self' 'unsafe-inline';
-  style-src 'self' 'unsafe-inline';
-  connect-src 'self' https:;
-  img-src 'self' data:;
-  object-src 'none';
-  base-uri 'self';
-  frame-ancestors 'none'"
->
+<meta http-equiv="Content-Security-Policy"
+content="default-src 'self';
+script-src 'self' 'unsafe-inline';
+style-src 'self' 'unsafe-inline';
+connect-src 'self' https:;
+img-src 'self' data:;
+object-src 'none';
+base-uri 'self';
+frame-ancestors 'none'">
 
-<meta
-  name="viewport"
-  content="width=device-width,initial-scale=1"
->
+<meta name="viewport" content="width=device-width,initial-scale=1">
 
 <title>MedGen AI — Private</title>
 
 <link rel="stylesheet" href="styles.css">
+
+<style>
+/* ================================
+   MEDGEN AI INTRO
+================================ */
+
+#medgenIntro {
+  position: fixed;
+  inset: 0;
+  z-index: 99999;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: #050b12;
+  color: white;
+  animation: introFade 1.8s ease forwards;
+}
+
+.intro-content {
+  text-align: center;
+  animation: introScale 1.4s ease;
+}
+
+.intro-logo {
+  font-size: 48px;
+  font-weight: 800;
+  letter-spacing: 5px;
+}
+
+.intro-logo span {
+  opacity: .65;
+}
+
+.intro-subtitle {
+  margin-top: 14px;
+  font-size: 14px;
+  letter-spacing: 2px;
+  opacity: .75;
+  text-transform: uppercase;
+}
+
+.intro-line {
+  width: 90px;
+  height: 2px;
+  margin: 22px auto 0;
+  background: currentColor;
+  animation: introLine 1.2s ease;
+}
+
+@keyframes introScale {
+  0% {
+    opacity: 0;
+    transform: scale(.85);
+  }
+
+  100% {
+    opacity: 1;
+    transform: scale(1);
+  }
+}
+
+@keyframes introLine {
+  0% {
+    width: 0;
+  }
+
+  100% {
+    width: 90px;
+  }
+}
+
+@keyframes introFade {
+  0%, 72% {
+    opacity: 1;
+    visibility: visible;
+  }
+
+  100% {
+    opacity: 0;
+    visibility: hidden;
+    pointer-events: none;
+  }
+}
+
+/* ================================
+   LANGUAGE SELECTOR
+================================ */
+
+.language-box {
+  position: absolute;
+  top: 18px;
+  right: 20px;
+  z-index: 10;
+}
+
+.language-box select {
+  padding: 7px 10px;
+  border-radius: 8px;
+  border: 1px solid rgba(255,255,255,.15);
+  background: rgba(255,255,255,.08);
+  color: inherit;
+  cursor: pointer;
+}
+
+/* ================================
+   LOGIN
+================================ */
+
+.login-welcome {
+  font-size: 14px;
+  margin-bottom: 8px;
+  opacity: .75;
+}
+
+.remember-row {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin: 12px 0;
+  font-size: 13px;
+}
+
+.remember-row input {
+  width: auto;
+}
+
+/* prevent intro from affecting layout */
+#loginView,
+#dashboardView {
+  position: relative;
+}
+</style>
 </head>
 
 <body>
 
+<!-- =================================
+     MEDGEN AI INTRO ANIMATION
+================================= -->
 
-<!-- =====================================================
+<section id="medgenIntro">
+  <div class="intro-content">
+    <div class="intro-logo">
+      MEDGEN <span>AI</span>
+    </div>
+
+    <div
+      class="intro-subtitle"
+      id="introSubtitle"
+      data-i18n="globalPlatform">
+      GLOBAL BIOMEDICAL AI PLATFORM
+    </div>
+
+    <div class="intro-line"></div>
+  </div>
+</section>
+
+
+<!-- =================================
      LOGIN
-     ===================================================== -->
+================================= -->
 
 <section id="loginView" class="screen">
+
+  <div class="language-box">
+    <select id="loginLanguageSelector">
+      <option value="en">🇬🇧 English</option>
+      <option value="uz">🇺🇿 O‘zbekcha</option>
+      <option value="ru">🇷🇺 Русский</option>
+    </select>
+  </div>
 
   <div class="login-card">
 
@@ -41,78 +196,96 @@
       MEDGEN <span>AI</span>
     </div>
 
-    <span class="private-tag">
+    <span
+      class="private-tag"
+      data-i18n="privateDevelopment">
       PRIVATE • DEVELOPMENT
     </span>
 
-    <p class="eyebrow" data-i18n="PRIVATE RESEARCH PLATFORM">
+    <p
+      class="eyebrow"
+      data-i18n="privateResearch">
       PRIVATE RESEARCH PLATFORM
     </p>
 
-    <h1 data-i18n="Welcome back">
+    <div
+      class="login-welcome"
+      data-i18n="welcome">
       Welcome back
+    </div>
+
+    <h1 data-i18n="signInTitle">
+      Sign in
     </h1>
 
     <p
       class="muted"
-      data-i18n="Private development mode — public registration is disabled."
-    >
+      data-i18n="loginDescription">
       Private development mode — public registration is disabled.
     </p>
 
     <form id="loginForm">
 
       <label>
-        <span data-i18n="Username">Username</span>
+        <span data-i18n="username">
+          Username
+        </span>
 
         <input
           id="loginUser"
           autocomplete="username"
           required
-          placeholder="Username"
-          data-i18n-placeholder="Username"
-        >
+          data-i18n-placeholder="usernamePlaceholder"
+          placeholder="Enter username">
       </label>
 
       <label>
-        <span data-i18n="Password">Password</span>
+        <span data-i18n="password">
+          Password
+        </span>
 
         <input
           id="loginPassword"
           type="password"
           autocomplete="current-password"
           required
-          placeholder="Password"
-          data-i18n-placeholder="Password"
-        >
+          data-i18n-placeholder="passwordPlaceholder"
+          placeholder="Enter password">
+      </label>
+
+      <label class="remember-row">
+
+        <input
+          id="rememberMe"
+          type="checkbox">
+
+        <span data-i18n="rememberMe">
+          Remember me
+        </span>
+
       </label>
 
       <button
         class="primary"
         type="submit"
-        data-i18n="Sign in"
-      >
+        data-i18n="signIn">
         Sign in
       </button>
 
     </form>
 
-    <div
-      id="loginStatus"
-      class="status"
-    ></div>
+    <div id="loginStatus" class="status"></div>
 
   </div>
 
 </section>
 
 
-<!-- =====================================================
+<!-- =================================
      DASHBOARD
-     ===================================================== -->
+================================= -->
 
 <section id="dashboardView" class="hidden">
-
 
 <header class="topbar">
 
@@ -122,40 +295,24 @@
 
   <div class="top-actions">
 
-    <!-- LANGUAGE -->
-    <select
-      id="languageSelector"
-      aria-label="Language"
-    >
+    <select id="languageSelector">
 
-      <option value="en">
-        🇬🇧 English
-      </option>
-
-      <option value="uz">
-        🇺🇿 O‘zbekcha
-      </option>
-
-      <option value="ru">
-        🇷🇺 Русский
-      </option>
+      <option value="en">🇬🇧 English</option>
+      <option value="uz">🇺🇿 O‘zbekcha</option>
+      <option value="ru">🇷🇺 Русский</option>
 
     </select>
 
-
     <span
       id="roleBadge"
-      class="badge"
-    >
+      class="badge">
       GUEST
     </span>
-
 
     <button
       id="logoutBtn"
       class="ghost"
-      data-i18n="Logout"
-    >
+      data-i18n="logout">
       Logout
     </button>
 
@@ -166,630 +323,614 @@
 
 <main class="container">
 
+  <div class="hero">
 
-<!-- =====================================================
-     HERO
-     ===================================================== -->
+    <div>
 
-<div class="hero">
+      <p
+        class="eyebrow"
+        data-i18n="privateWorkspace">
+        PRIVATE WORKSPACE
+      </p>
 
-  <div>
+      <h1 data-i18n="biomedicalPlatform">
+        Biomedical AI Platform
+      </h1>
 
-    <p
-      class="eyebrow"
-      data-i18n="PRIVATE WORKSPACE"
-    >
-      PRIVATE WORKSPACE
-    </p>
+      <p
+        class="muted"
+        data-i18n="heroDescription">
+        Research, molecular analysis, structures, discovery and scientific workflows.
+      </p>
 
-    <h1 data-i18n="Biomedical AI Platform">
-      Biomedical AI Platform
-    </h1>
+    </div>
 
-    <p
-      class="muted"
-      data-i18n="Research, molecular analysis, structures, discovery and scientific workflows."
-    >
-      Research, molecular analysis, structures, discovery and scientific workflows.
-    </p>
+    <div
+      id="healthBadge"
+      class="health">
+      API: checking…
+    </div>
 
   </div>
 
-  <div
-    id="healthBadge"
-    class="health"
-  >
-    API: checking…
-  </div>
 
-</div>
+  <!-- MODULES -->
 
+  <section class="grid">
 
-<!-- =====================================================
-     MODULES
-     ===================================================== -->
+    <button
+      class="module"
+      data-module="Bioinformatics">
 
-<section class="grid">
+      <b>🧬</b>
 
+      <strong data-i18n="bioinformatics">
+        Bioinformatics
+      </strong>
 
-<button
-  class="module"
-  data-module="Bioinformatics"
->
+      <span data-i18n="bioinformaticsDesc">
+        DNA / RNA / protein analysis
+      </span>
 
-  <b>🧬</b>
+    </button>
 
-  <strong data-i18n="Bioinformatics">
-    Bioinformatics
-  </strong>
 
-  <span data-i18n="DNA / RNA / protein analysis">
-    DNA / RNA / protein analysis
-  </span>
+    <button
+      class="module"
+      data-module="Molecular Analysis">
 
-</button>
+      <b>⚗️</b>
 
+      <strong data-i18n="molecularAnalysis">
+        Molecular Analysis
+      </strong>
 
-<button
-  class="module"
-  data-module="Molecular Analysis"
->
+      <span data-i18n="molecularDesc">
+        Real backend molecular descriptors
+      </span>
 
-  <b>⚗️</b>
+    </button>
 
-  <strong data-i18n="Molecular Analysis">
-    Molecular Analysis
-  </strong>
 
-  <span data-i18n="Real backend molecular descriptors">
-    Real backend molecular descriptors
-  </span>
+    <button
+      class="module"
+      data-module="PDB & Structure">
 
-</button>
+      <b>🧫</b>
 
+      <strong data-i18n="pdbStructure">
+        PDB & Structure
+      </strong>
 
-<button
-  class="module"
-  data-module="PDB & Structure"
->
+      <span data-i18n="pdbDesc">
+        Structures and viewers
+      </span>
 
-  <b>🧫</b>
+    </button>
 
-  <strong data-i18n="PDB & Structure">
-    PDB & Structure
-  </strong>
 
-  <span data-i18n="Structures and viewers">
-    Structures and viewers
-  </span>
+    <button
+      class="module"
+      data-module="Drug Discovery">
 
-</button>
+      <b>💊</b>
 
+      <strong data-i18n="drugDiscovery">
+        Drug Discovery
+      </strong>
 
-<button
-  class="module"
-  data-module="Drug Discovery"
->
+      <span data-i18n="drugDesc">
+        Screening and discovery workflows
+      </span>
 
-  <b>💊</b>
+    </button>
 
-  <strong data-i18n="Drug Discovery">
-    Drug Discovery
-  </strong>
 
-  <span data-i18n="Screening and discovery workflows">
-    Screening and discovery workflows
-  </span>
+    <button
+      class="module"
+      data-module="Scientific Jobs">
 
-</button>
+      <b>⚙️</b>
 
+      <strong data-i18n="scientificJobs">
+        Scientific Jobs
+      </strong>
 
-<button
-  class="module"
-  data-module="Scientific Jobs"
->
+      <span data-i18n="jobsDesc">
+        Queue and worker status
+      </span>
 
-  <b>⚙️</b>
+    </button>
 
-  <strong data-i18n="Scientific Jobs">
-    Scientific Jobs
-  </strong>
 
-  <span data-i18n="Queue and worker status">
-    Queue and worker status
-  </span>
+    <button
+      class="module"
+      data-module="Research Assistant">
 
-</button>
+      <b>📚</b>
 
+      <strong data-i18n="researchAssistant">
+        Research Assistant
+      </strong>
 
-<button
-  class="module"
-  data-module="Research Assistant"
->
+      <span data-i18n="researchDesc">
+        Literature and citations
+      </span>
 
-  <b>📚</b>
+    </button>
 
-  <strong data-i18n="Research Assistant">
-    Research Assistant
-  </strong>
 
-  <span data-i18n="Literature and citations">
-    Literature and citations
-  </span>
+    <button
+      class="module"
+      data-module="Virtual Laboratory">
 
-</button>
+      <b>🧪</b>
 
+      <strong data-i18n="virtualLab">
+        Virtual Laboratory
+      </strong>
 
-<button
-  class="module"
-  data-module="Virtual Laboratory"
->
+      <span data-i18n="labDesc">
+        Experiments and workflows
+      </span>
 
-  <b>🧪</b>
+    </button>
 
-  <strong data-i18n="Virtual Laboratory">
-    Virtual Laboratory
-  </strong>
 
-  <span data-i18n="Experiments and workflows">
-    Experiments and workflows
-  </span>
+    <button
+      class="module"
+      data-module="Reports & History">
 
-</button>
+      <b>📊</b>
 
+      <strong data-i18n="reportsHistory">
+        Reports & History
+      </strong>
 
-<button
-  class="module"
-  data-module="Reports & History"
->
+      <span data-i18n="reportsDesc">
+        Results and reports
+      </span>
 
-  <b>📊</b>
+    </button>
 
-  <strong data-i18n="Reports & History">
-    Reports & History
-  </strong>
+  </section>
 
-  <span data-i18n="Results and reports">
-    Results and reports
-  </span>
 
-</button>
+  <!-- WORKSPACE -->
 
-</section>
+  <section
+    id="workspace"
+    class="panel hidden">
 
+    <div style="width:100%">
 
-<!-- =====================================================
-     WORKSPACE
-     ===================================================== -->
+      <div class="workspace-head">
 
-<section
-  id="workspace"
-  class="panel hidden"
->
+        <div>
 
-<div style="width:100%">
+          <p
+            class="eyebrow"
+            data-i18n="workspace">
+            WORKSPACE
+          </p>
 
-<div class="workspace-head">
+          <h2 id="workspaceTitle">
+            Module
+          </h2>
 
-  <div>
+        </div>
 
-    <p class="eyebrow">
-      WORKSPACE
-    </p>
+        <button
+          id="workspaceClose"
+          class="ghost"
+          data-i18n="close">
+          Close
+        </button>
 
-    <h2 id="workspaceTitle">
-      Module
-    </h2>
+      </div>
 
-  </div>
 
-  <button
-    id="workspaceClose"
-    class="ghost"
-    data-i18n="Close"
-  >
-    Close
-  </button>
+      <!-- MOLECULAR -->
 
-</div>
+      <div
+        id="molecularTool"
+        class="tool hidden">
 
+        <p
+          class="muted"
+          data-i18n="molecularToolDescription">
+          Run the existing MedGen molecular backend directly from the Web interface.
+        </p>
 
-<!-- MOLECULAR -->
+        <input
+          id="smilesInput"
+          placeholder="SMILES, e.g. CCO"
+          data-i18n-placeholder="smilesPlaceholder">
 
-<div
-  id="molecularTool"
-  class="tool hidden"
->
+        <button
+          id="molecularRun"
+          class="primary small"
+          data-i18n="analyzeMolecule">
+          Analyze molecule
+        </button>
 
-  <p
-    class="muted"
-    data-i18n="Run the existing MedGen RDKit backend directly from the Web interface."
-  >
-    Run the existing MedGen RDKit backend directly from the Web interface.
-  </p>
+        <div
+          id="molecularStatus"
+          class="status">
+        </div>
 
-  <input
-    id="smilesInput"
-    placeholder="SMILES, e.g. CCO"
-  >
+        <pre
+          id="molecularResult"
+          class="result">
+        </pre>
 
-  <button
-    id="molecularRun"
-    class="primary small"
-    data-i18n="Analyze molecule"
-  >
-    Analyze molecule
-  </button>
+      </div>
 
-  <div
-    id="molecularStatus"
-    class="status"
-  ></div>
 
-  <pre
-    id="molecularResult"
-    class="result"
-  ></pre>
+      <!-- BIOINFORMATICS -->
 
-</div>
+      <div
+        id="bioTool"
+        class="tool hidden">
 
+        <p
+          class="muted"
+          data-i18n="bioToolDescription">
+          Submit a protected bioinformatics workflow to the backend.
+        </p>
 
-<!-- BIOINFORMATICS -->
+        <textarea
+          id="bioSequence"
+          placeholder="DNA / RNA / protein sequence"
+          data-i18n-placeholder="sequencePlaceholder">
+        </textarea>
 
-<div
-  id="bioTool"
-  class="tool hidden"
->
+        <button
+          id="bioRun"
+          class="primary small"
+          data-i18n="runBioinformatics">
+          Run bioinformatics
+        </button>
 
-  <p class="muted">
-    Submit a protected bioinformatics workflow to the backend.
-  </p>
+        <div
+          id="bioStatus"
+          class="status">
+        </div>
 
-  <textarea
-    id="bioSequence"
-    placeholder="DNA / RNA / protein sequence"
-  ></textarea>
+        <pre
+          id="bioResult"
+          class="result">
+        </pre>
 
-  <button
-    id="bioRun"
-    class="primary small"
-    data-i18n="Run bioinformatics"
-  >
-    Run bioinformatics
-  </button>
+      </div>
 
-  <div
-    id="bioStatus"
-    class="status"
-  ></div>
 
-  <pre
-    id="bioResult"
-    class="result"
-  ></pre>
+      <!-- PDB -->
 
-</div>
+      <div
+        id="pdbTool"
+        class="tool hidden">
 
+        <p
+          class="muted"
+          data-i18n="pdbToolDescription">
+          Load a structure from the MedGen PDB backend.
+        </p>
 
-<!-- PDB -->
+        <input
+          id="pdbInput"
+          placeholder="PDB ID, e.g. 6WC8"
+          data-i18n-placeholder="pdbPlaceholder">
 
-<div
-  id="pdbTool"
-  class="tool hidden"
->
+        <button
+          id="pdbRun"
+          class="primary small"
+          data-i18n="loadPdb">
+          Load PDB
+        </button>
 
-  <p class="muted">
-    Load a structure from the MedGen PDB backend.
-  </p>
+        <div
+          id="pdbStatus"
+          class="status">
+        </div>
 
-  <input
-    id="pdbInput"
-    placeholder="PDB ID, e.g. 6WC8"
-  >
+        <pre
+          id="pdbResult"
+          class="result">
+        </pre>
 
-  <button
-    id="pdbRun"
-    class="primary small"
-    data-i18n="Load PDB"
-  >
-    Load PDB
-  </button>
+      </div>
 
-  <div
-    id="pdbStatus"
-    class="status"
-  ></div>
 
-  <pre
-    id="pdbResult"
-    class="result"
-  ></pre>
+      <!-- DRUG DISCOVERY -->
 
-</div>
+      <div
+        id="discoveryTool"
+        class="tool hidden">
 
+        <p
+          class="muted"
+          data-i18n="discoveryDescription">
+          Create a computational drug-discovery session.
+        </p>
 
-<!-- DRUG DISCOVERY -->
+        <input
+          id="discoveryTarget"
+          placeholder="Target, e.g. HIV-1 Integrase"
+          data-i18n-placeholder="targetPlaceholder">
 
-<div
-  id="discoveryTool"
-  class="tool hidden"
->
+        <button
+          id="discoveryRun"
+          class="primary small"
+          data-i18n="createSession">
+          Create session
+        </button>
 
-  <p class="muted">
-    Create a computational drug-discovery session.
-  </p>
+        <div
+          id="discoveryStatus"
+          class="status">
+        </div>
 
-  <input
-    id="discoveryTarget"
-    placeholder="Target, e.g. HIV-1 Integrase"
-  >
+        <pre
+          id="discoveryResult"
+          class="result">
+        </pre>
 
-  <button
-    id="discoveryRun"
-    class="primary small"
-    data-i18n="Create session"
-  >
-    Create session
-  </button>
+      </div>
 
-  <div
-    id="discoveryStatus"
-    class="status"
-  ></div>
 
-  <pre
-    id="discoveryResult"
-    class="result"
-  ></pre>
+      <!-- WORKFLOWS -->
 
-</div>
+      <div
+        id="workflowTool"
+        class="tool hidden">
 
+        <p
+          class="muted"
+          data-i18n="workflowDescription">
+          View persisted scientific workflows.
+        </p>
 
-<!-- WORKFLOW -->
+        <button
+          id="workflowRefresh"
+          class="ghost"
+          data-i18n="refreshWorkflows">
+          Refresh workflows
+        </button>
 
-<div
-  id="workflowTool"
-  class="tool hidden"
->
+        <div
+          id="workflowStatus"
+          class="status">
+        </div>
 
-  <p class="muted">
-    View persisted scientific workflows.
-  </p>
+        <pre
+          id="workflowResult"
+          class="result">
+        </pre>
 
-  <button
-    id="workflowRefresh"
-    class="ghost"
-    data-i18n="Refresh workflows"
-  >
-    Refresh workflows
-  </button>
+      </div>
 
-  <div
-    id="workflowStatus"
-    class="status"
-  ></div>
 
-  <pre
-    id="workflowResult"
-    class="result"
-  ></pre>
+      <!-- RESEARCH -->
 
-</div>
+      <div
+        id="researchTool"
+        class="tool hidden">
 
+        <p
+          class="muted"
+          data-i18n="researchToolDescription">
+          Search the research backend for citation-oriented results.
+        </p>
 
-<!-- RESEARCH -->
+        <input
+          id="researchQuery"
+          placeholder="e.g. HIV integrase inhibitors"
+          data-i18n-placeholder="researchPlaceholder">
 
-<div
-  id="researchTool"
-  class="tool hidden"
->
+        <button
+          id="researchRun"
+          class="primary small"
+          data-i18n="searchResearch">
+          Search research
+        </button>
 
-  <p class="muted">
-    Search the research backend for citation-oriented results.
-  </p>
+        <div
+          id="researchStatus"
+          class="status">
+        </div>
 
-  <input
-    id="researchQuery"
-    placeholder="e.g. HIV integrase inhibitors"
-  >
+        <pre
+          id="researchResult"
+          class="result">
+        </pre>
 
-  <button
-    id="researchRun"
-    class="primary small"
-    data-i18n="Search research"
-  >
-    Search research
-  </button>
+      </div>
 
-  <div
-    id="researchStatus"
-    class="status"
-  ></div>
 
-  <pre
-    id="researchResult"
-    class="result"
-  ></pre>
+      <!-- JOBS -->
 
-</div>
+      <div
+        id="jobsTool"
+        class="tool hidden">
 
+        <select id="jobType">
 
-<!-- JOBS -->
+          <option
+            value="MOLECULAR"
+            data-i18n="molecular">
+            Molecular
+          </option>
 
-<div
-  id="jobsTool"
-  class="tool hidden"
->
+          <option
+            value="DOCKING"
+            data-i18n="docking">
+            Docking
+          </option>
 
-  <select id="jobType">
+          <option
+            value="STRUCTURE_PREDICTION"
+            data-i18n="structurePrediction">
+            Structure prediction
+          </option>
 
-    <option value="MOLECULAR">
-      Molecular
-    </option>
+        </select>
 
-    <option value="DOCKING">
-      Docking
-    </option>
+        <button
+          id="jobCreate"
+          class="primary small"
+          data-i18n="createJob">
+          Create job
+        </button>
 
-    <option value="STRUCTURE_PREDICTION">
-      Structure prediction
-    </option>
+        <div
+          id="jobCreateStatus"
+          class="status">
+        </div>
 
-  </select>
+        <pre
+          id="jobCreateResult"
+          class="result">
+        </pre>
 
+        <button
+          id="jobsRefresh"
+          class="ghost"
+          data-i18n="refreshJobs">
+          Refresh jobs
+        </button>
 
-  <button
-    id="jobCreate"
-    class="primary small"
-    data-i18n="Create job"
-  >
-    Create job
-  </button>
+        <div
+          id="jobsStatus"
+          class="status">
+        </div>
 
-  <div
-    id="jobCreateStatus"
-    class="status"
-  ></div>
+        <pre
+          id="jobsResult"
+          class="result">
+        </pre>
 
-  <pre
-    id="jobCreateResult"
-    class="result"
-  ></pre>
+      </div>
 
 
-  <button
-    id="jobsRefresh"
-    class="ghost"
-    data-i18n="Refresh jobs"
-  >
-    Refresh jobs
-  </button>
+      <!-- REPORTS -->
 
-  <div
-    id="jobsStatus"
-    class="status"
-  ></div>
+      <div
+        id="reportsTool"
+        class="tool hidden">
 
-  <pre
-    id="jobsResult"
-    class="result"
-  ></pre>
+        <button
+          id="reportsRefresh"
+          class="ghost"
+          data-i18n="refreshReports">
+          Refresh reports
+        </button>
 
-</div>
+        <div
+          id="reportsStatus"
+          class="status">
+        </div>
 
+        <pre
+          id="reportsResult"
+          class="result">
+        </pre>
 
-<!-- REPORTS -->
+      </div>
 
-<div
-  id="reportsTool"
-  class="tool hidden"
->
 
-  <button
-    id="reportsRefresh"
-    class="ghost"
-    data-i18n="Refresh reports"
-  >
-    Refresh reports
-  </button>
+      <div
+        id="comingSoon"
+        class="tool hidden">
 
-  <div
-    id="reportsStatus"
-    class="status"
-  ></div>
+        <p
+          class="muted"
+          data-i18n="comingSoon">
+          Web UI shell is ready. This module will be connected to the existing backend in the next integration phases.
+        </p>
 
-  <pre
-    id="reportsResult"
-    class="result"
-  ></pre>
+      </div>
 
-</div>
+    </div>
 
+  </section>
 
-<!-- COMING SOON -->
 
-<div
-  id="comingSoon"
-  class="tool hidden"
->
+  <!-- SYSTEM -->
 
-  <p class="muted">
-    Web UI shell is ready. This module will be connected
-    to the existing backend in the next integration phases.
-  </p>
+  <section class="panel">
 
-</div>
+    <div>
 
-</div>
+      <p
+        class="eyebrow"
+        data-i18n="system">
+        SYSTEM
+      </p>
 
-</section>
+      <h2 data-i18n="privateEnvironment">
+        Private development environment
+      </h2>
 
+      <p
+        class="muted"
+        data-i18n="systemDescription">
+        Only authenticated users can reach the dashboard.
+      </p>
 
-<!-- =====================================================
-     SYSTEM
-     ===================================================== -->
+    </div>
 
-<section class="panel">
+    <div class="system-list">
 
-<div>
+      <div>
+        <span data-i18n="apiStatus">
+          API status:
+        </span>
 
-  <p class="eyebrow">
-    SYSTEM
-  </p>
+        <b id="apiText">
+          checking
+        </b>
+      </div>
 
-  <h2 data-i18n="Private development environment">
-    Private development environment
-  </h2>
+      <div>
+        <span data-i18n="registration">
+          Registration:
+        </span>
 
-  <p class="muted">
-    Only authenticated users can reach the dashboard.
-  </p>
+        <b data-i18n="disabled">
+          disabled
+        </b>
+      </div>
 
-</div>
+      <div>
+        <span data-i18n="environment">
+          Environment:
+        </span>
 
+        <b data-i18n="private">
+          private
+        </b>
+      </div>
 
-<div class="system-list">
+    </div>
 
-  <div>
-    API status:
-    <b id="apiText">
-      checking
-    </b>
-  </div>
-
-  <div>
-    Registration:
-    <b>
-      disabled
-    </b>
-  </div>
-
-  <div>
-    Environment:
-    <b>
-      private
-    </b>
-  </div>
-
-</div>
-
-</section>
+  </section>
 
 </main>
 
 </section>
 
 
-<!-- =====================================================
-     EXISTING APP
-     ===================================================== -->
+<!-- IMPORTANT:
+     Keep app.js unchanged.
+-->
 
 <script src="app.js"></script>
 
 
-<!-- =====================================================
-     MEDGEN AI LANGUAGE ENGINE
-     ===================================================== -->
+<!-- =================================
+     TRANSLATION ENGINE
+================================= -->
 
 <script>
 
@@ -798,346 +939,601 @@
   const translations = {
 
     en: {
-      "PRIVATE RESEARCH PLATFORM":
-        "PRIVATE RESEARCH PLATFORM",
 
-      "Welcome back":
-        "Welcome back",
+      globalPlatform: "GLOBAL BIOMEDICAL AI PLATFORM",
 
-      "Private development mode — public registration is disabled.":
+      privateDevelopment: "PRIVATE • DEVELOPMENT",
+      privateResearch: "PRIVATE RESEARCH PLATFORM",
+
+      welcome: "Welcome back",
+      signInTitle: "Sign in",
+
+      loginDescription:
         "Private development mode — public registration is disabled.",
 
-      "Username":
-        "Username",
+      username: "Username",
+      password: "Password",
 
-      "Password":
-        "Password",
+      usernamePlaceholder:
+        "Enter username",
 
-      "Sign in":
+      passwordPlaceholder:
+        "Enter password",
+
+      rememberMe:
+        "Remember me",
+
+      signIn:
         "Sign in",
 
-      "Logout":
+      logout:
         "Logout",
 
-      "PRIVATE WORKSPACE":
+      privateWorkspace:
         "PRIVATE WORKSPACE",
 
-      "Biomedical AI Platform":
+      biomedicalPlatform:
         "Biomedical AI Platform",
 
-      "Research, molecular analysis, structures, discovery and scientific workflows.":
+      heroDescription:
         "Research, molecular analysis, structures, discovery and scientific workflows.",
 
-      "Bioinformatics":
+      bioinformatics:
         "Bioinformatics",
 
-      "Molecular Analysis":
-        "Molecular Analysis",
-
-      "PDB & Structure":
-        "PDB & Structure",
-
-      "Drug Discovery":
-        "Drug Discovery",
-
-      "Scientific Jobs":
-        "Scientific Jobs",
-
-      "Research Assistant":
-        "Research Assistant",
-
-      "Virtual Laboratory":
-        "Virtual Laboratory",
-
-      "Reports & History":
-        "Reports & History",
-
-      "DNA / RNA / protein analysis":
+      bioinformaticsDesc:
         "DNA / RNA / protein analysis",
 
-      "Real backend molecular descriptors":
+      molecularAnalysis:
+        "Molecular Analysis",
+
+      molecularDesc:
         "Real backend molecular descriptors",
 
-      "Structures and viewers":
+      pdbStructure:
+        "PDB & Structure",
+
+      pdbDesc:
         "Structures and viewers",
 
-      "Screening and discovery workflows":
+      drugDiscovery:
+        "Drug Discovery",
+
+      drugDesc:
         "Screening and discovery workflows",
 
-      "Queue and worker status":
+      scientificJobs:
+        "Scientific Jobs",
+
+      jobsDesc:
         "Queue and worker status",
 
-      "Literature and citations":
+      researchAssistant:
+        "Research Assistant",
+
+      researchDesc:
         "Literature and citations",
 
-      "Experiments and workflows":
+      virtualLab:
+        "Virtual Laboratory",
+
+      labDesc:
         "Experiments and workflows",
 
-      "Results and reports":
+      reportsHistory:
+        "Reports & History",
+
+      reportsDesc:
         "Results and reports",
 
-      "Close":
+      workspace:
+        "WORKSPACE",
+
+      close:
         "Close",
 
-      "Analyze molecule":
+      molecularToolDescription:
+        "Run the existing MedGen molecular backend directly from the Web interface.",
+
+      smilesPlaceholder:
+        "SMILES, e.g. CCO",
+
+      analyzeMolecule:
         "Analyze molecule",
 
-      "Run bioinformatics":
+      bioToolDescription:
+        "Submit a protected bioinformatics workflow to the backend.",
+
+      sequencePlaceholder:
+        "DNA / RNA / protein sequence",
+
+      runBioinformatics:
         "Run bioinformatics",
 
-      "Load PDB":
+      pdbToolDescription:
+        "Load a structure from the MedGen PDB backend.",
+
+      pdbPlaceholder:
+        "PDB ID, e.g. 6WC8",
+
+      loadPdb:
         "Load PDB",
 
-      "Create session":
+      discoveryDescription:
+        "Create a computational drug-discovery session.",
+
+      targetPlaceholder:
+        "Target, e.g. HIV-1 Integrase",
+
+      createSession:
         "Create session",
 
-      "Refresh workflows":
+      workflowDescription:
+        "View persisted scientific workflows.",
+
+      refreshWorkflows:
         "Refresh workflows",
 
-      "Search research":
+      researchToolDescription:
+        "Search the research backend for citation-oriented results.",
+
+      researchPlaceholder:
+        "e.g. HIV integrase inhibitors",
+
+      searchResearch:
         "Search research",
 
-      "Create job":
+      molecular:
+        "Molecular",
+
+      docking:
+        "Docking",
+
+      structurePrediction:
+        "Structure prediction",
+
+      createJob:
         "Create job",
 
-      "Refresh jobs":
+      refreshJobs:
         "Refresh jobs",
 
-      "Refresh reports":
+      refreshReports:
         "Refresh reports",
 
-      "Private development environment":
-        "Private development environment"
+      comingSoon:
+        "Web UI shell is ready. This module will be connected to the existing backend in the next integration phases.",
+
+      system:
+        "SYSTEM",
+
+      privateEnvironment:
+        "Private development environment",
+
+      systemDescription:
+        "Only authenticated users can reach the dashboard.",
+
+      apiStatus:
+        "API status:",
+
+      registration:
+        "Registration:",
+
+      disabled:
+        "disabled",
+
+      environment:
+        "Environment:",
+
+      private:
+        "private"
+
     },
 
 
     uz: {
 
-      "PRIVATE RESEARCH PLATFORM":
-        "XUSUSIY TADQIQOT PLATFORMASI",
+      globalPlatform:
+        "GLOBAL BIOMEDIKAL AI PLATFORMASI",
 
-      "Welcome back":
+      privateDevelopment:
+        "SHAXSIY • ISHLAB CHIQISH",
+
+      privateResearch:
+        "SHAXSIY ILMIY TADQIQOT PLATFORMASI",
+
+      welcome:
         "Xush kelibsiz",
 
-      "Private development mode — public registration is disabled.":
-        "Xususiy ishlab chiqish rejimi — ommaviy ro‘yxatdan o‘tish o‘chirilgan.",
+      signInTitle:
+        "Tizimga kirish",
 
-      "Username":
+      loginDescription:
+        "Shaxsiy ishlab chiqish rejimi — ommaviy ro‘yxatdan o‘tish o‘chirilgan.",
+
+      username:
         "Foydalanuvchi nomi",
 
-      "Password":
+      password:
         "Parol",
 
-      "Sign in":
+      usernamePlaceholder:
+        "Foydalanuvchi nomini kiriting",
+
+      passwordPlaceholder:
+        "Parolni kiriting",
+
+      rememberMe:
+        "Meni eslab qolish",
+
+      signIn:
         "Kirish",
 
-      "Logout":
+      logout:
         "Chiqish",
 
-      "PRIVATE WORKSPACE":
-        "XUSUSIY ISH MUHITI",
+      privateWorkspace:
+        "SHAXSIY ISH MAYDONI",
 
-      "Biomedical AI Platform":
-        "Biotibbiy AI platformasi",
+      biomedicalPlatform:
+        "Biomedikal AI Platformasi",
 
-      "Research, molecular analysis, structures, discovery and scientific workflows.":
-        "Tadqiqot, molekulyar tahlil, strukturalar, kashfiyot va ilmiy workflowlar.",
+      heroDescription:
+        "Tadqiqotlar, molekulyar tahlil, tuzilmalar, dori yaratish va ilmiy ish jarayonlari.",
 
-      "Bioinformatics":
+      bioinformatics:
         "Bioinformatika",
 
-      "Molecular Analysis":
-        "Molekulyar tahlil",
-
-      "PDB & Structure":
-        "PDB va struktura",
-
-      "Drug Discovery":
-        "Dori vositalarini kashf qilish",
-
-      "Scientific Jobs":
-        "Ilmiy vazifalar",
-
-      "Research Assistant":
-        "Ilmiy tadqiqot yordamchisi",
-
-      "Virtual Laboratory":
-        "Virtual laboratoriya",
-
-      "Reports & History":
-        "Hisobotlar va tarix",
-
-      "DNA / RNA / protein analysis":
+      bioinformaticsDesc:
         "DNK / RNK / oqsil tahlili",
 
-      "Real backend molecular descriptors":
-        "Backend molekulyar deskriptorlari",
+      molecularAnalysis:
+        "Molekulyar tahlil",
 
-      "Structures and viewers":
-        "Strukturalar va ko‘ruvchilar",
+      molecularDesc:
+        "Haqiqiy backend molekulyar deskriptorlari",
 
-      "Screening and discovery workflows":
-        "Skrining va kashfiyot workflowlari",
+      pdbStructure:
+        "PDB va tuzilma",
 
-      "Queue and worker status":
-        "Navbat va worker holati",
+      pdbDesc:
+        "Tuzilmalar va ko‘ruvchilar",
 
-      "Literature and citations":
+      drugDiscovery:
+        "Dori yaratish",
+
+      drugDesc:
+        "Skrining va dori yaratish jarayonlari",
+
+      scientificJobs:
+        "Ilmiy vazifalar",
+
+      jobsDesc:
+        "Navbat va ishchi holati",
+
+      researchAssistant:
+        "Ilmiy tadqiqot yordamchisi",
+
+      researchDesc:
         "Adabiyotlar va iqtiboslar",
 
-      "Experiments and workflows":
-        "Tajribalar va workflowlar",
+      virtualLab:
+        "Virtual laboratoriya",
 
-      "Results and reports":
+      labDesc:
+        "Tajribalar va ish jarayonlari",
+
+      reportsHistory:
+        "Hisobotlar va tarix",
+
+      reportsDesc:
         "Natijalar va hisobotlar",
 
-      "Close":
+      workspace:
+        "ISH MAYDONI",
+
+      close:
         "Yopish",
 
-      "Analyze molecule":
+      molecularToolDescription:
+        "Mavjud MedGen molekulyar backendini Web interfeysi orqali ishga tushiring.",
+
+      smilesPlaceholder:
+        "SMILES, masalan: CCO",
+
+      analyzeMolecule:
         "Molekulani tahlil qilish",
 
-      "Run bioinformatics":
+      bioToolDescription:
+        "Himoyalangan bioinformatika ish jarayonini backendga yuboring.",
+
+      sequencePlaceholder:
+        "DNK / RNK / oqsil ketma-ketligi",
+
+      runBioinformatics:
         "Bioinformatikani ishga tushirish",
 
-      "Load PDB":
+      pdbToolDescription:
+        "MedGen PDB backendidan tuzilmani yuklang.",
+
+      pdbPlaceholder:
+        "PDB ID, masalan: 6WC8",
+
+      loadPdb:
         "PDB yuklash",
 
-      "Create session":
+      discoveryDescription:
+        "Hisoblash asosidagi dori yaratish sessiyasini yarating.",
+
+      targetPlaceholder:
+        "Nishon, masalan: HIV-1 Integrase",
+
+      createSession:
         "Sessiya yaratish",
 
-      "Refresh workflows":
-        "Workflowlarni yangilash",
+      workflowDescription:
+        "Saqlangan ilmiy ish jarayonlarini ko‘ring.",
 
-      "Search research":
-        "Tadqiqotni qidirish",
+      refreshWorkflows:
+        "Ish jarayonlarini yangilash",
 
-      "Create job":
+      researchToolDescription:
+        "Iqtiboslarga yo‘naltirilgan natijalar uchun ilmiy backenddan qidiring.",
+
+      researchPlaceholder:
+        "masalan: HIV integrase ingibitorlari",
+
+      searchResearch:
+        "Ilmiy qidiruv",
+
+      molecular:
+        "Molekulyar",
+
+      docking:
+        "Dokking",
+
+      structurePrediction:
+        "Tuzilmani bashorat qilish",
+
+      createJob:
         "Vazifa yaratish",
 
-      "Refresh jobs":
+      refreshJobs:
         "Vazifalarni yangilash",
 
-      "Refresh reports":
+      refreshReports:
         "Hisobotlarni yangilash",
 
-      "Private development environment":
-        "Xususiy ishlab chiqish muhiti"
+      comingSoon:
+        "Web interfeys tayyor. Ushbu modul keyingi integratsiya bosqichlarida mavjud backendga ulanadi.",
+
+      system:
+        "TIZIM",
+
+      privateEnvironment:
+        "Shaxsiy ishlab chiqish muhiti",
+
+      systemDescription:
+        "Dashboardga faqat autentifikatsiyadan o‘tgan foydalanuvchilar kira oladi.",
+
+      apiStatus:
+        "API holati:",
+
+      registration:
+        "Ro‘yxatdan o‘tish:",
+
+      disabled:
+        "o‘chirilgan",
+
+      environment:
+        "Muhit:",
+
+      private:
+        "shaxsiy"
+
     },
 
 
     ru: {
 
-      "PRIVATE RESEARCH PLATFORM":
+      globalPlatform:
+        "ГЛОБАЛЬНАЯ БИОМЕДИЦИНСКАЯ AI-ПЛАТФОРМА",
+
+      privateDevelopment:
+        "ЧАСТНАЯ • РАЗРАБОТКА",
+
+      privateResearch:
         "ЧАСТНАЯ ИССЛЕДОВАТЕЛЬСКАЯ ПЛАТФОРМА",
 
-      "Welcome back":
-        "С возвращением",
+      welcome:
+        "Добро пожаловать",
 
-      "Private development mode — public registration is disabled.":
-        "Частный режим разработки — публичная регистрация отключена.",
-
-      "Username":
-        "Имя пользователя",
-
-      "Password":
-        "Пароль",
-
-      "Sign in":
+      signInTitle:
         "Войти",
 
-      "Logout":
+      loginDescription:
+        "Приватный режим разработки — публичная регистрация отключена.",
+
+      username:
+        "Имя пользователя",
+
+      password:
+        "Пароль",
+
+      usernamePlaceholder:
+        "Введите имя пользователя",
+
+      passwordPlaceholder:
+        "Введите пароль",
+
+      rememberMe:
+        "Запомнить меня",
+
+      signIn:
+        "Войти",
+
+      logout:
         "Выйти",
 
-      "PRIVATE WORKSPACE":
+      privateWorkspace:
         "ЧАСТНОЕ РАБОЧЕЕ ПРОСТРАНСТВО",
 
-      "Biomedical AI Platform":
+      biomedicalPlatform:
         "Биомедицинская AI-платформа",
 
-      "Research, molecular analysis, structures, discovery and scientific workflows.":
-        "Исследования, молекулярный анализ, структуры, открытие лекарств и научные процессы.",
+      heroDescription:
+        "Исследования, молекулярный анализ, структуры, разработка лекарств и научные процессы.",
 
-      "Bioinformatics":
+      bioinformatics:
         "Биоинформатика",
 
-      "Molecular Analysis":
-        "Молекулярный анализ",
-
-      "PDB & Structure":
-        "PDB и структура",
-
-      "Drug Discovery":
-        "Открытие лекарств",
-
-      "Scientific Jobs":
-        "Научные задачи",
-
-      "Research Assistant":
-        "Научный помощник",
-
-      "Virtual Laboratory":
-        "Виртуальная лаборатория",
-
-      "Reports & History":
-        "Отчёты и история",
-
-      "DNA / RNA / protein analysis":
+      bioinformaticsDesc:
         "Анализ ДНК / РНК / белков",
 
-      "Real backend molecular descriptors":
-        "Молекулярные дескрипторы backend",
+      molecularAnalysis:
+        "Молекулярный анализ",
 
-      "Structures and viewers":
+      molecularDesc:
+        "Реальные молекулярные дескрипторы backend",
+
+      pdbStructure:
+        "PDB и структура",
+
+      pdbDesc:
         "Структуры и просмотр",
 
-      "Screening and discovery workflows":
-        "Скрининг и процессы открытия",
+      drugDiscovery:
+        "Разработка лекарств",
 
-      "Queue and worker status":
-        "Очередь и статус worker",
+      drugDesc:
+        "Скрининг и процессы разработки лекарств",
 
-      "Literature and citations":
-        "Литература и цитирование",
+      scientificJobs:
+        "Научные задачи",
 
-      "Experiments and workflows":
-        "Эксперименты и процессы",
+      jobsDesc:
+        "Очередь и состояние рабочего процесса",
 
-      "Results and reports":
+      researchAssistant:
+        "Научный помощник",
+
+      researchDesc:
+        "Литература и цитирования",
+
+      virtualLab:
+        "Виртуальная лаборатория",
+
+      labDesc:
+        "Эксперименты и рабочие процессы",
+
+      reportsHistory:
+        "Отчёты и история",
+
+      reportsDesc:
         "Результаты и отчёты",
 
-      "Close":
+      workspace:
+        "РАБОЧЕЕ ПРОСТРАНСТВО",
+
+      close:
         "Закрыть",
 
-      "Analyze molecule":
+      molecularToolDescription:
+        "Запустите существующий молекулярный backend MedGen непосредственно через Web-интерфейс.",
+
+      smilesPlaceholder:
+        "SMILES, например: CCO",
+
+      analyzeMolecule:
         "Анализировать молекулу",
 
-      "Run bioinformatics":
+      bioToolDescription:
+        "Отправьте защищённый биоинформационный процесс в backend.",
+
+      sequencePlaceholder:
+        "Последовательность ДНК / РНК / белка",
+
+      runBioinformatics:
         "Запустить биоинформатику",
 
-      "Load PDB":
+      pdbToolDescription:
+        "Загрузите структуру из PDB backend MedGen.",
+
+      pdbPlaceholder:
+        "PDB ID, например: 6WC8",
+
+      loadPdb:
         "Загрузить PDB",
 
-      "Create session":
+      discoveryDescription:
+        "Создайте вычислительную сессию по разработке лекарств.",
+
+      targetPlaceholder:
+        "Мишень, например: HIV-1 Integrase",
+
+      createSession:
         "Создать сессию",
 
-      "Refresh workflows":
+      workflowDescription:
+        "Просмотрите сохранённые научные рабочие процессы.",
+
+      refreshWorkflows:
         "Обновить процессы",
 
-      "Search research":
+      researchToolDescription:
+        "Выполните поиск в научном backend для результатов с цитированием.",
+
+      researchPlaceholder:
+        "например: ингибиторы ВИЧ-интегразы",
+
+      searchResearch:
         "Поиск исследований",
 
-      "Create job":
+      molecular:
+        "Молекулярный",
+
+      docking:
+        "Докинг",
+
+      structurePrediction:
+        "Предсказание структуры",
+
+      createJob:
         "Создать задачу",
 
-      "Refresh jobs":
+      refreshJobs:
         "Обновить задачи",
 
-      "Refresh reports":
+      refreshReports:
         "Обновить отчёты",
 
-      "Private development environment":
-        "Частная среда разработки"
+      comingSoon:
+        "Web-интерфейс готов. Этот модуль будет подключён к существующему backend на следующих этапах интеграции.",
+
+      system:
+        "СИСТЕМА",
+
+      privateEnvironment:
+        "Приватная среда разработки",
+
+      systemDescription:
+        "Только авторизованные пользователи могут получить доступ к dashboard.",
+
+      apiStatus:
+        "Состояние API:",
+
+      registration:
+        "Регистрация:",
+
+      disabled:
+        "отключена",
+
+      environment:
+        "Среда:",
+
+      private:
+        "приватная"
+
     }
 
   };
@@ -1148,12 +1544,8 @@
     const dictionary =
       translations[language] || translations.en;
 
+    document.documentElement.lang = language;
 
-    document.documentElement.lang =
-      language;
-
-
-    /* TEXT */
 
     document
       .querySelectorAll("[data-i18n]")
@@ -1162,15 +1554,18 @@
         const key =
           element.getAttribute("data-i18n");
 
-        if (dictionary[key]) {
+        if (
+          Object.prototype.hasOwnProperty.call(
+            dictionary,
+            key
+          )
+        ) {
           element.textContent =
             dictionary[key];
         }
 
       });
 
-
-    /* PLACEHOLDERS */
 
     document
       .querySelectorAll("[data-i18n-placeholder]")
@@ -1181,7 +1576,12 @@
             "data-i18n-placeholder"
           );
 
-        if (dictionary[key]) {
+        if (
+          Object.prototype.hasOwnProperty.call(
+            dictionary,
+            key
+          )
+        ) {
           element.placeholder =
             dictionary[key];
         }
@@ -1199,46 +1599,72 @@
 
   function initializeLanguage() {
 
-    const selector =
+    const saved =
+      localStorage.getItem(
+        "medgen_language"
+      ) || "uz";
+
+
+    const loginSelector =
+      document.getElementById(
+        "loginLanguageSelector"
+      );
+
+    const dashboardSelector =
       document.getElementById(
         "languageSelector"
       );
 
-    if (!selector) return;
+
+    if (loginSelector) {
+
+      loginSelector.value = saved;
+
+      loginSelector.addEventListener(
+        "change",
+        function () {
+
+          translatePage(this.value);
+
+          if (dashboardSelector) {
+            dashboardSelector.value =
+              this.value;
+          }
+
+        }
+      );
+
+    }
 
 
-    const savedLanguage =
-      localStorage.getItem(
-        "medgen_language"
-      ) || "en";
+    if (dashboardSelector) {
+
+      dashboardSelector.value = saved;
+
+      dashboardSelector.addEventListener(
+        "change",
+        function () {
+
+          translatePage(this.value);
+
+          if (loginSelector) {
+            loginSelector.value =
+              this.value;
+          }
+
+        }
+      );
+
+    }
 
 
-    selector.value =
-      savedLanguage;
-
-
-    translatePage(
-      savedLanguage
-    );
-
-
-    selector.addEventListener(
-      "change",
-      function () {
-
-        translatePage(
-          this.value
-        );
-
-      }
-    );
+    translatePage(saved);
 
   }
 
 
   if (
-    document.readyState ===
-    "loading"
+    document.readyState === "loading"
   ) {
 
     document.addEventListener(
@@ -1252,9 +1678,30 @@
 
   }
 
+
+  /*
+   * Intro animation.
+   * It automatically disappears after
+   * approximately 1.8 seconds.
+   */
+
+  setTimeout(function () {
+
+    const intro =
+      document.getElementById(
+        "medgenIntro"
+      );
+
+    if (intro) {
+      intro.remove();
+    }
+
+  }, 1900);
+
+
 })();
 
 </script>
 
 </body>
-</html>
+  </html>
