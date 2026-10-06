@@ -1019,8 +1019,18 @@ async function loadCurrentUser() {
     const data =
       await api('/auth/me');
 
-    state.user =
-      data;
+    const username = data?.username || 'current';
+    let localProfile = {};
+    try {
+      localProfile = JSON.parse(localStorage.getItem('medgen_profile_' + username) || '{}');
+    } catch (_) {}
+
+    if (Object.keys(localProfile).length) {
+      data.profile = { ...localProfile, ...(data.profile || {}) };
+      data.profile_complete = isProfileComplete(data.profile);
+    }
+
+    state.user = data;
 
     updateUserUI();
 
@@ -1078,7 +1088,14 @@ async function openProfile() {
 
   try {
     const data = await api('/profile');
-    const p = data?.profile || {};
+    const serverProfile = data?.profile || {};
+    const username = state.user?.username || data?.username || 'current';
+    let localProfile = {};
+    try {
+      localProfile = JSON.parse(localStorage.getItem('medgen_profile_' + username) || '{}');
+    } catch (_) {}
+
+    const p = { ...localProfile, ...serverProfile };
 
     $('profileFullName').value = p.full_name || '';
     $('profileEmail').value = p.email || '';
@@ -1096,10 +1113,46 @@ async function openProfile() {
       avatar.style.display = p.avatar ? 'block' : 'none';
     }
 
+    if (state.user) {
+      state.user.profile = p;
+      state.user.profile_complete = isProfileComplete(p);
+    }
+
     if (status) status.textContent = '';
   } catch (e) {
     if (status) status.textContent = e.message;
   }
+}
+
+function isProfileComplete(p) {
+  return Boolean(
+    p &&
+    String(p.full_name || '').trim() &&
+    String(p.email || '').trim() &&
+    String(p.country || '').trim() &&
+    Number.isInteger(Number(p.birth_year)) &&
+    Number(p.birth_year) >= 1900 &&
+    Number(p.birth_year) <= 2100 &&
+    Number.isInteger(Number(p.birth_month)) &&
+    Number(p.birth_month) >= 1 &&
+    Number(p.birth_month) <= 12 &&
+    Number.isInteger(Number(p.birth_day)) &&
+    Number(p.birth_day) >= 1 &&
+    Number(p.birth_day) <= 31
+  );
+}
+
+function enforceProfileCompletion() {
+  if (!state.user || isProfileComplete(state.user.profile || {})) return true;
+
+  document.querySelectorAll('.module, #workspace, #adminDashboard').forEach(el => {
+    if (el) el.classList.add('profile-locked');
+  });
+
+  openProfile();
+  const status = $('profileStatus');
+  if (status) status.textContent = '⚠️ Profilni to‘ldirish majburiy. Davom etish uchun ism, email, mamlakat va tug‘ilgan sanani kiriting.';
+  return false;
 }
 
 function closeProfile() {
@@ -1152,6 +1205,15 @@ async function saveProfile() {
       avatar: avatar || state.user?.profile?.avatar || ''
     };
 
+    if (!payload.full_name || !payload.email || !payload.country ||
+        payload.birth_year === null || payload.birth_month === null || payload.birth_day === null) {
+      throw new Error('Profilni to‘liq to‘ldiring: ism, email, mamlakat va tug‘ilgan sana majburiy.');
+    }
+
+    if (!/^\\S+@\\S+\\.\\S+$/.test(payload.email)) {
+      throw new Error('Email manzilini to‘g‘ri kiriting.');
+    }
+
     if (payload.birth_year !== null &&
         (!Number.isInteger(payload.birth_year) || payload.birth_year < 1900 || payload.birth_year > 2100)) {
       throw new Error('Tug‘ilgan yil 1900–2100 oralig‘ida bo‘lishi kerak.');
@@ -1174,8 +1236,16 @@ async function saveProfile() {
 
     if (state.user) {
       state.user.profile = data.profile;
-      state.user.profile_complete = Boolean(data.profile?.full_name);
+      state.user.profile_complete = isProfileComplete(data.profile);
+      try {
+        localStorage.setItem(
+          'medgen_profile_' + state.user.username,
+          JSON.stringify(data.profile)
+        );
+      } catch (_) {}
     }
+
+    document.querySelectorAll('.profile-locked').forEach(el => el.classList.remove('profile-locked'));
 
     if (status) status.textContent = '✅ Profil muvaffaqiyatli saqlandi.';
     setTimeout(() => {
@@ -1302,15 +1372,27 @@ async function loadAdminDetails(kind) {
   try {
     let data;
 
-    if (kind === 'users') {
-      data = await api('/admin/users');
-    } else if (kind === 'tokens') {
-      data = await api('/admin/tokens');
-    } else {
-      data = await api('/admin/activity');
-    }
+    const endpointMap = {
+      users: '/admin/users',
+      tokens: '/admin/tokens',
+      jobs: '/admin/jobs',
+      docking: '/admin/docking',
+      experiments: '/admin/experiments',
+      reports: '/admin/reports',
+      workflows: '/admin/workflows'
+    };
+    data = await api(endpointMap[kind] || '/admin/activity');
 
-    const raw = data?.users || data?.tokens || data?.activity || data || [];
+    const raw =
+      data?.users ||
+      data?.tokens ||
+      data?.jobs ||
+      data?.docking ||
+      data?.experiments ||
+      data?.reports ||
+      data?.workflows ||
+      data?.activity ||
+      data || [];
     const items = Array.isArray(raw) ? raw : [raw];
 
     let html =
@@ -1390,6 +1472,7 @@ function showDashboard() {
   checkHealth();
   ensureAdminDashboard();
   ensureLegalConsent();
+  if (!enforceProfileCompletion()) return;
 }
 
 
@@ -1526,6 +1609,8 @@ function closeWorkspace() {
 ========================================================= */
 
 function openModule(moduleName) {
+
+  if (!enforceProfileCompletion()) return;
 
   openWorkspace(moduleName);
 
