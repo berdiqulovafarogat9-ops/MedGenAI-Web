@@ -2521,6 +2521,21 @@ async function loadWorkflows() {
    RESEARCH ASSISTANT
 ========================================================= */
 
+async function runResearchAgent() {
+  const query = $('researchQuery')?.value?.trim() || '';
+  const focus = $('researchFocus')?.value?.trim() || '';
+  const status = $('researchStatus');
+  const result = $('researchResult');
+  if (!query) { if (status) status.textContent = 'Research query is required.'; return; }
+  if (status) status.textContent = 'Research Agent: retrieving evidence...';
+  try {
+    const data = await api('/research/agent', { method: 'POST', body: JSON.stringify({ query, focus, limit: 8 }) });
+    state.lastResearchData = data;
+    renderResult(result, data);
+    if (status) status.textContent = 'Research Agent: evidence synthesis completed.';
+  } catch (error) { if (status) status.textContent = error.message; }
+}
+
 async function searchResearch() {
 
   const query =
@@ -3040,6 +3055,9 @@ function bindEvents() {
       searchResearch
     );
   }
+
+  const researchAgentRun = $('researchAgentRun');
+  if (researchAgentRun) researchAgentRun.addEventListener('click', runResearchAgent);
 
 
   bindLanguageSelectors();
