@@ -1149,7 +1149,31 @@ frame-ancestors 'none'">
         "Environment:",
 
       private:
-        "private"
+        "private",
+
+      myProfile: "My Profile",
+      profilePhoto: "Profile photo",
+      profilePhotoHelp: "You enter this information yourself. MedGen AI does not automatically know personal information about you.",
+      fullName: "Full name",
+      fullNamePlaceholder: "First name Last name",
+      emailLabel: "Email",
+      organization: "Organization / university",
+      organizationPlaceholder: "University or organization",
+      country: "Country",
+      countryPlaceholder: "Country",
+      researchInterests: "Research interests",
+      researchInterestsPlaceholder: "Bioinformatics, drug discovery...",
+      birthDate: "Date of birth",
+      bioLabel: "Bio",
+      bioPlaceholder: "Briefly about yourself",
+      securityPrivacy: "Security, privacy and consent",
+      legalIntro: "Please read the following documents and confirm your consent before using the platform.",
+      consentTerms: "I agree to the public offer and terms of use.",
+      consentPrivacy: "I agree to the privacy policy.",
+      consentData: "I consent to data processing.",
+      consentResearch: "I accept the warning that scientific results are not clinical validation.",
+      agreeContinue: "I agree and continue",
+      save: "Save"
 
     },
 
@@ -1352,7 +1376,31 @@ frame-ancestors 'none'">
         "Muhit:",
 
       private:
-        "shaxsiy"
+        "shaxsiy",
+
+      myProfile: "Mening profilim",
+      profilePhoto: "Profil rasmi",
+      profilePhotoHelp: "Bu ma’lumotlarni siz o‘zingiz kiritasiz. MedGen AI siz haqingizda avtomatik ravishda shaxsiy ma’lumot bilmaydi.",
+      fullName: "To‘liq ism",
+      fullNamePlaceholder: "Ism Familiya",
+      emailLabel: "Email",
+      organization: "Tashkilot / universitet",
+      organizationPlaceholder: "Universitet yoki tashkilot",
+      country: "Mamlakat",
+      countryPlaceholder: "O‘zbekiston",
+      researchInterests: "Ilmiy qiziqishlar",
+      researchInterestsPlaceholder: "Bioinformatika, drug discovery...",
+      birthDate: "Tug‘ilgan sana",
+      bioLabel: "Bio",
+      bioPlaceholder: "O‘zingiz haqingizda qisqacha",
+      securityPrivacy: "Xavfsizlik, maxfiylik va rozilik",
+      legalIntro: "Platformadan foydalanishdan oldin quyidagi hujjatlarni o‘qib, roziligingizni tasdiqlang.",
+      consentTerms: "Ommaviy oferta va foydalanish shartlariga roziman.",
+      consentPrivacy: "Maxfiylik siyosatiga roziman.",
+      consentData: "Ma’lumotlarni qayta ishlashga roziman.",
+      consentResearch: "Ilmiy natijalar klinik tasdiq emasligi haqidagi ogohlantirishni qabul qilaman.",
+      agreeContinue: "Roziman va davom etaman",
+      save: "Saqlash"
 
     },
 
@@ -1555,7 +1603,31 @@ frame-ancestors 'none'">
         "Среда:",
 
       private:
-        "приватная"
+        "приватная",
+
+      myProfile: "Мой профиль",
+      profilePhoto: "Фото профиля",
+      profilePhotoHelp: "Эти данные вводите вы сами. MedGen AI автоматически не получает ваши персональные данные.",
+      fullName: "Полное имя",
+      fullNamePlaceholder: "Имя Фамилия",
+      emailLabel: "Email",
+      organization: "Организация / университет",
+      organizationPlaceholder: "Университет или организация",
+      country: "Страна",
+      countryPlaceholder: "Страна",
+      researchInterests: "Научные интересы",
+      researchInterestsPlaceholder: "Биоинформатика, разработка лекарств...",
+      birthDate: "Дата рождения",
+      bioLabel: "О себе",
+      bioPlaceholder: "Кратко о себе",
+      securityPrivacy: "Безопасность, конфиденциальность и согласие",
+      legalIntro: "Перед использованием платформы ознакомьтесь с документами ниже и подтвердите согласие.",
+      consentTerms: "Я согласен с публичной офертой и условиями использования.",
+      consentPrivacy: "Я согласен с политикой конфиденциальности.",
+      consentData: "Я согласен на обработку данных.",
+      consentResearch: "Я принимаю предупреждение о том, что научные результаты не являются клиническим подтверждением.",
+      agreeContinue: "Согласен и продолжить",
+      save: "Сохранить"
 
     }
 
@@ -1733,34 +1805,34 @@ frame-ancestors 'none'">
 <div id="profileModal" class="modal hidden">
   <div class="modal-card">
     <button id="profileClose" class="modal-close">×</button>
-    <h2>👤 Mening profilim</h2>
-    <div class="avatar-editor"><img id="profileAvatarPreview" class="profile-avatar" alt="Profil rasmi"><label>Profil rasmi<input id="profileAvatar" type="file" accept="image/png,image/jpeg,image/webp"></label></div>
-    <p class="muted">Bu ma’lumotlarni siz o‘zingiz kiritasiz. MedGen AI siz haqingizda avtomatik ravishda shaxsiy ma’lumot bilmaydi.</p>
-    <label>To‘liq ism<input id="profileFullName" placeholder="Ism Familiya"></label>
-    <label>Email<input id="profileEmail" type="text" inputmode="email" autocomplete="email" placeholder="email@example.com"></label>
-    <label>Tashkilot / universitet<input id="profileOrganization" placeholder="Universitet yoki tashkilot"></label>
-    <label>Mamlakat<input id="profileCountry" placeholder="O‘zbekiston"></label>
-    <label>Ilmiy qiziqishlar<input id="profileInterests" placeholder="Bioinformatika, drug discovery..."></label>
-    <label>Tug‘ilgan sana
+    <h2 data-i18n="myProfile">Mening profilim</h2>
+    <div class="avatar-editor"><img id="profileAvatarPreview" class="profile-avatar" alt="Profil rasmi"><label data-i18n="profilePhoto">Profil rasmi<input id="profileAvatar" type="file" accept="image/png,image/jpeg, image/webp"></label></div>
+    <p class="muted" data-i18n="profilePhotoHelp">Bu ma’lumotlarni siz o‘zingiz kiritasiz. MedGen AI siz haqingizda avtomatik ravishda shaxsiy ma’lumot bilmaydi.</p>
+    <label><span data-i18n="fullName">To‘liq ism</span><input id="profileFullName" data-i18n-placeholder="fullNamePlaceholder" placeholder="Ism Familiya"></label>
+    <label><span data-i18n="emailLabel">Email</span><input id="profileEmail" type="text" inputmode="email" autocomplete="email" placeholder="email@example.com"></label>
+    <label><span data-i18n="organization">Tashkilot / universitet</span><input id="profileOrganization" data-i18n-placeholder="organizationPlaceholder" placeholder="Universitet yoki tashkilot"></label>
+    <label><span data-i18n="country">Mamlakat</span><input id="profileCountry" data-i18n-placeholder="countryPlaceholder" placeholder="O‘zbekiston"></label>
+    <label><span data-i18n="researchInterests">Ilmiy qiziqishlar</span><input id="profileInterests" data-i18n-placeholder="researchInterestsPlaceholder" placeholder="Bioinformatika, drug discovery..."></label>
+    <label><span data-i18n="birthDate">Tug‘ilgan sana</span>
       <input id="profileBirthDate" type="text" inputmode="numeric" autocomplete="bday" placeholder="KK.OO.YYYY" maxlength="10">
     </label>
-    <label>Bio<textarea id="profileBio" rows="3" placeholder="O‘zingiz haqingizda qisqacha"></textarea></label>
+    <label><span data-i18n="bioLabel">Bio</span><textarea id="profileBio" rows="3" data-i18n-placeholder="bioPlaceholder" placeholder="O‘zingiz haqingizda qisqacha"></textarea></label>
     <div id="profileStatus" class="status"></div>
-    <button id="profileSave" class="primary">Saqlash</button>
+    <button id="profileSave" class="primary" data-i18n="save">Saqlash</button>
   </div>
 </div>
 
 <div id="legalModal" class="modal hidden">
   <div class="modal-card legal-card">
-    <h2>🔐 Xavfsizlik, maxfiylik va rozilik</h2>
-    <p class="muted">Platformadan foydalanishdan oldin quyidagi hujjatlarni o‘qib, roziligingizni tasdiqlang.</p>
+    <h2 data-i18n="securityPrivacy">🔐 Xavfsizlik, maxfiylik va rozilik</h2>
+    <p class="muted" data-i18n="legalIntro">Platformadan foydalanishdan oldin quyidagi hujjatlarni o‘qib, roziligingizni tasdiqlang.</p>
     <div id="legalDocuments" class="legal-docs"></div>
-    <label class="consent-row"><input id="consentTerms" type="checkbox"> Ommaviy oferta va foydalanish shartlariga roziman.</label>
-    <label class="consent-row"><input id="consentPrivacy" type="checkbox"> Maxfiylik siyosatiga roziman.</label>
-    <label class="consent-row"><input id="consentData" type="checkbox"> Ma’lumotlarni qayta ishlashga roziman.</label>
-    <label class="consent-row"><input id="consentResearch" type="checkbox"> Ilmiy natijalar klinik tasdiq emasligi haqidagi ogohlantirishni qabul qilaman.</label>
+    <label class="consent-row"><input id="consentTerms" type="checkbox"> <span data-i18n="consentTerms">Ommaviy oferta va foydalanish shartlariga roziman.</span></label>
+    <label class="consent-row"><input id="consentPrivacy" type="checkbox"> <span data-i18n="consentPrivacy">Maxfiylik siyosatiga roziman.</span></label>
+    <label class="consent-row"><input id="consentData" type="checkbox"> <span data-i18n="consentData">Ma’lumotlarni qayta ishlashga roziman.</span></label>
+    <label class="consent-row"><input id="consentResearch" type="checkbox"> <span data-i18n="consentResearch">Ilmiy natijalar klinik tasdiq emasligi haqidagi ogohlantirishni qabul qilaman.</span></label>
     <div id="legalStatus" class="status"></div>
-    <button id="legalAccept" class="primary">Roziman va davom etaman</button>
+    <button id="legalAccept" class="primary" data-i18n="agreeContinue">Roziman va davom etaman</button>
   </div>
 </div>
 
