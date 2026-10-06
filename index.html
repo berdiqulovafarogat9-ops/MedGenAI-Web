@@ -800,7 +800,7 @@ frame-ancestors 'none'">
       </div>
 
 
-      <!-- JOBS -->
+      <!-- KNOWLEDGE LAYER -->\n      <div id="knowledgeTool" class="tool hidden">\n        <p class="muted">Build and explore a structured biomedical knowledge graph.</p>\n        <input id="knowledgeEntity" placeholder="Entity: EGFR, lung cancer, gefitinib">\n        <select id="knowledgeEntityType"><option value="concept">Concept</option><option value="gene">Gene</option><option value="protein">Protein</option><option value="disease">Disease</option><option value="drug">Drug</option><option value="pathway">Pathway</option></select>\n        <button id="knowledgeAddEntity" class="primary small" type="button">+ Add entity</button>\n        <input id="knowledgeSubject" placeholder="Subject">\n        <select id="knowledgeRelation"><option>associated_with</option><option>targets</option><option>inhibits</option><option>activates</option><option>causes</option><option>treats</option><option>biomarker_of</option><option>interacts_with</option><option>participates_in</option><option>expressed_in</option></select>\n        <input id="knowledgeObject" placeholder="Object">\n        <input id="knowledgeEvidence" placeholder="Evidence / PMID / note">\n        <button id="knowledgeAddRelation" class="primary small" type="button">+ Add relation</button>\n        <input id="knowledgeQuery" placeholder="Search knowledge graph">\n        <button id="knowledgeSearch" class="ghost small" type="button">🔎 Search graph</button>\n        <div id="knowledgeStatus" class="status"></div><pre id="knowledgeResult" class="result"></pre>\n      </div>\n\n      <!-- JOBS -->
 
       <div
         id="jobsTool"
