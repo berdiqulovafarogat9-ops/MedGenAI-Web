@@ -2065,7 +2065,7 @@ async function loadPDB() {
    DRUG DISCOVERY
 ========================================================= */
 
-async async function createDiscoverySession() {
+async function createDiscoverySession() {
 
   const input =
     $('discoveryTarget')?.value?.trim() || '';
