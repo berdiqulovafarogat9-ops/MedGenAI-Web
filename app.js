@@ -1145,8 +1145,10 @@ async function openProfile() {
 
   try {
     const data = await api('/profile');
+    let account = {};
+    try { account = await api('/account'); } catch (_) {}
     const serverProfile = data?.profile || {};
-    const username = state.user?.username || data?.username || 'current';
+    const username = state.user?.username || data?.username || account?.username || 'current';
     let localProfile = {};
     try {
       localProfile = JSON.parse(localStorage.getItem('medgen_profile_' + username) || '{}');
@@ -1160,6 +1162,8 @@ async function openProfile() {
     });
 
     $('profileFullName').value = p.full_name || '';
+    $('profileUsername').value = account?.username || username || '';
+    $('profilePhone').value = account?.phone || p.phone || '';
     $('profileEmail').value = p.email || '';
     $('profileOrganization').value = p.organization || '';
     $('profileCountry').value = p.country || '';
@@ -1280,6 +1284,7 @@ async function saveProfile() {
     const payload = {
       full_name: $('profileFullName')?.value?.trim() || '',
       email: $('profileEmail')?.value?.trim() || '',
+      phone: $('profilePhone')?.value?.trim() || '',
       organization: $('profileOrganization')?.value?.trim() || '',
       country: $('profileCountry')?.value?.trim() || '',
       birth_year: birthYearRaw ? Number(birthYearRaw) : null,
@@ -1317,6 +1322,15 @@ async function saveProfile() {
     const data = await api('/profile', {
       method: 'PUT',
       body: JSON.stringify(payload)
+    });
+
+    const accountData = await api('/account', {
+      method: 'PATCH',
+      body: JSON.stringify({
+        username: $('profileUsername')?.value?.trim() || undefined,
+        phone: payload.phone,
+        email: payload.email
+      })
     });
 
     if (state.user) {
