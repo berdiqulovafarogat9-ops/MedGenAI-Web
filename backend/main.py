@@ -13,8 +13,8 @@ from fastapi import Depends, FastAPI, HTTPException
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.security import HTTPAuthorizationCredentials, HTTPBearer
 from pydantic import BaseModel
-from rdkit import Chem
-from rdkit.Chem import Descriptors, Lipinski, QED, rdMolDescriptors
+from rdkit import Chem, DataStructs
+from rdkit.Chem import AllChem, Descriptors, Lipinski, QED, rdMolDescriptors
 
 
 # =========================================================
@@ -731,78 +731,74 @@ class ScreeningRequest(BaseModel):
 
 def calculate_molecule_score(smiles: str) -> dict:
     """
-    Development-stage heuristic scoring.
-    This is NOT a validated docking/ADMET model.
+    RDKit-based development screening.
+    This validates the molecule and calculates real molecular
+    properties and a Morgan fingerprint. It is NOT docking,
+    binding-affinity prediction, or ADMET prediction.
     """
-
     smiles = smiles.strip()
-
     if not smiles:
-        return {
-            "score": 0,
-            "size_score": 0,
-            "ring_score": 0,
-            "charge_score": 0,
-        }
+        raise HTTPException(status_code=400, detail="SMILES cannot be empty")
 
-    atom_count = sum(
-        1
-        for char in smiles
-        if char.isalpha()
-        and char.isupper()
-    )
+    mol = Chem.MolFromSmiles(smiles)
+    if mol is None:
+        raise HTTPException(status_code=400, detail=f"Invalid SMILES: {smiles}")
 
-    ring_count = sum(
-        1
-        for char in smiles
-        if char.isdigit()
-    ) // 2
+    canonical_smiles = Chem.MolToSmiles(mol)
+    mw = Descriptors.MolWt(mol)
+    logp = Descriptors.MolLogP(mol)
+    tpsa = Descriptors.TPSA(mol)
+    hbd = Lipinski.NumHDonors(mol)
+    hba = Lipinski.NumHAcceptors(mol)
+    rings = Lipinski.RingCount(mol)
+    rotatable = Lipinski.NumRotatableBonds(mol)
+    qed = QED.qed(mol)
 
-    charge_markers = (
-        smiles.count("+")
-        + smiles.count("-")
-    )
+    fpgen = AllChem.GetMorganGenerator(radius=2, fpSize=2048)
+    fingerprint = fpgen.GetFingerprint(mol)
+    fingerprint_bits = int(fingerprint.GetNumOnBits())
 
-    size_score = max(
-        0,
-        min(
-            40,
-            40 - abs(atom_count - 20) * 2
-        )
-    )
+    checks = {
+        "MW_le_500": mw <= 500,
+        "HBD_le_5": hbd <= 5,
+        "HBA_le_10": hba <= 10,
+        "LogP_le_5": logp <= 5,
+    }
+    passed = sum(1 for value in checks.values() if value)
 
-    ring_score = min(
-        25,
-        ring_count * 8
-    )
-
-    charge_score = max(
-        0,
-        20 - charge_markers * 10
-    )
-
-    complexity_score = min(
-        15,
-        len(smiles)
-    )
-
-    total = round(
-        size_score
-        + ring_score
-        + charge_score
-        + complexity_score,
+    property_score = round(
+        (passed / 4) * 70
+        + min(qed, 1.0) * 20
+        + min(rings, 5) * 2,
         2,
     )
 
     return {
-        "score": total,
-        "atom_estimate": atom_count,
-        "ring_estimate": ring_count,
-        "charge_markers": charge_markers,
-        "size_score": size_score,
-        "ring_score": ring_score,
-        "charge_score": charge_score,
-        "complexity_score": complexity_score,
+        "score": property_score,
+        "canonical_smiles": canonical_smiles,
+        "molecular_formula": rdMolDescriptors.CalcMolFormula(mol),
+        "molecular_weight": round(mw, 4),
+        "logP": round(logp, 4),
+        "TPSA": round(tpsa, 4),
+        "HBD": int(hbd),
+        "HBA": int(hba),
+        "rotatable_bonds": int(rotatable),
+        "ring_count": int(rings),
+        "QED": round(qed, 4),
+        "heavy_atoms": int(mol.GetNumHeavyAtoms()),
+        "formal_charge": int(Chem.GetFormalCharge(mol)),
+        "fingerprint": {
+            "type": "Morgan",
+            "radius": 2,
+            "size": 2048,
+            "on_bits": fingerprint_bits,
+        },
+        "lipinski_rule_of_5": {
+            "checks": checks,
+            "violations": 4 - passed,
+            "pass": passed == 4,
+        },
+        "screening_basis": "RDKit property-based development screening",
     }
 
 
