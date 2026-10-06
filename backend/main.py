@@ -4,6 +4,7 @@ import json
 import xml.etree.ElementTree as ET
 import os
 import secrets
+import re
 from typing import Any
 from urllib.parse import quote
 from urllib.request import Request, urlopen
@@ -90,6 +91,7 @@ login_attempts = {}
 LOGIN_WINDOW_SECONDS = int(os.getenv("MEDGEN_LOGIN_WINDOW_SECONDS", "300"))
 LOGIN_MAX_ATTEMPTS = int(os.getenv("MEDGEN_LOGIN_MAX_ATTEMPTS", "8"))
 user_profiles = {}
+user_accounts = {}
 user_consents = {}
 activity_log = []
 jobs_store = []
@@ -106,6 +108,27 @@ experiments_store = []
 class LoginRequest(BaseModel):
     username: str
     password: str
+
+
+class RegisterRequest(BaseModel):
+    username: str
+    password: str
+    full_name: str
+    email: str
+    phone: str = ""
+    country: str = ""
+    organization: str = ""
+
+
+class AccountUpdateRequest(BaseModel):
+    username: str | None = None
+    phone: str | None = None
+    email: str | None = None
+
+
+class PasswordChangeRequest(BaseModel):
+    current_password: str
+    new_password: str
 
 
 class ProfileRequest(BaseModel):
@@ -175,6 +198,24 @@ class SequenceRequest(BaseModel):
 # =========================================================
 # AUTH FUNCTIONS
 # =========================================================
+
+def validate_password(password: str):
+    if len(password) < 8 or not re.search(r"[A-Za-z]", password) or not re.search(r"\d", password):
+        raise HTTPException(status_code=400, detail="Password must be at least 8 characters and contain letters and numbers.")
+
+
+def validate_username(username: str):
+    if not re.fullmatch(r"[A-Za-z0-9_.-]{3,32}", username):
+        raise HTTPException(status_code=400, detail="Username must be 3-32 characters.")
+
+
+def make_password_hash(password: str) -> str:
+    return hashlib.sha256((SECRET_KEY + ":" + password).encode()).hexdigest()
+
+
+def verify_password(password: str, password_hash: str) -> bool:
+    return secrets.compare_digest(make_password_hash(password), password_hash)
+
 
 def make_token(username: str) -> str:
     raw = (
@@ -259,7 +300,10 @@ def login(data: LoginRequest):
     if len(attempts) >= LOGIN_MAX_ATTEMPTS:
         raise HTTPException(status_code=429, detail="Too many login attempts. Try again later.")
 
-    if data.username != ADMIN_USERNAME or data.password != ADMIN_PASSWORD:
+    registered = user_accounts.get(data.username)
+    valid_registered = registered and verify_password(data.password, registered["password_hash"])
+    valid_admin = data.username == ADMIN_USERNAME and data.password == ADMIN_PASSWORD
+    if not valid_registered and not valid_admin:
         attempts.append(now)
         login_attempts[key] = attempts
         raise HTTPException(status_code=401, detail="Invalid username or password")
@@ -270,6 +314,30 @@ def login(data: LoginRequest):
     token_created_at[token] = now.isoformat()
     activity_log.insert(0, {"type": "login", "username": data.username, "at": now.isoformat()})
     return {"access_token": token, "token_type": "bearer"}
+
+
+@app.post("/api/v1/auth/register")
+def register(data: RegisterRequest):
+    username = data.username.strip()
+    validate_username(username)
+    validate_password(data.password)
+    if username.lower() == ADMIN_USERNAME.lower() or username in user_accounts:
+        raise HTTPException(status_code=409, detail="Username already exists.")
+    email = data.email.strip().lower()
+    if "@" not in email:
+        raise HTTPException(status_code=400, detail="Valid email is required.")
+    user_accounts[username] = {
+        "username": username,
+        "password_hash": make_password_hash(data.password),
+        "created_at": datetime.now(timezone.utc).isoformat(),
+    }
+    user_profiles[username] = {
+        "full_name": data.full_name.strip(), "email": email, "phone": data.phone.strip(),
+        "country": data.country.strip(), "organization": data.organization.strip(),
+        "birth_year": None, "birth_month": None, "birth_day": None,
+        "research_interests": "", "bio": "", "avatar": "",
+    }
+    return {"status": "registered", "username": username}
 
 
 @app.get("/api/v1/auth/me")
@@ -304,6 +372,57 @@ def logout(credentials: HTTPAuthorizationCredentials = Depends(security)):
                 "at": datetime.now(timezone.utc).isoformat(),
             })
     return {"status": "logged_out"}
+
+
+@app.get("/api/v1/account")
+def account(user=Depends(get_current_user)):
+    profile = user_profiles.get(user["username"], {})
+    return {"username": user["username"], "email": profile.get("email", ""), "phone": profile.get("phone", ""), "role": user["role"]}
+
+
+@app.patch("/api/v1/account")
+def update_account(data: AccountUpdateRequest, user=Depends(get_current_user)):
+    current = user["username"]
+    if data.username is not None:
+        new_username = data.username.strip()
+        validate_username(new_username)
+        if new_username != current and (new_username.lower() == ADMIN_USERNAME.lower() or new_username in user_accounts or new_username in tokens.values()):
+            raise HTTPException(status_code=409, detail="Username already exists.")
+        if new_username != current:
+            if current in user_accounts:
+                user_accounts[new_username] = user_accounts.pop(current)
+                user_accounts[new_username]["username"] = new_username
+            if current in user_profiles:
+                user_profiles[new_username] = user_profiles.pop(current)
+            for token, owner in list(tokens.items()):
+                if owner == current:
+                    tokens[token] = new_username
+            current = new_username
+    profile = user_profiles.setdefault(current, {})
+    if data.phone is not None:
+        profile["phone"] = data.phone.strip()
+    if data.email is not None:
+        email = data.email.strip().lower()
+        if "@" not in email:
+            raise HTTPException(status_code=400, detail="Valid email is required.")
+        profile["email"] = email
+    return {"status": "updated", "username": current, "email": profile.get("email", ""), "phone": profile.get("phone", "")}
+
+
+@app.post("/api/v1/account/password")
+def change_password(data: PasswordChangeRequest, user=Depends(get_current_user)):
+    account = user_accounts.get(user["username"])
+    if not account:
+        raise HTTPException(status_code=400, detail="Password change requires a registered account.")
+    if not verify_password(data.current_password, account["password_hash"]):
+        raise HTTPException(status_code=401, detail="Current password is incorrect.")
+    validate_password(data.new_password)
+    account["password_hash"] = make_password_hash(data.new_password)
+    for token, owner in list(tokens.items()):
+        if owner == user["username"]:
+            tokens.pop(token, None)
+            token_created_at.pop(token, None)
+    return {"status": "updated", "message": "Password changed. Please sign in again."}
 
 
 @app.get("/api/v1/profile")
