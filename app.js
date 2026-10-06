@@ -2126,6 +2126,33 @@ async function createDiscoverySession() {
       data
     );
 
+    // Automatically record the completed screening as a reproducible experiment.
+    try {
+      await api('/experiments', {
+        method: 'POST',
+        body: JSON.stringify({
+          name: 'Virtual Screening — ' + target,
+          workflow_type: 'drug_discovery',
+          target,
+          input: {
+            molecules: [molecule],
+            source: 'Drug Discovery / Virtual Screening'
+          },
+          parameters: {
+            screening_basis: data?.results?.[0]?.screening_basis || 'RDKit property-based development screening',
+            molecule_count: data?.molecule_count || 1
+          },
+          results: {
+            status: data?.status || 'completed',
+            results: data?.results || []
+          },
+          status: data?.status || 'completed'
+        })
+      });
+    } catch (experimentError) {
+      console.warn('EXPERIMENT RECORDING ERROR:', experimentError);
+    }
+
     if (status) {
       status.textContent =
         t('discoveryCompleted');
