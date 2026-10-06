@@ -1006,6 +1006,16 @@ class ScreeningRequest(BaseModel):
     molecules: list[str] = []
 
 
+class LibraryFilterRequest(BaseModel):
+    target: str = ""
+    molecules: list[str] = []
+    max_molecular_weight: float = 500.0
+    max_logp: float = 5.0
+    max_hbd: int = 5
+    max_hba: int = 10
+    min_qed: float = 0.0
+
+
 def calculate_molecule_score(smiles: str) -> dict:
     """
     RDKit-based development screening.
@@ -1076,6 +1086,64 @@ def calculate_molecule_score(smiles: str) -> dict:
             "pass": passed == 4,
         },
         "screening_basis": "RDKit property-based development screening",
+    }
+
+
+@app.post("/api/v1/discovery/filter")
+def discovery_filter(
+    data: LibraryFilterRequest,
+    user=Depends(get_current_user),
+):
+    if not data.molecules:
+        raise HTTPException(status_code=400, detail="At least one molecule is required")
+
+    passed = []
+    rejected = []
+    for smiles in data.molecules:
+        try:
+            analysis = calculate_molecule_score(smiles)
+        except HTTPException as exc:
+            rejected.append({"smiles": smiles, "reason": exc.detail})
+            continue
+
+        reasons = []
+        if analysis["molecular_weight"] > data.max_molecular_weight:
+            reasons.append("molecular_weight")
+        if analysis["logP"] > data.max_logp:
+            reasons.append("logP")
+        if analysis["HBD"] > data.max_hbd:
+            reasons.append("HBD")
+        if analysis["HBA"] > data.max_hba:
+            reasons.append("HBA")
+        if analysis["QED"] < data.min_qed:
+            reasons.append("QED")
+
+        item = {"smiles": smiles, **analysis}
+        if reasons:
+            item["filter_failures"] = reasons
+            rejected.append(item)
+        else:
+            item["filter_pass"] = True
+            passed.append(item)
+
+    return {
+        "status": "completed",
+        "module": "Drug Discovery",
+        "workflow": "molecule_library_filtering",
+        "target": data.target.strip(),
+        "input_count": len(data.molecules),
+        "passed_count": len(passed),
+        "rejected_count": len(rejected),
+        "passed": passed,
+        "rejected": rejected,
+        "filters": {
+            "max_molecular_weight": data.max_molecular_weight,
+            "max_logp": data.max_logp,
+            "max_hbd": data.max_hbd,
+            "max_hba": data.max_hba,
+            "min_qed": data.min_qed,
+        },
+        "user": user["username"],
     }
 
 
