@@ -228,6 +228,8 @@ def login(data: LoginRequest):
     )
 
     tokens[token] = data.username
+    token_created_at[token] = datetime.now(timezone.utc).isoformat()
+    activity_log.insert(0, {"type": "login", "username": data.username, "at": token_created_at[token]})
 
     return {
         "access_token": token,
@@ -1347,7 +1349,30 @@ def admin_overview(user=Depends(get_current_user)):
 @app.get("/api/v1/admin/users")
 def admin_users(user=Depends(get_current_user)):
     require_super_admin(user)
-    return {"users": [{"username": u, "role": "SUPER_ADMIN" if u == ADMIN_USERNAME else "USER"} for u in sorted(set(tokens.values()))]}
+    usernames = sorted(set(tokens.values()) | set(user_profiles.keys()) | set(user_consents.keys()))
+    return {"users": [{
+        "username": u,
+        "role": "SUPER_ADMIN" if u == ADMIN_USERNAME else "USER",
+        "profile": user_profiles.get(u, {}),
+        "consent": user_consents.get(u, {}),
+        "active_tokens": sum(1 for x in tokens.values() if x == u),
+    } for u in usernames]}
+
+
+@app.get("/api/v1/admin/tokens")
+def admin_tokens(user=Depends(get_current_user)):
+    require_super_admin(user)
+    return {"tokens": [{
+        "username": username,
+        "created_at": token_created_at.get(token),
+        "active": True,
+    } for token, username in tokens.items()]}
+
+
+@app.get("/api/v1/admin/activity")
+def admin_activity(user=Depends(get_current_user)):
+    require_super_admin(user)
+    return {"activity": activity_log[:100]}
 
 
 # =========================================================
