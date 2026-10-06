@@ -2563,7 +2563,7 @@ async function runResearchAgent() {
 
   if (status) status.textContent = '1/4 Question → 2/4 Evidence...';
   try {
-    const data = await api('/research/agent', {
+    const data = await api('/research/autonomous', {
       method: 'POST',
       body: JSON.stringify({ query, focus, limit: 8 })
     });
