@@ -3085,13 +3085,27 @@ async function addKnowledgeRelation(){
   if(r.ok) { $('knowledgeStatus').textContent='Relation added'; await searchKnowledge(); }
 }
 async function searchKnowledge(){
-  const q=$('knowledgeQuery')?.value?.trim()||'';
-  const r=await api('/knowledge/search',{method:'POST',body:JSON.stringify({query:q,limit:25})});
-  if(!r.ok) return;
-  const d=await r.json(); const s=await api('/knowledge/stats');
-  let stats=''; if(s.ok){const x=await s.json(); stats='\nStats: '+x.entities+' entities · '+x.relations+' relations';}
-  $('knowledgeResult').textContent=JSON.stringify(d,null,2)+stats;
-  $('knowledgeStatus').textContent='Knowledge graph ready';
+  const q = $('knowledgeQuery')?.value?.trim() || '';
+  try {
+    const data = await api('/knowledge/search', {
+      method: 'POST',
+      body: JSON.stringify({ query: q, limit: 25 })
+    });
+    const stats = await api('/knowledge/stats');
+    const entityCount = stats?.entities ?? stats?.entity_count ?? 0;
+    const relationCount = stats?.relations ?? stats?.relation_count ?? 0;
+    const result = $('knowledgeResult');
+    if (result) {
+      result.textContent =
+        JSON.stringify(data, null, 2) +
+        '\nStats: ' + entityCount + ' entities · ' + relationCount + ' relations';
+    }
+    const status = $('knowledgeStatus');
+    if (status) status.textContent = 'Knowledge graph ready';
+  } catch (error) {
+    const status = $('knowledgeStatus');
+    if (status) status.textContent = 'Knowledge graph error: ' + error.message;
+  }
 }
 
 /* =========================================================
