@@ -2181,6 +2181,43 @@ def public_platform_overview(request: Request):
 
 
 
+
+# =========================================================
+# PHASE 9.3 — FINAL API / PLATFORM READINESS
+# =========================================================
+@app.get("/api/v1/platform/status")
+def platform_status(user=Depends(get_current_user)):
+    return {
+        "platform": "MedGen AI",
+        "status": "operational",
+        "environment": "production",
+        "api_version": "v1",
+        "modules": [
+            "auth","knowledge","research","autonomous_research",
+            "discovery","workflows","experiments","reports",
+            "organizations","workspaces","projects","api_keys",
+            "audit","usage","plans","webhooks"
+        ],
+        "capabilities": {
+            "multi_tenant": True,
+            "public_api": True,
+            "reproducible_research": True,
+            "audit_logging": True,
+            "quota_layer": True,
+            "webhook_layer": True
+        }
+    }
+
+@app.get("/api/v1/openapi-summary")
+def openapi_summary():
+    return {
+        "name": "MedGen AI API",
+        "version": "v1",
+        "authentication": ["Bearer", "X-API-Key"],
+        "documentation": "/docs",
+        "health": "/api/v1/health"
+    }
+
 # =========================================================
 # PHASE 9.2 — PRODUCTION SECURITY / REQUEST LIMITING
 # =========================================================
