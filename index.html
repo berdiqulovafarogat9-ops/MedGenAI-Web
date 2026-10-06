@@ -1741,6 +1741,13 @@ frame-ancestors 'none'">
     <label>Tashkilot / universitet<input id="profileOrganization" placeholder="Universitet yoki tashkilot"></label>
     <label>Mamlakat<input id="profileCountry" placeholder="O‘zbekiston"></label>
     <label>Ilmiy qiziqishlar<input id="profileInterests" placeholder="Bioinformatika, drug discovery..."></label>
+    <label>Tug‘ilgan sana
+      <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:8px">
+        <input id="profileBirthYear" type="number" min="1900" max="2100" placeholder="Yil">
+        <input id="profileBirthMonth" type="number" min="1" max="12" placeholder="Oy">
+        <input id="profileBirthDay" type="number" min="1" max="31" placeholder="Kun">
+      </div>
+    </label>
     <label>Bio<textarea id="profileBio" rows="3" placeholder="O‘zingiz haqingizda qisqacha"></textarea></label>
     <div id="profileStatus" class="status"></div>
     <button id="profileSave" class="primary">Saqlash</button>
