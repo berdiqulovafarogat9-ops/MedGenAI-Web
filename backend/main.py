@@ -537,15 +537,9 @@ def create_job(
 # =========================================================
 
 @app.get("/api/v1/reports")
-def reports(
-    user=Depends(get_current_user),
-):
-
-    return {
-        "reports": [],
-        "count": 0,
-        "user": user["username"],
-    }
+def reports(user=Depends(get_current_user)):
+    items = [r for r in reports_store if r["user"] == user["username"]]
+    return {"reports": items, "count": len(items), "user": user["username"]}
 
 
 # =========================================================
@@ -904,7 +898,8 @@ def generate_report(
     user=Depends(get_current_user),
 ):
 
-    return {
+    report = {
+        "id": secrets.token_hex(8),
         "status": "completed",
         "module": "Reports",
         "report_type": data.workflow_type,
@@ -918,7 +913,7 @@ def generate_report(
             "Limitations",
         ],
         "user": user["username"],
-        "created_at": datetime.now(
-            timezone.utc
-        ).isoformat(),
-            }
+        "created_at": datetime.now(timezone.utc).isoformat(),
+    }
+    reports_store.insert(0, report)
+    return report
