@@ -1428,7 +1428,7 @@ def research_agent(data: ResearchAgentRequest, user=Depends(get_current_user)):
             "knowledge_graph_updated": bool(graph_entities_added or graph_relations_added),
             "report_generated": True
         },
-        "evidence_count":len(evidence), "evidence":evidence, "synthesis":synthesis, "synthesis_analysis":synthesis_analysis,
+        "evidence_count":len(evidence), "evidence":evidence, "synthesis":synthesis, "synthesis_analysis":synthesis_analysis, "scientific_synthesis":synthesis_analysis,
         "knowledge_graph":{
             "entities_added":len(graph_entities_added),
             "relations_added":len(graph_relations_added),
