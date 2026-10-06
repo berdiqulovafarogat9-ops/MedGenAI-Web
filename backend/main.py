@@ -146,7 +146,7 @@ def _db_load():
 
 def _db_save():
     if not PERSISTENCE_ENABLED: return
-    stores={"user_accounts":user_accounts,"user_profiles":user_profiles,"user_consents":user_consents,"experiments_store":experiments_store,"activity_log":activity_log,"knowledge_entities_store":knowledge_entities_store,"knowledge_relations_store":knowledge_relations_store}
+    stores={"user_accounts":user_accounts,"user_profiles":user_profiles,"user_consents":user_consents,"experiments_store":experiments_store,"reports_store":reports_store,"activity_log":activity_log,"knowledge_entities_store":knowledge_entities_store,"knowledge_relations_store":knowledge_relations_store,"organizations_store":organizations_store,"memberships_store":memberships_store,"workspaces_store":workspaces_store,"projects_store":projects_store,"api_keys_store":api_keys_store,"platform_audit_log":platform_audit_log,"usage_store":usage_store,"webhooks_store":webhooks_store}
     try:
         with psycopg.connect(DATABASE_URL) as conn:
             for key,value in stores.items():
@@ -1146,14 +1146,15 @@ def _study_type(article: dict) -> str:
         return "CASE_REPORT_OR_SERIES"
     if "case-control" in text or "case control" in text:
         return "CASE_CONTROL"
-    if "prospective" in text:
-        return "PROSPECTIVE_STUDY"
-    if "retrospective" in text or "real-world" in text or "real world" in text:
+    # Explicit retrospective design must win over incidental mentions of prospective cohorts.
+    if re.search(r"\\b(retrospective|retrospectively)\\b", text) or "real-world" in text or "real world" in text:
         return "RETROSPECTIVE_OR_REAL_WORLD"
-    if "review" in text:
-        return "REVIEW"
     if "machine learning" in text or "random forest" in text or "logistic regression" in text:
         return "COMPUTATIONAL_MODELING"
+    if re.search(r"\\b(prospective|prospectively)\\b", text):
+        return "PROSPECTIVE_STUDY"
+    if "review" in text:
+        return "REVIEW"
     if "cohort" in text:
         return "COHORT"
     if "observational" in text:
@@ -1179,7 +1180,8 @@ def _evidence_grade(article: dict) -> str:
 
 def _claim_polarity(claim: str) -> str:
     text=(claim or "").lower()
-    positive=("improved","benefit","effective","promising","favorable","favourable","longer os","longer survival","higher response")
+    # Avoid labeling case reports/reviews by isolated words such as "effective".
+    positive=("improved","benefit","promising","favorable","favourable","longer os","longer survival","higher response")
     negative=("limited","uncertain","inferior","no significant","not significant","failed","poorer os","shorter os","reduced sensitivity")
     p=sum(x in text for x in positive)
     n=sum(x in text for x in negative)
