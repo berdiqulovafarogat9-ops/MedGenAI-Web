@@ -75,10 +75,20 @@ ADMIN_PASSWORD = os.getenv(
     "MedGenAI-Admin-2026",
 )
 
-SECRET_KEY = os.getenv(
-    "MEDGEN_SECRET_KEY",
-    "CHANGE-ME-IN-PRODUCTION",
-)
+SECRET_KEY = os.getenv("MEDGEN_SECRET_KEY", "")
+if not SECRET_KEY:
+    SECRET_KEY = secrets.token_urlsafe(32)
+
+if os.getenv("RENDER") and (
+    ADMIN_PASSWORD == "MedGenAI-Admin-2026"
+    or SECRET_KEY == "CHANGE-ME-IN-PRODUCTION"
+):
+    raise RuntimeError(
+        "Production secrets are not configured. Set "
+        "MEDGEN_ADMIN_PASSWORD and MEDGEN_SECRET_KEY."
+    )
+
+TOKEN_TTL_SECONDS = int(os.getenv("MEDGEN_TOKEN_TTL_SECONDS", "28800"))
 
 tokens = {}
 token_created_at = {}
@@ -176,15 +186,24 @@ def get_current_user(
             detail="Authentication required",
         )
 
-    username = tokens.get(
-        credentials.credentials
-    )
+    username = tokens.get(credentials.credentials)
+    created_at = token_created_at.get(credentials.credentials)
 
-    if not username:
-        raise HTTPException(
-            status_code=401,
-            detail="Invalid or expired token",
-        )
+    if not username or not created_at:
+        raise HTTPException(status_code=401, detail="Invalid or expired token")
+
+    try:
+        created_dt = datetime.fromisoformat(created_at)
+        age = (datetime.now(timezone.utc) - created_dt).total_seconds()
+    except (TypeError, ValueError):
+        tokens.pop(credentials.credentials, None)
+        token_created_at.pop(credentials.credentials, None)
+        raise HTTPException(status_code=401, detail="Invalid or expired token")
+
+    if age > TOKEN_TTL_SECONDS:
+        tokens.pop(credentials.credentials, None)
+        token_created_at.pop(credentials.credentials, None)
+        raise HTTPException(status_code=401, detail="Token expired")
 
     return {
         "username": username,
