@@ -1066,8 +1066,100 @@ function updateUserUI() {
 
 
 /* =========================================================
+   PROFILE & LEGAL
+========================================================= */
+
+async function openProfile() {
+  const modal = $('profileModal');
+  if (!modal) return;
+  modal.classList.remove('hidden');
+  try {
+    const data = await api('/profile');
+    const p = data?.profile || {};
+    $('profileFullName').value = p.full_name || '';
+    $('profileEmail').value = p.email || '';
+    $('profileOrganization').value = p.organization || '';
+    $('profileCountry').value = p.country || '';
+    $('profileInterests').value = p.research_interests || '';
+    $('profileBio').value = p.bio || '';
+  } catch (e) {
+    $('profileStatus').textContent = e.message;
+  }
+}
+
+function closeProfile() {
+  $('profileModal')?.classList.add('hidden');
+}
+
+async function saveProfile() {
+  const status = $('profileStatus');
+  try {
+    const data = await api('/profile', {
+      method: 'PUT',
+      body: JSON.stringify({
+        full_name: $('profileFullName')?.value?.trim() || '',
+        email: $('profileEmail')?.value?.trim() || '',
+        organization: $('profileOrganization')?.value?.trim() || '',
+        country: $('profileCountry')?.value?.trim() || '',
+        research_interests: $('profileInterests')?.value?.trim() || '',
+        bio: $('profileBio')?.value?.trim() || ''
+      })
+    });
+    if (state.user) {
+      state.user.profile = data.profile;
+      state.user.profile_complete = Boolean(data.profile?.full_name);
+    }
+    if (status) status.textContent = 'Profil saqlandi.';
+  } catch (e) {
+    if (status) status.textContent = e.message;
+  }
+}
+
+async function ensureLegalConsent() {
+  if (!state.user || state.user.consent_complete) return;
+  const modal = $('legalModal');
+  if (!modal) return;
+  modal.classList.remove('hidden');
+  try {
+    const docs = await api('/legal/documents');
+    const box = $('legalDocuments');
+    if (box) {
+      box.innerHTML = [docs.terms, docs.privacy, docs.data_processing, docs.research_disclaimer]
+        .map(x => '<details><summary><strong>'+x.title+'</strong></summary><p>'+x.text+'</p></details>').join('');
+    }
+  } catch (e) {
+    $('legalStatus').textContent = e.message;
+  }
+}
+
+async function acceptLegalConsent() {
+  const status = $('legalStatus');
+  try {
+    const data = await api('/legal/consent', {
+      method: 'POST',
+      body: JSON.stringify({
+        terms_accepted: $('consentTerms')?.checked || false,
+        privacy_accepted: $('consentPrivacy')?.checked || false,
+        data_processing_accepted: $('consentData')?.checked || false,
+        research_disclaimer_accepted: $('consentResearch')?.checked || false
+      })
+    });
+    if (state.user) {
+      state.user.consent = data.consent;
+      state.user.consent_complete = true;
+    }
+    $('legalModal')?.classList.add('hidden');
+    if (!state.user?.profile_complete) openProfile();
+  } catch (e) {
+    if (status) status.textContent = e.message;
+  }
+}
+
+
+/* =========================================================
    DASHBOARD
 ========================================================= */
+
 
 function isSuperAdmin() {
   return String(state.user?.role || '').toUpperCase() === 'SUPER_ADMIN';
@@ -1078,9 +1170,32 @@ async function loadAdminDashboard() {
   const box = $('adminDashboard'); if (!box) return;
   try {
     const d = await api('/admin/overview');
-    const cards = [['Users',d.users],['Tokens',d.active_tokens],['Jobs',d.jobs],['Docking',d.docking_jobs],['Experiments',d.experiments],['Reports',d.reports],['Workflows',d.workflows]];
-    box.innerHTML='<h2>Super Admin Dashboard</h2><div class="grid">'+cards.map(c=>'<div class="card"><strong>'+c[1]+'</strong><div>'+c[0]+'</div></div>').join('')+'</div><h3>Recent Activity</h3><pre class="result">'+JSON.stringify(d.recent_activity,null,2)+'</pre>';
+    const cards = [
+      ['Users',d.users,'users'],
+      ['Active tokens',d.active_tokens,'tokens'],
+      ['Jobs',d.jobs,'activity'],
+      ['Docking',d.docking_jobs,'activity'],
+      ['Experiments',d.experiments,'activity'],
+      ['Reports',d.reports,'activity'],
+      ['Workflows',d.workflows,'activity']
+    ];
+    box.innerHTML='<h2>Super Admin Dashboard</h2><div class="grid">'+cards.map(c=>'<button class="card admin-card" data-admin="'+c[2]+'"><strong>'+c[1]+'</strong><div>'+c[0]+'</div><small>Batafsil ko‘rish →</small></button>').join('')+'</div><div id="adminDetails"></div>';
+    box.querySelectorAll('[data-admin]').forEach(b=>b.addEventListener('click',()=>loadAdminDetails(b.dataset.admin)));
   } catch(e) { box.innerHTML='<div class="status">'+e.message+'</div>'; }
+}
+
+async function loadAdminDetails(kind) {
+  const out = $('adminDetails');
+  if (!out) return;
+  try {
+    let data;
+    if (kind === 'users') data = await api('/admin/users');
+    else if (kind === 'tokens') data = await api('/admin/tokens');
+    else data = await api('/admin/activity');
+    out.innerHTML='<h3>Details</h3><pre class="result">'+JSON.stringify(data,null,2)+'</pre>';
+  } catch(e) {
+    out.innerHTML='<div class="status">'+e.message+'</div>';
+  }
 }
 
 function ensureAdminDashboard() {
@@ -1108,6 +1223,7 @@ function showDashboard() {
 
   checkHealth();
   ensureAdminDashboard();
+  ensureLegalConsent();
 }
 
 
@@ -1115,8 +1231,8 @@ function showDashboard() {
    LOGOUT
 ========================================================= */
 
-function logout() {
-
+async function logout() {
+  try { if (state.token) await api('/auth/logout', { method: 'POST' }); } catch (_) {}
   state.token = '';
   state.user = null;
 
@@ -2204,6 +2320,18 @@ function bindEvents() {
     );
   }
 
+
+  const profileBtn = $('profileBtn');
+  if (profileBtn) profileBtn.addEventListener('click', openProfile);
+
+  const profileClose = $('profileClose');
+  if (profileClose) profileClose.addEventListener('click', closeProfile);
+
+  const profileSave = $('profileSave');
+  if (profileSave) profileSave.addEventListener('click', saveProfile);
+
+  const legalAccept = $('legalAccept');
+  if (legalAccept) legalAccept.addEventListener('click', acceptLegalConsent);
 
   const workspaceClose =
     $('workspaceClose');
