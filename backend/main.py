@@ -1,6 +1,7 @@
 from datetime import datetime, timezone
 import hashlib
 import json
+import xml.etree.ElementTree as ET
 import os
 import secrets
 from typing import Any
@@ -604,19 +605,57 @@ def research_search(
     data: ResearchRequest,
     user=Depends(get_current_user),
 ):
-
+    query = data.query.strip()
+    if not query:
+        raise HTTPException(status_code=400, detail="Research query is required")
+    limit = max(1, min(data.limit, 20))
+    url = (
+        "https://eutils.ncbi.nlm.nih.gov/entrez/eutils/esearch.fcgi"
+        "?db=pubmed&term=" + quote(query) +
+        "&retmax=" + str(limit) + "&retmode=xml"
+    )
+    try:
+        req = Request(url, headers={"User-Agent": "MedGenAI/1.0"})
+        with urlopen(req, timeout=15) as response:
+            root = ET.fromstring(response.read())
+        pmids = [x.text for x in root.findall(".//Id") if x.text]
+        results = []
+        if pmids:
+            fetch = (
+                "https://eutils.ncbi.nlm.nih.gov/entrez/eutils/efetch.fcgi"
+                "?db=pubmed&id=" + ",".join(pmids) + "&retmode=xml"
+            )
+            req = Request(fetch, headers={"User-Agent": "MedGenAI/1.0"})
+            with urlopen(req, timeout=15) as response:
+                articles = ET.fromstring(response.read())
+            for article in articles.findall(".//PubmedArticle"):
+                node = article.find(".//ArticleTitle")
+                title = "".join(node.itertext()) if node is not None else ""
+                results.append({
+                    "pmid": article.findtext(".//PMID") or "",
+                    "title": title,
+                    "journal": article.findtext(".//Journal/Title") or "",
+                    "publication_date": (
+                        article.findtext(".//PubDate/Year")
+                        or article.findtext(".//PubDate/MedlineDate")
+                        or ""
+                    ),
+                    "source": "PubMed",
+                })
+    except (URLError, TimeoutError, ET.ParseError):
+        raise HTTPException(status_code=503, detail="PubMed service unavailable")
     return {
         "status": "completed",
-        "query": data.query,
-        "limit": data.limit,
-        "results": [],
+        "module": "Scientific Research",
+        "query": query,
+        "limit": limit,
+        "count": len(results),
+        "results": results,
         "user": user["username"],
-        "message": (
-            "Research search endpoint "
-            "is ready for external "
-            "scientific databases."
-        ),
+        "source": "NCBI PubMed E-utilities",
     }
+
+
 # =========================================================
 # DRUG DISCOVERY PIPELINE
 # =========================================================
