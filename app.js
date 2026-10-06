@@ -9,8 +9,162 @@ const CONFIG = {
   apiBase:
     window.MEDGEN_API_BASE ||
     'https://medgenai-web-1.onrender.com/api/v1',
-
   tokenKey: 'medgen_access_token'
+};
+
+
+/* =========================================================
+   TRANSLATIONS
+========================================================= */
+
+const LANG = {
+
+  en: {
+    noJobs: 'No scientific jobs available yet.',
+    noReports: 'No reports available yet.',
+    development: 'Development',
+    ready: 'Ready',
+    pending: 'Pending',
+    running: 'Running',
+    idle: 'Idle',
+    unknown: 'Unknown',
+
+    molecular: 'Molecular',
+    docking: 'Docking',
+    structurePrediction: 'Structure Prediction',
+
+    apiOnline: 'API: online',
+    apiOffline: 'API: offline',
+
+    workspace: 'Workspace',
+    scientificWorker: 'Scientific Worker',
+    workerStatus: 'Worker: {worker} | Queue: {queue} | Active: {active}',
+    refreshWorker: 'Refresh Worker',
+
+    taskCreated: 'Task created successfully.',
+    taskError: 'Failed to create task.',
+    loaded: 'Loaded.',
+    loading: 'Loading...',
+
+    reports: 'Reports & History',
+    research: 'Research Assistant',
+    laboratory: 'Virtual Laboratory',
+
+    systemInfo: 'System Information',
+    authenticatedOnly:
+      'Dashboard is available only to authenticated users.',
+
+    registrationDisabled: 'Registration: disabled',
+    privateEnvironment: 'Environment: private',
+
+    loginSuccess: 'Login successful.',
+    loginFailed: 'Login failed.',
+    logout: 'Logout',
+
+    user: 'User',
+    admin: 'Administrator',
+
+    noData: 'No data available.'
+  },
+
+  uz: {
+    noJobs: 'Hozircha ilmiy vazifalar mavjud emas.',
+    noReports: 'Hozircha hisobotlar mavjud emas.',
+    development: 'Ishlab chiqish',
+    ready: 'Tayyor',
+    pending: 'Kutilmoqda',
+    running: 'Bajarilmoqda',
+    idle: 'Faol emas',
+    unknown: 'Noma’lum',
+
+    molecular: 'Molekulyar',
+    docking: 'Dokking',
+    structurePrediction: 'Tuzilmani bashorat qilish',
+
+    apiOnline: 'API: online',
+    apiOffline: 'API: offline',
+
+    workspace: 'Ish maydoni',
+    scientificWorker: 'Ilmiy ishchi',
+    workerStatus:
+      'Ishchi: {worker} | Navbat: {queue} | Faol: {active}',
+    refreshWorker: 'Ishchini yangilash',
+
+    taskCreated: 'Vazifa muvaffaqiyatli yaratildi.',
+    taskError: 'Vazifani yaratib bo‘lmadi.',
+    loaded: 'Yuklandi.',
+    loading: 'Yuklanmoqda...',
+
+    reports: 'Hisobotlar va tarix',
+    research: 'Ilmiy tadqiqot yordamchisi',
+    laboratory: 'Virtual laboratoriya',
+
+    systemInfo: 'Tizim',
+    authenticatedOnly:
+      'Dashboardga faqat autentifikatsiyadan o‘tgan foydalanuvchilar kira oladi.',
+
+    registrationDisabled: 'Ro‘yxatdan o‘tish: o‘chirilgan',
+    privateEnvironment: 'Muhit: shaxsiy',
+
+    loginSuccess: 'Tizimga muvaffaqiyatli kirildi.',
+    loginFailed: 'Tizimga kirishda xatolik yuz berdi.',
+    logout: 'Chiqish',
+
+    user: 'Foydalanuvchi',
+    admin: 'Administrator',
+
+    noData: 'Ma’lumot mavjud emas.'
+  },
+
+  ru: {
+    noJobs: 'На данный момент научных задач нет.',
+    noReports: 'Отчётов пока нет.',
+    development: 'Разработка',
+    ready: 'Готов',
+    pending: 'Ожидание',
+    running: 'Выполняется',
+    idle: 'Неактивен',
+    unknown: 'Неизвестно',
+
+    molecular: 'Молекулярный',
+    docking: 'Докинг',
+    structurePrediction: 'Предсказание структуры',
+
+    apiOnline: 'API: онлайн',
+    apiOffline: 'API: офлайн',
+
+    workspace: 'Рабочая область',
+    scientificWorker: 'Научный обработчик',
+    workerStatus:
+      'Обработчик: {worker} | Очередь: {queue} | Активных: {active}',
+    refreshWorker: 'Обновить обработчик',
+
+    taskCreated: 'Задача успешно создана.',
+    taskError: 'Не удалось создать задачу.',
+    loaded: 'Загружено.',
+    loading: 'Загрузка...',
+
+    reports: 'Отчёты и история',
+    research: 'Помощник научного исследования',
+    laboratory: 'Виртуальная лаборатория',
+
+    systemInfo: 'Система',
+    authenticatedOnly:
+      'Доступ к Dashboard разрешён только авторизованным пользователям.',
+
+    registrationDisabled: 'Регистрация: отключена',
+    privateEnvironment: 'Среда: частная',
+
+    loginSuccess: 'Вход выполнен успешно.',
+    loginFailed: 'Ошибка входа.',
+    logout: 'Выйти',
+
+    user: 'Пользователь',
+    admin: 'Администратор',
+
+    noData: 'Данные отсутствуют.'
+  }
+
 };
 
 
@@ -18,642 +172,34 @@ const CONFIG = {
    LANGUAGE
 ========================================================= */
 
-const LANG = {
-
-  en: {
-    signingIn: 'Signing in…',
-    loginFailed: 'Login failed.',
-    apiOnline: 'API: online',
-    apiOffline: 'API: offline',
-    notConnected: 'not connected',
-
-    enterSmiles: 'Enter a SMILES string.',
-    analyzing: 'Analyzing…',
-    analysisCompleted: 'Analysis completed.',
-    enterSequence: 'Enter a DNA/RNA/protein sequence.',
-    enterPdb: 'Enter a PDB ID.',
-    loading: 'Loading…',
-    loaded: 'Loaded.',
-
-    moleculesSmiles: 'Molecules / SMILES',
-    smilesPlaceholder:
-      'Enter one SMILES per line\n\nExample:\nCCO\nC1=CC=CC=C1\nCC(=O)O',
-
-    oneMolecule:
-      'One molecule per line. Screening will rank the molecules.',
-
-    runScreening: 'Run Screening',
-    enterTarget: 'Enter a target.',
-    enterMolecule: 'Enter at least one molecule.',
-
-    virtualScreening:
-      'Running virtual screening…',
-
-    screeningCompleted:
-      'Screening completed: {count} molecules ranked.',
-
-    screeningFailed:
-      'Screening failed.',
-
-    scientificWorker:
-      'Scientific Worker',
-
-    checkingWorker:
-      'Checking worker…',
-
-    refreshWorker:
-      'Refresh Worker',
-
-    worker:
-      'Worker',
-
-    queue:
-      'Queue',
-
-    active:
-      'Active',
-
-    workerError:
-      'Worker error: {error}',
-
-    submitting:
-      'Submitting…',
-
-    jobSubmitted:
-      'Job submitted.',
-
-    noJobs:
-      'No scientific jobs available yet.',
-
-    generateScientificReport:
-      'Generate Scientific Report',
-
-    reportType:
-      'Report type',
-
-    reportPlaceholder:
-      'Describe the research, target, experiment or analysis...',
-
-    generateReport:
-      'Generate Report',
-
-    generatingReport:
-      'Generating report…',
-
-    reportGenerated:
-      'Report generated.',
-
-    aiResearchAssistant:
-      'AI Research Assistant',
-
-    researchQuestion:
-      'Ask a biomedical research question...',
-
-    runResearchAssistant:
-      'Run Research Assistant',
-
-    enterResearchQuestion:
-      'Enter a research question.',
-
-    researchPipeline:
-      'Running research pipeline…',
-
-    researchCompleted:
-      'Research Assistant completed.',
-
-    searchResearch:
-      'Search research',
-
-    enterResearchQuery:
-      'Enter a research query.',
-
-    searching:
-      'Searching…',
-
-    searchCompleted:
-      'Search completed.',
-
-    virtualLaboratory:
-      'Virtual Laboratory',
-
-    molecularAnalysis:
-      'Molecular Analysis',
-
-    bioinformaticsExperiment:
-      'Bioinformatics Experiment',
-
-    drugDiscoveryExperiment:
-      'Drug Discovery Experiment',
-
-    structuralBiology:
-      'Structural Biology',
-
-    customExperiment:
-      'Custom Experiment',
-
-    experimentInput:
-      'Experiment input...',
-
-    createExperiment:
-      'Create Experiment',
-
-    creatingExperiment:
-      'Creating experiment…',
-
-    experimentCreated:
-      'Experiment created.',
-
-    workflowLoaded:
-      'Loaded.',
-
-    molecular:
-      'Molecular',
-
-    docking:
-      'Docking',
-
-    structurePrediction:
-      'Structure prediction',
-
-    development:
-      'development',
-
-    ready:
-      'ready',
-
-    pending:
-      'pending',
-
-    running:
-      'running',
-
-    idle:
-      'idle',
-
-    unknown:
-      'unknown'
-  },
-
-
-  uz: {
-    signingIn:
-      'Tizimga kirilmoqda…',
-
-    loginFailed:
-      'Tizimga kirishda xatolik yuz berdi.',
-
-    apiOnline:
-      'API: online',
-
-    apiOffline:
-      'API: offline',
-
-    notConnected:
-      'ulanmagan',
-
-    enterSmiles:
-      'SMILES qatorini kiriting.',
-
-    analyzing:
-      'Tahlil qilinmoqda…',
-
-    analysisCompleted:
-      'Tahlil yakunlandi.',
-
-    enterSequence:
-      'DNK/RNK/oqsil ketma-ketligini kiriting.',
-
-    enterPdb:
-      'PDB ID ni kiriting.',
-
-    loading:
-      'Yuklanmoqda…',
-
-    loaded:
-      'Yuklandi.',
-
-    moleculesSmiles:
-      'Molekulalar / SMILES',
-
-    smilesPlaceholder:
-      'Har bir SMILESni alohida qatorda kiriting\n\nMisol:\nCCO\nC1=CC=CC=C1\nCC(=O)O',
-
-    oneMolecule:
-      'Har bir molekula alohida qatorda. Skrining molekulalarni reyting bo‘yicha tartiblaydi.',
-
-    runScreening:
-      'Skriningni ishga tushirish',
-
-    enterTarget:
-      'Nishonni kiriting.',
-
-    enterMolecule:
-      'Kamida bitta molekulani kiriting.',
-
-    virtualScreening:
-      'Virtual skrining bajarilmoqda…',
-
-    screeningCompleted:
-      'Skrining yakunlandi: {count} ta molekula reytinglandi.',
-
-    screeningFailed:
-      'Skriningda xatolik yuz berdi.',
-
-    scientificWorker:
-      'Ilmiy ishchi',
-
-    checkingWorker:
-      'Ishchi tekshirilmoqda…',
-
-    refreshWorker:
-      'Ishchini yangilash',
-
-    worker:
-      'Ishchi',
-
-    queue:
-      'Navbat',
-
-    active:
-      'Faol',
-
-    workerError:
-      'Ishchi xatosi: {error}',
-
-    submitting:
-      'Yuborilmoqda…',
-
-    jobSubmitted:
-      'Vazifa yuborildi.',
-
-    noJobs:
-      'Hozircha ilmiy vazifalar mavjud emas.',
-
-    generateScientificReport:
-      'Ilmiy hisobot yaratish',
-
-    reportType:
-      'Hisobot turi',
-
-    reportPlaceholder:
-      'Tadqiqot, nishon, tajriba yoki tahlilni tavsiflang...',
-
-    generateReport:
-      'Hisobot yaratish',
-
-    generatingReport:
-      'Hisobot yaratilmoqda…',
-
-    reportGenerated:
-      'Hisobot yaratildi.',
-
-    aiResearchAssistant:
-      'AI ilmiy tadqiqot yordamchisi',
-
-    researchQuestion:
-      'Biomedikal tadqiqot savolingizni kiriting...',
-
-    runResearchAssistant:
-      'Ilmiy yordamchini ishga tushirish',
-
-    enterResearchQuestion:
-      'Tadqiqot savolini kiriting.',
-
-    researchPipeline:
-      'Ilmiy tadqiqot jarayoni bajarilmoqda…',
-
-    researchCompleted:
-      'Ilmiy yordamchi ishini yakunladi.',
-
-    searchResearch:
-      'Ilmiy qidiruv',
-
-    enterResearchQuery:
-      'Ilmiy qidiruv so‘rovini kiriting.',
-
-    searching:
-      'Qidirilmoqda…',
-
-    searchCompleted:
-      'Qidiruv yakunlandi.',
-
-    virtualLaboratory:
-      'Virtual laboratoriya',
-
-    molecularAnalysis:
-      'Molekulyar tahlil',
-
-    bioinformaticsExperiment:
-      'Bioinformatika tajribasi',
-
-    drugDiscoveryExperiment:
-      'Dori yaratish tajribasi',
-
-    structuralBiology:
-      'Strukturaviy biologiya',
-
-    customExperiment:
-      'Maxsus tajriba',
-
-    experimentInput:
-      'Tajriba ma’lumotlari...',
-
-    createExperiment:
-      'Tajriba yaratish',
-
-    creatingExperiment:
-      'Tajriba yaratilmoqda…',
-
-    experimentCreated:
-      'Tajriba yaratildi.',
-
-    workflowLoaded:
-      'Yuklandi.',
-
-    molecular:
-      'Molekulyar',
-
-    docking:
-      'Dokking',
-
-    structurePrediction:
-      'Tuzilmani bashorat qilish',
-
-    development:
-      'ishlab chiqish',
-
-    ready:
-      'tayyor',
-
-    pending:
-      'kutilmoqda',
-
-    running:
-      'bajarilmoqda',
-
-    idle:
-      'kutish holatida',
-
-    unknown:
-      'noma’lum'
-  },
-
-
-  ru: {
-    signingIn:
-      'Выполняется вход…',
-
-    loginFailed:
-      'Ошибка входа.',
-
-    apiOnline:
-      'API: онлайн',
-
-    apiOffline:
-      'API: офлайн',
-
-    notConnected:
-      'не подключено',
-
-    enterSmiles:
-      'Введите строку SMILES.',
-
-    analyzing:
-      'Выполняется анализ…',
-
-    analysisCompleted:
-      'Анализ завершён.',
-
-    enterSequence:
-      'Введите последовательность ДНК/РНК/белка.',
-
-    enterPdb:
-      'Введите PDB ID.',
-
-    loading:
-      'Загрузка…',
-
-    loaded:
-      'Загружено.',
-
-    moleculesSmiles:
-      'Молекулы / SMILES',
-
-    smilesPlaceholder:
-      'Введите по одному SMILES в каждой строке\n\nПример:\nCCO\nC1=CC=CC=C1\nCC(=O)O',
-
-    oneMolecule:
-      'Одна молекула на строку. Скрининг ранжирует молекулы.',
-
-    runScreening:
-      'Запустить скрининг',
-
-    enterTarget:
-      'Введите мишень.',
-
-    enterMolecule:
-      'Введите хотя бы одну молекулу.',
-
-    virtualScreening:
-      'Выполняется виртуальный скрининг…',
-
-    screeningCompleted:
-      'Скрининг завершён: ранжировано молекул — {count}.',
-
-    screeningFailed:
-      'Ошибка скрининга.',
-
-    scientificWorker:
-      'Научный рабочий процесс',
-
-    checkingWorker:
-      'Проверка рабочего процесса…',
-
-    refreshWorker:
-      'Обновить рабочий процесс',
-
-    worker:
-      'Рабочий процесс',
-
-    queue:
-      'Очередь',
-
-    active:
-      'Активные',
-
-    workerError:
-      'Ошибка рабочего процесса: {error}',
-
-    submitting:
-      'Отправка…',
-
-    jobSubmitted:
-      'Задача отправлена.',
-
-    noJobs:
-      'Научных задач пока нет.',
-
-    generateScientificReport:
-      'Создать научный отчёт',
-
-    reportType:
-      'Тип отчёта',
-
-    reportPlaceholder:
-      'Опишите исследование, мишень, эксперимент или анализ...',
-
-    generateReport:
-      'Создать отчёт',
-
-    generatingReport:
-      'Создание отчёта…',
-
-    reportGenerated:
-      'Отчёт создан.',
-
-    aiResearchAssistant:
-      'AI-помощник по научным исследованиям',
-
-    researchQuestion:
-      'Введите вопрос по биомедицинскому исследованию...',
-
-    runResearchAssistant:
-      'Запустить научного помощника',
-
-    enterResearchQuestion:
-      'Введите исследовательский вопрос.',
-
-    researchPipeline:
-      'Выполняется исследовательский процесс…',
-
-    researchCompleted:
-      'Научный помощник завершил работу.',
-
-    searchResearch:
-      'Поиск исследований',
-
-    enterResearchQuery:
-      'Введите поисковый запрос.',
-
-    searching:
-      'Поиск…',
-
-    searchCompleted:
-      'Поиск завершён.',
-
-    virtualLaboratory:
-      'Виртуальная лаборатория',
-
-    molecularAnalysis:
-      'Молекулярный анализ',
-
-    bioinformaticsExperiment:
-      'Биоинформационный эксперимент',
-
-    drugDiscoveryExperiment:
-      'Эксперимент по разработке лекарств',
-
-    structuralBiology:
-      'Структурная биология',
-
-    customExperiment:
-      'Пользовательский эксперимент',
-
-    experimentInput:
-      'Данные эксперимента...',
-
-    createExperiment:
-      'Создать эксперимент',
-
-    creatingExperiment:
-      'Создание эксперимента…',
-
-    experimentCreated:
-      'Эксперимент создан.',
-
-    workflowLoaded:
-      'Загружено.',
-
-    molecular:
-      'Молекулярный',
-
-    docking:
-      'Докинг',
-
-    structurePrediction:
-      'Предсказание структуры',
-
-    development:
-      'разработка',
-
-    ready:
-      'готов',
-
-    pending:
-      'ожидание',
-
-    running:
-      'выполняется',
-
-    idle:
-      'простаивает',
-
-    unknown:
-      'неизвестно'
-  }
-};
-
-
-/* =========================================================
-   LANGUAGE HELPERS
-========================================================= */
-
-function currentLanguage() {
-
-  const saved =
-    localStorage.getItem(
-      'medgen_language'
-    );
-
-  if (
-    saved === 'en' ||
-    saved === 'uz' ||
-    saved === 'ru'
-  ) {
-    return saved;
-  }
-
-  return 'uz';
+function getLanguage() {
+  return localStorage.getItem('medgen_language') || 'en';
 }
 
+function setLanguage(lang) {
+  if (!LANG[lang]) {
+    lang = 'en';
+  }
 
-function t(key, values = {}) {
+  localStorage.setItem('medgen_language', lang);
+}
 
-  const lang =
-    currentLanguage();
+function t(key, replacements = {}) {
+  const lang = getLanguage();
 
-  let value =
+  let text =
     LANG[lang]?.[key] ??
     LANG.en?.[key] ??
     key;
 
-  Object.keys(values).forEach(
-    (name) => {
+  Object.keys(replacements).forEach((keyName) => {
+    text = text.replace(
+      `{${keyName}}`,
+      String(replacements[keyName])
+    );
+  });
 
-      value =
-        value.replace(
-          new RegExp(
-            `\\{${name}\\}`,
-            'g'
-          ),
-          String(
-            values[name]
-          )
-        );
-    }
-  );
-
-  return value;
+  return text;
 }
 
 
@@ -662,310 +208,76 @@ function t(key, values = {}) {
 ========================================================= */
 
 function translateBackendValue(value) {
-
-  if (
-    value === null ||
-    value === undefined ||
-    value === ''
-  ) {
-    return t('unknown');
+  if (value === null || value === undefined) {
+    return '';
   }
 
-  const normalized =
-    String(value)
-      .trim()
-      .toLowerCase();
+  const raw = String(value);
+  const normalized = raw.toLowerCase().trim();
 
-  const known = [
-    'development',
-    'develop',
-    'ready',
-    'pending',
-    'running',
-    'idle',
-    'unknown'
-  ];
+  const map = {
+    development: 'development',
+    dev: 'development',
 
-  if (known.includes(normalized)) {
-    return t(
-      normalized === 'develop'
-        ? 'development'
-        : normalized
-    );
+    ready: 'ready',
+    pending: 'pending',
+    queued: 'pending',
+
+    running: 'running',
+    processing: 'running',
+
+    idle: 'idle',
+
+    unknown: 'unknown'
+  };
+
+  const key = map[normalized];
+
+  if (key) {
+    return t(key);
   }
 
-  return value;
+  return raw;
 }
 
 
 /* =========================================================
-   DYNAMIC UI TRANSLATION
+   API REQUEST
 ========================================================= */
 
-function translateDynamicUI() {
-
-  /* Drug Discovery */
-
-  if ($('discoveryMolecules')) {
-
-    $('discoveryMolecules')
-      .placeholder =
-      t('smilesPlaceholder');
-  }
-
-  const discoveryLabel =
-    document.querySelector(
-      'label[for="discoveryMolecules"]'
-    );
-
-  if (discoveryLabel) {
-
-    discoveryLabel.textContent =
-      t('moleculesSmiles');
-  }
-
-  if ($('discoveryMoleculesHint')) {
-
-    $('discoveryMoleculesHint')
-      .textContent =
-      t('oneMolecule');
-  }
-
-  if ($('discoveryRun')) {
-
-    $('discoveryRun')
-      .textContent =
-      t('runScreening');
-  }
-
-
-  /* Jobs */
-
-  if ($('jobsStatusTitle')) {
-
-    $('jobsStatusTitle')
-      .textContent =
-      t('scientificWorker');
-  }
-
-  if ($('jobsStatusRefresh')) {
-
-    $('jobsStatusRefresh')
-      .textContent =
-      t('refreshWorker');
-  }
-
-
-  /* Reports */
-
-  if ($('reportGeneratorTitle')) {
-
-    $('reportGeneratorTitle')
-      .textContent =
-      t('generateScientificReport');
-  }
-
-  if ($('reportType')) {
-
-    $('reportType')
-      .placeholder =
-      t('reportType');
-  }
-
-  if ($('reportInput')) {
-
-    $('reportInput')
-      .placeholder =
-      t('reportPlaceholder');
-  }
-
-  if ($('reportGenerate')) {
-
-    $('reportGenerate')
-      .textContent =
-      t('generateReport');
-  }
-
-
-  /* Research */
-
-  if ($('researchAssistantTitle')) {
-
-    $('researchAssistantTitle')
-      .textContent =
-      t('aiResearchAssistant');
-  }
-
-  if ($('assistantQuery')) {
-
-    $('assistantQuery')
-      .placeholder =
-      t('researchQuestion');
-  }
-
-  if ($('assistantRun')) {
-
-    $('assistantRun')
-      .textContent =
-      t('runResearchAssistant');
-  }
-
-
-  /* Virtual Laboratory */
-
-  if ($('virtualLabTitle')) {
-
-    $('virtualLabTitle')
-      .textContent =
-      t('virtualLaboratory');
-  }
-
-  if ($('labExperimentInput')) {
-
-    $('labExperimentInput')
-      .placeholder =
-      t('experimentInput');
-  }
-
-  if ($('labExperimentCreate')) {
-
-    $('labExperimentCreate')
-      .textContent =
-      t('createExperiment');
-  }
-
-  if ($('labExperimentType')) {
-
-    const options =
-      $('labExperimentType').options;
-
-    if (options.length >= 5) {
-
-      options[0].textContent =
-        t('molecularAnalysis');
-
-      options[1].textContent =
-        t('bioinformaticsExperiment');
-
-      options[2].textContent =
-        t('drugDiscoveryExperiment');
-
-      options[3].textContent =
-        t('structuralBiology');
-
-      options[4].textContent =
-        t('customExperiment');
-    }
-  }
-
-
-  /* Job type */
-
-  if ($('jobType')) {
-
-    Array.from(
-      $('jobType').options
-    ).forEach(
-      option => {
-
-        const value =
-          option.value;
-
-        if (
-          value ===
-          'scientific_analysis'
-        ) {
-          option.textContent =
-            t('molecular');
-        }
-
-        if (
-          value ===
-          'molecular'
-        ) {
-          option.textContent =
-            t('molecular');
-        }
-
-        if (
-          value ===
-          'docking'
-        ) {
-          option.textContent =
-            t('docking');
-        }
-
-        if (
-          value ===
-          'structure_prediction'
-        ) {
-          option.textContent =
-            t('structurePrediction');
-        }
-      }
-    );
-  }
-
-
-  /* API */
-
-  checkHealth();
-}
-
-
-/* =========================================================
-   API
-========================================================= */
-
-async function api(
-  path,
-  options = {}
-) {
-
-  if (!path.startsWith('/')) {
-    throw new Error(
-      'Invalid API path'
-    );
-  }
-
+async function api(path, options = {}) {
   const headers = {
-    'Content-Type':
-      'application/json',
-
+    'Content-Type': 'application/json',
     ...(options.headers || {})
   };
 
   if (state.token) {
-
-    headers.Authorization =
-      `Bearer ${state.token}`;
+    headers.Authorization = `Bearer ${state.token}`;
   }
 
-  const response =
-    await fetch(
-      CONFIG.apiBase + path,
-      {
-        ...options,
-        headers
-      }
-    );
+  const response = await fetch(
+    `${CONFIG.apiBase}${path}`,
+    {
+      ...options,
+      headers
+    }
+  );
 
   let data = null;
 
   try {
-
-    data =
-      await response.json();
-
-  } catch {}
+    data = await response.json();
+  } catch {
+    data = null;
+  }
 
   if (!response.ok) {
-
-    throw new Error(
+    const message =
       data?.detail ||
       data?.message ||
-      `HTTP ${response.status}`
-    );
+      `HTTP ${response.status}`;
+
+    throw new Error(message);
   }
 
   return data;
@@ -973,85 +285,241 @@ async function api(
 
 
 /* =========================================================
-   STATUS
+   LOGIN
 ========================================================= */
 
-function setStatus(
-  id,
-  message,
-  success = false
-) {
+async function login() {
+  const username =
+    $('username')?.value?.trim() || '';
 
-  const element =
-    $(id);
+  const password =
+    $('password')?.value || '';
 
-  if (!element) return;
+  const loginResult =
+    $('loginResult');
 
-  element.textContent =
-    message;
+  if (!username || !password) {
+    if (loginResult) {
+      loginResult.textContent =
+        t('loginFailed');
+    }
 
-  element.style.color =
-    success
-      ? '#8eeed2'
-      : '';
+    return;
+  }
+
+  try {
+    if (loginResult) {
+      loginResult.textContent =
+        t('loading');
+    }
+
+    const data = await api(
+      '/auth/login',
+      {
+        method: 'POST',
+        body: JSON.stringify({
+          username,
+          password
+        })
+      }
+    );
+
+    const token =
+      data?.access_token ||
+      data?.token;
+
+    if (!token) {
+      throw new Error('No access token returned.');
+    }
+
+    state.token = token;
+
+    sessionStorage.setItem(
+      CONFIG.tokenKey,
+      token
+    );
+
+    if (loginResult) {
+      loginResult.textContent =
+        t('loginSuccess');
+    }
+
+    await loadCurrentUser();
+
+    showDashboard();
+
+  } catch (error) {
+
+    console.error('Login error:', error);
+
+    if (loginResult) {
+      loginResult.textContent =
+        `${t('loginFailed')} ${error.message}`;
+    }
+  }
 }
 
 
 /* =========================================================
-   LOGIN / DASHBOARD
+   CURRENT USER
 ========================================================= */
 
-function showLogin() {
+async function loadCurrentUser() {
+  try {
 
-  if ($('dashboardView')) {
+    const data =
+      await api('/auth/me');
 
-    $('dashboardView')
-      .classList
-      .add('hidden');
-  }
+    state.user = data;
 
-  if ($('loginView')) {
+    updateUserUI();
 
-    $('loginView')
-      .classList
-      .remove('hidden');
+    return data;
+
+  } catch (error) {
+
+    console.error(
+      'Unable to load current user:',
+      error
+    );
+
+    return null;
   }
 }
 
+
+function updateUserUI() {
+
+  const user =
+    state.user;
+
+  if (!user) {
+    return;
+  }
+
+  const username =
+    user.username ||
+    user.email ||
+    user.name ||
+    t('user');
+
+  const role =
+    user.role ||
+    user.user_role ||
+    '';
+
+  const usernameElements =
+    document.querySelectorAll(
+      '[data-user-name]'
+    );
+
+  usernameElements.forEach(
+    (element) => {
+      element.textContent = username;
+    }
+  );
+
+  const roleElements =
+    document.querySelectorAll(
+      '[data-user-role]'
+    );
+
+  roleElements.forEach(
+    (element) => {
+      element.textContent = role;
+    }
+  );
+
+  const roleElement =
+    $('userRole');
+
+  if (roleElement) {
+    roleElement.textContent =
+      role || t('user');
+  }
+}
+
+
+/* =========================================================
+   LOGOUT
+========================================================= */
+
+function logout() {
+
+  state.token = '';
+  state.user = null;
+
+  sessionStorage.removeItem(
+    CONFIG.tokenKey
+  );
+
+  const dashboard =
+    $('dashboard');
+
+  const loginScreen =
+    $('loginScreen');
+
+  if (dashboard) {
+    dashboard.style.display = 'none';
+  }
+
+  if (loginScreen) {
+    loginScreen.style.display = '';
+  }
+}
+
+
+/* =========================================================
+   SHOW DASHBOARD
+========================================================= */
 
 function showDashboard() {
 
-  if ($('loginView')) {
+  const loginScreen =
+    $('loginScreen');
 
-    $('loginView')
-      .classList
-      .add('hidden');
+  const dashboard =
+    $('dashboard');
+
+  if (loginScreen) {
+    loginScreen.style.display = 'none';
   }
 
-  if ($('dashboardView')) {
-
-    $('dashboardView')
-      .classList
-      .remove('hidden');
+  if (dashboard) {
+    dashboard.style.display = '';
   }
 
-  updateRole();
+  updateUserUI();
+
   translateDynamicUI();
+
+  loadJobStatus();
+  loadReports();
 }
 
 
-function updateRole() {
+/* =========================================================
+   MODULE OPEN
+========================================================= */
 
-  const role =
-    state.user?.role ||
-    'USER';
+function openModule(moduleId) {
 
-  if ($('roleBadge')) {
+  document
+    .querySelectorAll('.module-panel')
+    .forEach((panel) => {
 
-    $('roleBadge')
-      .textContent =
-      role;
+      panel.style.display =
+        'none';
+    });
+
+  const target =
+    $(moduleId);
+
+  if (target) {
+    target.style.display = '';
   }
+
+  translateDynamicUI();
 }
 
 
@@ -1061,158 +529,30 @@ function updateRole() {
 
 async function checkHealth() {
 
+  const healthElement =
+    $('apiStatus');
+
+  if (!healthElement) {
+    return;
+  }
+
   try {
 
-    const base =
-      CONFIG.apiBase.replace(
-        /\/api\/v1$/,
-        ''
-      );
+    await api('/health/live');
 
-    const response =
-      await fetch(
-        base +
-        '/api/v1/health/live'
-      );
+    healthElement.textContent =
+      t('apiOnline');
 
-    if (!response.ok) {
-      throw new Error();
-    }
+  } catch (error) {
 
-    if ($('healthBadge')) {
+    console.error(
+      'Health check failed:',
+      error
+    );
 
-      $('healthBadge')
-        .textContent =
-        t('apiOnline');
-    }
-
-    if ($('apiText')) {
-
-      $('apiText')
-        .textContent =
-        currentLanguage() === 'ru'
-          ? 'онлайн'
-          : 'online';
-    }
-
-  } catch {
-
-    if ($('healthBadge')) {
-
-      $('healthBadge')
-        .textContent =
-        t('apiOffline');
-    }
-
-    if ($('apiText')) {
-
-      $('apiText')
-        .textContent =
-        t('notConnected');
-    }
+    healthElement.textContent =
+      t('apiOffline');
   }
-}
-
-
-/* =========================================================
-   LOGIN
-========================================================= */
-
-if ($('loginForm')) {
-
-  $('loginForm')
-    .addEventListener(
-      'submit',
-      async (event) => {
-
-        event.preventDefault();
-
-        setStatus(
-          'loginStatus',
-          t('signingIn')
-        );
-
-        try {
-
-          const body = {
-
-            username:
-              $('loginUser')
-                ?.value
-                .trim(),
-
-            password:
-              $('loginPassword')
-                ?.value || ''
-          };
-
-          const data =
-            await api(
-              '/auth/login',
-              {
-                method: 'POST',
-                body:
-                  JSON.stringify(body)
-              }
-            );
-
-          state.token =
-            data.access_token;
-
-          sessionStorage.setItem(
-            CONFIG.tokenKey,
-            state.token
-          );
-
-          state.user =
-            await api('/auth/me');
-
-          showDashboard();
-
-          setStatus(
-            'loginStatus',
-            ''
-          );
-
-        } catch (error) {
-
-          console.error(
-            'Login error:',
-            error
-          );
-
-          setStatus(
-            'loginStatus',
-            error.message ||
-            t('loginFailed')
-          );
-        }
-      }
-    );
-}
-
-
-/* =========================================================
-   LOGOUT
-========================================================= */
-
-if ($('logoutBtn')) {
-
-  $('logoutBtn')
-    .addEventListener(
-      'click',
-      () => {
-
-        state.token = '';
-        state.user = null;
-
-        sessionStorage.removeItem(
-          CONFIG.tokenKey
-        );
-
-        showLogin();
-      }
-    );
 }
 
 
@@ -1220,27 +560,28 @@ if ($('logoutBtn')) {
    MOLECULAR ANALYSIS
 ========================================================= */
 
-async function molecularAnalyze() {
+async function analyzeMolecule() {
 
   const smiles =
-    $('smilesInput')
-      ?.value
-      .trim();
+    $('smilesInput')?.value?.trim() || '';
+
+  const result =
+    $('molecularResult');
 
   if (!smiles) {
 
-    setStatus(
-      'molecularStatus',
-      t('enterSmiles')
-    );
+    if (result) {
+      result.textContent =
+        t('noData');
+    }
 
     return;
   }
 
-  setStatus(
-    'molecularStatus',
-    t('analyzing')
-  );
+  if (result) {
+    result.textContent =
+      t('loading');
+  }
 
   try {
 
@@ -1249,17 +590,14 @@ async function molecularAnalyze() {
         '/molecules/analyze',
         {
           method: 'POST',
-          body:
-            JSON.stringify({
-              smiles
-            })
+          body: JSON.stringify({
+            smiles
+          })
         }
       );
 
-    if ($('molecularResult')) {
-
-      $('molecularResult')
-        .textContent =
+    if (result) {
+      result.textContent =
         JSON.stringify(
           data,
           null,
@@ -1267,18 +605,17 @@ async function molecularAnalyze() {
         );
     }
 
-    setStatus(
-      'molecularStatus',
-      t('analysisCompleted'),
-      true
-    );
-
   } catch (error) {
 
-    setStatus(
-      'molecularStatus',
-      error.message
+    console.error(
+      'Molecule analysis error:',
+      error
     );
+
+    if (result) {
+      result.textContent =
+        error.message;
+    }
   }
 }
 
@@ -1287,27 +624,32 @@ async function molecularAnalyze() {
    BIOINFORMATICS
 ========================================================= */
 
-async function bioinformaticsRun() {
+async function analyzeBioinformatics() {
 
   const sequence =
-    $('bioSequence')
-      ?.value
-      .trim();
+    $('sequenceInput')?.value?.trim() || '';
+
+  const sequenceType =
+    $('sequenceType')?.value ||
+    'DNA';
+
+  const result =
+    $('bioinformaticsResult');
 
   if (!sequence) {
 
-    setStatus(
-      'bioStatus',
-      t('enterSequence')
-    );
+    if (result) {
+      result.textContent =
+        t('noData');
+    }
 
     return;
   }
 
-  setStatus(
-    'bioStatus',
-    t('analyzing')
-  );
+  if (result) {
+    result.textContent =
+      t('loading');
+  }
 
   try {
 
@@ -1316,18 +658,15 @@ async function bioinformaticsRun() {
         '/bioinformatics/analyze',
         {
           method: 'POST',
-          body:
-            JSON.stringify({
-              sequence,
-              sequence_type: 'AUTO'
-            })
+          body: JSON.stringify({
+            sequence,
+            sequence_type: sequenceType
+          })
         }
       );
 
-    if ($('bioResult')) {
-
-      $('bioResult')
-        .textContent =
+    if (result) {
+      result.textContent =
         JSON.stringify(
           data,
           null,
@@ -1335,18 +674,17 @@ async function bioinformaticsRun() {
         );
     }
 
-    setStatus(
-      'bioStatus',
-      t('analysisCompleted'),
-      true
-    );
-
   } catch (error) {
 
-    setStatus(
-      'bioStatus',
-      error.message
+    console.error(
+      'Bioinformatics error:',
+      error
     );
+
+    if (result) {
+      result.textContent =
+        error.message;
+    }
   }
 }
 
@@ -1355,41 +693,38 @@ async function bioinformaticsRun() {
    PDB
 ========================================================= */
 
-async function pdbLookup() {
+async function loadPDBStructure() {
 
-  const id =
-    $('pdbInput')
-      ?.value
-      .trim()
-      .toUpperCase();
+  const pdbId =
+    $('pdbInput')?.value?.trim() || '';
 
-  if (!id) {
+  const result =
+    $('pdbResult');
 
-    setStatus(
-      'pdbStatus',
-      t('enterPdb')
-    );
+  if (!pdbId) {
+
+    if (result) {
+      result.textContent =
+        t('noData');
+    }
 
     return;
   }
 
-  setStatus(
-    'pdbStatus',
-    t('loading')
-  );
+  if (result) {
+    result.textContent =
+      t('loading');
+  }
 
   try {
 
     const data =
       await api(
-        '/pdb/structures/' +
-        encodeURIComponent(id)
+        `/pdb/structures/${encodeURIComponent(pdbId)}`
       );
 
-    if ($('pdbResult')) {
-
-      $('pdbResult')
-        .textContent =
+    if (result) {
+      result.textContent =
         JSON.stringify(
           data,
           null,
@@ -1397,101 +732,18 @@ async function pdbLookup() {
         );
     }
 
-    setStatus(
-      'pdbStatus',
-      t('loaded'),
-      true
-    );
-
   } catch (error) {
 
-    setStatus(
-      'pdbStatus',
-      error.message
+    console.error(
+      'PDB error:',
+      error
     );
+
+    if (result) {
+      result.textContent =
+        error.message;
+    }
   }
-}
-
-
-/* =========================================================
-   DRUG DISCOVERY UI
-========================================================= */
-
-function prepareDiscoveryUI() {
-
-  const tool =
-    $('discoveryTool');
-
-  if (!tool) return;
-
-  if ($('discoveryMolecules')) {
-
-    translateDynamicUI();
-
-    return;
-  }
-
-  const wrapper =
-    document.createElement('div');
-
-  wrapper.style.marginTop =
-    '16px';
-
-  wrapper.innerHTML = `
-    <label
-      for="discoveryMolecules"
-      style="
-        display:block;
-        margin-bottom:8px;
-        font-weight:600;
-      "
-    >
-      ${t('moleculesSmiles')}
-    </label>
-
-    <textarea
-      id="discoveryMolecules"
-      rows="6"
-      style="
-        width:100%;
-        min-height:130px;
-        resize:vertical;
-        box-sizing:border-box;
-      "
-      placeholder="${t('smilesPlaceholder')}"
-    ></textarea>
-
-    <div
-      id="discoveryMoleculesHint"
-      style="
-        margin-top:8px;
-        font-size:13px;
-        opacity:.75;
-      "
-    >
-      ${t('oneMolecule')}
-    </div>
-  `;
-
-  const button =
-    $('discoveryRun');
-
-  if (button) {
-
-    button.parentNode
-      .insertBefore(
-        wrapper,
-        button
-      );
-
-  } else {
-
-    tool.appendChild(
-      wrapper
-    );
-  }
-
-  translateDynamicUI();
 }
 
 
@@ -1499,53 +751,28 @@ function prepareDiscoveryUI() {
    DRUG DISCOVERY
 ========================================================= */
 
-async function discoveryCreate() {
+async function runScreening() {
 
-  prepareDiscoveryUI();
+  const smiles =
+    $('screenSmiles')?.value?.trim() || '';
 
-  const target =
-    $('discoveryTarget')
-      ?.value
-      .trim();
+  const result =
+    $('screeningResult');
 
-  const moleculesText =
-    $('discoveryMolecules')
-      ?.value
-      .trim() || '';
+  if (!smiles) {
 
-  if (!target) {
-
-    setStatus(
-      'discoveryStatus',
-      t('enterTarget')
-    );
+    if (result) {
+      result.textContent =
+        t('noData');
+    }
 
     return;
   }
 
-  if (!moleculesText) {
-
-    setStatus(
-      'discoveryStatus',
-      t('enterMolecule')
-    );
-
-    return;
+  if (result) {
+    result.textContent =
+      t('loading');
   }
-
-  const molecules =
-    moleculesText
-      .split('\n')
-      .map(
-        item =>
-          item.trim()
-      )
-      .filter(Boolean);
-
-  setStatus(
-    'discoveryStatus',
-    t('virtualScreening')
-  );
 
   try {
 
@@ -1554,18 +781,14 @@ async function discoveryCreate() {
         '/discovery/screen',
         {
           method: 'POST',
-          body:
-            JSON.stringify({
-              target,
-              molecules
-            })
+          body: JSON.stringify({
+            smiles
+          })
         }
       );
 
-    if ($('discoveryResult')) {
-
-      $('discoveryResult')
-        .textContent =
+    if (result) {
+      result.textContent =
         JSON.stringify(
           data,
           null,
@@ -1573,267 +796,174 @@ async function discoveryCreate() {
         );
     }
 
-    setStatus(
-      'discoveryStatus',
-      t(
-        'screeningCompleted',
-        {
-          count:
-            data.molecule_count ??
-            molecules.length
-        }
-      ),
-      true
-    );
-
   } catch (error) {
 
     console.error(
-      'Drug Discovery error:',
+      'Screening error:',
       error
     );
 
-    setStatus(
-      'discoveryStatus',
-      error.message ||
-      t('screeningFailed')
-    );
+    if (result) {
+      result.textContent =
+        error.message;
+    }
   }
 }
 
 
 /* =========================================================
-   JOBS UI
-========================================================= */
-
-function prepareJobsUI() {
-
-  const tool =
-    $('jobsTool');
-
-  if (!tool) return;
-
-  if ($('jobsStatusPanel')) {
-
-    translateDynamicUI();
-
-    return;
-  }
-
-  const wrapper =
-    document.createElement('div');
-
-  wrapper.id =
-    'jobsStatusPanel';
-
-  wrapper.style.marginTop =
-    '16px';
-
-  wrapper.innerHTML = `
-    <div
-      id="jobsStatusTitle"
-      style="
-        margin-bottom:10px;
-        font-weight:600;
-      "
-    >
-      ${t('scientificWorker')}
-    </div>
-
-    <div
-      id="jobsStatusLive"
-      style="
-        padding:10px;
-        border-radius:8px;
-        background:rgba(255,255,255,.05);
-        margin-bottom:12px;
-      "
-    >
-      ${t('checkingWorker')}
-    </div>
-
-    <button
-      id="jobsStatusRefresh"
-      type="button"
-    >
-      ${t('refreshWorker')}
-    </button>
-  `;
-
-  tool.prepend(
-    wrapper
-  );
-
-  $('jobsStatusRefresh')
-    .addEventListener(
-      'click',
-      loadJobStatus
-    );
-
-  translateDynamicUI();
-}
-
-
-/* =========================================================
-   JOB STATUS
+   SCIENTIFIC JOB STATUS
 ========================================================= */
 
 async function loadJobStatus() {
 
-  prepareJobsUI();
+  const result =
+    $('jobStatusResult');
 
-  if ($('jobsStatusLive')) {
-
-    $('jobsStatusLive')
-      .textContent =
-      t('checkingWorker');
+  if (result) {
+    result.textContent =
+      t('loading');
   }
 
   try {
 
     const data =
-      await api(
-        '/jobs/status'
-      );
+      await api('/jobs/status');
 
     const worker =
       translateBackendValue(
-        data.worker
+        data?.worker ||
+        data?.worker_status ||
+        'development'
       );
 
     const queue =
       translateBackendValue(
-        data.queue
+        data?.queue ||
+        data?.queue_status ||
+        'ready'
       );
 
     const active =
-      data.active_jobs ?? 0;
+      data?.active ??
+      data?.active_jobs ??
+      0;
 
-    if ($('jobsStatusLive')) {
+    if (result) {
 
-      $('jobsStatusLive')
-        .textContent =
-        `${t('worker')}: ${worker} | ${t('queue')}: ${queue} | ${t('active')}: ${active}`;
+      result.textContent =
+        t(
+          'workerStatus',
+          {
+            worker,
+            queue,
+            active
+          }
+        );
     }
-
-    return data;
 
   } catch (error) {
 
-    if ($('jobsStatusLive')) {
+    console.error(
+      'Job status error:',
+      error
+    );
 
-      $('jobsStatusLive')
-        .textContent =
-        t(
-          'workerError',
-          {
-            error:
-              error.message
-          }
-        );
+    if (result) {
+      result.textContent =
+        error.message;
     }
   }
 }
 
 
 /* =========================================================
-   JOBS
+   JOBS LIST
 ========================================================= */
 
 async function loadJobs() {
 
-  prepareJobsUI();
+  const result =
+    $('jobsResult');
 
-  setStatus(
-    'jobsStatus',
-    t('loading')
-  );
+  if (result) {
+    result.textContent =
+      t('loading');
+  }
 
   try {
 
     const data =
-      await api(
-        '/jobs'
-      );
+      await api('/jobs');
 
-    if ($('jobsResult')) {
+    const jobs =
+      data?.jobs || [];
 
-      if (
-        !data.jobs ||
-        data.jobs.length === 0
-      ) {
+    if (!jobs.length) {
 
-        $('jobsResult')
-          .textContent =
+      if (result) {
+        result.textContent =
           t('noJobs');
-
-      } else {
-
-        $('jobsResult')
-          .textContent =
-          JSON.stringify(
-            data,
-            null,
-            2
-          );
       }
+
+      return;
     }
 
-    await loadJobStatus();
-
-    setStatus(
-      'jobsStatus',
-      t('loaded'),
-      true
-    );
+    if (result) {
+      result.textContent =
+        JSON.stringify(
+          data,
+          null,
+          2
+        );
+    }
 
   } catch (error) {
 
-    setStatus(
-      'jobsStatus',
-      error.message
+    console.error(
+      'Jobs error:',
+      error
     );
 
-    await loadJobStatus();
+    if (result) {
+      result.textContent =
+        error.message;
+    }
   }
 }
 
 
+/* =========================================================
+   CREATE SCIENTIFIC JOB
+========================================================= */
+
 async function createJob() {
 
-  const type =
-    $('jobType')?.value ||
-    'scientific_analysis';
-
-  setStatus(
-    'jobCreateStatus',
-    t('submitting')
-  );
+  const result =
+    $('jobsResult');
 
   try {
+
+    const jobType =
+      $('jobType')?.value ||
+      'molecular';
 
     const data =
       await api(
         '/jobs',
         {
           method: 'POST',
-          body:
-            JSON.stringify({
-              job_type:
-                type,
-
-              input: {
-                source:
-                  'web'
-              }
-            })
+          body: JSON.stringify({
+            type: jobType
+          })
         }
       );
 
-    if ($('jobCreateResult')) {
+    if (result) {
 
-      $('jobCreateResult')
-        .textContent =
+      result.textContent =
+        t('taskCreated') +
+        '\n\n' +
         JSON.stringify(
           data,
           null,
@@ -1841,119 +971,20 @@ async function createJob() {
         );
     }
 
-    setStatus(
-      'jobCreateStatus',
-      t('jobSubmitted'),
-      true
-    );
-
     await loadJobStatus();
-    await loadJobs();
 
   } catch (error) {
 
-    setStatus(
-      'jobCreateStatus',
-      error.message
-    );
-  }
-}
-
-
-/* =========================================================
-   REPORT UI
-========================================================= */
-
-function prepareReportsUI() {
-
-  const tool =
-    $('reportsTool');
-
-  if (!tool) return;
-
-  if ($('reportGeneratorPanel')) {
-
-    translateDynamicUI();
-
-    return;
-  }
-
-  const wrapper =
-    document.createElement('div');
-
-  wrapper.id =
-    'reportGeneratorPanel';
-
-  wrapper.style.marginTop =
-    '16px';
-
-  wrapper.innerHTML = `
-    <div
-      id="reportGeneratorTitle"
-      style="
-        margin-bottom:8px;
-        font-weight:600;
-      "
-    >
-      ${t('generateScientificReport')}
-    </div>
-
-    <input
-      id="reportType"
-      type="text"
-      value="Biomedical Research Report"
-      placeholder="${t('reportType')}"
-      style="
-        width:100%;
-        box-sizing:border-box;
-        margin-bottom:8px;
-      "
-    />
-
-    <textarea
-      id="reportInput"
-      rows="5"
-      placeholder="${t('reportPlaceholder')}"
-      style="
-        width:100%;
-        box-sizing:border-box;
-        resize:vertical;
-      "
-    ></textarea>
-
-    <button
-      id="reportGenerate"
-      type="button"
-      style="margin-top:8px;"
-    >
-      ${t('generateReport')}
-    </button>
-
-    <div
-      id="reportGenerateStatus"
-      style="margin-top:8px;"
-    ></div>
-
-    <pre
-      id="reportGenerateResult"
-      style="
-        white-space:pre-wrap;
-        margin-top:12px;
-      "
-    ></pre>
-  `;
-
-  tool.prepend(
-    wrapper
-  );
-
-  $('reportGenerate')
-    .addEventListener(
-      'click',
-      generateReport
+    console.error(
+      'Create job error:',
+      error
     );
 
-  translateDynamicUI();
+    if (result) {
+      result.textContent =
+        `${t('taskError')} ${error.message}`;
+    }
+  }
 }
 
 
@@ -1963,24 +994,34 @@ function prepareReportsUI() {
 
 async function loadReports() {
 
-  prepareReportsUI();
+  const result =
+    $('reportsResult');
 
-  setStatus(
-    'reportsStatus',
-    t('loading')
-  );
+  if (result) {
+    result.textContent =
+      t('loading');
+  }
 
   try {
 
     const data =
-      await api(
-        '/reports'
-      );
+      await api('/reports');
 
-    if ($('reportsResult')) {
+    const reports =
+      data?.reports || [];
 
-      $('reportsResult')
-        .textContent =
+    if (!reports.length) {
+
+      if (result) {
+        result.textContent =
+          t('noReports');
+      }
+
+      return;
+    }
+
+    if (result) {
+      result.textContent =
         JSON.stringify(
           data,
           null,
@@ -1988,39 +1029,34 @@ async function loadReports() {
         );
     }
 
-    setStatus(
-      'reportsStatus',
-      t('loaded'),
-      true
-    );
-
   } catch (error) {
 
-    setStatus(
-      'reportsStatus',
-      error.message
+    console.error(
+      'Reports error:',
+      error
     );
+
+    if (result) {
+      result.textContent =
+        error.message;
+    }
   }
 }
 
 
+/* =========================================================
+   GENERATE REPORT
+========================================================= */
+
 async function generateReport() {
 
-  const type =
-    $('reportType')
-      ?.value
-      .trim() ||
-    'Biomedical Research Report';
+  const result =
+    $('reportsResult');
 
-  const input =
-    $('reportInput')
-      ?.value
-      .trim() || '';
-
-  setStatus(
-    'reportGenerateStatus',
-    t('generatingReport')
-  );
+  if (result) {
+    result.textContent =
+      t('loading');
+  }
 
   try {
 
@@ -2029,20 +1065,13 @@ async function generateReport() {
         '/reports/generate',
         {
           method: 'POST',
-          body:
-            JSON.stringify({
-              workflow_type:
-                type,
-
-              input
-            })
+          body: JSON.stringify({})
         }
       );
 
-    if ($('reportGenerateResult')) {
+    if (result) {
 
-      $('reportGenerateResult')
-        .textContent =
+      result.textContent =
         JSON.stringify(
           data,
           null,
@@ -2050,104 +1079,18 @@ async function generateReport() {
         );
     }
 
-    setStatus(
-      'reportGenerateStatus',
-      t('reportGenerated'),
-      true
-    );
-
   } catch (error) {
 
-    setStatus(
-      'reportGenerateStatus',
-      error.message
-    );
-  }
-}
-
-
-/* =========================================================
-   RESEARCH UI
-========================================================= */
-
-function prepareResearchUI() {
-
-  const tool =
-    $('researchTool');
-
-  if (!tool) return;
-
-  if ($('researchAssistantPanel')) {
-
-    translateDynamicUI();
-
-    return;
-  }
-
-  const wrapper =
-    document.createElement('div');
-
-  wrapper.id =
-    'researchAssistantPanel';
-
-  wrapper.style.marginTop =
-    '16px';
-
-  wrapper.innerHTML = `
-    <div
-      id="researchAssistantTitle"
-      style="
-        margin-bottom:8px;
-        font-weight:600;
-      "
-    >
-      ${t('aiResearchAssistant')}
-    </div>
-
-    <textarea
-      id="assistantQuery"
-      rows="5"
-      placeholder="${t('researchQuestion')}"
-      style="
-        width:100%;
-        box-sizing:border-box;
-        resize:vertical;
-      "
-    ></textarea>
-
-    <button
-      id="assistantRun"
-      type="button"
-      style="margin-top:8px;"
-    >
-      ${t('runResearchAssistant')}
-    </button>
-
-    <div
-      id="assistantStatus"
-      style="margin-top:8px;"
-    ></div>
-
-    <pre
-      id="assistantResult"
-      style="
-        white-space:pre-wrap;
-        margin-top:12px;
-      "
-    ></pre>
-  `;
-
-  tool.prepend(
-    wrapper
-  );
-
-  $('assistantRun')
-    .addEventListener(
-      'click',
-      researchAssistant
+    console.error(
+      'Report generation error:',
+      error
     );
 
-  translateDynamicUI();
+    if (result) {
+      result.textContent =
+        error.message;
+    }
+  }
 }
 
 
@@ -2155,27 +1098,28 @@ function prepareResearchUI() {
    RESEARCH ASSISTANT
 ========================================================= */
 
-async function researchAssistant() {
+async function runResearchAssistant() {
 
-  const query =
-    $('assistantQuery')
-      ?.value
-      .trim();
+  const question =
+    $('researchInput')?.value?.trim() || '';
 
-  if (!query) {
+  const result =
+    $('researchResult');
 
-    setStatus(
-      'assistantStatus',
-      t('enterResearchQuestion')
-    );
+  if (!question) {
+
+    if (result) {
+      result.textContent =
+        t('noData');
+    }
 
     return;
   }
 
-  setStatus(
-    'assistantStatus',
-    t('researchPipeline')
-  );
+  if (result) {
+    result.textContent =
+      t('loading');
+  }
 
   try {
 
@@ -2184,17 +1128,14 @@ async function researchAssistant() {
         '/research/assistant',
         {
           method: 'POST',
-          body:
-            JSON.stringify({
-              query
-            })
+          body: JSON.stringify({
+            question
+          })
         }
       );
 
-    if ($('assistantResult')) {
-
-      $('assistantResult')
-        .textContent =
+    if (result) {
+      result.textContent =
         JSON.stringify(
           data,
           null,
@@ -2202,18 +1143,17 @@ async function researchAssistant() {
         );
     }
 
-    setStatus(
-      'assistantStatus',
-      t('researchCompleted'),
-      true
-    );
-
   } catch (error) {
 
-    setStatus(
-      'assistantStatus',
-      error.message
+    console.error(
+      'Research assistant error:',
+      error
     );
+
+    if (result) {
+      result.textContent =
+        error.message;
+    }
   }
 }
 
@@ -2222,27 +1162,28 @@ async function researchAssistant() {
    RESEARCH SEARCH
 ========================================================= */
 
-async function researchSearch() {
+async function searchResearch() {
 
   const query =
-    $('researchQuery')
-      ?.value
-      .trim();
+    $('researchSearchInput')?.value?.trim() || '';
+
+  const result =
+    $('researchSearchResult');
 
   if (!query) {
 
-    setStatus(
-      'researchStatus',
-      t('enterResearchQuery')
-    );
+    if (result) {
+      result.textContent =
+        t('noData');
+    }
 
     return;
   }
 
-  setStatus(
-    'researchStatus',
-    t('searching')
-  );
+  if (result) {
+    result.textContent =
+      t('loading');
+  }
 
   try {
 
@@ -2251,18 +1192,14 @@ async function researchSearch() {
         '/research/search',
         {
           method: 'POST',
-          body:
-            JSON.stringify({
-              query,
-              limit: 10
-            })
+          body: JSON.stringify({
+            query
+          })
         }
       );
 
-    if ($('researchResult')) {
-
-      $('researchResult')
-        .textContent =
+    if (result) {
+      result.textContent =
         JSON.stringify(
           data,
           null,
@@ -2270,196 +1207,73 @@ async function researchSearch() {
         );
     }
 
-    setStatus(
-      'researchStatus',
-      t('searchCompleted'),
-      true
-    );
-
   } catch (error) {
 
-    setStatus(
-      'researchStatus',
-      error.message
+    console.error(
+      'Research search error:',
+      error
     );
+
+    if (result) {
+      result.textContent =
+        error.message;
+    }
   }
 }
 
 
 /* =========================================================
-   VIRTUAL LAB
+   VIRTUAL LABORATORY
 ========================================================= */
 
-function prepareVirtualLabUI() {
+async function loadExperiments() {
 
-  const tool =
-    $('workflowTool');
+  const result =
+    $('labResult');
 
-  if (!tool) return;
-
-  if ($('virtualLabPanel')) {
-
-    translateDynamicUI();
-
-    return;
+  if (result) {
+    result.textContent =
+      t('loading');
   }
-
-  const wrapper =
-    document.createElement('div');
-
-  wrapper.id =
-    'virtualLabPanel';
-
-  wrapper.style.marginTop =
-    '16px';
-
-  wrapper.innerHTML = `
-    <div
-      id="virtualLabTitle"
-      style="
-        margin-bottom:8px;
-        font-weight:600;
-      "
-    >
-      ${t('virtualLaboratory')}
-    </div>
-
-    <select
-      id="labExperimentType"
-      style="
-        width:100%;
-        margin-bottom:8px;
-      "
-    >
-      <option value="molecular_analysis">
-        ${t('molecularAnalysis')}
-      </option>
-
-      <option value="bioinformatics">
-        ${t('bioinformaticsExperiment')}
-      </option>
-
-      <option value="drug_discovery">
-        ${t('drugDiscoveryExperiment')}
-      </option>
-
-      <option value="structural_biology">
-        ${t('structuralBiology')}
-      </option>
-
-      <option value="custom">
-        ${t('customExperiment')}
-      </option>
-    </select>
-
-    <textarea
-      id="labExperimentInput"
-      rows="6"
-      placeholder="${t('experimentInput')}"
-      style="
-        width:100%;
-        box-sizing:border-box;
-        resize:vertical;
-      "
-    ></textarea>
-
-    <button
-      id="labExperimentCreate"
-      type="button"
-      style="margin-top:8px;"
-    >
-      ${t('createExperiment')}
-    </button>
-
-    <div
-      id="labExperimentStatus"
-      style="margin-top:8px;"
-    ></div>
-
-    <pre
-      id="labExperimentResult"
-      style="
-        white-space:pre-wrap;
-        margin-top:12px;
-      "
-    ></pre>
-  `;
-
-  tool.prepend(
-    wrapper
-  );
-
-  $('labExperimentCreate')
-    .addEventListener(
-      'click',
-      createExperiment
-    );
-
-  translateDynamicUI();
-}
-
-
-/* =========================================================
-   CREATE EXPERIMENT
-========================================================= */
-
-async function createExperiment() {
-
-  const workflowType =
-    $('labExperimentType')
-      ?.value ||
-    'custom';
-
-  const input =
-    $('labExperimentInput')
-      ?.value
-      .trim() || '';
-
-  setStatus(
-    'labExperimentStatus',
-    t('creatingExperiment')
-  );
 
   try {
 
     const data =
-      await api(
-        '/lab/experiments',
-        {
-          method: 'POST',
-          body:
-            JSON.stringify({
-              workflow_type:
-                workflowType,
+      await api('/lab/experiments');
 
-              input
-            })
-        }
-      );
+    if (result) {
 
-    if ($('labExperimentResult')) {
+      if (
+        !data ||
+        !data.experiments ||
+        !data.experiments.length
+      ) {
 
-      $('labExperimentResult')
-        .textContent =
-        JSON.stringify(
-          data,
-          null,
-          2
-        );
+        result.textContent =
+          t('noData');
+
+      } else {
+
+        result.textContent =
+          JSON.stringify(
+            data,
+            null,
+            2
+          );
+      }
     }
-
-    setStatus(
-      'labExperimentStatus',
-      t('experimentCreated'),
-      true
-    );
 
   } catch (error) {
 
-    setStatus(
-      'labExperimentStatus',
-      error.message
+    console.error(
+      'Laboratory error:',
+      error
     );
+
+    if (result) {
+      result.textContent =
+        error.message;
+    }
   }
 }
 
@@ -2468,24 +1282,23 @@ async function createExperiment() {
    WORKFLOWS
 ========================================================= */
 
-async function workflowList() {
+async function loadWorkflows() {
 
-  setStatus(
-    'workflowStatus',
-    t('loading')
-  );
+  const result =
+    $('workflowResult');
+
+  if (result) {
+    result.textContent =
+      t('loading');
+  }
 
   try {
 
     const data =
-      await api(
-        '/workflows'
-      );
+      await api('/workflows');
 
-    if ($('workflowResult')) {
-
-      $('workflowResult')
-        .textContent =
+    if (result) {
+      result.textContent =
         JSON.stringify(
           data,
           null,
@@ -2493,359 +1306,118 @@ async function workflowList() {
         );
     }
 
-    setStatus(
-      'workflowStatus',
-      t('workflowLoaded'),
-      true
-    );
-
   } catch (error) {
 
-    setStatus(
-      'workflowStatus',
-      error.message
-    );
-  }
-}
-
-
-/* =========================================================
-   MODULES
-========================================================= */
-
-const MODULE_KEYS = {
-
-  'Molecular Analysis':
-    'molecularAnalysis',
-
-  'Bioinformatics':
-    'bioinformaticsExperiment',
-
-  'PDB & Structure':
-    'structurePrediction',
-
-  'Drug Discovery':
-    'drugDiscoveryExperiment',
-
-  'Scientific Jobs':
-    'scientificWorker',
-
-  'Research Assistant':
-    'aiResearchAssistant',
-
-  'Virtual Laboratory':
-    'virtualLaboratory',
-
-  'Reports & History':
-    'generateScientificReport'
-};
-
-
-function openModule(name) {
-
-  if ($('workspace')) {
-
-    $('workspace')
-      .classList
-      .remove('hidden');
-  }
-
-  if ($('workspaceTitle')) {
-
-    $('workspaceTitle')
-      .textContent =
-      t(
-        MODULE_KEYS[name] ||
-        name
-      );
-  }
-
-  document
-    .querySelectorAll('.tool')
-    .forEach(
-      element =>
-        element
-          .classList
-          .add('hidden')
+    console.error(
+      'Workflow error:',
+      error
     );
 
-  if ($('comingSoon')) {
-
-    $('comingSoon')
-      .classList
-      .add('hidden');
-  }
-
-  const map = {
-
-    'Molecular Analysis':
-      'molecularTool',
-
-    'Bioinformatics':
-      'bioTool',
-
-    'PDB & Structure':
-      'pdbTool',
-
-    'Drug Discovery':
-      'discoveryTool',
-
-    'Scientific Jobs':
-      'jobsTool',
-
-    'Research Assistant':
-      'researchTool',
-
-    'Virtual Laboratory':
-      'workflowTool',
-
-    'Reports & History':
-      'reportsTool'
-  };
-
-  const toolId =
-    map[name];
-
-  if (
-    toolId &&
-    $(toolId)
-  ) {
-
-    $(toolId)
-      .classList
-      .remove('hidden');
-
-  } else if ($('comingSoon')) {
-
-    $('comingSoon')
-      .classList
-      .remove('hidden');
-  }
-
-
-  if (
-    name ===
-    'Drug Discovery'
-  ) {
-    prepareDiscoveryUI();
-  }
-
-
-  if (
-    name ===
-    'Scientific Jobs'
-  ) {
-
-    prepareJobsUI();
-    loadJobs();
-  }
-
-
-  if (
-    name ===
-    'Research Assistant'
-  ) {
-    prepareResearchUI();
-  }
-
-
-  if (
-    name ===
-    'Virtual Laboratory'
-  ) {
-    prepareVirtualLabUI();
-  }
-
-
-  if (
-    name ===
-    'Reports & History'
-  ) {
-
-    prepareReportsUI();
-    loadReports();
-  }
-
-
-  if ($('workspace')) {
-
-    $('workspace')
-      .scrollIntoView({
-        behavior: 'smooth',
-        block: 'start'
-      });
-  }
-}
-
-
-/* =========================================================
-   BIND
-========================================================= */
-
-function bind(
-  id,
-  event,
-  handler
-) {
-
-  const element =
-    $(id);
-
-  if (element) {
-
-    element.addEventListener(
-      event,
-      handler
-    );
-  }
-}
-
-
-/* =========================================================
-   EVENTS
-========================================================= */
-
-document
-  .querySelectorAll('.module')
-  .forEach(
-    button => {
-
-      button.addEventListener(
-        'click',
-        () =>
-          openModule(
-            button.dataset.module
-          )
-      );
-    }
-  );
-
-
-bind(
-  'molecularRun',
-  'click',
-  molecularAnalyze
-);
-
-bind(
-  'jobsRefresh',
-  'click',
-  loadJobs
-);
-
-bind(
-  'reportsRefresh',
-  'click',
-  loadReports
-);
-
-bind(
-  'workspaceClose',
-  'click',
-  () => {
-
-    if ($('workspace')) {
-
-      $('workspace')
-        .classList
-        .add('hidden');
+    if (result) {
+      result.textContent =
+        error.message;
     }
   }
-);
-
-bind(
-  'pdbRun',
-  'click',
-  pdbLookup
-);
-
-bind(
-  'discoveryRun',
-  'click',
-  discoveryCreate
-);
-
-bind(
-  'workflowRefresh',
-  'click',
-  workflowList
-);
-
-bind(
-  'bioRun',
-  'click',
-  bioinformaticsRun
-);
-
-bind(
-  'researchRun',
-  'click',
-  researchSearch
-);
-
-bind(
-  'jobCreate',
-  'click',
-  createJob
-);
+}
 
 
 /* =========================================================
-   LANGUAGE SELECTORS
+   DYNAMIC UI TRANSLATION
 ========================================================= */
 
-function setupLanguageRefresh() {
+function translateDynamicUI() {
 
-  const selectors = [
-    $('languageSelector'),
-    $('loginLanguageSelector')
-  ].filter(Boolean);
+  const workerTitle =
+    $('workerTitle');
+
+  if (workerTitle) {
+    workerTitle.textContent =
+      t('scientificWorker');
+  }
+
+  const workerRefresh =
+    $('refreshWorker');
+
+  if (workerRefresh) {
+    workerRefresh.textContent =
+      t('refreshWorker');
+  }
+
+  const reportsTitle =
+    $('reportsTitle');
+
+  if (reportsTitle) {
+    reportsTitle.textContent =
+      t('reports');
+  }
+
+  const researchTitle =
+    $('researchTitle');
+
+  if (researchTitle) {
+    researchTitle.textContent =
+      t('research');
+  }
+
+  const labTitle =
+    $('labTitle');
+
+  if (labTitle) {
+    labTitle.textContent =
+      t('laboratory');
+  }
+
+  const systemTitle =
+    $('systemTitle');
+
+  if (systemTitle) {
+    systemTitle.textContent =
+      t('systemInfo');
+  }
+
+  checkHealth();
+}
+
+
+/* =========================================================
+   LANGUAGE SELECTOR
+========================================================= */
+
+function bindLanguageSelectors() {
+
+  const selectors =
+    document.querySelectorAll(
+      '#languageSelector, #languageSelect, [data-language-selector]'
+    );
 
   selectors.forEach(
-    selector => {
+    (selector) => {
 
-      if (
-        selector.dataset
-          .medgenLanguageBound === '1'
-      ) {
-        return;
-      }
-
-      selector.dataset
-        .medgenLanguageBound = '1';
+      selector.value =
+        getLanguage();
 
       selector.addEventListener(
         'change',
         () => {
 
-          const language =
-            selector.value;
-
-          localStorage.setItem(
-            'medgen_language',
-            language
+          setLanguage(
+            selector.value
           );
 
-          document
-            .querySelectorAll(
-              '#languageSelector, #loginLanguageSelector'
-            )
-            .forEach(
-              item => {
-                item.value =
-                  language;
-              }
-            );
+          selectors.forEach(
+            (other) => {
+              other.value =
+                getLanguage();
+            }
+          );
+
+          translateStaticUI();
 
           translateDynamicUI();
 
-          /*
-           * Dynamic Jobs status ham
-           * yangi tilga o'tadi.
-           */
-          if ($('jobsStatusLive')) {
-            loadJobStatus();
-          }
+          loadJobStatus();
+          loadJobs();
+          loadReports();
         }
       );
     }
@@ -2854,80 +1426,194 @@ function setupLanguageRefresh() {
 
 
 /* =========================================================
-   INITIAL LANGUAGE
+   STATIC UI TRANSLATION
+   Works with index.html data-i18n attributes
 ========================================================= */
 
-function initializeLanguage() {
+function translateStaticUI() {
 
-  let language =
-    localStorage.getItem(
-      'medgen_language'
+  const elements =
+    document.querySelectorAll(
+      '[data-i18n]'
     );
 
-  if (
-    language !== 'en' &&
-    language !== 'uz' &&
-    language !== 'ru'
-  ) {
+  elements.forEach(
+    (element) => {
 
-    language = 'uz';
+      const key =
+        element.getAttribute(
+          'data-i18n'
+        );
 
-    localStorage.setItem(
-      'medgen_language',
-      language
+      if (!key) {
+        return;
+      }
+
+      const value =
+        t(key);
+
+      if (
+        element.tagName === 'INPUT' ||
+        element.tagName === 'TEXTAREA'
+      ) {
+
+        element.placeholder =
+          value;
+
+      } else {
+
+        element.textContent =
+          value;
+      }
+    }
+  );
+
+
+  const placeholderElements =
+    document.querySelectorAll(
+      '[data-i18n-placeholder]'
     );
-  }
+
+  placeholderElements.forEach(
+    (element) => {
+
+      const key =
+        element.getAttribute(
+          'data-i18n-placeholder'
+        );
+
+      if (!key) {
+        return;
+      }
+
+      element.placeholder =
+        t(key);
+    }
+  );
+
 
   document
     .querySelectorAll(
-      '#languageSelector, #loginLanguageSelector'
+      '[data-i18n-title]'
     )
     .forEach(
-      selector => {
-        selector.value =
-          language;
+      (element) => {
+
+        const key =
+          element.getAttribute(
+            'data-i18n-title'
+          );
+
+        if (key) {
+          element.title =
+            t(key);
+        }
       }
     );
-
-  translateDynamicUI();
 }
 
 
-initializeLanguage();
-setupLanguageRefresh();
+/* =========================================================
+   INITIALIZATION
+========================================================= */
+
+async function init() {
+
+  setLanguage(
+    getLanguage()
+  );
+
+  bindLanguageSelectors();
+
+  translateStaticUI();
+
+  translateDynamicUI();
+
+  if (state.token) {
+
+    const user =
+      await loadCurrentUser();
+
+    if (user) {
+
+      showDashboard();
+
+    } else {
+
+      state.token = '';
+
+      sessionStorage.removeItem(
+        CONFIG.tokenKey
+      );
+    }
+  }
+}
 
 
 /* =========================================================
-   EXISTING SESSION
+   GLOBAL FUNCTIONS
 ========================================================= */
 
-if (state.token) {
+window.login = login;
+window.logout = logout;
 
-  api('/auth/me')
-    .then(
-      user => {
+window.openModule =
+  openModule;
 
-        state.user =
-          user;
+window.checkHealth =
+  checkHealth;
 
-        showDashboard();
-      }
-    )
-    .catch(
-      () => {
+window.analyzeMolecule =
+  analyzeMolecule;
 
-        state.token = '';
-        state.user = null;
+window.analyzeBioinformatics =
+  analyzeBioinformatics;
 
-        sessionStorage.removeItem(
-          CONFIG.tokenKey
-        );
+window.loadPDBStructure =
+  loadPDBStructure;
 
-        showLogin();
-      }
-    );
+window.runScreening =
+  runScreening;
 
-} else {
+window.loadJobStatus =
+  loadJobStatus;
 
-  showLogin();
-        }
+window.loadJobs =
+  loadJobs;
+
+window.createJob =
+  createJob;
+
+window.loadReports =
+  loadReports;
+
+window.generateReport =
+  generateReport;
+
+window.runResearchAssistant =
+  runResearchAssistant;
+
+window.searchResearch =
+  searchResearch;
+
+window.loadExperiments =
+  loadExperiments;
+
+window.loadWorkflows =
+  loadWorkflows;
+
+window.setLanguage =
+  setLanguage;
+
+window.translateStaticUI =
+  translateStaticUI;
+
+
+/* =========================================================
+   START
+========================================================= */
+
+document.addEventListener(
+  'DOMContentLoaded',
+  init
+);
