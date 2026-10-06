@@ -1596,6 +1596,53 @@ async function createDiscoverySession() {
 }
 
 
+
+/* =========================================================
+   MOLECULAR DOCKING
+========================================================= */
+
+async function runDocking() {
+  const input = $('dockingInput')?.value?.trim() || '';
+  const status = $('dockingStatus');
+  const result = $('dockingResult');
+
+  if (!input) {
+    if (status) status.textContent = 'Enter: EGFR | CCO';
+    return;
+  }
+
+  const parts = input.split('|').map(item => item.trim());
+  const target = parts[0] || 'EGFR';
+  const ligand_smiles = parts[1] || 'CCO';
+
+  if (status) status.textContent = 'Running AutoDock Vina...';
+
+  try {
+    const data = await api('/docking/run', {
+      method: 'POST',
+      body: JSON.stringify({
+        target,
+        ligand_smiles,
+        pdb_id: '1M17',
+        center_x: 22.0,
+        center_y: 0.2,
+        center_z: 52.8,
+        size_x: 20.0,
+        size_y: 20.0,
+        size_z: 20.0,
+        exhaustiveness: 8,
+        n_poses: 3
+      })
+    });
+
+    renderResult(result, data);
+    if (status) status.textContent = 'Docking completed.';
+  } catch (error) {
+    if (status) status.textContent = error.message;
+  }
+}
+
+
 /* =========================================================
    JOB STATUS
 ========================================================= */
@@ -2192,6 +2239,16 @@ function bindEvents() {
   }
 
 
+  const dockingRun = $('dockingRun');
+
+  if (dockingRun) {
+    dockingRun.addEventListener(
+      'click',
+      runDocking
+    );
+  }
+
+
   const jobCreate =
     $('jobCreate');
 
@@ -2318,6 +2375,8 @@ window.analyzeMolecule =
 
 window.runBioinformatics =
   runBioinformatics;
+
+window.runDocking = runDocking;
 
 window.loadPDB =
   loadPDB;
