@@ -2,5 +2,7 @@ fastapi
 uvicorn[standard]
 pydantic
 rdkit
+numpy
+scipy
 vina
 meeko
