@@ -13,6 +13,8 @@ from fastapi import Depends, FastAPI, HTTPException
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.security import HTTPAuthorizationCredentials, HTTPBearer
 from pydantic import BaseModel
+from rdkit import Chem
+from rdkit.Chem import Descriptors, Lipinski, QED, rdMolDescriptors
 
 
 # =========================================================
@@ -222,50 +224,50 @@ def molecule_analyze(
     data: MoleculeRequest,
     user=Depends(get_current_user),
 ):
-
     smiles = data.smiles.strip()
-
     if not smiles:
-        raise HTTPException(
-            status_code=400,
-            detail="SMILES is required",
-        )
+        raise HTTPException(status_code=400, detail="SMILES is required")
 
-    uppercase_atoms = sum(
-        1
-        for char in smiles
-        if char.isalpha()
-        and char.isupper()
-    )
+    mol = Chem.MolFromSmiles(smiles)
+    if mol is None:
+        raise HTTPException(status_code=400, detail="Invalid SMILES")
 
-    ring_digits = sum(
-        1
-        for char in smiles
-        if char.isdigit()
-    )
-
-    formal_charge = (
-        smiles.count("+")
-        - smiles.count("-")
-    )
-
+    descriptors = {
+        "molecular_formula": rdMolDescriptors.CalcMolFormula(mol),
+        "molecular_weight": round(Descriptors.MolWt(mol), 4),
+        "exact_molecular_weight": round(Descriptors.ExactMolWt(mol), 4),
+        "logP": round(Descriptors.MolLogP(mol), 4),
+        "TPSA": round(Descriptors.TPSA(mol), 4),
+        "HBD": int(Lipinski.NumHDonors(mol)),
+        "HBA": int(Lipinski.NumHAcceptors(mol)),
+        "rotatable_bonds": int(Lipinski.NumRotatableBonds(mol)),
+        "ring_count": int(Lipinski.RingCount(mol)),
+        "aromatic_rings": int(Lipinski.NumAromaticRings(mol)),
+        "heavy_atoms": int(mol.GetNumHeavyAtoms()),
+        "formal_charge": int(Chem.GetFormalCharge(mol)),
+        "fraction_csp3": round(Lipinski.FractionCSP3(mol), 4),
+        "QED": round(QED.qed(mol), 4),
+    }
+    checks = {
+        "MW_le_500": descriptors["molecular_weight"] <= 500,
+        "HBD_le_5": descriptors["HBD"] <= 5,
+        "HBA_le_10": descriptors["HBA"] <= 10,
+        "LogP_le_5": descriptors["logP"] <= 5,
+    }
     return {
         "status": "completed",
         "module": "Molecular Analysis",
-        "smiles": smiles,
+        "smiles": Chem.MolToSmiles(mol),
         "user": user["username"],
-        "analysis": {
-            "smiles_length": len(smiles),
-            "heavy_atom_estimate": uppercase_atoms,
-            "ring_digit_count": ring_digits,
-            "estimated_rings": ring_digits // 2,
-            "formal_charge_markers": formal_charge,
+        "analysis": descriptors,
+        "lipinski_rule_of_5": {
+            "checks": checks,
+            "violations": sum(1 for x in checks.values() if not x),
+            "pass": sum(1 for x in checks.values() if x) >= 3,
         },
-        "message": (
-            "Basic molecular analysis completed."
-        ),
+        "engine": "RDKit",
+        "message": "Real molecular descriptors calculated with RDKit.",
     }
-
 
 # =========================================================
 # BIOINFORMATICS
