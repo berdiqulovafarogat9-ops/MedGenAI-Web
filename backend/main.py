@@ -5,8 +5,6 @@ import xml.etree.ElementTree as ET
 import os
 import secrets
 import re
-import hmac
-import threading
 from typing import Any
 try:
     from pwdlib import PasswordHash
@@ -2063,26 +2061,6 @@ PLATFORM_ROLES = {"OWNER", "ADMIN", "MEMBER", "VIEWER"}
 def _slugify(value: str) -> str:
     value = re.sub(r"[^a-zA-Z0-9]+", "-", value.strip().lower()).strip("-")
     return value[:48] or "organization"
-
-def _dispatch_webhook_event(event: dict):
-    payload = json.dumps(event, ensure_ascii=False, separators=(",", ":")).encode()
-    for hook in list(webhooks_store.values()):
-        if not hook.get("active"):
-            continue
-        events = hook.get("events") or []
-        if events and event.get("action") not in events and "*" not in events:
-            continue
-        try:
-            signature = hmac.new(hook.get("secret", "").encode(), payload, hashlib.sha256).hexdigest()
-            req = URLRequest(hook["url"], data=payload, method="POST", headers={"Content-Type":"application/json", "X-MedGen-Signature": signature, "User-Agent":"MedGenAI-Webhook/1.0"})
-            with urlopen(req, timeout=5) as response:
-                hook["last_delivery_status"] = response.status
-            hook["last_delivery_at"] = datetime.now(timezone.utc).isoformat()
-        except Exception as exc:
-            hook["last_delivery_status"] = 0
-            hook["last_delivery_error"] = str(exc)[:300]
-            hook["last_delivery_at"] = datetime.now(timezone.utc).isoformat()
-    _db_save()
 
 def _platform_audit(user, action: str, resource_type: str, resource_id: str = "", details: dict | None = None):
     event = {
