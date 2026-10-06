@@ -315,7 +315,7 @@ def get_current_user(
         "username": username,
         "role": (
             "SUPER_ADMIN"
-            if username == ADMIN_USERNAME
+            if str(username).strip().casefold() == str(ADMIN_USERNAME).strip().casefold()
             else "USER"
         ),
     }
@@ -353,7 +353,10 @@ def login(data: LoginRequest):
 
     registered = user_accounts.get(data.username)
     valid_registered = registered and verify_password(data.password, registered["password_hash"])
-    valid_admin = data.username == ADMIN_USERNAME and data.password == ADMIN_PASSWORD
+    valid_admin = (
+        data.username.strip().casefold() == str(ADMIN_USERNAME).strip().casefold()
+        and data.password == ADMIN_PASSWORD
+    )
     if not valid_registered and not valid_admin:
         attempts.append(now)
         login_attempts[key] = attempts
