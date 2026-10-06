@@ -41,6 +41,7 @@ app = FastAPI(
 app.add_middleware(
     CORSMiddleware,
     allow_origins=[
+        "https://medgenai-web-1.onrender.com",
         "https://medgenai-web.onrender.com",
         "http://localhost:8080",
         "http://127.0.0.1:8080",
