@@ -81,6 +81,7 @@ SECRET_KEY = os.getenv(
 
 tokens = {}
 jobs_store = []
+docking_jobs_store = {}
 workflows_store = []
 reports_store = []
 
@@ -1174,7 +1175,7 @@ def docking_run(
     user=Depends(get_current_user),
 ):
     job_id = secrets.token_hex(8)
-    jobs_store[job_id] = {
+    docking_jobs_store[job_id] = {
         "status": "queued",
         "module": "Molecular Docking",
         "workflow": "AutoDock Vina",
@@ -1183,17 +1184,17 @@ def docking_run(
     }
 
     def run_job():
-        jobs_store[job_id]["status"] = "running"
+        docking_jobs_store[job_id]["status"] = "running"
         try:
-            jobs_store[job_id]["result"] = _execute_docking(data, user)
-            jobs_store[job_id]["status"] = "completed"
+            docking_jobs_store[job_id]["result"] = _execute_docking(data, user)
+            docking_jobs_store[job_id]["status"] = "completed"
         except HTTPException as exc:
-            jobs_store[job_id]["status"] = "failed"
-            jobs_store[job_id]["error"] = exc.detail
+            docking_jobs_store[job_id]["status"] = "failed"
+            docking_jobs_store[job_id]["error"] = exc.detail
         except Exception as exc:
             jobs_store[job_id]["status"] = "failed"
-            jobs_store[job_id]["error"] = str(exc)
-        jobs_store[job_id]["finished_at"] = datetime.now(timezone.utc).isoformat()
+            docking_jobs_store[job_id]["error"] = str(exc)
+        docking_jobs_store[job_id]["finished_at"] = datetime.now(timezone.utc).isoformat()
 
     background_tasks.add_task(run_job)
     return {
@@ -1209,7 +1210,7 @@ def docking_status(
     job_id: str,
     user=Depends(get_current_user),
 ):
-    job = jobs_store.get(job_id)
+    job = docking_jobs_store.get(job_id)
     if not job or job.get("user") != user["username"]:
         raise HTTPException(status_code=404, detail="Docking job not found.")
     return job
