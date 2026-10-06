@@ -1,7 +1,7 @@
 /* =========================================================
    MEDGEN AI — APP.JS
+   Global Biomedical AI Platform
    EN / UZ / RU
-   Dynamic result translation + Drug Discovery fix
 ========================================================= */
 
 const API_BASE =
@@ -17,7 +17,7 @@ const state = {
 
 
 /* =========================================================
-   HELPERS
+   DOM HELPERS
 ========================================================= */
 
 const $ = (id) => document.getElementById(id);
@@ -26,246 +26,733 @@ function getLanguage() {
   return localStorage.getItem('medgen_language') || 'uz';
 }
 
-function setText(id, text) {
-  const el = $(id);
-  if (el) el.textContent = text;
-}
+
+/* =========================================================
+   TRANSLATIONS
+========================================================= */
+
+const dynamicTranslations = {
+
+  en: {
+
+    loading: 'Loading...',
+    analyzing: 'Analyzing...',
+    searching: 'Searching...',
+    signingIn: 'Signing in...',
+    loginSuccessful: 'Login successful.',
+    loginFailed: 'Login failed: ',
+    enterCredentials: 'Enter username and password.',
+
+    sequenceRequired: 'Enter a sequence.',
+    pdbRequired: 'PDB ID required.',
+    targetRequired: 'Enter a target.',
+    moleculeRequired: 'At least one molecule is required.',
+    smilesRequired: 'SMILES required.',
+
+    analysisCompleted: 'Analysis completed.',
+    sequenceCompleted: 'Sequence analysis completed.',
+    loaded: 'Loaded.',
+    done: 'Done.',
+    searchCompleted: 'Search completed.',
+
+    discoveryLoading: 'Running virtual screening...',
+    discoveryCompleted: 'Virtual screening completed.',
+
+    jobCreated: 'Job created.',
+    jobLoading: 'Loading scientific jobs...',
+    reportLoading: 'Loading reports...',
+    workflowLoading: 'Loading workflows...',
+
+    noJobs: 'No scientific jobs available yet.',
+    noReports: 'No reports available yet.',
+    noWorkflows: 'No workflows available yet.',
+    noResearch: 'No research results available yet.',
+
+    online: 'online',
+    offline: 'offline',
+    apiOnline: 'API: online',
+    apiOffline: 'API: offline',
+
+    molecularAnalysis: 'Molecular Analysis',
+    bioinformatics: 'Bioinformatics',
+    pdbStructure: 'PDB & Structure',
+    drugDiscovery: 'Drug Discovery',
+    scientificJobs: 'Scientific Jobs',
+    researchAssistant: 'Research Assistant',
+    virtualLaboratory: 'Virtual Laboratory',
+    reportsHistory: 'Reports & History',
+
+    workflowCount: 'Workflows',
+    jobCount: 'Jobs',
+    reportCount: 'Reports',
+
+    completed: 'completed',
+
+    basicMolecular:
+      'Basic molecular analysis completed.',
+
+    sequenceAnalysis:
+      'Sequence analysis completed.',
+
+    virtualScreening:
+      'virtual screening',
+
+    developmentWarning:
+      'Development-stage heuristic screening only. No validated docking, binding affinity, ADMET, or clinical prediction is performed.'
+  },
+
+
+  uz: {
+
+    loading: 'Yuklanmoqda...',
+    analyzing: 'Tahlil qilinmoqda...',
+    searching: 'Qidirilmoqda...',
+    signingIn: 'Tizimga kirilmoqda...',
+    loginSuccessful: 'Tizimga muvaffaqiyatli kirildi.',
+    loginFailed: 'Kirishda xatolik: ',
+    enterCredentials:
+      'Foydalanuvchi nomi va parolni kiriting.',
+
+    sequenceRequired:
+      'Ketma-ketlikni kiriting.',
+
+    pdbRequired:
+      'PDB ID kiriting.',
+
+    targetRequired:
+      'Nishonni kiriting.',
+
+    moleculeRequired:
+      'Kamida bitta molekula talab qilinadi.',
+
+    smilesRequired:
+      'SMILES kiriting.',
+
+    analysisCompleted:
+      'Tahlil tugallandi.',
+
+    sequenceCompleted:
+      'Ketma-ketlik tahlili tugallandi.',
+
+    loaded:
+      'Yuklandi.',
+
+    done:
+      'Tayyor.',
+
+    searchCompleted:
+      'Qidiruv tugallandi.',
+
+    discoveryLoading:
+      'Virtual screening bajarilmoqda...',
+
+    discoveryCompleted:
+      'Virtual screening tugallandi.',
+
+    jobCreated:
+      'Vazifa yaratildi.',
+
+    jobLoading:
+      'Ilmiy vazifalar yuklanmoqda...',
+
+    reportLoading:
+      'Hisobotlar yuklanmoqda...',
+
+    workflowLoading:
+      'Workflowlar yuklanmoqda...',
+
+    noJobs:
+      'Hozircha ilmiy vazifalar mavjud emas.',
+
+    noReports:
+      'Hozircha hisobotlar mavjud emas.',
+
+    noWorkflows:
+      'Hozircha workflowlar mavjud emas.',
+
+    noResearch:
+      'Hozircha tadqiqot natijalari mavjud emas.',
+
+    online:
+      'online',
+
+    offline:
+      'offline',
+
+    apiOnline:
+      'API: online',
+
+    apiOffline:
+      'API: offline',
+
+    molecularAnalysis:
+      'Molekulyar tahlil',
+
+    bioinformatics:
+      'Bioinformatika',
+
+    pdbStructure:
+      'PDB va struktura',
+
+    drugDiscovery:
+      'Dori vositalarini kashf qilish',
+
+    scientificJobs:
+      'Ilmiy vazifalar',
+
+    researchAssistant:
+      'Tadqiqot yordamchisi',
+
+    virtualLaboratory:
+      'Virtual laboratoriya',
+
+    reportsHistory:
+      'Hisobotlar va tarix',
+
+    workflowCount:
+      'Workflowlar soni',
+
+    jobCount:
+      'Vazifalar soni',
+
+    reportCount:
+      'Hisobotlar soni',
+
+    completed:
+      'tugallandi',
+
+    basicMolecular:
+      'Asosiy molekulyar tahlil tugallandi.',
+
+    sequenceAnalysis:
+      'Ketma-ketlik tahlili tugallandi.',
+
+    virtualScreening:
+      'virtual screening',
+
+    developmentWarning:
+      'Faqat ishlab chiqish bosqichidagi evristik screening. Tasdiqlangan docking, bog‘lanish affiniteti, ADMET yoki klinik prognoz amalga oshirilmaydi.'
+  },
+
+
+  ru: {
+
+    loading: 'Загрузка...',
+    analyzing: 'Выполняется анализ...',
+    searching: 'Поиск...',
+    signingIn: 'Выполняется вход...',
+    loginSuccessful: 'Вход выполнен.',
+    loginFailed: 'Ошибка входа: ',
+    enterCredentials:
+      'Введите имя пользователя и пароль.',
+
+    sequenceRequired:
+      'Введите последовательность.',
+
+    pdbRequired:
+      'Введите PDB ID.',
+
+    targetRequired:
+      'Введите мишень.',
+
+    moleculeRequired:
+      'Требуется хотя бы одна молекула.',
+
+    smilesRequired:
+      'Введите SMILES.',
+
+    analysisCompleted:
+      'Анализ завершён.',
+
+    sequenceCompleted:
+      'Анализ последовательности завершён.',
+
+    loaded:
+      'Загружено.',
+
+    done:
+      'Готово.',
+
+    searchCompleted:
+      'Поиск завершён.',
+
+    discoveryLoading:
+      'Выполняется виртуальный скрининг...',
+
+    discoveryCompleted:
+      'Виртуальный скрининг завершён.',
+
+    jobCreated:
+      'Задача создана.',
+
+    jobLoading:
+      'Загрузка научных задач...',
+
+    reportLoading:
+      'Загрузка отчётов...',
+
+    workflowLoading:
+      'Загрузка workflow...',
+
+    noJobs:
+      'На данный момент научных задач нет.',
+
+    noReports:
+      'Отчётов пока нет.',
+
+    noWorkflows:
+      'Пока нет доступных workflow.',
+
+    noResearch:
+      'Результатов исследований пока нет.',
+
+    online:
+      'онлайн',
+
+    offline:
+      'офлайн',
+
+    apiOnline:
+      'API: онлайн',
+
+    apiOffline:
+      'API: офлайн',
+
+    molecularAnalysis:
+      'Молекулярный анализ',
+
+    bioinformatics:
+      'Биоинформатика',
+
+    pdbStructure:
+      'PDB и структура',
+
+    drugDiscovery:
+      'Поиск лекарственных средств',
+
+    scientificJobs:
+      'Научные задачи',
+
+    researchAssistant:
+      'Исследовательский помощник',
+
+    virtualLaboratory:
+      'Виртуальная лаборатория',
+
+    reportsHistory:
+      'Отчёты и история',
+
+    workflowCount:
+      'Количество workflow',
+
+    jobCount:
+      'Количество задач',
+
+    reportCount:
+      'Количество отчётов',
+
+    completed:
+      'завершено',
+
+    basicMolecular:
+      'Базовый молекулярный анализ завершён.',
+
+    sequenceAnalysis:
+      'Анализ последовательности завершён.',
+
+    virtualScreening:
+      'виртуальный скрининг',
+
+    developmentWarning:
+      'Только эвристический скрининг на стадии разработки. Валидированный docking, аффинность связывания, ADMET или клиническое прогнозирование не выполняются.'
+  }
+
+};
+
 
 function t(key) {
+
   const lang = getLanguage();
 
-  const dictionary = {
-
-    en: {
-      loading: 'Loading...',
-      analyzing: 'Analyzing...',
-      analysisCompleted: 'Analysis completed.',
-      sequenceCompleted: 'Sequence analysis completed.',
-      loaded: 'Loaded.',
-      done: 'Done.',
-      searching: 'Searching...',
-      loginSuccessful: 'Login successful.',
-      signingIn: 'Signing in...',
-      loginFailed: 'Login failed: ',
-      enterCredentials: 'Enter username and password.',
-      usernameRequired: 'Username required.',
-      passwordRequired: 'Password required.',
-      sequenceRequired: 'Enter a sequence.',
-      pdbRequired: 'PDB ID required.',
-      targetRequired: 'Enter a target.',
-      moleculeRequired: 'Enter at least one molecule.',
-      noJobs: 'No scientific jobs available yet.',
-      noReports: 'No reports available yet.',
-      noWorkflows: 'No workflows available yet.',
-      noResearch: 'No research results available.',
-      jobCreated: 'Job created.',
-      jobLoading: 'Loading scientific jobs...',
-      reportLoading: 'Loading reports...',
-      workflowLoading: 'Loading workflows...',
-      online: 'online',
-      offline: 'offline',
-      apiOnline: 'API: online',
-      apiOffline: 'API: offline',
-      workflowsCount: 'Workflows',
-      jobsCount: 'Jobs',
-      reportsCount: 'Reports',
-      searchCompleted: 'Search completed.',
-      discoveryCompleted: 'Virtual screening completed.',
-      discoveryLoading: 'Running virtual screening...',
-      moleculeAnalysis: 'Molecular Analysis',
-      bioinformatics: 'Bioinformatics',
-      pdbStructure: 'PDB & Structure',
-      drugDiscovery: 'Drug Discovery',
-      scientificJobs: 'Scientific Jobs',
-      researchAssistant: 'Research Assistant',
-      virtualLaboratory: 'Virtual Laboratory',
-      reportsHistory: 'Reports & History'
-    },
-
-    uz: {
-      loading: 'Yuklanmoqda...',
-      analyzing: 'Tahlil qilinmoqda...',
-      analysisCompleted: 'Tahlil tugadi.',
-      sequenceCompleted: 'Ketma-ketlik tahlili tugadi.',
-      loaded: 'Yuklandi.',
-      done: 'Tayyor.',
-      searching: 'Qidirilmoqda...',
-      loginSuccessful: 'Tizimga muvaffaqiyatli kirildi.',
-      signingIn: 'Tizimga kirilmoqda...',
-      loginFailed: 'Kirishda xatolik: ',
-      enterCredentials: 'Foydalanuvchi nomi va parolni kiriting.',
-      usernameRequired: 'Foydalanuvchi nomini kiriting.',
-      passwordRequired: 'Parolni kiriting.',
-      sequenceRequired: 'Ketma-ketlikni kiriting.',
-      pdbRequired: 'PDB ID kiriting.',
-      targetRequired: 'Nishonni kiriting.',
-      moleculeRequired: 'Kamida bitta molekula kiriting.',
-      noJobs: 'Hozircha ilmiy vazifalar mavjud emas.',
-      noReports: 'Hozircha hisobotlar mavjud emas.',
-      noWorkflows: 'Hozircha workflowlar mavjud emas.',
-      noResearch: 'Hozircha tadqiqot natijalari mavjud emas.',
-      jobCreated: 'Vazifa yaratildi.',
-      jobLoading: 'Ilmiy vazifalar yuklanmoqda...',
-      reportLoading: 'Hisobotlar yuklanmoqda...',
-      workflowLoading: 'Workflowlar yuklanmoqda...',
-      online: 'online',
-      offline: 'offline',
-      apiOnline: 'API: online',
-      apiOffline: 'API: offline',
-      workflowsCount: 'Workflowlar soni',
-      jobsCount: 'Vazifalar soni',
-      reportsCount: 'Hisobotlar soni',
-      searchCompleted: 'Qidiruv tugadi.',
-      discoveryCompleted: 'Virtual screening tugadi.',
-      discoveryLoading: 'Virtual screening bajarilmoqda...',
-      moleculeAnalysis: 'Molekulyar tahlil',
-      bioinformatics: 'Bioinformatika',
-      pdbStructure: 'PDB va struktura',
-      drugDiscovery: 'Dori vositalarini kashf qilish',
-      scientificJobs: 'Ilmiy vazifalar',
-      researchAssistant: 'Tadqiqot yordamchisi',
-      virtualLaboratory: 'Virtual laboratoriya',
-      reportsHistory: 'Hisobotlar va tarix'
-    },
-
-    ru: {
-      loading: 'Загрузка...',
-      analyzing: 'Выполняется анализ...',
-      analysisCompleted: 'Анализ завершён.',
-      sequenceCompleted: 'Анализ последовательности завершён.',
-      loaded: 'Загружено.',
-      done: 'Готово.',
-      searching: 'Поиск...',
-      loginSuccessful: 'Вход выполнен.',
-      signingIn: 'Выполняется вход...',
-      loginFailed: 'Ошибка входа: ',
-      enterCredentials: 'Введите имя пользователя и пароль.',
-      usernameRequired: 'Введите имя пользователя.',
-      passwordRequired: 'Введите пароль.',
-      sequenceRequired: 'Введите последовательность.',
-      pdbRequired: 'Введите PDB ID.',
-      targetRequired: 'Введите мишень.',
-      moleculeRequired: 'Введите хотя бы одну молекулу.',
-      noJobs: 'На данный момент научных задач нет.',
-      noReports: 'Отчётов пока нет.',
-      noWorkflows: 'Пока нет доступных workflow.',
-      noResearch: 'Результатов исследований пока нет.',
-      jobCreated: 'Задача создана.',
-      jobLoading: 'Загрузка научных задач...',
-      reportLoading: 'Загрузка отчётов...',
-      workflowLoading: 'Загрузка workflow...',
-      online: 'онлайн',
-      offline: 'офлайн',
-      apiOnline: 'API: онлайн',
-      apiOffline: 'API: офлайн',
-      workflowsCount: 'Количество workflow',
-      jobsCount: 'Количество задач',
-      reportsCount: 'Количество отчётов',
-      searchCompleted: 'Поиск завершён.',
-      discoveryCompleted: 'Виртуальный скрининг завершён.',
-      discoveryLoading: 'Выполняется виртуальный скрининг...',
-      moleculeAnalysis: 'Молекулярный анализ',
-      bioinformatics: 'Биоинформатика',
-      pdbStructure: 'PDB и структура',
-      drugDiscovery: 'Поиск лекарственных средств',
-      scientificJobs: 'Научные задачи',
-      researchAssistant: 'Исследовательский помощник',
-      virtualLaboratory: 'Виртуальная лаборатория',
-      reportsHistory: 'Отчёты и история'
-    }
-
-  };
-
-  return dictionary[lang]?.[key] ||
-         dictionary.en[key] ||
-         key;
+  return (
+    dynamicTranslations[lang]?.[key] ||
+    dynamicTranslations.en[key] ||
+    key
+  );
 }
 
 
 /* =========================================================
-   RESULT TRANSLATION
+   RESULT KEY TRANSLATION
 ========================================================= */
 
-function translateValue(value) {
+const resultKeys = {
+
+  status: {
+    uz: 'holat',
+    ru: 'статус',
+    en: 'status'
+  },
+
+  module: {
+    uz: 'modul',
+    ru: 'модуль',
+    en: 'module'
+  },
+
+  workflow: {
+    uz: 'workflow',
+    ru: 'workflow',
+    en: 'workflow'
+  },
+
+  target: {
+    uz: 'nishon',
+    ru: 'мишень',
+    en: 'target'
+  },
+
+  molecule_count: {
+    uz: 'molekulalar_soni',
+    ru: 'количество_молекул',
+    en: 'molecule_count'
+  },
+
+  results: {
+    uz: 'natijalar',
+    ru: 'результаты',
+    en: 'results'
+  },
+
+  smiles: {
+    uz: 'SMILES',
+    ru: 'SMILES',
+    en: 'SMILES'
+  },
+
+  score: {
+    uz: 'ball',
+    ru: 'оценка',
+    en: 'score'
+  },
+
+  atom_estimate: {
+    uz: 'atomlar_taxmini',
+    ru: 'оценка_атомов',
+    en: 'atom_estimate'
+  },
+
+  ring_estimate: {
+    uz: 'halqalar_taxmini',
+    ru: 'оценка_колец',
+    en: 'ring_estimate'
+  },
+
+  charge_markers: {
+    uz: 'zaryad_belgilari',
+    ru: 'маркеры_заряда',
+    en: 'charge_markers'
+  },
+
+  size_score: {
+    uz: 'hajm_balli',
+    ru: 'оценка_размера',
+    en: 'size_score'
+  },
+
+  ring_score: {
+    uz: 'halqa_balli',
+    ru: 'оценка_колец',
+    en: 'ring_score'
+  },
+
+  charge_score: {
+    uz: 'zaryad_balli',
+    ru: 'оценка_заряда',
+    en: 'charge_score'
+  },
+
+  complexity_score: {
+    uz: 'murakkablik_balli',
+    ru: 'оценка_сложности',
+    en: 'complexity_score'
+  },
+
+  rank: {
+    uz: 'reyting',
+    ru: 'рейтинг',
+    en: 'rank'
+  },
+
+  user: {
+    uz: 'foydalanuvchi',
+    ru: 'пользователь',
+    en: 'user'
+  },
+
+  warning: {
+    uz: 'ogohlantirish',
+    ru: 'предупреждение',
+    en: 'warning'
+  },
+
+  title: {
+    uz: 'sarlavha',
+    ru: 'название',
+    en: 'title'
+  },
+
+  source: {
+    uz: 'manba',
+    ru: 'источник',
+    en: 'source'
+  },
+
+  analysis: {
+    uz: 'tahlil',
+    ru: 'анализ',
+    en: 'analysis'
+  },
+
+  sequence_type: {
+    uz: 'ketma_ketlik_turi',
+    ru: 'тип_последовательности',
+    en: 'sequence_type'
+  },
+
+  length: {
+    uz: 'uzunlik',
+    ru: 'длина',
+    en: 'length'
+  },
+
+  composition: {
+    uz: 'tarkib',
+    ru: 'состав',
+    en: 'composition'
+  },
+
+  gc_content_percent: {
+    uz: 'GC_miqdori_foiz',
+    ru: 'GC_содержание_процентов',
+    en: 'gc_content_percent'
+  },
+
+  at_content_percent: {
+    uz: 'AT_miqdori_foiz',
+    ru: 'AT_содержание_процентов',
+    en: 'at_content_percent'
+  },
+
+  smiles_length: {
+    uz: 'SMILES_uzunligi',
+    ru: 'длина_SMILES',
+    en: 'smiles_length'
+  },
+
+  heavy_atom_estimate: {
+    uz: 'ogir_atomlar_taxmini',
+    ru: 'оценка_тяжёлых_атомов',
+    en: 'heavy_atom_estimate'
+  },
+
+  ring_digit_count: {
+    uz: 'halqa_raqamlari_soni',
+    ru: 'количество_цифр_колец',
+    en: 'ring_digit_count'
+  },
+
+  estimated_rings: {
+    uz: 'taxminiy_halqa_soni',
+    ru: 'оценка_колец',
+    en: 'estimated_rings'
+  },
+
+  formal_charge_markers: {
+    uz: 'formal_zaryad_belgilari',
+    ru: 'маркеры_формального_заряда',
+    en: 'formal_charge_markers'
+  },
+
+  count: {
+    uz: 'soni',
+    ru: 'количество',
+    en: 'count'
+  },
+
+  worker: {
+    uz: 'worker',
+    ru: 'worker',
+    en: 'worker'
+  },
+
+  queue: {
+    uz: 'navbat',
+    ru: 'очередь',
+    en: 'queue'
+  },
+
+  active: {
+    uz: 'faol',
+    ru: 'активных',
+    en: 'active'
+  }
+};
+
+
+function translateResultKey(key) {
 
   const lang = getLanguage();
 
-  if (typeof value === 'string') {
+  return (
+    resultKeys[key]?.[lang] ||
+    resultKeys[key]?.en ||
+    key
+  );
+}
 
-    const translations = {
 
-      'completed': {
-        uz: 'tugallandi',
-        ru: 'завершено',
-        en: 'completed'
-      },
+/* =========================================================
+   RESULT VALUE TRANSLATION
+========================================================= */
 
-      'online': {
-        uz: 'online',
-        ru: 'онлайн',
-        en: 'online'
-      },
+function translateResultValue(value) {
 
-      'offline': {
-        uz: 'offline',
-        ru: 'офлайн',
-        en: 'offline'
-      },
+  const lang = getLanguage();
 
-      'Basic molecular analysis completed.': {
-        uz: 'Asosiy molekulyar tahlil tugallandi.',
-        ru: 'Базовый молекулярный анализ завершён.',
-        en: 'Basic molecular analysis completed.'
-      },
-
-      'Sequence analysis completed.': {
-        uz: 'Ketma-ketlik tahlili tugallandi.',
-        ru: 'Анализ последовательности завершён.',
-        en: 'Sequence analysis completed.'
-      },
-
-      'No scientific jobs available yet.': {
-        uz: 'Hozircha ilmiy vazifalar mavjud emas.',
-        ru: 'На данный момент научных задач нет.',
-        en: 'No scientific jobs available yet.'
-      },
-
-      'No reports available yet.': {
-        uz: 'Hozircha hisobotlar mavjud emas.',
-        ru: 'Отчётов пока нет.',
-        en: 'No reports available yet.'
-      },
-
-      'No workflows available yet.': {
-        uz: 'Hozircha workflowlar mavjud emas.',
-        ru: 'Пока нет доступных workflow.',
-        en: 'No workflows available yet.'
-      },
-
-      'Virtual screening completed.': {
-        uz: 'Virtual screening tugallandi.',
-        ru: 'Виртуальный скрининг завершён.',
-        en: 'Virtual screening completed.'
-      },
-
-      'Search completed.': {
-        uz: 'Qidiruv tugallandi.',
-        ru: 'Поиск завершён.',
-        en: 'Search completed.'
-      }
-    };
-
-    if (translations[value]) {
-      return translations[value][lang] ||
-             translations[value].en;
-    }
-
+  if (typeof value !== 'string') {
     return value;
   }
 
+  const translations = {
+
+    'completed': {
+      uz: 'tugallandi',
+      ru: 'завершено',
+      en: 'completed'
+    },
+
+    'tugallandi': {
+      uz: 'tugallandi',
+      ru: 'завершено',
+      en: 'completed'
+    },
+
+    'Molecular Analysis': {
+      uz: 'Molekulyar tahlil',
+      ru: 'Молекулярный анализ',
+      en: 'Molecular Analysis'
+    },
+
+    'Bioinformatics': {
+      uz: 'Bioinformatika',
+      ru: 'Биоинформатика',
+      en: 'Bioinformatics'
+    },
+
+    'PDB & Structure': {
+      uz: 'PDB va struktura',
+      ru: 'PDB и структура',
+      en: 'PDB & Structure'
+    },
+
+    'Drug Discovery': {
+      uz: 'Dori vositalarini kashf qilish',
+      ru: 'Поиск лекарственных средств',
+      en: 'Drug Discovery'
+    },
+
+    'Scientific Jobs': {
+      uz: 'Ilmiy vazifalar',
+      ru: 'Научные задачи',
+      en: 'Scientific Jobs'
+    },
+
+    'Research Assistant': {
+      uz: 'Tadqiqot yordamchisi',
+      ru: 'Исследовательский помощник',
+      en: 'Research Assistant'
+    },
+
+    'Virtual Laboratory': {
+      uz: 'Virtual laboratoriya',
+      ru: 'Виртуальная лаборатория',
+      en: 'Virtual Laboratory'
+    },
+
+    'Reports & History': {
+      uz: 'Hisobotlar va tarix',
+      ru: 'Отчёты и история',
+      en: 'Reports & History'
+    },
+
+    'virtual_screening': {
+      uz: 'virtual screening',
+      ru: 'виртуальный скрининг',
+      en: 'virtual screening'
+    },
+
+    'online': {
+      uz: 'online',
+      ru: 'онлайн',
+      en: 'online'
+    },
+
+    'offline': {
+      uz: 'offline',
+      ru: 'офлайн',
+      en: 'offline'
+    },
+
+    'Basic molecular analysis completed.': {
+      uz: 'Asosiy molekulyar tahlil tugallandi.',
+      ru: 'Базовый молекулярный анализ завершён.',
+      en: 'Basic molecular analysis completed.'
+    },
+
+    'Sequence analysis completed.': {
+      uz: 'Ketma-ketlik tahlili tugallandi.',
+      ru: 'Анализ последовательности завершён.',
+      en: 'Sequence analysis completed.'
+    },
+
+    'Virtual screening completed.': {
+      uz: 'Virtual screening tugallandi.',
+      ru: 'Виртуальный скрининг завершён.',
+      en: 'Virtual screening completed.'
+    },
+
+    'Search completed.': {
+      uz: 'Qidiruv tugallandi.',
+      ru: 'Поиск завершён.',
+      en: 'Search completed.'
+    },
+
+    'Development-stage heuristic screening only. No validated docking, binding affinity, ADMET, or clinical prediction is performed.': {
+      uz: 'Faqat ishlab chiqish bosqichidagi evristik screening. Tasdiqlangan docking, bog‘lanish affiniteti, ADMET yoki klinik prognoz amalga oshirilmaydi.',
+      ru: 'Только эвристический скрининг на стадии разработки. Валидированный docking, аффинность связывания, ADMET или клиническое прогнозирование не выполняются.',
+      en: 'Development-stage heuristic screening only. No validated docking, binding affinity, ADMET, or clinical prediction is performed.'
+    }
+  };
+
+  return (
+    translations[value]?.[lang] ||
+    translations[value]?.en ||
+    value
+  );
+}
+
+
+/* =========================================================
+   RECURSIVE RESULT TRANSLATION
+========================================================= */
+
+function translateResult(value) {
+
   if (Array.isArray(value)) {
-    return value.map(item =>
-      translateValue(item)
+
+    return value.map(
+      item => translateResult(item)
     );
   }
 
@@ -274,17 +761,21 @@ function translateValue(value) {
     typeof value === 'object'
   ) {
 
-    const result = {};
+    const translated = {};
 
     for (const key in value) {
-      result[key] =
-        translateValue(value[key]);
+
+      const newKey =
+        translateResultKey(key);
+
+      translated[newKey] =
+        translateResult(value[key]);
     }
 
-    return result;
+    return translated;
   }
 
-  return value;
+  return translateResultValue(value);
 }
 
 
@@ -297,7 +788,7 @@ function renderResult(element, data) {
   if (!element) return;
 
   const translated =
-    translateValue(data);
+    translateResult(data);
 
   element.textContent =
     JSON.stringify(
@@ -312,22 +803,38 @@ function renderResult(element, data) {
    MODULE TITLE
 ========================================================= */
 
-function translateModuleTitle(name) {
+function translateModuleTitle(moduleName) {
 
   const map = {
-    'Molecular Analysis': 'moleculeAnalysis',
-    'Bioinformatics': 'bioinformatics',
-    'PDB & Structure': 'pdbStructure',
-    'Drug Discovery': 'drugDiscovery',
-    'Scientific Jobs': 'scientificJobs',
-    'Research Assistant': 'researchAssistant',
-    'Virtual Laboratory': 'virtualLaboratory',
-    'Reports & History': 'reportsHistory'
+
+    'Molecular Analysis':
+      'molecularAnalysis',
+
+    'Bioinformatics':
+      'bioinformatics',
+
+    'PDB & Structure':
+      'pdbStructure',
+
+    'Drug Discovery':
+      'drugDiscovery',
+
+    'Scientific Jobs':
+      'scientificJobs',
+
+    'Research Assistant':
+      'researchAssistant',
+
+    'Virtual Laboratory':
+      'virtualLaboratory',
+
+    'Reports & History':
+      'reportsHistory'
   };
 
-  return map[name]
-    ? t(map[name])
-    : name;
+  return map[moduleName]
+    ? t(map[moduleName])
+    : moduleName;
 }
 
 
@@ -345,11 +852,13 @@ async function api(path, options = {}) {
     options.body &&
     !headers['Content-Type']
   ) {
+
     headers['Content-Type'] =
       'application/json';
   }
 
   if (state.token) {
+
     headers.Authorization =
       `Bearer ${state.token}`;
   }
@@ -441,6 +950,7 @@ async function login() {
         '/auth/login',
         {
           method: 'POST',
+
           body: JSON.stringify({
             username,
             password
@@ -453,12 +963,14 @@ async function login() {
       data?.token;
 
     if (!token) {
+
       throw new Error(
         'Access token was not returned by the server.'
       );
     }
 
-    state.token = token;
+    state.token =
+      token;
 
     sessionStorage.setItem(
       TOKEN_KEY,
@@ -482,6 +994,7 @@ async function login() {
     );
 
     if (status) {
+
       status.textContent =
         t('loginFailed') +
         error.message;
@@ -501,7 +1014,8 @@ async function loadCurrentUser() {
     const data =
       await api('/auth/me');
 
-    state.user = data;
+    state.user =
+      data;
 
     updateUserUI();
 
@@ -525,7 +1039,9 @@ async function loadCurrentUser() {
 
 function updateUserUI() {
 
-  if (!state.user) return;
+  if (!state.user) {
+    return;
+  }
 
   const role =
     state.user.role ||
@@ -537,6 +1053,7 @@ function updateUserUI() {
     $('roleBadge');
 
   if (badge) {
+
     badge.textContent =
       String(role).toUpperCase();
   }
@@ -668,6 +1185,7 @@ function openWorkspace(title) {
   }
 
   if (workspaceTitle) {
+
     workspaceTitle.textContent =
       translateModuleTitle(title);
   }
@@ -686,7 +1204,10 @@ function closeWorkspace() {
   document
     .querySelectorAll('.tool')
     .forEach(tool => {
-      tool.classList.add('hidden');
+
+      tool.classList.add(
+        'hidden'
+      );
     });
 }
 
@@ -702,7 +1223,10 @@ function openModule(moduleName) {
   document
     .querySelectorAll('.tool')
     .forEach(tool => {
-      tool.classList.add('hidden');
+
+      tool.classList.add(
+        'hidden'
+      );
     });
 
   const map = {
@@ -741,19 +1265,34 @@ function openModule(moduleName) {
       $(toolId);
 
     if (tool) {
-      tool.classList.remove('hidden');
+
+      tool.classList.remove(
+        'hidden'
+      );
     }
   }
 
-  if (moduleName === 'Scientific Jobs') {
+  if (
+    moduleName ===
+    'Scientific Jobs'
+  ) {
+
     loadJobs();
   }
 
-  if (moduleName === 'Reports & History') {
+  if (
+    moduleName ===
+    'Reports & History'
+  ) {
+
     loadReports();
   }
 
-  if (moduleName === 'Virtual Laboratory') {
+  if (
+    moduleName ===
+    'Virtual Laboratory'
+  ) {
+
     loadWorkflows();
   }
 }
@@ -778,7 +1317,7 @@ async function analyzeMolecule() {
 
     if (status) {
       status.textContent =
-        'SMILES required.';
+        t('smilesRequired');
     }
 
     return;
@@ -796,6 +1335,7 @@ async function analyzeMolecule() {
         '/molecules/analyze',
         {
           method: 'POST',
+
           body: JSON.stringify({
             smiles
           })
@@ -859,6 +1399,7 @@ async function runBioinformatics() {
         '/bioinformatics/analyze',
         {
           method: 'POST',
+
           body: JSON.stringify({
             sequence
           })
@@ -910,12 +1451,12 @@ async function loadPDB() {
     return;
   }
 
-  try {
+  if (status) {
+    status.textContent =
+      t('loading');
+  }
 
-    if (status) {
-      status.textContent =
-        t('loading');
-    }
+  try {
 
     const data =
       await api(
@@ -943,12 +1484,12 @@ async function loadPDB() {
 
 
 /* =========================================================
-   DRUG DISCOVERY / VIRTUAL SCREENING
+   DRUG DISCOVERY
 ========================================================= */
 
 async function createDiscoverySession() {
 
-  const target =
+  const input =
     $('discoveryTarget')?.value?.trim() || '';
 
   const status =
@@ -957,7 +1498,7 @@ async function createDiscoverySession() {
   const result =
     $('discoveryResult');
 
-  if (!target) {
+  if (!input) {
 
     if (status) {
       status.textContent =
@@ -968,42 +1509,44 @@ async function createDiscoverySession() {
   }
 
   /*
-   * The backend requires at least one molecule.
+   * Format:
    *
-   * We use a SMILES molecule here.
-   * The user can enter a molecule in the same
-   * discovery field using:
-   *
-   * Target | Molecule
-   *
-   * Example:
    * EGFR | CCO
+   *
+   * EGFR = target
+   * CCO  = molecule / SMILES
    */
 
-  let targetValue = target;
-  let molecule = '';
+  let target =
+    input;
 
-  if (target.includes('|')) {
+  let molecule =
+    'CCO';
+
+  if (input.includes('|')) {
 
     const parts =
-      target
+      input
         .split('|')
-        .map(x => x.trim());
+        .map(
+          item => item.trim()
+        );
 
-    targetValue =
+    target =
       parts[0] || '';
 
     molecule =
-      parts[1] || '';
+      parts[1] || 'CCO';
   }
 
   if (!molecule) {
 
-    /*
-     * Default valid test molecule.
-     * CCO = ethanol.
-     */
-    molecule = 'CCO';
+    if (status) {
+      status.textContent =
+        t('moleculeRequired');
+    }
+
+    return;
   }
 
   if (status) {
@@ -1018,9 +1561,12 @@ async function createDiscoverySession() {
         '/discovery/screen',
         {
           method: 'POST',
+
           body: JSON.stringify({
-            target: targetValue,
-            molecules: [molecule]
+            target,
+            molecules: [
+              molecule
+            ]
           })
         }
       );
@@ -1057,7 +1603,9 @@ async function loadJobStatus() {
   try {
 
     const data =
-      await api('/jobs/status');
+      await api(
+        '/jobs/status'
+      );
 
     if (status) {
 
@@ -1074,7 +1622,7 @@ async function loadJobStatus() {
         0;
 
       status.textContent =
-        `${worker} | ${queue} | ${t('jobsCount')}: ${active}`;
+        `${worker} | ${queue} | ${t('jobCount')}: ${active}`;
     }
 
   } catch (error) {
@@ -1116,13 +1664,13 @@ async function loadJobs() {
           t('noJobs');
       }
 
-      return;
-    }
+    } else {
 
-    renderResult(
-      result,
-      data
-    );
+      renderResult(
+        result,
+        data
+      );
+    }
 
   } catch (error) {
 
@@ -1159,6 +1707,7 @@ async function createJob() {
         '/jobs',
         {
           method: 'POST',
+
           body: JSON.stringify({
             type: jobType
           })
@@ -1199,12 +1748,12 @@ async function loadReports() {
   const result =
     $('reportsResult');
 
-  try {
+  if (status) {
+    status.textContent =
+      t('reportLoading');
+  }
 
-    if (status) {
-      status.textContent =
-        t('reportLoading');
-    }
+  try {
 
     const data =
       await api('/reports');
@@ -1254,12 +1803,12 @@ async function loadWorkflows() {
   const status =
     $('workflowStatus');
 
-  try {
+  if (status) {
+    status.textContent =
+      t('workflowLoading');
+  }
 
-    if (status) {
-      status.textContent =
-        t('workflowLoading');
-    }
+  try {
 
     const data =
       await api('/workflows');
@@ -1284,14 +1833,8 @@ async function loadWorkflows() {
 
     if (status) {
 
-      const count =
-        workflows.length;
-
-      const label =
-        t('workflowsCount');
-
       status.textContent =
-        `${label}: ${count}`;
+        `${t('workflowCount')}: ${workflows.length}`;
     }
 
   } catch (error) {
@@ -1305,7 +1848,7 @@ async function loadWorkflows() {
 
 
 /* =========================================================
-   RESEARCH
+   RESEARCH ASSISTANT
 ========================================================= */
 
 async function searchResearch() {
@@ -1323,18 +1866,19 @@ async function searchResearch() {
     return;
   }
 
-  try {
+  if (status) {
+    status.textContent =
+      t('searching');
+  }
 
-    if (status) {
-      status.textContent =
-        t('searching');
-    }
+  try {
 
     const data =
       await api(
         '/research/search',
         {
           method: 'POST',
+
           body: JSON.stringify({
             query
           })
@@ -1362,78 +1906,7 @@ async function searchResearch() {
 
 
 /* =========================================================
-   REFRESH DYNAMIC UI
-========================================================= */
-
-function refreshDynamicUI() {
-
-  /*
-   * Re-render current visible results using
-   * the currently selected language.
-   *
-   * Existing raw API objects are not stored,
-   * therefore statuses are refreshed here.
-   */
-
-  checkHealth();
-
-  const workspace =
-    $('workspace');
-
-  if (
-    workspace &&
-    !workspace.classList.contains('hidden')
-  ) {
-
-    const activeTool =
-      document.querySelector(
-        '.tool:not(.hidden)'
-      );
-
-    if (activeTool) {
-
-      const toolToModule = {
-
-        molecularTool:
-          'Molecular Analysis',
-
-        bioTool:
-          'Bioinformatics',
-
-        pdbTool:
-          'PDB & Structure',
-
-        discoveryTool:
-          'Drug Discovery',
-
-        jobsTool:
-          'Scientific Jobs',
-
-        researchTool:
-          'Research Assistant',
-
-        workflowTool:
-          'Virtual Laboratory',
-
-        reportsTool:
-          'Reports & History'
-      };
-
-      const moduleName =
-        toolToModule[
-          activeTool.id
-        ];
-
-      if (moduleName) {
-        openWorkspace(moduleName);
-      }
-    }
-  }
-}
-
-
-/* =========================================================
-   LANGUAGE SELECTORS
+   LANGUAGE SWITCH
 ========================================================= */
 
 function bindLanguageSelectors() {
@@ -1443,41 +1916,165 @@ function bindLanguageSelectors() {
     $('languageSelector')
   ];
 
-  selectors.forEach(selector => {
+  selectors.forEach(
+    selector => {
 
-    if (!selector) return;
-
-    selector.value =
-      getLanguage();
-
-    selector.addEventListener(
-      'change',
-      function () {
-
-        const lang =
-          this.value || 'uz';
-
-        localStorage.setItem(
-          'medgen_language',
-          lang
-        );
-
-        selectors.forEach(other => {
-
-          if (other) {
-            other.value = lang;
-          }
-        });
-
-        refreshDynamicUI();
+      if (!selector) {
+        return;
       }
-    );
-  });
+
+      selector.value =
+        getLanguage();
+
+      selector.addEventListener(
+        'change',
+        function() {
+
+          const lang =
+            this.value || 'uz';
+
+          localStorage.setItem(
+            'medgen_language',
+            lang
+          );
+
+          selectors.forEach(
+            other => {
+
+              if (other) {
+                other.value =
+                  lang;
+              }
+            }
+          );
+
+          /*
+           * index.html handles all
+           * static data-i18n elements.
+           *
+           * We refresh dynamic statuses here.
+           */
+
+          refreshDynamicUI();
+        }
+      );
+    }
+  );
 }
 
 
 /* =========================================================
-   EVENTS
+   DYNAMIC UI REFRESH
+========================================================= */
+
+function refreshDynamicUI() {
+
+  checkHealth();
+
+  const workspace =
+    $('workspace');
+
+  if (
+    workspace &&
+    !workspace.classList.contains(
+      'hidden'
+    )
+  ) {
+
+    const title =
+      $('workspaceTitle');
+
+    if (title) {
+
+      const modules = {
+
+        'Molecular Analysis':
+          'molecularAnalysis',
+
+        'Molekulyar tahlil':
+          'molecularAnalysis',
+
+        'Молекулярный анализ':
+          'molecularAnalysis',
+
+        'Bioinformatics':
+          'bioinformatics',
+
+        'Bioinformatika':
+          'bioinformatics',
+
+        'Биоинформатика':
+          'bioinformatics',
+
+        'PDB & Structure':
+          'pdbStructure',
+
+        'PDB va struktura':
+          'pdbStructure',
+
+        'PDB и структура':
+          'pdbStructure',
+
+        'Drug Discovery':
+          'drugDiscovery',
+
+        'Dori vositalarini kashf qilish':
+          'drugDiscovery',
+
+        'Поиск лекарственных средств':
+          'drugDiscovery',
+
+        'Scientific Jobs':
+          'scientificJobs',
+
+        'Ilmiy vazifalar':
+          'scientificJobs',
+
+        'Научные задачи':
+          'scientificJobs',
+
+        'Research Assistant':
+          'researchAssistant',
+
+        'Tadqiqot yordamchisi':
+          'researchAssistant',
+
+        'Исследовательский помощник':
+          'researchAssistant',
+
+        'Virtual Laboratory':
+          'virtualLaboratory',
+
+        'Virtual laboratoriya':
+          'virtualLaboratory',
+
+        'Виртуальная лаборатория':
+          'virtualLaboratory',
+
+        'Reports & History':
+          'reportsHistory',
+
+        'Hisobotlar va tarix':
+          'reportsHistory',
+
+        'Отчёты и история':
+          'reportsHistory'
+      };
+
+      const key =
+        modules[title.textContent];
+
+      if (key) {
+        title.textContent =
+          t(key);
+      }
+    }
+  }
+}
+
+
+/* =========================================================
+   EVENT BINDING
 ========================================================= */
 
 function bindEvents() {
@@ -1503,6 +2100,7 @@ function bindEvents() {
     $('logoutBtn');
 
   if (logoutBtn) {
+
     logoutBtn.addEventListener(
       'click',
       logout
@@ -1514,6 +2112,7 @@ function bindEvents() {
     $('workspaceClose');
 
   if (workspaceClose) {
+
     workspaceClose.addEventListener(
       'click',
       closeWorkspace
@@ -1523,24 +2122,27 @@ function bindEvents() {
 
   document
     .querySelectorAll('.module')
-    .forEach(button => {
+    .forEach(
+      button => {
 
-      button.addEventListener(
-        'click',
-        () => {
+        button.addEventListener(
+          'click',
+          () => {
 
-          openModule(
-            button.dataset.module
-          );
-        }
-      );
-    });
+            openModule(
+              button.dataset.module
+            );
+          }
+        );
+      }
+    );
 
 
   const molecularRun =
     $('molecularRun');
 
   if (molecularRun) {
+
     molecularRun.addEventListener(
       'click',
       analyzeMolecule
@@ -1552,6 +2154,7 @@ function bindEvents() {
     $('bioRun');
 
   if (bioRun) {
+
     bioRun.addEventListener(
       'click',
       runBioinformatics
@@ -1563,6 +2166,7 @@ function bindEvents() {
     $('pdbRun');
 
   if (pdbRun) {
+
     pdbRun.addEventListener(
       'click',
       loadPDB
@@ -1574,6 +2178,7 @@ function bindEvents() {
     $('discoveryRun');
 
   if (discoveryRun) {
+
     discoveryRun.addEventListener(
       'click',
       createDiscoverySession
@@ -1585,6 +2190,7 @@ function bindEvents() {
     $('jobCreate');
 
   if (jobCreate) {
+
     jobCreate.addEventListener(
       'click',
       createJob
@@ -1596,6 +2202,7 @@ function bindEvents() {
     $('jobsRefresh');
 
   if (jobsRefresh) {
+
     jobsRefresh.addEventListener(
       'click',
       loadJobs
@@ -1607,6 +2214,7 @@ function bindEvents() {
     $('reportsRefresh');
 
   if (reportsRefresh) {
+
     reportsRefresh.addEventListener(
       'click',
       loadReports
@@ -1618,6 +2226,7 @@ function bindEvents() {
     $('workflowRefresh');
 
   if (workflowRefresh) {
+
     workflowRefresh.addEventListener(
       'click',
       loadWorkflows
@@ -1629,6 +2238,7 @@ function bindEvents() {
     $('researchRun');
 
   if (researchRun) {
+
     researchRun.addEventListener(
       'click',
       searchResearch
@@ -1709,13 +2319,17 @@ window.loadPDB =
 window.searchResearch =
   searchResearch;
 
+window.createDiscoverySession =
+  createDiscoverySession;
+
 
 /* =========================================================
    START
 ========================================================= */
 
 if (
-  document.readyState === 'loading'
+  document.readyState ===
+  'loading'
 ) {
 
   document.addEventListener(
@@ -1726,4 +2340,4 @@ if (
 } else {
 
   init();
-}
+         }
