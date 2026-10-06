@@ -21,7 +21,10 @@ from urllib.error import HTTPError, URLError
 from fastapi import BackgroundTasks, Depends, FastAPI, HTTPException, Request
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.security import HTTPAuthorizationCredentials, HTTPBearer
-from .knowledge_engine import make_entity, make_relation, search_graph, neighborhood, validate_graph, normalize_entity
+try:
+    from .knowledge_engine import make_entity, make_relation, search_graph, neighborhood, validate_graph, normalize_entity
+except ImportError:
+    from knowledge_engine import make_entity, make_relation, search_graph, neighborhood, validate_graph, normalize_entity
 from pydantic import BaseModel
 from rdkit import Chem, DataStructs
 from rdkit.Chem import AllChem, Descriptors, Lipinski, QED, rdMolDescriptors
