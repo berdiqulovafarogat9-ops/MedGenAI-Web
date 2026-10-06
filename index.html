@@ -508,6 +508,12 @@ frame-ancestors 'none'">
     </button>
 
 
+    <button class="module" data-module="Global Platform">
+      <b>🌐</b>
+      <strong>Global Platform</strong>
+      <span>Organizations, workspaces, projects and API</span>
+    </button>
+
     <button
       class="module"
       data-module="Reports & History">
@@ -856,6 +862,22 @@ frame-ancestors 'none'">
 
       </div>
 
+
+      <!-- GLOBAL PLATFORM -->
+      <div id="platformTool" class="tool hidden">
+        <p class="muted">Global Platform: organizations, teams, workspaces, projects, API keys, audit and usage.</p>
+        <div style="display:flex;gap:8px;flex-wrap:wrap">
+          <button id="platformRefresh" class="ghost small" type="button">Refresh</button>
+          <button id="platformCreateOrg" class="primary small" type="button">Create organization</button>
+          <button id="platformCreateWorkspace" class="ghost small" type="button">Create workspace</button>
+          <button id="platformCreateProject" class="ghost small" type="button">Create project</button>
+        </div>
+        <input id="platformOrgName" placeholder="Organization name">
+        <input id="platformWorkspaceName" placeholder="Workspace name">
+        <input id="platformProjectName" placeholder="Project name">
+        <div id="platformStatus" class="status"></div>
+        <pre id="platformResult" class="result"></pre>
+      </div>
 
       <!-- REPORTS -->
 
