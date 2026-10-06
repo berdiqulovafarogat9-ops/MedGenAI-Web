@@ -2179,6 +2179,37 @@ def public_platform_overview(request: Request):
     }
 
 
+
+# =========================================================
+# PHASE 9 — PRODUCTION READINESS / HEALTH / METRICS
+# =========================================================
+APP_STARTED_AT = datetime.now(timezone.utc).isoformat()
+REQUEST_METRICS = {"total": 0, "errors": 0, "last_request_at": None}
+
+@app.get("/health")
+def health():
+    return {"status": "ok", "service": "medgen-api", "started_at": APP_STARTED_AT}
+
+@app.get("/api/v1/health")
+def api_health():
+    return {"status": "ok", "service": "medgen-api", "timestamp": datetime.now(timezone.utc).isoformat()}
+
+@app.get("/api/v1/platform/metrics")
+def platform_metrics(user=Depends(get_current_user)):
+    if str(user.get("role","")).upper() != "SUPER_ADMIN":
+        raise HTTPException(status_code=403, detail="SUPER_ADMIN required.")
+    return {
+        "status": "ok",
+        "requests": REQUEST_METRICS,
+        "organizations": len(organizations_store),
+        "workspaces": len(workspaces_store),
+        "projects": len(projects_store),
+        "api_keys": len(api_keys_store),
+        "webhooks": len(webhooks_store),
+        "experiments": len(experiments_store),
+        "reports": len(reports_store),
+    }
+
 # =========================================================
 # PHASE 8.3 — PLAN / QUOTA / WEBHOOK FOUNDATION
 # =========================================================
