@@ -70,23 +70,17 @@ ADMIN_USERNAME = os.getenv(
     "admin",
 )
 
-ADMIN_PASSWORD = os.getenv(
-    "MEDGEN_ADMIN_PASSWORD",
-    "MedGenAI-Admin-2026",
-)
+ADMIN_PASSWORD = os.getenv("MEDGEN_ADMIN_PASSWORD")
+if not ADMIN_PASSWORD:
+    if os.getenv("RENDER"):
+        raise RuntimeError("MEDGEN_ADMIN_PASSWORD is required in production.")
+    ADMIN_PASSWORD = "MedGenAI-Admin-2026"
 
-SECRET_KEY = os.getenv("MEDGEN_SECRET_KEY", "")
+SECRET_KEY = os.getenv("MEDGEN_SECRET_KEY")
 if not SECRET_KEY:
+    if os.getenv("RENDER"):
+        raise RuntimeError("MEDGEN_SECRET_KEY is required in production.")
     SECRET_KEY = secrets.token_urlsafe(32)
-
-if os.getenv("RENDER") and (
-    ADMIN_PASSWORD == "MedGenAI-Admin-2026"
-    or SECRET_KEY == "CHANGE-ME-IN-PRODUCTION"
-):
-    raise RuntimeError(
-        "Production secrets are not configured. Set "
-        "MEDGEN_ADMIN_PASSWORD and MEDGEN_SECRET_KEY."
-    )
 
 TOKEN_TTL_SECONDS = int(os.getenv("MEDGEN_TOKEN_TTL_SECONDS", "28800"))
 
