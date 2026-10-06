@@ -16,6 +16,12 @@ from pydantic import BaseModel
 from rdkit import Chem, DataStructs
 from rdkit.Chem import AllChem, Descriptors, Lipinski, QED, rdMolDescriptors
 
+try:
+    from vina import Vina
+    VINA_AVAILABLE = True
+except Exception:
+    VINA_AVAILABLE = False
+
 
 # =========================================================
 # APP
@@ -863,6 +869,94 @@ def discovery_screen(
         ),
     }
 
+
+
+# =========================================================
+# MOLECULAR DOCKING ENGINE
+# =========================================================
+
+class DockingRequest(BaseModel):
+    target: str
+    ligand_smiles: str
+    center_x: float | None = None
+    center_y: float | None = None
+    center_z: float | None = None
+    size_x: float = 20.0
+    size_y: float = 20.0
+    size_z: float = 20.0
+
+
+@app.get("/api/v1/docking/status")
+def docking_status(user=Depends(get_current_user)):
+    return {
+        "status": "ready" if VINA_AVAILABLE else "unavailable",
+        "module": "Molecular Docking",
+        "engine": "AutoDock Vina",
+        "vina_available": VINA_AVAILABLE,
+        "meeko": True,
+        "user": user["username"],
+        "message": (
+            "AutoDock Vina engine is available. "
+            "Receptor preparation and docking coordinates are required "
+            "before a scientific docking run."
+            if VINA_AVAILABLE
+            else
+            "AutoDock Vina is not available in the current runtime."
+        ),
+    }
+
+
+@app.post("/api/v1/docking/prepare")
+def prepare_docking(
+    data: DockingRequest,
+    user=Depends(get_current_user),
+):
+    smiles = data.ligand_smiles.strip()
+    target = data.target.strip()
+
+    if not target:
+        raise HTTPException(status_code=400, detail="Target is required")
+
+    if not smiles:
+        raise HTTPException(status_code=400, detail="Ligand SMILES is required")
+
+    mol = Chem.MolFromSmiles(smiles)
+    if mol is None:
+        raise HTTPException(status_code=400, detail="Invalid ligand SMILES")
+
+    canonical = Chem.MolToSmiles(mol)
+
+    return {
+        "status": "prepared",
+        "module": "Molecular Docking",
+        "engine": "AutoDock Vina",
+        "target": target,
+        "ligand": {
+            "input_smiles": smiles,
+            "canonical_smiles": canonical,
+            "formula": rdMolDescriptors.CalcMolFormula(mol),
+            "molecular_weight": round(Descriptors.MolWt(mol), 4),
+        },
+        "box": {
+            "center": {
+                "x": data.center_x,
+                "y": data.center_y,
+                "z": data.center_z,
+            },
+            "size": {
+                "x": data.size_x,
+                "y": data.size_y,
+                "z": data.size_z,
+            },
+        },
+        "next_step": "receptor_preparation_and_vina_run",
+        "warning": (
+            "No docking score is reported until a valid receptor PDBQT "
+            "and scientifically defined docking box are supplied."
+        ),
+        "user": user["username"],
+    }
+}
 
 # =========================================================
 # DISCOVERY SESSION DETAILS
