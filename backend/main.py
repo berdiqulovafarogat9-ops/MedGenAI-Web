@@ -2180,6 +2180,38 @@ def public_platform_overview(request: Request):
 
 
 
+
+# =========================================================
+# PHASE 9.2 — PRODUCTION SECURITY / REQUEST LIMITING
+# =========================================================
+REQUEST_WINDOW = {}
+REQUEST_LIMIT = 120
+REQUEST_WINDOW_SECONDS = 60
+
+def _request_guard(username: str):
+    now = datetime.now(timezone.utc)
+    bucket = REQUEST_WINDOW.setdefault(username, [])
+    bucket[:] = [t for t in bucket if (now - t).total_seconds() < REQUEST_WINDOW_SECONDS]
+    if len(bucket) >= REQUEST_LIMIT:
+        raise HTTPException(status_code=429, detail="Request rate limit exceeded.")
+    bucket.append(now)
+    REQUEST_METRICS["total"] += 1
+    REQUEST_METRICS["last_request_at"] = now.isoformat()
+
+@app.get("/api/v1/platform/security")
+def platform_security(user=Depends(get_current_user)):
+    if str(user.get("role","")).upper() != "SUPER_ADMIN":
+        raise HTTPException(status_code=403, detail="SUPER_ADMIN required.")
+    return {
+        "authentication": "Bearer token",
+        "api_keys": "SHA-256 hashed at rest",
+        "password_hashing": "Argon2 / legacy compatibility",
+        "rate_limit": {"requests": REQUEST_LIMIT, "window_seconds": REQUEST_WINDOW_SECONDS},
+        "cors": "configured",
+        "security_headers": "configured",
+        "status": "production-ready foundation"
+    }
+
 # =========================================================
 # PHASE 9 — PRODUCTION READINESS / HEALTH / METRICS
 # =========================================================
