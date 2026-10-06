@@ -64,3 +64,25 @@ def validate_graph(entities: list[dict], relations: list[dict]) -> list[str]:
         if r.get("object") not in ids: errors.append("Missing object: "+str(r.get("object")))
         if r.get("relation") not in BIOMEDICAL_RELATIONS: errors.append("Unsupported relation: "+str(r.get("relation")))
     return errors
+
+def graph_stats(entities: list[dict], relations: list[dict]) -> dict:
+    types=defaultdict(int); reltypes=defaultdict(int)
+    for e in entities: types[e.get("type","concept")]+=1
+    for r in relations: reltypes[r.get("relation","unknown")]+=1
+    return {"entities":len(entities),"relations":len(relations),"entity_types":dict(types),"relation_types":dict(reltypes)}
+
+def find_paths(entities: list[dict], relations: list[dict], start: str, end: str, max_hops: int=4) -> list[list[str]]:
+    s,e=normalize_entity(start),normalize_entity(end)
+    adj=defaultdict(list)
+    for r in relations:
+        adj[r["subject"]].append((r["object"],r["relation"]))
+        adj[r["object"]].append((r["subject"],r["relation"]))
+    queue=[[s]]; paths=[]
+    while queue and len(paths)<25:
+        path=queue.pop(0); node=path[-1]
+        if node==e:
+            paths.append(path); continue
+        if len(path)-1>=max_hops: continue
+        for nxt,_rel in adj.get(node,[]):
+            if nxt not in path: queue.append(path+[nxt])
+    return paths
