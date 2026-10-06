@@ -6,7 +6,7 @@
 
 const API_BASE =
   window.MEDGEN_API_BASE ||
-  'https://medgenai-web-1.onrender.com/api/v1';
+  '/api/v1';
 
 const TOKEN_KEY = 'medgen_access_token';
 
