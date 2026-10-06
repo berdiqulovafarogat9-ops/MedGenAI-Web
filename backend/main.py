@@ -208,6 +208,12 @@ class ResearchRequest(BaseModel):
     limit: int = 10
 
 
+class ResearchAgentRequest(BaseModel):
+    query: str
+    limit: int = 8
+    focus: str = ""
+
+
 class WorkflowRequest(BaseModel):
     workflow_type: str
     input: dict[str, Any] = {}
@@ -1050,6 +1056,63 @@ def update_experiment(
 # RESEARCH
 # =========================================================
 
+def _pubmed_articles(query: str, limit: int = 8) -> list[dict]:
+    """Retrieve PubMed evidence with title, abstract, DOI and publication metadata."""
+    limit = max(1, min(int(limit), 12))
+    url = ("https://eutils.ncbi.nlm.nih.gov/entrez/eutils/esearch.fcgi"
+           "?db=pubmed&term=" + quote(query) + "&retmax=" + str(limit) + "&retmode=xml")
+    req = Request(url, headers={"User-Agent": "MedGenAI/1.0 (research-agent)"})
+    with urlopen(req, timeout=15) as response:
+        root = ET.fromstring(response.read())
+    pmids = [x.text for x in root.findall(".//Id") if x.text]
+    if not pmids:
+        return []
+    fetch = ("https://eutils.ncbi.nlm.nih.gov/entrez/eutils/efetch.fcgi"
+             "?db=pubmed&id=" + ",".join(pmids) + "&retmode=xml")
+    req = Request(fetch, headers={"User-Agent": "MedGenAI/1.0 (research-agent)"})
+    with urlopen(req, timeout=15) as response:
+        articles = ET.fromstring(response.read())
+    results=[]
+    for article in articles.findall(".//PubmedArticle"):
+        pmid=article.findtext(".//PMID") or ""
+        title_node=article.find(".//ArticleTitle")
+        title="".join(title_node.itertext()) if title_node is not None else ""
+        abstract=" ".join("".join(x.itertext()) for x in article.findall(".//Abstract/AbstractText"))
+        doi=""
+        for aid in article.findall(".//ArticleId"):
+            if aid.attrib.get("IdType") == "doi": doi=aid.text or ""
+        results.append({
+            "pmid": pmid, "title": title, "abstract": abstract,
+            "journal": article.findtext(".//Journal/Title") or "",
+            "publication_date": article.findtext(".//PubDate/Year") or article.findtext(".//PubDate/MedlineDate") or "",
+            "doi": doi, "source": "PubMed",
+            "url": "https://pubmed.ncbi.nlm.nih.gov/" + pmid + "/"
+        })
+    return results
+
+
+def _evidence_score(query: str, article: dict) -> float:
+    terms=[t.lower() for t in re.findall(r"[A-Za-z0-9-]{3,}", query) if t.lower() not in {"and","the","for","with","from"}]
+    text=(article.get("title","")+" "+article.get("abstract","")).lower()
+    if not terms: return 0.0
+    hits=sum(1 for term in terms if term in text)
+    title_hits=sum(1 for term in terms if term in article.get("title","").lower())
+    return round(min(100.0, hits/len(terms)*75 + title_hits/len(terms)*25), 2)
+
+
+def _extract_evidence_sentences(query: str, abstract: str, max_sentences: int = 3) -> list[str]:
+    terms=[t.lower() for t in re.findall(r"[A-Za-z0-9-]{3,}", query)]
+    sentences=re.split(r"(?<=[.!?])\\s+", abstract or "")
+    scored=[]
+    for sentence in sentences:
+        s=sentence.strip()
+        if len(s)<40: continue
+        score=sum(1 for term in terms if term in s.lower())
+        if score: scored.append((score,s))
+    scored.sort(key=lambda x:x[0], reverse=True)
+    return [s for _,s in scored[:max_sentences]]
+
+
 def normalize_pubmed_query(query: str) -> str:
     q = query.strip()
     replacements = {
@@ -1135,6 +1198,42 @@ def research_search(
 # =========================================================
 # PUBMED ARTICLE DETAILS
 # =========================================================
+
+@app.post("/api/v1/research/agent")
+def research_agent(data: ResearchAgentRequest, user=Depends(get_current_user)):
+    query=data.query.strip()
+    if not query: raise HTTPException(status_code=400, detail="Research query is required")
+    normalized=normalize_pubmed_query(query)
+    if data.focus.strip(): normalized += " " + normalize_pubmed_query(data.focus.strip())
+    try:
+        articles=_pubmed_articles(normalized, data.limit)
+    except (URLError, TimeoutError, ET.ParseError):
+        raise HTTPException(status_code=503, detail="PubMed service unavailable")
+    for article in articles:
+        article["relevance_score"]=_evidence_score(normalized, article)
+        article["evidence"]=_extract_evidence_sentences(normalized, article.get("abstract", ""))
+    articles.sort(key=lambda x:(x.get("relevance_score",0), x.get("publication_date", "")), reverse=True)
+    evidence=[{
+        "rank":i+1, "pmid":a["pmid"], "title":a["title"], "journal":a["journal"],
+        "publication_date":a["publication_date"], "relevance_score":a["relevance_score"],
+        "evidence":a["evidence"], "citation":f"PMID: {a['pmid']}", "url":a["url"]
+    } for i,a in enumerate(articles)]
+    synthesis=[]
+    for item in evidence[:5]:
+        if item["evidence"]:
+            synthesis.append({"pmid":item["pmid"],"claim":item["evidence"][0],"source":item["citation"]})
+    report={
+        "status":"completed", "module":"Research Intelligence", "query":query,
+        "normalized_query":normalized, "plan":["normalize_query","retrieve_pubmed_evidence","rank_relevance","extract_evidence","build_cited_synthesis"],
+        "evidence_count":len(evidence), "evidence":evidence, "synthesis":synthesis,
+        "limitations":["Evidence is limited to retrieved PubMed records and abstracts.","The synthesis is extractive and does not establish causality, clinical efficacy, or treatment advice."],
+        "source":"NCBI PubMed E-utilities", "user":user["username"]
+    }
+    now=datetime.now(timezone.utc).isoformat()
+    reports_store.insert(0,{"id":secrets.token_hex(10),"type":"research_intelligence","title":"Research Intelligence — "+query,"user":user["username"],"created_at":now,"report":report})
+    activity_log.insert(0,{"type":"research_agent","username":user["username"],"query":query,"evidence_count":len(evidence),"at":now})
+    return report
+
 
 @app.get("/api/v1/research/pubmed/{pmid}")
 def pubmed_article(pmid: str, user=Depends(get_current_user)):
