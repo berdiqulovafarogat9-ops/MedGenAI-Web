@@ -1197,7 +1197,7 @@ async function saveProfile() {
     const avatar = await readAvatar($('profileAvatar')?.files?.[0]);
 
     const birthDateRaw = $('profileBirthDate')?.value?.trim() || '';
-    const birthMatch = birthDateRaw.match(/^(\\d{1,2})\\.(\\d{1,2})\\.(\\d{4})$/);
+    const birthMatch = birthDateRaw.match(/^(\d{1,2})\.(\d{1,2})\.(\d{4})$/);
     const birthDayRaw = birthMatch ? birthMatch[1] : '';
     const birthMonthRaw = birthMatch ? birthMatch[2] : '';
     const birthYearRaw = birthMatch ? birthMatch[3] : '';
