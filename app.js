@@ -1330,6 +1330,19 @@ async function acceptLegalConsent() {
 ========================================================= */
 
 
+function openProfileEditor() {
+  const modal = $('profileModal');
+  const button = $('profileSave');
+  if (!modal) return;
+  modal.classList.remove('hidden');
+  if (button) {
+    button.style.display = '';
+    button.disabled = false;
+    button.textContent = 'Saqlash';
+  }
+  openProfile();
+}
+
 function isSuperAdmin() {
   return String(state.user?.role || '').toUpperCase() === 'SUPER_ADMIN';
 }
@@ -1370,6 +1383,13 @@ async function loadAdminDashboard() {
         await loadAdminDetails(button.dataset.admin);
       });
     });
+
+    const details = $('adminDetails');
+    const edit = document.createElement('div');
+    edit.style.marginTop = '16px';
+    edit.innerHTML = '<button type="button" class="primary" id="adminProfileEdit">✏️ Profilni tahrirlash</button>';
+    box.appendChild(edit);
+    $('adminProfileEdit')?.addEventListener('click', openProfileEditor);
   } catch (e) {
     box.innerHTML = '<div class="status">❌ ' + e.message + '</div>';
   }
