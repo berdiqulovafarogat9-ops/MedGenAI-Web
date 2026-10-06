@@ -601,6 +601,30 @@ def discovery_session(
 @app.post(
     "/api/v1/research/search"
 )
+def normalize_pubmed_query(query: str) -> str:
+    q = query.strip()
+    replacements = {
+        "o‘pka saratoni": "lung cancer",
+        "o'pka saratoni": "lung cancer",
+        "o'pka": "lung",
+        "o‘pka": "lung",
+        "saraton": "cancer",
+        "mutatsiyalari": "mutations",
+        "mutatsiyasi": "mutation",
+        "mutatsiya": "mutation",
+        "oqsil": "protein",
+        "oqsili": "protein",
+        "geni": "gene",
+        "genlar": "genes",
+        "dori": "drug",
+        "davolash": "treatment",
+        "hujayra": "cell",
+    }
+    low = q.lower()
+    for uz, en in replacements.items():
+        low = low.replace(uz, en)
+    return low
+
 def research_search(
     data: ResearchRequest,
     user=Depends(get_current_user),
