@@ -1908,6 +1908,15 @@ async function loadPlatformOverview() {
   }
 }
 
+async function loadPlatformPlans() {
+  try { renderResult($('platformResult'), await api('/platform/plans')); }
+  catch(e) { if($('platformStatus')) $('platformStatus').textContent=e.message; }
+}
+async function loadPlatformWebhooks() {
+  const org=(state.platformOrganizations||[])[0]; if(!org)return;
+  try { renderResult($('platformResult'), await api('/platform/webhooks?organization_id='+encodeURIComponent(org.id))); }
+  catch(e) { if($('platformStatus')) $('platformStatus').textContent=e.message; }
+}
 async function loadPlatformMembers() {
   const org = (state.platformOrganizations || [])[0];
   if (!org) return;
@@ -3193,6 +3202,11 @@ function bindEvents() {
 
   const platformRefresh = $('platformRefresh');
   if (platformRefresh) platformRefresh.addEventListener('click', loadPlatformOverview);
+
+  const platformPlan = $('platformPlan');
+  if (platformPlan) platformPlan.addEventListener('click', loadPlatformPlans);
+  const platformWebhooks = $('platformWebhooks');
+  if (platformWebhooks) platformWebhooks.addEventListener('click', loadPlatformWebhooks);
 
   const platformMembers = $('platformMembers');
   if (platformMembers) platformMembers.addEventListener('click', loadPlatformMembers);
