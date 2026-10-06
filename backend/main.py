@@ -239,7 +239,93 @@ def login(data: LoginRequest):
 def me(
     user=Depends(get_current_user),
 ):
-    return user
+    profile = user_profiles.get(user["username"], {})
+    consent = user_consents.get(user["username"], {})
+    return {
+        **user,
+        "profile": profile,
+        "consent": consent,
+        "profile_complete": bool(profile.get("full_name")),
+        "consent_complete": all([
+            consent.get("terms_accepted", False),
+            consent.get("privacy_accepted", False),
+            consent.get("data_processing_accepted", False),
+            consent.get("research_disclaimer_accepted", False),
+        ]),
+    }
+
+
+@app.post("/api/v1/auth/logout")
+def logout(credentials: HTTPAuthorizationCredentials = Depends(security)):
+    if credentials:
+        username = tokens.pop(credentials.credentials, None)
+        token_created_at.pop(credentials.credentials, None)
+        if username:
+            activity_log.insert(0, {
+                "type": "logout",
+                "username": username,
+                "at": datetime.now(timezone.utc).isoformat(),
+            })
+    return {"status": "logged_out"}
+
+
+@app.get("/api/v1/profile")
+def get_profile(user=Depends(get_current_user)):
+    return {
+        "username": user["username"],
+        "role": user["role"],
+        "profile": user_profiles.get(user["username"], {}),
+    }
+
+
+@app.put("/api/v1/profile")
+def update_profile(data: ProfileRequest, user=Depends(get_current_user)):
+    profile = data.model_dump()
+    user_profiles[user["username"]] = profile
+    activity_log.insert(0, {
+        "type": "profile_updated",
+        "username": user["username"],
+        "at": datetime.now(timezone.utc).isoformat(),
+    })
+    return {"status": "saved", "username": user["username"], "profile": profile}
+
+
+@app.get("/api/v1/legal/documents")
+def legal_documents():
+    return {
+        "version": "1.0",
+        "terms": {
+            "title": "MedGen AI Ommaviy Oferta va Foydalanish Shartlari",
+            "text": "MedGen AI ilmiy tadqiqot va hisoblash platformasi. Platformadagi natijalar tadqiqot va ishlab chiqish maqsadida taqdim etiladi. Ular mustaqil ilmiy ekspertiza, klinik tashxis yoki davolash bo‘yicha ko‘rsatma o‘rnini bosmaydi."
+        },
+        "privacy": {
+            "title": "Maxfiylik siyosati",
+            "text": "Platforma hisob, xavfsizlik va ilmiy ish jarayonlarini yuritish uchun zarur bo‘lgan ma’lumotlarni qayta ishlashi mumkin. Foydalanuvchi profilidagi ixtiyoriy ma’lumotlar foydalanuvchi tomonidan kiritiladi."
+        },
+        "data_processing": {
+            "title": "Ma’lumotlarni qayta ishlashga rozilik",
+            "text": "Foydalanuvchi platforma funksiyalarini ishlatish uchun yuborgan ma’lumotlarini autentifikatsiya, ilmiy workflow va xizmat xavfsizligi doirasida qayta ishlashga rozilik beradi."
+        },
+        "research_disclaimer": {
+            "title": "Ilmiy natijalar bo‘yicha ogohlantirish",
+            "text": "Hisoblash natijalari eksperimental yoki klinik tasdiq emas. Dori, tashxis yoki davolash qarorlari faqat tegishli malakali mutaxassislar tomonidan mustaqil baholanishi kerak."
+        }
+    }
+
+
+@app.post("/api/v1/legal/consent")
+def save_consent(data: ConsentRequest, user=Depends(get_current_user)):
+    if not all([
+        data.terms_accepted,
+        data.privacy_accepted,
+        data.data_processing_accepted,
+        data.research_disclaimer_accepted,
+    ]):
+        raise HTTPException(status_code=400, detail="All required agreements must be accepted.")
+    consent = {**data.model_dump(), "version": "1.0", "accepted_at": datetime.now(timezone.utc).isoformat()}
+    user_consents[user["username"]] = consent
+    activity_log.insert(0, {"type": "consent", "username": user["username"], "at": consent["accepted_at"]})
+    return {"status": "accepted", "consent": consent}
 
 
 # =========================================================
