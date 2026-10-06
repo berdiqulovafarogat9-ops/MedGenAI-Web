@@ -130,7 +130,7 @@ def _db_load():
         _db_init()
         with psycopg.connect(DATABASE_URL) as conn:
             rows = conn.execute("SELECT state_key, state_value FROM medgen_state").fetchall()
-        stores={"user_accounts":user_accounts,"user_profiles":user_profiles,"user_consents":user_consents,"experiments_store":experiments_store,"reports_store":reports_store,"activity_log":activity_log}
+        stores={"user_accounts":user_accounts,"user_profiles":user_profiles,"user_consents":user_consents,"experiments_store":experiments_store,"reports_store":reports_store,"activity_log":activity_log,"knowledge_entities_store":knowledge_entities_store,"knowledge_relations_store":knowledge_relations_store}
         for key,value in rows:
             if key in stores and isinstance(value,(dict,list)):
                 stores[key].clear()
@@ -140,7 +140,7 @@ def _db_load():
 
 def _db_save():
     if not PERSISTENCE_ENABLED: return
-    stores={"user_accounts":user_accounts,"user_profiles":user_profiles,"user_consents":user_consents,"experiments_store":experiments_store,"activity_log":activity_log}
+    stores={"user_accounts":user_accounts,"user_profiles":user_profiles,"user_consents":user_consents,"experiments_store":experiments_store,"activity_log":activity_log,"knowledge_entities_store":knowledge_entities_store,"knowledge_relations_store":knowledge_relations_store}
     try:
         with psycopg.connect(DATABASE_URL) as conn:
             for key,value in stores.items():
@@ -1311,6 +1311,16 @@ def knowledge_entity(data: KnowledgeEntityRequest, user=Depends(get_current_user
     if not any(x["id"]==entity["id"] for x in knowledge_entities_store):
         knowledge_entities_store.append(entity)
     return {"status":"created","entity":entity}
+
+@app.delete("/api/v1/knowledge/entities/{entity_id}")
+def knowledge_entity_delete(entity_id: str, user=Depends(get_current_user)):
+    key=normalize_entity(entity_id)
+    before=len(knowledge_entities_store)
+    knowledge_entities_store[:]=[e for e in knowledge_entities_store if e.get("id")!=key]
+    knowledge_relations_store[:]=[r for r in knowledge_relations_store if r.get("subject")!=key and r.get("object")!=key]
+    if len(knowledge_entities_store)==before: raise HTTPException(status_code=404,detail="Entity not found")
+    return {"status":"deleted","entity_id":key}
+
 
 @app.post("/api/v1/knowledge/relations")
 def knowledge_relation(data: KnowledgeRelationRequest, user=Depends(get_current_user)):
