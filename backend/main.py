@@ -71,6 +71,9 @@ SECRET_KEY = os.getenv(
 )
 
 tokens = {}
+jobs_store = []
+workflows_store = []
+reports_store = []
 
 
 # =========================================================
