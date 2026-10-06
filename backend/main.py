@@ -963,6 +963,8 @@ def research_assistant(
 # VIRTUAL LABORATORY
 # =========================================================
 
+experiments_store = []
+
 @app.post(
     "/api/v1/lab/experiments"
 )
@@ -970,8 +972,8 @@ def create_experiment(
     data: WorkflowRequest,
     user=Depends(get_current_user),
 ):
-
-    return {
+    experiment = {
+        "id": secrets.token_hex(8),
         "status": "created",
         "module": "Virtual Laboratory",
         "experiment_type": data.workflow_type,
@@ -984,7 +986,15 @@ def create_experiment(
             "Report generation",
         ],
         "user": user["username"],
+        "created_at": datetime.now(timezone.utc).isoformat(),
     }
+    experiments_store.insert(0, experiment)
+    return experiment
+
+@app.get("/api/v1/lab/experiments")
+def list_experiments(user=Depends(get_current_user)):
+    items = [x for x in experiments_store if x["user"] == user["username"]]
+    return {"experiments": items, "count": len(items), "user": user["username"]}
 
 
 # =========================================================
