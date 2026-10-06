@@ -1887,6 +1887,9 @@ class ApiKeyCreateRequest(BaseModel):
     organization_id: str
     name: str = "MedGen API Key"
 
+class ApiKeyRotateRequest(BaseModel):
+    key_id: str
+
 class PlatformApiKeyRequest(BaseModel):
     api_key: str
 
@@ -2069,9 +2072,36 @@ def platform_revoke_api_key(key_id: str, user=Depends(get_current_user)):
     _require_org(user, item["organization_id"], "ADMIN")
     item["revoked"] = True
     item["revoked_at"] = datetime.now(timezone.utc).isoformat()
-    _platform_audit(user, "api_key.revoked", "api_key", key_id, {})
+    _platform_audit(user, "api_key.revoked", "api_key", key_id, {"organization_id": item["organization_id"]})
     _db_save()
     return {"status": "revoked", "id": key_id}
+
+@app.post("/api/v1/platform/api-keys/rotate")
+def platform_rotate_api_key(data: ApiKeyRotateRequest, user=Depends(get_current_user)):
+    item = api_keys_store.get(data.key_id)
+    if not item:
+        raise HTTPException(status_code=404, detail="API key not found.")
+    _require_org(user, item["organization_id"], "ADMIN")
+    item["revoked"] = True
+    item["revoked_at"] = datetime.now(timezone.utc).isoformat()
+    raw = "mgai_" + secrets.token_urlsafe(32)
+    new_id = secrets.token_hex(10)
+    now = datetime.now(timezone.utc).isoformat()
+    api_keys_store[new_id] = {
+        "id": new_id,
+        "organization_id": item["organization_id"],
+        "name": item["name"],
+        "prefix": raw[:12],
+        "key_hash": hashlib.sha256(raw.encode()).hexdigest(),
+        "created_by": user["username"],
+        "created_at": now,
+        "revoked": False,
+        "last_used_at": None,
+        "rotated_from": data.key_id,
+    }
+    _platform_audit(user, "api_key.rotated", "api_key", new_id, {"organization_id": item["organization_id"], "rotated_from": data.key_id})
+    _db_save()
+    return {"status": "rotated", "api_key": raw, "warning": "Store this key now. The raw API key will not be shown again.", "metadata": {k:v for k,v in api_keys_store[new_id].items() if k != "key_hash"}}
 
 @app.post("/api/v1/platform/api-keys/validate")
 def platform_validate_api_key(data: PlatformApiKeyRequest):
