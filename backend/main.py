@@ -1134,24 +1134,24 @@ def _study_type(article: dict) -> str:
     text=((article.get("title","") or "")+" "+(article.get("abstract","") or "")).lower()
     if any(x in text for x in ("systematic review","meta-analysis","meta analysis")):
         return "REVIEW_SYSTEMATIC_OR_META_ANALYSIS"
-    if re.search(r"\\b(randomized|randomised) controlled trial\\b|\\b(rct)\\b", text):
+    if re.search(r"\b(randomized|randomised) controlled trial\b|\b(rct)\b", text):
         return "RCT"
-    if re.search(r"\\bphase\\s*(3|iii)\\b", text):
+    if re.search(r"\bphase\s*(3|iii)\b", text):
         return "PHASE_3"
-    if re.search(r"\\bphase\\s*(2|ii)\\b", text):
+    if re.search(r"\bphase\s*(2|ii)\b", text):
         return "PHASE_2"
-    if re.search(r"\\bphase\\s*(1|i)\\b", text):
+    if re.search(r"\bphase\s*(1|i)\b", text):
         return "PHASE_1"
     if "case report" in text or "case series" in text:
         return "CASE_REPORT_OR_SERIES"
     if "case-control" in text or "case control" in text:
         return "CASE_CONTROL"
     # Explicit retrospective design must win over incidental mentions of prospective cohorts.
-    if re.search(r"\\b(retrospective|retrospectively)\\b", text) or "real-world" in text or "real world" in text:
+    if re.search(r"\b(retrospective|retrospectively)\b", text) or "real-world" in text or "real world" in text:
         return "RETROSPECTIVE_OR_REAL_WORLD"
     if "machine learning" in text or "random forest" in text or "logistic regression" in text:
         return "COMPUTATIONAL_MODELING"
-    if re.search(r"\\b(prospective|prospectively)\\b", text):
+    if re.search(r"\b(prospective|prospectively)\b", text):
         return "PROSPECTIVE_STUDY"
     if "review" in text:
         return "REVIEW"
