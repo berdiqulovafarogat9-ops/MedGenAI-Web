@@ -14,21 +14,41 @@ const CONFIG = {
 };
 
 
-/* =========================
+/* =========================================================
    LANGUAGE
-========================= */
+========================================================= */
 
 const LANG = {
-  en: {
-    signingIn: 'Signing in…',
-    loginFailed: 'Login failed.',
-    apiOnline: 'API: online',
-    apiOffline: 'API: offline',
-    notConnected: 'not connected',
 
-    enterSmiles: 'Enter a SMILES string.',
-    analyzing: 'Analyzing…',
-    analysisCompleted: 'Analysis completed.',
+  /* =======================================================
+     ENGLISH
+  ======================================================= */
+
+  en: {
+
+    signingIn:
+      'Signing in…',
+
+    loginFailed:
+      'Login failed.',
+
+    apiOnline:
+      'API: online',
+
+    apiOffline:
+      'API: offline',
+
+    notConnected:
+      'not connected',
+
+    enterSmiles:
+      'Enter a SMILES string.',
+
+    analyzing:
+      'Analyzing…',
+
+    analysisCompleted:
+      'Analysis completed.',
 
     enterSequence:
       'Enter a DNA/RNA/protein sequence.',
@@ -36,8 +56,11 @@ const LANG = {
     enterPdb:
       'Enter a PDB ID.',
 
-    loading: 'Loading…',
-    loaded: 'Loaded.',
+    loading:
+      'Loading…',
+
+    loaded:
+      'Loaded.',
 
     moleculesSmiles:
       'Molecules / SMILES',
@@ -66,6 +89,12 @@ const LANG = {
     screeningFailed:
       'Screening failed.',
 
+
+    /* Scientific Jobs */
+
+    scientificJobs:
+      'Scientific Jobs',
+
     scientificWorker:
       'Scientific Worker',
 
@@ -74,6 +103,12 @@ const LANG = {
 
     refreshWorker:
       'Refresh Worker',
+
+    refreshJobs:
+      'Refresh Jobs',
+
+    createJob:
+      'Create Job',
 
     worker:
       'Worker',
@@ -93,6 +128,24 @@ const LANG = {
     jobSubmitted:
       'Job submitted.',
 
+    jobsLoaded:
+      'Jobs loaded.',
+
+    jobTypeMolecular:
+      'Molecular',
+
+    jobTypeScientific:
+      'Scientific Analysis',
+
+    workerDevelopment:
+      'development',
+
+    workerReady:
+      'ready',
+
+
+    /* Reports */
+
     generateScientificReport:
       'Generate Scientific Report',
 
@@ -110,6 +163,12 @@ const LANG = {
 
     reportGenerated:
       'Report generated.',
+
+    biomedicalResearchReport:
+      'Biomedical Research Report',
+
+
+    /* Research */
 
     aiResearchAssistant:
       'AI Research Assistant',
@@ -141,6 +200,9 @@ const LANG = {
     searchCompleted:
       'Search completed.',
 
+
+    /* Virtual Laboratory */
+
     virtualLaboratory:
       'Virtual Laboratory',
 
@@ -171,8 +233,20 @@ const LANG = {
     experimentCreated:
       'Experiment created.',
 
-    workflowLoaded:
-      'Loaded.',
+
+    /* Modules */
+
+    bioinformatics:
+      'Bioinformatics',
+
+    pdbStructure:
+      'PDB & Structure',
+
+    drugDiscovery:
+      'Drug Discovery',
+
+    reportsHistory:
+      'Reports & History',
 
     molecular:
       'Molecular',
@@ -182,6 +256,9 @@ const LANG = {
 
     structurePrediction:
       'Structure prediction',
+
+
+    /* Backend descriptions */
 
     molecularBackend:
       'Run the existing MedGen molecular backend directly from the Web interface.',
@@ -199,11 +276,19 @@ const LANG = {
       'View persisted scientific workflows.',
 
     researchBackend:
-      'Search the research backend for citation-oriented results.'
+      'Search the research backend for citation-oriented results.',
+
+    workflowLoaded:
+      'Loaded.'
   },
 
 
+  /* =======================================================
+     UZBEK
+  ======================================================= */
+
   uz: {
+
     signingIn:
       'Tizimga kirilmoqda…',
 
@@ -267,6 +352,12 @@ const LANG = {
     screeningFailed:
       'Skriningda xatolik yuz berdi.',
 
+
+    /* Scientific Jobs */
+
+    scientificJobs:
+      'Ilmiy vazifalar',
+
     scientificWorker:
       'Ilmiy ishchi',
 
@@ -275,6 +366,12 @@ const LANG = {
 
     refreshWorker:
       'Ishchini yangilash',
+
+    refreshJobs:
+      'Vazifalarni yangilash',
+
+    createJob:
+      'Vazifa yaratish',
 
     worker:
       'Ishchi',
@@ -294,6 +391,24 @@ const LANG = {
     jobSubmitted:
       'Vazifa yuborildi.',
 
+    jobsLoaded:
+      'Vazifalar yuklandi.',
+
+    jobTypeMolecular:
+      'Molekulyar',
+
+    jobTypeScientific:
+      'Ilmiy tahlil',
+
+    workerDevelopment:
+      'ishlab chiqish',
+
+    workerReady:
+      'tayyor',
+
+
+    /* Reports */
+
     generateScientificReport:
       'Ilmiy hisobot yaratish',
 
@@ -311,6 +426,12 @@ const LANG = {
 
     reportGenerated:
       'Hisobot yaratildi.',
+
+    biomedicalResearchReport:
+      'Biomedikal tadqiqot hisoboti',
+
+
+    /* Research */
 
     aiResearchAssistant:
       'AI ilmiy tadqiqot yordamchisi',
@@ -342,6 +463,9 @@ const LANG = {
     searchCompleted:
       'Qidiruv yakunlandi.',
 
+
+    /* Virtual Laboratory */
+
     virtualLaboratory:
       'Virtual laboratoriya',
 
@@ -372,8 +496,20 @@ const LANG = {
     experimentCreated:
       'Tajriba yaratildi.',
 
-    workflowLoaded:
-      'Yuklandi.',
+
+    /* Modules */
+
+    bioinformatics:
+      'Bioinformatika',
+
+    pdbStructure:
+      'PDB va tuzilma',
+
+    drugDiscovery:
+      'Dori yaratish',
+
+    reportsHistory:
+      'Hisobotlar va tarix',
 
     molecular:
       'Molekulyar',
@@ -383,6 +519,9 @@ const LANG = {
 
     structurePrediction:
       'Tuzilmani bashorat qilish',
+
+
+    /* Backend descriptions */
 
     molecularBackend:
       'Mavjud MedGen molekulyar backendini Web interfeysi orqali to‘g‘ridan-to‘g‘ri ishga tushiring.',
@@ -400,11 +539,19 @@ const LANG = {
       'Saqlangan ilmiy ish jarayonlarini ko‘ring.',
 
     researchBackend:
-      'Iqtiboslarga yo‘naltirilgan natijalar uchun ilmiy backenddan qidiring.'
+      'Iqtiboslarga yo‘naltirilgan natijalar uchun ilmiy backenddan qidiring.',
+
+    workflowLoaded:
+      'Yuklandi.'
   },
 
 
+  /* =======================================================
+     RUSSIAN
+  ======================================================= */
+
   ru: {
+
     signingIn:
       'Выполняется вход…',
 
@@ -468,6 +615,12 @@ const LANG = {
     screeningFailed:
       'Ошибка скрининга.',
 
+
+    /* Scientific Jobs */
+
+    scientificJobs:
+      'Научные задачи',
+
     scientificWorker:
       'Научный рабочий процесс',
 
@@ -476,6 +629,12 @@ const LANG = {
 
     refreshWorker:
       'Обновить рабочий процесс',
+
+    refreshJobs:
+      'Обновить задачи',
+
+    createJob:
+      'Создать задачу',
 
     worker:
       'Рабочий процесс',
@@ -495,6 +654,24 @@ const LANG = {
     jobSubmitted:
       'Задача отправлена.',
 
+    jobsLoaded:
+      'Задачи загружены.',
+
+    jobTypeMolecular:
+      'Молекулярный',
+
+    jobTypeScientific:
+      'Научный анализ',
+
+    workerDevelopment:
+      'разработка',
+
+    workerReady:
+      'готово',
+
+
+    /* Reports */
+
     generateScientificReport:
       'Создать научный отчёт',
 
@@ -512,6 +689,12 @@ const LANG = {
 
     reportGenerated:
       'Отчёт создан.',
+
+    biomedicalResearchReport:
+      'Отчёт по биомедицинскому исследованию',
+
+
+    /* Research */
 
     aiResearchAssistant:
       'AI-помощник по научным исследованиям',
@@ -543,6 +726,9 @@ const LANG = {
     searchCompleted:
       'Поиск завершён.',
 
+
+    /* Virtual Laboratory */
+
     virtualLaboratory:
       'Виртуальная лаборатория',
 
@@ -573,8 +759,20 @@ const LANG = {
     experimentCreated:
       'Эксперимент создан.',
 
-    workflowLoaded:
-      'Загружено.',
+
+    /* Modules */
+
+    bioinformatics:
+      'Биоинформатика',
+
+    pdbStructure:
+      'PDB и структура',
+
+    drugDiscovery:
+      'Разработка лекарств',
+
+    reportsHistory:
+      'Отчёты и история',
 
     molecular:
       'Молекулярный',
@@ -584,6 +782,9 @@ const LANG = {
 
     structurePrediction:
       'Предсказание структуры',
+
+
+    /* Backend descriptions */
 
     molecularBackend:
       'Запустите существующий молекулярный backend MedGen непосредственно через Web-интерфейс.',
@@ -601,14 +802,17 @@ const LANG = {
       'Просмотрите сохранённые научные рабочие процессы.',
 
     researchBackend:
-      'Выполните поиск в научном backend для результатов с цитированием.'
+      'Выполните поиск в научном backend для результатов с цитированием.',
+
+    workflowLoaded:
+      'Загружено.'
   }
 };
 
 
-/* =========================
+/* =========================================================
    LANGUAGE HELPERS
-========================= */
+========================================================= */
 
 function currentLanguage() {
 
@@ -645,7 +849,10 @@ function t(key, values = {}) {
 
         text =
           text.replace(
-            `{${keyName}}`,
+            new RegExp(
+              `\\{${keyName}\\}`,
+              'g'
+            ),
             String(values[keyName])
           );
 
@@ -656,11 +863,42 @@ function t(key, values = {}) {
 }
 
 
-/* =========================
+/* =========================================================
+   TRANSLATE BACKEND STATUS VALUES
+========================================================= */
+
+function translateWorkerValue(value) {
+
+  if (!value) {
+    return '—';
+  }
+
+  const normalized =
+    String(value)
+      .toLowerCase();
+
+  if (normalized === 'development') {
+    return t('workerDevelopment');
+  }
+
+  if (normalized === 'ready') {
+    return t('workerReady');
+  }
+
+  return value;
+}
+
+
+/* =========================================================
    DYNAMIC LANGUAGE REFRESH
-========================= */
+========================================================= */
 
 function translateDynamicUI() {
+
+
+  /* =======================================================
+     DRUG DISCOVERY
+  ======================================================= */
 
   const discoveryMolecules =
     $('discoveryMolecules');
@@ -703,6 +941,10 @@ function translateDynamicUI() {
   }
 
 
+  /* =======================================================
+     SCIENTIFIC JOBS
+  ======================================================= */
+
   if ($('jobsStatusPanel')) {
 
     const title =
@@ -712,9 +954,11 @@ function translateDynamicUI() {
         );
 
     if (title) {
+
       title.textContent =
         t('scientificWorker');
     }
+
 
     if ($('jobsStatusRefresh')) {
 
@@ -725,6 +969,61 @@ function translateDynamicUI() {
   }
 
 
+  /* Job selector */
+
+  const jobType =
+    $('jobType');
+
+  if (jobType) {
+
+    Array.from(
+      jobType.options
+    )
+      .forEach(
+        option => {
+
+          if (
+            option.value ===
+            'molecular_analysis'
+          ) {
+
+            option.textContent =
+              t('jobTypeMolecular');
+          }
+
+          else if (
+            option.value ===
+            'scientific_analysis'
+          ) {
+
+            option.textContent =
+              t('jobTypeScientific');
+          }
+        }
+      );
+  }
+
+
+  if ($('jobsRefresh')) {
+
+    $('jobsRefresh')
+      .textContent =
+      t('refreshJobs');
+  }
+
+
+  if ($('jobCreate')) {
+
+    $('jobCreate')
+      .textContent =
+      t('createJob');
+  }
+
+
+  /* =======================================================
+     REPORTS
+  ======================================================= */
+
   if ($('reportGeneratorPanel')) {
 
     const title =
@@ -734,26 +1033,38 @@ function translateDynamicUI() {
         );
 
     if (title) {
+
       title.textContent =
         t('generateScientificReport');
     }
 
+
     if ($('reportType')) {
+
       $('reportType').placeholder =
         t('reportType');
     }
 
+
     if ($('reportInput')) {
+
       $('reportInput').placeholder =
         t('reportPlaceholder');
     }
 
+
     if ($('reportGenerate')) {
-      $('reportGenerate').textContent =
+
+      $('reportGenerate')
+        .textContent =
         t('generateReport');
     }
   }
 
+
+  /* =======================================================
+     RESEARCH ASSISTANT
+  ======================================================= */
 
   if ($('researchAssistantPanel')) {
 
@@ -764,21 +1075,31 @@ function translateDynamicUI() {
         );
 
     if (title) {
+
       title.textContent =
         t('aiResearchAssistant');
     }
 
+
     if ($('assistantQuery')) {
+
       $('assistantQuery').placeholder =
         t('researchQuestion');
     }
 
+
     if ($('assistantRun')) {
-      $('assistantRun').textContent =
+
+      $('assistantRun')
+        .textContent =
         t('runResearchAssistant');
     }
   }
 
+
+  /* =======================================================
+     VIRTUAL LAB
+  ======================================================= */
 
   if ($('virtualLabPanel')) {
 
@@ -789,19 +1110,26 @@ function translateDynamicUI() {
         );
 
     if (title) {
+
       title.textContent =
         t('virtualLaboratory');
     }
 
+
     if ($('labExperimentInput')) {
+
       $('labExperimentInput').placeholder =
         t('experimentInput');
     }
 
+
     if ($('labExperimentCreate')) {
-      $('labExperimentCreate').textContent =
+
+      $('labExperimentCreate')
+        .textContent =
         t('createExperiment');
     }
+
 
     const select =
       $('labExperimentType');
@@ -833,41 +1161,59 @@ function translateDynamicUI() {
 }
 
 
-/* =========================
+/* =========================================================
    API
-========================= */
+========================================================= */
 
 async function api(path, options = {}) {
 
   if (!path.startsWith('/')) {
-    throw new Error('Invalid API path');
+
+    throw new Error(
+      'Invalid API path'
+    );
   }
 
+
   const headers = {
-    'Content-Type': 'application/json',
+
+    'Content-Type':
+      'application/json',
+
     ...(options.headers || {})
   };
 
+
   if (state.token) {
+
     headers.Authorization =
       `Bearer ${state.token}`;
   }
 
-  const r = await fetch(
-    CONFIG.apiBase + path,
-    {
-      ...options,
-      headers
-    }
-  );
+
+  const r =
+    await fetch(
+      CONFIG.apiBase + path,
+      {
+        ...options,
+        headers
+      }
+    );
+
 
   let data = null;
 
+
   try {
-    data = await r.json();
+
+    data =
+      await r.json();
+
   } catch {}
 
+
   if (!r.ok) {
+
     throw new Error(
       data?.detail ||
       data?.message ||
@@ -875,35 +1221,51 @@ async function api(path, options = {}) {
     );
   }
 
+
   return data;
 }
 
 
-/* =========================
+/* =========================================================
    HELPERS
-========================= */
+========================================================= */
 
-function setStatus(id, msg, ok = false) {
+function setStatus(
+  id,
+  msg,
+  ok = false
+) {
 
-  const e = $(id);
+  const e =
+    $(id);
 
   if (e) {
-    e.textContent = msg;
+
+    e.textContent =
+      msg;
+
     e.style.color =
       ok ? '#8eeed2' : '';
   }
 }
 
 
+/* =========================================================
+   LOGIN / DASHBOARD
+========================================================= */
+
 function showLogin() {
 
   if ($('dashboardView')) {
+
     $('dashboardView')
       .classList
       .add('hidden');
   }
 
+
   if ($('loginView')) {
+
     $('loginView')
       .classList
       .remove('hidden');
@@ -914,19 +1276,25 @@ function showLogin() {
 function showDashboard() {
 
   if ($('loginView')) {
+
     $('loginView')
       .classList
       .add('hidden');
   }
 
+
   if ($('dashboardView')) {
+
     $('dashboardView')
       .classList
       .remove('hidden');
   }
 
+
   updateRole();
+
   checkHealth();
+
   translateDynamicUI();
 }
 
@@ -934,162 +1302,198 @@ function showDashboard() {
 function updateRole() {
 
   const role =
-    state.user?.role || 'USER';
+    state.user?.role ||
+    'USER';
 
   if ($('roleBadge')) {
+
     $('roleBadge').textContent =
       role;
   }
 }
 
 
-/* =========================
+/* =========================================================
    HEALTH
-========================= */
+========================================================= */
 
 async function checkHealth() {
 
   try {
 
-    const r = await fetch(
-      CONFIG.apiBase.replace(
-        /\/api\/v1$/,
-        ''
-      ) +
-      '/api/v1/health/live'
-    );
+    const r =
+      await fetch(
+        CONFIG.apiBase.replace(
+          /\/api\/v1$/,
+          ''
+        ) +
+        '/api/v1/health/live'
+      );
+
 
     if (!r.ok) {
+
       throw new Error();
     }
 
+
     if ($('healthBadge')) {
-      $('healthBadge').textContent =
+
+      $('healthBadge')
+        .textContent =
         t('apiOnline');
     }
 
+
     if ($('apiText')) {
-      $('apiText').textContent =
+
+      $('apiText')
+        .textContent =
         'online';
     }
 
   } catch {
 
     if ($('healthBadge')) {
-      $('healthBadge').textContent =
+
+      $('healthBadge')
+        .textContent =
         t('apiOffline');
     }
 
+
     if ($('apiText')) {
-      $('apiText').textContent =
+
+      $('apiText')
+        .textContent =
         t('notConnected');
     }
   }
 }
 
 
-/* =========================
+/* =========================================================
    LOGIN
-========================= */
+========================================================= */
 
 if ($('loginForm')) {
 
-  $('loginForm').addEventListener(
-    'submit',
-    async (e) => {
+  $('loginForm')
+    .addEventListener(
+      'submit',
+      async (e) => {
 
-      e.preventDefault();
+        e.preventDefault();
 
-      setStatus(
-        'loginStatus',
-        t('signingIn')
-      );
 
-      try {
+        setStatus(
+          'loginStatus',
+          t('signingIn')
+        );
 
-        const body = {
-          username:
-            $('loginUser')
-              .value
-              .trim(),
 
-          password:
-            $('loginPassword')
-              .value
-        };
+        try {
 
-        const data =
-          await api(
-            '/auth/login',
-            {
-              method: 'POST',
-              body:
-                JSON.stringify(body)
-            }
+          const body = {
+
+            username:
+              $('loginUser')
+                .value
+                .trim(),
+
+            password:
+              $('loginPassword')
+                .value
+          };
+
+
+          const data =
+            await api(
+              '/auth/login',
+              {
+                method:
+                  'POST',
+
+                body:
+                  JSON.stringify(body)
+              }
+            );
+
+
+          state.token =
+            data.access_token;
+
+
+          sessionStorage.setItem(
+            CONFIG.tokenKey,
+            state.token
           );
 
-        state.token =
-          data.access_token;
 
-        sessionStorage.setItem(
-          CONFIG.tokenKey,
-          state.token
-        );
+          state.user =
+            await api(
+              '/auth/me'
+            );
 
-        state.user =
-          await api('/auth/me');
 
-        showDashboard();
+          showDashboard();
 
-        setStatus(
-          'loginStatus',
-          ''
-        );
 
-      } catch (err) {
+          setStatus(
+            'loginStatus',
+            ''
+          );
 
-        console.error(
-          'Login error:',
-          err
-        );
 
-        setStatus(
-          'loginStatus',
-          err.message ||
-          t('loginFailed')
-        );
+        } catch (err) {
+
+          console.error(
+            'Login error:',
+            err
+          );
+
+
+          setStatus(
+            'loginStatus',
+            err.message ||
+            t('loginFailed')
+          );
+        }
       }
-    }
-  );
+    );
 }
 
 
-/* =========================
+/* =========================================================
    LOGOUT
-========================= */
+========================================================= */
 
 if ($('logoutBtn')) {
 
-  $('logoutBtn').addEventListener(
-    'click',
-    () => {
+  $('logoutBtn')
+    .addEventListener(
+      'click',
+      () => {
 
-      state.token = '';
-      state.user = null;
+        state.token = '';
 
-      sessionStorage.removeItem(
-        CONFIG.tokenKey
-      );
+        state.user = null;
 
-      showLogin();
-    }
-  );
+
+        sessionStorage.removeItem(
+          CONFIG.tokenKey
+        );
+
+
+        showLogin();
+      }
+    );
 }
 
 
-/* =========================
+/* =========================================================
    MOLECULAR ANALYSIS
-========================= */
+========================================================= */
 
 async function molecularAnalyze() {
 
@@ -1097,6 +1501,7 @@ async function molecularAnalyze() {
     $('smilesInput')
       ?.value
       .trim();
+
 
   if (!smiles) {
 
@@ -1108,10 +1513,12 @@ async function molecularAnalyze() {
     return;
   }
 
+
   setStatus(
     'molecularStatus',
     t('analyzing')
   );
+
 
   try {
 
@@ -1119,7 +1526,9 @@ async function molecularAnalyze() {
       await api(
         '/molecules/analyze',
         {
-          method: 'POST',
+          method:
+            'POST',
+
           body:
             JSON.stringify({
               smiles
@@ -1127,7 +1536,9 @@ async function molecularAnalyze() {
         }
       );
 
+
     if ($('molecularResult')) {
+
       $('molecularResult')
         .textContent =
         JSON.stringify(
@@ -1137,11 +1548,13 @@ async function molecularAnalyze() {
         );
     }
 
+
     setStatus(
       'molecularStatus',
       t('analysisCompleted'),
       true
     );
+
 
   } catch (err) {
 
@@ -1153,9 +1566,9 @@ async function molecularAnalyze() {
 }
 
 
-/* =========================
+/* =========================================================
    BIOINFORMATICS
-========================= */
+========================================================= */
 
 async function bioinformaticsRun() {
 
@@ -1163,6 +1576,7 @@ async function bioinformaticsRun() {
     $('bioSequence')
       ?.value
       .trim();
+
 
   if (!seq) {
 
@@ -1174,10 +1588,12 @@ async function bioinformaticsRun() {
     return;
   }
 
+
   setStatus(
     'bioStatus',
     t('analyzing')
   );
+
 
   try {
 
@@ -1185,16 +1601,23 @@ async function bioinformaticsRun() {
       await api(
         '/bioinformatics/analyze',
         {
-          method: 'POST',
+          method:
+            'POST',
+
           body:
             JSON.stringify({
-              sequence: seq,
-              sequence_type: 'AUTO'
+              sequence:
+                seq,
+
+              sequence_type:
+                'AUTO'
             })
         }
       );
 
+
     if ($('bioResult')) {
+
       $('bioResult')
         .textContent =
         JSON.stringify(
@@ -1204,11 +1627,13 @@ async function bioinformaticsRun() {
         );
     }
 
+
     setStatus(
       'bioStatus',
       t('analysisCompleted'),
       true
     );
+
 
   } catch (err) {
 
@@ -1220,9 +1645,9 @@ async function bioinformaticsRun() {
 }
 
 
-/* =========================
+/* =========================================================
    PDB
-========================= */
+========================================================= */
 
 async function pdbLookup() {
 
@@ -1231,6 +1656,7 @@ async function pdbLookup() {
       ?.value
       .trim()
       .toUpperCase();
+
 
   if (!id) {
 
@@ -1242,10 +1668,12 @@ async function pdbLookup() {
     return;
   }
 
+
   setStatus(
     'pdbStatus',
     t('loading')
   );
+
 
   try {
 
@@ -1255,7 +1683,9 @@ async function pdbLookup() {
         encodeURIComponent(id)
       );
 
+
     if ($('pdbResult')) {
+
       $('pdbResult')
         .textContent =
         JSON.stringify(
@@ -1265,11 +1695,13 @@ async function pdbLookup() {
         );
     }
 
+
     setStatus(
       'pdbStatus',
       t('loaded'),
       true
     );
+
 
   } catch (err) {
 
@@ -1281,31 +1713,42 @@ async function pdbLookup() {
 }
 
 
-/* =========================
+/* =========================================================
    DRUG DISCOVERY UI
-========================= */
+========================================================= */
 
 function prepareDiscoveryUI() {
 
   const tool =
     $('discoveryTool');
 
+
   if (!tool) {
+
     return;
   }
+
 
   if ($('discoveryMolecules')) {
+
     translateDynamicUI();
+
     return;
   }
 
+
   const wrapper =
-    document.createElement('div');
+    document.createElement(
+      'div'
+    );
+
 
   wrapper.style.marginTop =
     '16px';
 
+
   wrapper.innerHTML = `
+
     <label
       for="discoveryMolecules"
       style="
@@ -1316,6 +1759,7 @@ function prepareDiscoveryUI() {
     >
       ${t('moleculesSmiles')}
     </label>
+
 
     <textarea
       id="discoveryMolecules"
@@ -1328,6 +1772,7 @@ function prepareDiscoveryUI() {
       "
     ></textarea>
 
+
     <div
       style="
         margin-top:8px;
@@ -1339,45 +1784,56 @@ function prepareDiscoveryUI() {
     </div>
   `;
 
+
   const button =
     $('discoveryRun');
+
 
   if (button) {
 
     button.textContent =
       t('runScreening');
 
-    button.parentNode.insertBefore(
-      wrapper,
-      button
-    );
+
+    button.parentNode
+      .insertBefore(
+        wrapper,
+        button
+      );
 
   } else {
 
-    tool.appendChild(wrapper);
+    tool.appendChild(
+      wrapper
+    );
   }
+
 
   translateDynamicUI();
 }
 
 
-/* =========================
+/* =========================================================
    DRUG DISCOVERY
-========================= */
+========================================================= */
 
 async function discoveryCreate() {
 
   prepareDiscoveryUI();
+
 
   const target =
     $('discoveryTarget')
       ?.value
       .trim();
 
+
   const moleculesText =
     $('discoveryMolecules')
       ?.value
-      .trim() || '';
+      .trim() ||
+    '';
+
 
   if (!target) {
 
@@ -1389,6 +1845,7 @@ async function discoveryCreate() {
     return;
   }
 
+
   if (!moleculesText) {
 
     setStatus(
@@ -1399,18 +1856,22 @@ async function discoveryCreate() {
     return;
   }
 
+
   const molecules =
     moleculesText
       .split('\n')
       .map(
-        item => item.trim()
+        item =>
+          item.trim()
       )
       .filter(Boolean);
+
 
   setStatus(
     'discoveryStatus',
     t('virtualScreening')
   );
+
 
   try {
 
@@ -1418,7 +1879,9 @@ async function discoveryCreate() {
       await api(
         '/discovery/screen',
         {
-          method: 'POST',
+          method:
+            'POST',
+
           body:
             JSON.stringify({
               target,
@@ -1427,7 +1890,9 @@ async function discoveryCreate() {
         }
       );
 
+
     if ($('discoveryResult')) {
+
       $('discoveryResult')
         .textContent =
         JSON.stringify(
@@ -1436,6 +1901,7 @@ async function discoveryCreate() {
           2
         );
     }
+
 
     setStatus(
       'discoveryStatus',
@@ -1449,12 +1915,14 @@ async function discoveryCreate() {
       true
     );
 
+
   } catch (err) {
 
     console.error(
       'Drug Discovery error:',
       err
     );
+
 
     setStatus(
       'discoveryStatus',
@@ -1465,34 +1933,46 @@ async function discoveryCreate() {
 }
 
 
-/* =========================
+/* =========================================================
    JOBS UI
-========================= */
+========================================================= */
 
 function prepareJobsUI() {
 
   const tool =
     $('jobsTool');
 
+
   if (!tool) {
+
     return;
   }
+
 
   if ($('jobsStatusPanel')) {
+
     translateDynamicUI();
+
     return;
   }
 
+
   const wrapper =
-    document.createElement('div');
+    document.createElement(
+      'div'
+    );
+
 
   wrapper.id =
     'jobsStatusPanel';
 
+
   wrapper.style.marginTop =
     '16px';
 
+
   wrapper.innerHTML = `
+
     <div
       style="
         margin-bottom:10px;
@@ -1501,6 +1981,7 @@ function prepareJobsUI() {
     >
       ${t('scientificWorker')}
     </div>
+
 
     <div
       id="jobsStatusLive"
@@ -1514,6 +1995,7 @@ function prepareJobsUI() {
       ${t('checkingWorker')}
     </div>
 
+
     <button
       id="jobsStatusRefresh"
       type="button"
@@ -1522,7 +2004,11 @@ function prepareJobsUI() {
     </button>
   `;
 
-  tool.prepend(wrapper);
+
+  tool.prepend(
+    wrapper
+  );
+
 
   $('jobsStatusRefresh')
     .addEventListener(
@@ -1532,15 +2018,22 @@ function prepareJobsUI() {
 }
 
 
+/* =========================================================
+   JOB STATUS
+========================================================= */
+
 async function loadJobStatus() {
 
   prepareJobsUI();
 
+
   if ($('jobsStatusLive')) {
+
     $('jobsStatusLive')
       .textContent =
       t('checkingWorker');
   }
+
 
   try {
 
@@ -1549,14 +2042,34 @@ async function loadJobStatus() {
         '/jobs/status'
       );
 
+
     if ($('jobsStatusLive')) {
+
+      const worker =
+        translateWorkerValue(
+          data.worker
+        );
+
+
+      const queue =
+        translateWorkerValue(
+          data.queue
+        );
+
+
+      const active =
+        data.active_jobs ??
+        0;
+
 
       $('jobsStatusLive')
         .textContent =
-        `${t('worker')}: ${data.worker || 'unknown'} | ${t('queue')}: ${data.queue || 'unknown'} | ${t('active')}: ${data.active_jobs ?? 0}`;
+        `${t('worker')}: ${worker} | ${t('queue')}: ${queue} | ${t('active')}: ${active}`;
     }
 
+
     return data;
+
 
   } catch (err) {
 
@@ -1576,25 +2089,31 @@ async function loadJobStatus() {
 }
 
 
-/* =========================
+/* =========================================================
    JOBS
-========================= */
+========================================================= */
 
 async function loadJobs() {
 
   prepareJobsUI();
+
 
   setStatus(
     'jobsStatus',
     t('loading')
   );
 
+
   try {
 
     const data =
-      await api('/jobs');
+      await api(
+        '/jobs'
+      );
+
 
     if ($('jobsResult')) {
+
       $('jobsResult')
         .textContent =
         JSON.stringify(
@@ -1604,13 +2123,16 @@ async function loadJobs() {
         );
     }
 
+
     await loadJobStatus();
+
 
     setStatus(
       'jobsStatus',
-      t('loaded'),
+      t('jobsLoaded'),
       true
     );
+
 
   } catch (err) {
 
@@ -1619,10 +2141,15 @@ async function loadJobs() {
       err.message
     );
 
+
     await loadJobStatus();
   }
 }
 
+
+/* =========================================================
+   CREATE JOB
+========================================================= */
 
 async function createJob() {
 
@@ -1631,10 +2158,12 @@ async function createJob() {
       ?.value ||
     'scientific_analysis';
 
+
   setStatus(
     'jobCreateStatus',
     t('submitting')
   );
+
 
   try {
 
@@ -1642,18 +2171,25 @@ async function createJob() {
       await api(
         '/jobs',
         {
-          method: 'POST',
+          method:
+            'POST',
+
           body:
             JSON.stringify({
-              job_type: type,
+              job_type:
+                type,
+
               input: {
-                source: 'web'
+                source:
+                  'web'
               }
             })
         }
       );
 
+
     if ($('jobCreateResult')) {
+
       $('jobCreateResult')
         .textContent =
         JSON.stringify(
@@ -1663,13 +2199,16 @@ async function createJob() {
         );
     }
 
+
     setStatus(
       'jobCreateStatus',
       t('jobSubmitted'),
       true
     );
 
+
     await loadJobStatus();
+
 
   } catch (err) {
 
@@ -1681,34 +2220,46 @@ async function createJob() {
 }
 
 
-/* =========================
+/* =========================================================
    REPORTS UI
-========================= */
+========================================================= */
 
 function prepareReportsUI() {
 
   const tool =
     $('reportsTool');
 
+
   if (!tool) {
+
     return;
   }
+
 
   if ($('reportGeneratorPanel')) {
+
     translateDynamicUI();
+
     return;
   }
 
+
   const wrapper =
-    document.createElement('div');
+    document.createElement(
+      'div'
+    );
+
 
   wrapper.id =
     'reportGeneratorPanel';
 
+
   wrapper.style.marginTop =
     '16px';
 
+
   wrapper.innerHTML = `
+
     <div
       style="
         margin-bottom:8px;
@@ -1718,10 +2269,11 @@ function prepareReportsUI() {
       ${t('generateScientificReport')}
     </div>
 
+
     <input
       id="reportType"
       type="text"
-      value="Biomedical Research Report"
+      value="${t('biomedicalResearchReport')}"
       placeholder="${t('reportType')}"
       style="
         width:100%;
@@ -1729,6 +2281,7 @@ function prepareReportsUI() {
         margin-bottom:8px;
       "
     />
+
 
     <textarea
       id="reportInput"
@@ -1741,6 +2294,7 @@ function prepareReportsUI() {
       "
     ></textarea>
 
+
     <button
       id="reportGenerate"
       type="button"
@@ -1749,10 +2303,12 @@ function prepareReportsUI() {
       ${t('generateReport')}
     </button>
 
+
     <div
       id="reportGenerateStatus"
       style="margin-top:8px;"
     ></div>
+
 
     <pre
       id="reportGenerateResult"
@@ -1763,7 +2319,11 @@ function prepareReportsUI() {
     ></pre>
   `;
 
-  tool.prepend(wrapper);
+
+  tool.prepend(
+    wrapper
+  );
+
 
   $('reportGenerate')
     .addEventListener(
@@ -1773,25 +2333,31 @@ function prepareReportsUI() {
 }
 
 
-/* =========================
+/* =========================================================
    REPORTS
-========================= */
+========================================================= */
 
 async function loadReports() {
 
   prepareReportsUI();
+
 
   setStatus(
     'reportsStatus',
     t('loading')
   );
 
+
   try {
 
     const data =
-      await api('/reports');
+      await api(
+        '/reports'
+      );
+
 
     if ($('reportsResult')) {
+
       $('reportsResult')
         .textContent =
         JSON.stringify(
@@ -1801,11 +2367,13 @@ async function loadReports() {
         );
     }
 
+
     setStatus(
       'reportsStatus',
       t('loaded'),
       true
     );
+
 
   } catch (err) {
 
@@ -1817,23 +2385,31 @@ async function loadReports() {
 }
 
 
+/* =========================================================
+   GENERATE REPORT
+========================================================= */
+
 async function generateReport() {
 
   const type =
     $('reportType')
       ?.value
       .trim() ||
-    'Biomedical Research Report';
+    t('biomedicalResearchReport');
+
 
   const input =
     $('reportInput')
       ?.value
-      .trim() || '';
+      .trim() ||
+    '';
+
 
   setStatus(
     'reportGenerateStatus',
     t('generatingReport')
   );
+
 
   try {
 
@@ -1841,16 +2417,22 @@ async function generateReport() {
       await api(
         '/reports/generate',
         {
-          method: 'POST',
+          method:
+            'POST',
+
           body:
             JSON.stringify({
-              workflow_type: type,
+              workflow_type:
+                type,
+
               input
             })
         }
       );
 
+
     if ($('reportGenerateResult')) {
+
       $('reportGenerateResult')
         .textContent =
         JSON.stringify(
@@ -1860,11 +2442,13 @@ async function generateReport() {
         );
     }
 
+
     setStatus(
       'reportGenerateStatus',
       t('reportGenerated'),
       true
     );
+
 
   } catch (err) {
 
@@ -1876,34 +2460,46 @@ async function generateReport() {
 }
 
 
-/* =========================
+/* =========================================================
    RESEARCH UI
-========================= */
+========================================================= */
 
 function prepareResearchUI() {
 
   const tool =
     $('researchTool');
 
+
   if (!tool) {
+
     return;
   }
+
 
   if ($('researchAssistantPanel')) {
+
     translateDynamicUI();
+
     return;
   }
 
+
   const wrapper =
-    document.createElement('div');
+    document.createElement(
+      'div'
+    );
+
 
   wrapper.id =
     'researchAssistantPanel';
 
+
   wrapper.style.marginTop =
     '16px';
 
+
   wrapper.innerHTML = `
+
     <div
       style="
         margin-bottom:8px;
@@ -1912,6 +2508,7 @@ function prepareResearchUI() {
     >
       ${t('aiResearchAssistant')}
     </div>
+
 
     <textarea
       id="assistantQuery"
@@ -1924,6 +2521,7 @@ function prepareResearchUI() {
       "
     ></textarea>
 
+
     <button
       id="assistantRun"
       type="button"
@@ -1932,10 +2530,12 @@ function prepareResearchUI() {
       ${t('runResearchAssistant')}
     </button>
 
+
     <div
       id="assistantStatus"
       style="margin-top:8px;"
     ></div>
+
 
     <pre
       id="assistantResult"
@@ -1946,7 +2546,11 @@ function prepareResearchUI() {
     ></pre>
   `;
 
-  tool.prepend(wrapper);
+
+  tool.prepend(
+    wrapper
+  );
+
 
   $('assistantRun')
     .addEventListener(
@@ -1956,9 +2560,9 @@ function prepareResearchUI() {
 }
 
 
-/* =========================
+/* =========================================================
    RESEARCH ASSISTANT
-========================= */
+========================================================= */
 
 async function researchAssistant() {
 
@@ -1966,6 +2570,7 @@ async function researchAssistant() {
     $('assistantQuery')
       ?.value
       .trim();
+
 
   if (!query) {
 
@@ -1977,10 +2582,12 @@ async function researchAssistant() {
     return;
   }
 
+
   setStatus(
     'assistantStatus',
     t('researchPipeline')
   );
+
 
   try {
 
@@ -1988,7 +2595,9 @@ async function researchAssistant() {
       await api(
         '/research/assistant',
         {
-          method: 'POST',
+          method:
+            'POST',
+
           body:
             JSON.stringify({
               query
@@ -1996,7 +2605,9 @@ async function researchAssistant() {
         }
       );
 
+
     if ($('assistantResult')) {
+
       $('assistantResult')
         .textContent =
         JSON.stringify(
@@ -2006,11 +2617,13 @@ async function researchAssistant() {
         );
     }
 
+
     setStatus(
       'assistantStatus',
       t('researchCompleted'),
       true
     );
+
 
   } catch (err) {
 
@@ -2022,9 +2635,9 @@ async function researchAssistant() {
 }
 
 
-/* =========================
+/* =========================================================
    RESEARCH SEARCH
-========================= */
+========================================================= */
 
 async function researchSearch() {
 
@@ -2032,6 +2645,7 @@ async function researchSearch() {
     $('researchQuery')
       ?.value
       .trim();
+
 
   if (!q) {
 
@@ -2043,10 +2657,12 @@ async function researchSearch() {
     return;
   }
 
+
   setStatus(
     'researchStatus',
     t('searching')
   );
+
 
   try {
 
@@ -2054,16 +2670,23 @@ async function researchSearch() {
       await api(
         '/research/search',
         {
-          method: 'POST',
+          method:
+            'POST',
+
           body:
             JSON.stringify({
-              query: q,
-              limit: 10
+              query:
+                q,
+
+              limit:
+                10
             })
         }
       );
 
+
     if ($('researchResult')) {
+
       $('researchResult')
         .textContent =
         JSON.stringify(
@@ -2073,11 +2696,13 @@ async function researchSearch() {
         );
     }
 
+
     setStatus(
       'researchStatus',
       t('searchCompleted'),
       true
     );
+
 
   } catch (err) {
 
@@ -2089,34 +2714,46 @@ async function researchSearch() {
 }
 
 
-/* =========================
+/* =========================================================
    VIRTUAL LAB UI
-========================= */
+========================================================= */
 
 function prepareVirtualLabUI() {
 
   const tool =
     $('workflowTool');
 
+
   if (!tool) {
+
     return;
   }
+
 
   if ($('virtualLabPanel')) {
+
     translateDynamicUI();
+
     return;
   }
 
+
   const wrapper =
-    document.createElement('div');
+    document.createElement(
+      'div'
+    );
+
 
   wrapper.id =
     'virtualLabPanel';
 
+
   wrapper.style.marginTop =
     '16px';
 
+
   wrapper.innerHTML = `
+
     <div
       style="
         margin-bottom:8px;
@@ -2126,6 +2763,7 @@ function prepareVirtualLabUI() {
       ${t('virtualLaboratory')}
     </div>
 
+
     <select
       id="labExperimentType"
       style="
@@ -2133,26 +2771,43 @@ function prepareVirtualLabUI() {
         margin-bottom:8px;
       "
     >
-      <option value="molecular_analysis">
+
+      <option
+        value="molecular_analysis"
+      >
         ${t('molecularAnalysis')}
       </option>
 
-      <option value="bioinformatics">
+
+      <option
+        value="bioinformatics"
+      >
         ${t('bioinformaticsExperiment')}
       </option>
 
-      <option value="drug_discovery">
+
+      <option
+        value="drug_discovery"
+      >
         ${t('drugDiscoveryExperiment')}
       </option>
 
-      <option value="structural_biology">
+
+      <option
+        value="structural_biology"
+      >
         ${t('structuralBiology')}
       </option>
 
-      <option value="custom">
+
+      <option
+        value="custom"
+      >
         ${t('customExperiment')}
       </option>
+
     </select>
+
 
     <textarea
       id="labExperimentInput"
@@ -2165,6 +2820,7 @@ function prepareVirtualLabUI() {
       "
     ></textarea>
 
+
     <button
       id="labExperimentCreate"
       type="button"
@@ -2173,10 +2829,12 @@ function prepareVirtualLabUI() {
       ${t('createExperiment')}
     </button>
 
+
     <div
       id="labExperimentStatus"
       style="margin-top:8px;"
     ></div>
+
 
     <pre
       id="labExperimentResult"
@@ -2187,7 +2845,11 @@ function prepareVirtualLabUI() {
     ></pre>
   `;
 
-  tool.prepend(wrapper);
+
+  tool.prepend(
+    wrapper
+  );
+
 
   $('labExperimentCreate')
     .addEventListener(
@@ -2197,9 +2859,9 @@ function prepareVirtualLabUI() {
 }
 
 
-/* =========================
+/* =========================================================
    VIRTUAL LAB
-========================= */
+========================================================= */
 
 async function createExperiment() {
 
@@ -2208,15 +2870,19 @@ async function createExperiment() {
       ?.value ||
     'custom';
 
+
   const input =
     $('labExperimentInput')
       ?.value
-      .trim() || '';
+      .trim() ||
+    '';
+
 
   setStatus(
     'labExperimentStatus',
     t('creatingExperiment')
   );
+
 
   try {
 
@@ -2224,18 +2890,24 @@ async function createExperiment() {
       await api(
         '/lab/experiments',
         {
-          method: 'POST',
+          method:
+            'POST',
+
           body:
             JSON.stringify({
+
               workflow_type:
                 workflowType,
 
-              input
+              input:
+                input
             })
         }
       );
 
+
     if ($('labExperimentResult')) {
+
       $('labExperimentResult')
         .textContent =
         JSON.stringify(
@@ -2245,11 +2917,13 @@ async function createExperiment() {
         );
     }
 
+
     setStatus(
       'labExperimentStatus',
       t('experimentCreated'),
       true
     );
+
 
   } catch (err) {
 
@@ -2261,9 +2935,9 @@ async function createExperiment() {
 }
 
 
-/* =========================
+/* =========================================================
    WORKFLOWS
-========================= */
+========================================================= */
 
 async function workflowList() {
 
@@ -2272,12 +2946,17 @@ async function workflowList() {
     t('loading')
   );
 
+
   try {
 
     const data =
-      await api('/workflows');
+      await api(
+        '/workflows'
+      );
+
 
     if ($('workflowResult')) {
+
       $('workflowResult')
         .textContent =
         JSON.stringify(
@@ -2287,11 +2966,13 @@ async function workflowList() {
         );
     }
 
+
     setStatus(
       'workflowStatus',
       t('workflowLoaded'),
       true
     );
+
 
   } catch (err) {
 
@@ -2303,35 +2984,92 @@ async function workflowList() {
 }
 
 
-/* =========================
+/* =========================================================
    MODULES
-========================= */
+========================================================= */
 
 function openModule(name) {
 
+
   if ($('workspace')) {
+
     $('workspace')
       .classList
       .remove('hidden');
   }
 
+
+  /* =======================================================
+     TRANSLATED MODULE TITLES
+  ======================================================= */
+
+  const moduleTitles = {
+
+    'Molecular Analysis':
+      'molecularAnalysis',
+
+    'Bioinformatics':
+      'bioinformatics',
+
+    'PDB & Structure':
+      'pdbStructure',
+
+    'Drug Discovery':
+      'drugDiscovery',
+
+    'Scientific Jobs':
+      'scientificJobs',
+
+    'Research Assistant':
+      'aiResearchAssistant',
+
+    'Virtual Laboratory':
+      'virtualLaboratory',
+
+    'Reports & History':
+      'reportsHistory'
+  };
+
+
   if ($('workspaceTitle')) {
+
+    const key =
+      moduleTitles[name];
+
+
     $('workspaceTitle')
-      .textContent = name;
+      .textContent =
+      key
+        ? t(key)
+        : name;
   }
+
+
+  /* =======================================================
+     HIDE ALL TOOLS
+  ======================================================= */
 
   document
     .querySelectorAll('.tool')
     .forEach(
       e =>
-        e.classList.add('hidden')
+        e.classList.add(
+          'hidden'
+        )
     );
 
+
   if ($('comingSoon')) {
+
     $('comingSoon')
       .classList
       .add('hidden');
   }
+
+
+  /* =======================================================
+     MODULE MAP
+  ======================================================= */
 
   const map = {
 
@@ -2360,8 +3098,10 @@ function openModule(name) {
       'reportsTool'
   };
 
+
   const id =
     map[name];
+
 
   if (id && $(id)) {
 
@@ -2369,7 +3109,9 @@ function openModule(name) {
       .classList
       .remove('hidden');
 
-  } else if ($('comingSoon')) {
+  }
+
+  else if ($('comingSoon')) {
 
     $('comingSoon')
       .classList
@@ -2377,10 +3119,15 @@ function openModule(name) {
   }
 
 
+  /* =======================================================
+     MODULE INITIALIZATION
+  ======================================================= */
+
   if (
     name ===
     'Drug Discovery'
   ) {
+
     prepareDiscoveryUI();
   }
 
@@ -2389,9 +3136,10 @@ function openModule(name) {
     name ===
     'Scientific Jobs'
   ) {
+
     prepareJobsUI();
+
     loadJobs();
-    loadJobStatus();
   }
 
 
@@ -2399,6 +3147,7 @@ function openModule(name) {
     name ===
     'Research Assistant'
   ) {
+
     prepareResearchUI();
   }
 
@@ -2407,6 +3156,7 @@ function openModule(name) {
     name ===
     'Virtual Laboratory'
   ) {
+
     prepareVirtualLabUI();
   }
 
@@ -2415,30 +3165,56 @@ function openModule(name) {
     name ===
     'Reports & History'
   ) {
+
     prepareReportsUI();
+
     loadReports();
   }
 
 
+  /*
+   * Apply the currently selected
+   * language after dynamic UI
+   * has been created.
+   */
+
+  translateDynamicUI();
+
+
+  /* =======================================================
+     SCROLL
+  ======================================================= */
+
   if ($('workspace')) {
+
     $('workspace')
       .scrollIntoView({
-        behavior: 'smooth',
-        block: 'start'
+        behavior:
+          'smooth',
+
+        block:
+          'start'
       });
   }
 }
 
 
-/* =========================
-   EVENT LISTENERS
-========================= */
+/* =========================================================
+   EVENT LISTENER HELPER
+========================================================= */
 
-function bind(id, event, fn) {
+function bind(
+  id,
+  event,
+  fn
+) {
 
-  const element = $(id);
+  const element =
+    $(id);
+
 
   if (element) {
+
     element.addEventListener(
       event,
       fn
@@ -2447,19 +3223,31 @@ function bind(id, event, fn) {
 }
 
 
+/* =========================================================
+   MODULE BUTTONS
+========================================================= */
+
 document
-  .querySelectorAll('.module')
+  .querySelectorAll(
+    '.module'
+  )
   .forEach(
-    b =>
+    b => {
+
       b.addEventListener(
         'click',
         () =>
           openModule(
             b.dataset.module
           )
-      )
+      );
+    }
   );
 
+
+/* =========================================================
+   MAIN BUTTONS
+========================================================= */
 
 bind(
   'molecularRun',
@@ -2488,6 +3276,7 @@ bind(
   () => {
 
     if ($('workspace')) {
+
       $('workspace')
         .classList
         .add('hidden');
@@ -2538,59 +3327,205 @@ bind(
 );
 
 
-/* =========================
-   LANGUAGE CHANGE EVENT
-========================= */
+/* =========================================================
+   LANGUAGE CHANGE
+========================================================= */
 
 function setupLanguageRefresh() {
 
   const selectors = [
+
     $('languageSelector'),
+
     $('loginLanguageSelector')
+
   ].filter(Boolean);
+
 
   selectors.forEach(
     selector => {
+
+
+      if (
+        selector.dataset
+          .medgenLanguageBound ===
+        '1'
+      ) {
+
+        return;
+      }
+
+
+      selector.dataset
+        .medgenLanguageBound =
+        '1';
+
 
       selector.addEventListener(
         'change',
         () => {
 
           /*
-           * index.html already saves
+           * index.html saves
            * medgen_language.
            *
-           * Give it a tiny moment,
-           * then refresh dynamic UI.
+           * Refresh dynamic UI
+           * immediately after the
+           * selected language changes.
            */
 
           setTimeout(
             () => {
 
               translateDynamicUI();
+
               checkHealth();
+
+
+              /*
+               * If Scientific Jobs
+               * is currently open,
+               * refresh the live status
+               * so Worker / Queue /
+               * Active are translated.
+               */
+
+              if (
+                $('jobsStatusLive')
+              ) {
+
+                loadJobStatus();
+              }
+
+
+              /*
+               * Update workspace
+               * title if it is open.
+               */
+
+              const workspace =
+                $('workspace');
+
+              if (
+                workspace &&
+                !workspace
+                  .classList
+                  .contains('hidden')
+              ) {
+
+                const visibleTool =
+                  document.querySelector(
+                    '.tool:not(.hidden)'
+                  );
+
+
+                if (visibleTool) {
+
+                  const toolMap = {
+
+                    molecularTool:
+                      'Molecular Analysis',
+
+                    bioTool:
+                      'Bioinformatics',
+
+                    pdbTool:
+                      'PDB & Structure',
+
+                    discoveryTool:
+                      'Drug Discovery',
+
+                    jobsTool:
+                      'Scientific Jobs',
+
+                    researchTool:
+                      'Research Assistant',
+
+                    workflowTool:
+                      'Virtual Laboratory',
+
+                    reportsTool:
+                      'Reports & History'
+                  };
+
+
+                  const moduleName =
+                    toolMap[
+                      visibleTool.id
+                    ];
+
+
+                  if (
+                    moduleName &&
+                    $('workspaceTitle')
+                  ) {
+
+                    const titleMap = {
+
+                      'Molecular Analysis':
+                        'molecularAnalysis',
+
+                      'Bioinformatics':
+                        'bioinformatics',
+
+                      'PDB & Structure':
+                        'pdbStructure',
+
+                      'Drug Discovery':
+                        'drugDiscovery',
+
+                      'Scientific Jobs':
+                        'scientificJobs',
+
+                      'Research Assistant':
+                        'aiResearchAssistant',
+
+                      'Virtual Laboratory':
+                        'virtualLaboratory',
+
+                      'Reports & History':
+                        'reportsHistory'
+                    };
+
+
+                    $('workspaceTitle')
+                      .textContent =
+                      t(
+                        titleMap[
+                          moduleName
+                        ]
+                      );
+                  }
+                }
+              }
 
             },
             0
           );
         }
       );
-
     }
   );
 }
 
 
+/* =========================================================
+   INITIAL LANGUAGE SETUP
+========================================================= */
+
 setupLanguageRefresh();
 
+translateDynamicUI();
 
-/* =========================
+
+/* =========================================================
    EXISTING SESSION
-========================= */
+========================================================= */
 
 if (state.token) {
 
   api('/auth/me')
+
     .then(
       user => {
 
@@ -2600,21 +3535,27 @@ if (state.token) {
         showDashboard();
       }
     )
+
     .catch(
       () => {
 
         state.token = '';
+
         state.user = null;
+
 
         sessionStorage.removeItem(
           CONFIG.tokenKey
         );
 
+
         showLogin();
       }
     );
 
-} else {
+}
+
+else {
 
   showLogin();
     }
