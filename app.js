@@ -1829,7 +1829,10 @@ function openModule(moduleName) {
       'workflowTool',
 
     'Reports & History':
-      'reportsTool'
+      'reportsTool',
+
+    'Global Platform':
+      'platformTool'
   };
 
   const toolId =
@@ -1871,8 +1874,98 @@ function openModule(moduleName) {
 
     loadWorkflows();
   }
+
+  if (moduleName === 'Global Platform') {
+    loadPlatformOverview();
+  }
 }
 
+
+/* =========================================================
+   GLOBAL PLATFORM — PHASE 8
+========================================================= */
+
+async function loadPlatformOverview() {
+  const status = $('platformStatus');
+  const result = $('platformResult');
+  if (status) status.textContent = 'Global Platform yuklanmoqda...';
+  try {
+    const [overview, orgs, usage] = await Promise.all([
+      api('/platform/overview'),
+      api('/platform/organizations'),
+      api('/platform/usage')
+    ]);
+    state.platformOrganizations = orgs?.organizations || [];
+    const payload = {
+      overview,
+      organizations: state.platformOrganizations,
+      usage
+    };
+    renderResult(result, payload);
+    if (status) status.textContent = 'Global Platform tayyor.';
+  } catch (error) {
+    if (status) status.textContent = error.message;
+  }
+}
+
+async function createPlatformOrganization() {
+  const name = $('platformOrgName')?.value?.trim() || '';
+  if (!name) return;
+  const status = $('platformStatus');
+  try {
+    await api('/platform/organizations', {
+      method: 'POST',
+      body: JSON.stringify({ name })
+    });
+    $('platformOrgName').value = '';
+    await loadPlatformOverview();
+  } catch (error) {
+    if (status) status.textContent = error.message;
+  }
+}
+
+async function createPlatformWorkspace() {
+  const org = (state.platformOrganizations || [])[0];
+  const name = $('platformWorkspaceName')?.value?.trim() || '';
+  if (!org || !name) {
+    if ($('platformStatus')) $('platformStatus').textContent = 'Avval organization va workspace nomini kiriting.';
+    return;
+  }
+  try {
+    const data = await api('/platform/workspaces', {
+      method: 'POST',
+      body: JSON.stringify({ organization_id: org.id, name })
+    });
+    $('platformWorkspaceName').value = '';
+    renderResult($('platformResult'), data);
+    await loadPlatformOverview();
+  } catch (error) {
+    if ($('platformStatus')) $('platformStatus').textContent = error.message;
+  }
+}
+
+async function createPlatformProject() {
+  const org = (state.platformOrganizations || [])[0];
+  const name = $('platformProjectName')?.value?.trim() || '';
+  if (!org || !name) {
+    if ($('platformStatus')) $('platformStatus').textContent = 'Avval organization va project nomini kiriting.';
+    return;
+  }
+  try {
+    const workspaces = await api('/platform/workspaces?organization_id=' + encodeURIComponent(org.id));
+    const workspace = (workspaces.workspaces || [])[0];
+    if (!workspace) throw new Error('Avval workspace yarating.');
+    const data = await api('/platform/projects', {
+      method: 'POST',
+      body: JSON.stringify({ workspace_id: workspace.id, name })
+    });
+    $('platformProjectName').value = '';
+    renderResult($('platformResult'), data);
+    await loadPlatformOverview();
+  } catch (error) {
+    if ($('platformStatus')) $('platformStatus').textContent = error.message;
+  }
+}
 
 /* =========================================================
    MOLECULAR ANALYSIS
@@ -3071,6 +3164,18 @@ function bindEvents() {
   }
 
 
+  const platformRefresh = $('platformRefresh');
+  if (platformRefresh) platformRefresh.addEventListener('click', loadPlatformOverview);
+
+  const platformCreateOrg = $('platformCreateOrg');
+  if (platformCreateOrg) platformCreateOrg.addEventListener('click', createPlatformOrganization);
+
+  const platformCreateWorkspace = $('platformCreateWorkspace');
+  if (platformCreateWorkspace) platformCreateWorkspace.addEventListener('click', createPlatformWorkspace);
+
+  const platformCreateProject = $('platformCreateProject');
+  if (platformCreateProject) platformCreateProject.addEventListener('click', createPlatformProject);
+
   const reportsRefresh =
     $('reportsRefresh');
 
@@ -3229,6 +3334,8 @@ window.searchResearch =
 
 window.createDiscoverySession =
   createDiscoverySession;
+
+window.loadPlatformOverview = loadPlatformOverview;
 
 
 /* =========================================================
