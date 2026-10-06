@@ -1,7 +1,8 @@
 /* =========================================================
    MEDGEN AI — APP.JS
-   Compatible with current index.html
-========================================================= */
+   Multilingual Dynamic UI
+   EN / UZ / RU
+   ========================================================= */
 
 const API_BASE =
   window.MEDGEN_API_BASE ||
@@ -17,7 +18,7 @@ const state = {
 
 /* =========================================================
    HELPERS
-========================================================= */
+   ========================================================= */
 
 const $ = (id) =>
   document.getElementById(id);
@@ -34,6 +35,414 @@ function setText(id, text) {
   if (el) {
     el.textContent = text;
   }
+}
+
+
+/* =========================================================
+   DYNAMIC TRANSLATIONS
+   ========================================================= */
+
+const dynamicTranslations = {
+
+  en: {
+
+    enterCredentials:
+      'Enter username and password.',
+
+    signingIn:
+      'Signing in...',
+
+    loginSuccessful:
+      'Login successful.',
+
+    loginFailed:
+      'Login failed: ',
+
+    apiOnline:
+      'API: online',
+
+    apiOffline:
+      'API: offline',
+
+    online:
+      'online',
+
+    offline:
+      'offline',
+
+    analyzing:
+      'Analyzing...',
+
+    analysisCompleted:
+      'Analysis completed.',
+
+    sequenceRequired:
+      'Enter a sequence.',
+
+    done:
+      'Done.',
+
+    pdbRequired:
+      'PDB ID required.',
+
+    loading:
+      'Loading...',
+
+    loaded:
+      'Loaded.',
+
+    targetRequired:
+      'Enter a target.',
+
+    searching:
+      'Searching...',
+
+    jobCreated:
+      'Job created.',
+
+    jobsLoading:
+      'Loading scientific jobs...',
+
+    noJobs:
+      'No scientific jobs available yet.',
+
+    reportsLoading:
+      'Loading reports...',
+
+    noReports:
+      'No reports available yet.',
+
+    workflowsLoading:
+      'Loading workflows...',
+
+    noWorkflows:
+      'No workflows available yet.',
+
+    workflowsCount:
+      'Workflows: ',
+
+    researchEmpty:
+      'No research results found.',
+
+    molecularAnalysis:
+      'Molecular Analysis',
+
+    bioinformatics:
+      'Bioinformatics',
+
+    pdbStructure:
+      'PDB & Structure',
+
+    drugDiscovery:
+      'Drug Discovery',
+
+    scientificJobs:
+      'Scientific Jobs',
+
+    researchAssistant:
+      'Research Assistant',
+
+    virtualLaboratory:
+      'Virtual Laboratory',
+
+    reportsHistory:
+      'Reports & History',
+
+    worker:
+      'Worker',
+
+    queue:
+      'Queue',
+
+    active:
+      'Active'
+  },
+
+
+  uz: {
+
+    enterCredentials:
+      'Foydalanuvchi nomi va parolni kiriting.',
+
+    signingIn:
+      'Tizimga kirilmoqda...',
+
+    loginSuccessful:
+      'Tizimga muvaffaqiyatli kirildi.',
+
+    loginFailed:
+      'Kirishda xatolik: ',
+
+    apiOnline:
+      'API: online',
+
+    apiOffline:
+      'API: offline',
+
+    online:
+      'online',
+
+    offline:
+      'offline',
+
+    analyzing:
+      'Tahlil qilinmoqda...',
+
+    analysisCompleted:
+      'Tahlil tugadi.',
+
+    sequenceRequired:
+      'Ketma-ketlikni kiriting.',
+
+    done:
+      'Tayyor.',
+
+    pdbRequired:
+      'PDB ID kiriting.',
+
+    loading:
+      'Yuklanmoqda...',
+
+    loaded:
+      'Yuklandi.',
+
+    targetRequired:
+      'Nishonni kiriting.',
+
+    searching:
+      'Qidirilmoqda...',
+
+    jobCreated:
+      'Vazifa yaratildi.',
+
+    jobsLoading:
+      'Ilmiy vazifalar yuklanmoqda...',
+
+    noJobs:
+      'Hozircha ilmiy vazifalar mavjud emas.',
+
+    reportsLoading:
+      'Hisobotlar yuklanmoqda...',
+
+    noReports:
+      'Hozircha hisobotlar mavjud emas.',
+
+    workflowsLoading:
+      'Workflowlar yuklanmoqda...',
+
+    noWorkflows:
+      'Hozircha workflowlar mavjud emas.',
+
+    workflowsCount:
+      'Workflowlar soni: ',
+
+    researchEmpty:
+      'Tadqiqot natijalari topilmadi.',
+
+    molecularAnalysis:
+      'Molekulyar tahlil',
+
+    bioinformatics:
+      'Bioinformatika',
+
+    pdbStructure:
+      'PDB va struktura',
+
+    drugDiscovery:
+      'Dori vositalarini kashf qilish',
+
+    scientificJobs:
+      'Ilmiy vazifalar',
+
+    researchAssistant:
+      'Tadqiqot yordamchisi',
+
+    virtualLaboratory:
+      'Virtual laboratoriya',
+
+    reportsHistory:
+      'Hisobotlar va tarix',
+
+    worker:
+      'Worker',
+
+    queue:
+      'Navbat',
+
+    active:
+      'Faol'
+  },
+
+
+  ru: {
+
+    enterCredentials:
+      'Введите имя пользователя и пароль.',
+
+    signingIn:
+      'Выполняется вход...',
+
+    loginSuccessful:
+      'Вход выполнен.',
+
+    loginFailed:
+      'Ошибка входа: ',
+
+    apiOnline:
+      'API: онлайн',
+
+    apiOffline:
+      'API: офлайн',
+
+    online:
+      'онлайн',
+
+    offline:
+      'офлайн',
+
+    analyzing:
+      'Анализ выполняется...',
+
+    analysisCompleted:
+      'Анализ завершён.',
+
+    sequenceRequired:
+      'Введите последовательность.',
+
+    done:
+      'Готово.',
+
+    pdbRequired:
+      'Введите PDB ID.',
+
+    loading:
+      'Загрузка...',
+
+    loaded:
+      'Загружено.',
+
+    targetRequired:
+      'Введите мишень.',
+
+    searching:
+      'Поиск...',
+
+    jobCreated:
+      'Задача создана.',
+
+    jobsLoading:
+      'Загрузка научных задач...',
+
+    noJobs:
+      'На данный момент научных задач нет.',
+
+    reportsLoading:
+      'Загрузка отчётов...',
+
+    noReports:
+      'Отчётов пока нет.',
+
+    workflowsLoading:
+      'Загрузка workflow...',
+
+    noWorkflows:
+      'Пока нет доступных workflow.',
+
+    workflowsCount:
+      'Количество workflow: ',
+
+    researchEmpty:
+      'Результаты исследований не найдены.',
+
+    molecularAnalysis:
+      'Молекулярный анализ',
+
+    bioinformatics:
+      'Биоинформатика',
+
+    pdbStructure:
+      'PDB и структура',
+
+    drugDiscovery:
+      'Разработка лекарств',
+
+    scientificJobs:
+      'Научные задачи',
+
+    researchAssistant:
+      'Исследовательский помощник',
+
+    virtualLaboratory:
+      'Виртуальная лаборатория',
+
+    reportsHistory:
+      'Отчёты и история',
+
+    worker:
+      'Worker',
+
+    queue:
+      'Очередь',
+
+    active:
+      'Активных'
+  }
+
+};
+
+
+function t(key) {
+
+  const language =
+    getLanguage();
+
+  return (
+    dynamicTranslations[language]?.[key] ||
+    dynamicTranslations.en[key] ||
+    key
+  );
+}
+
+
+/* =========================================================
+   MODULE TITLES
+   ========================================================= */
+
+function translateModuleTitle(moduleName) {
+
+  const map = {
+
+    'Molecular Analysis':
+      'molecularAnalysis',
+
+    'Bioinformatics':
+      'bioinformatics',
+
+    'PDB & Structure':
+      'pdbStructure',
+
+    'Drug Discovery':
+      'drugDiscovery',
+
+    'Scientific Jobs':
+      'scientificJobs',
+
+    'Research Assistant':
+      'researchAssistant',
+
+    'Virtual Laboratory':
+      'virtualLaboratory',
+
+    'Reports & History':
+      'reportsHistory'
+  };
+
+  const key =
+    map[moduleName];
+
+  return key
+    ? t(key)
+    : moduleName;
 }
 
 
@@ -60,13 +469,14 @@ async function api(path, options = {}) {
       `Bearer ${state.token}`;
   }
 
-  const response = await fetch(
-    `${API_BASE}${path}`,
-    {
-      ...options,
-      headers
-    }
-  );
+  const response =
+    await fetch(
+      `${API_BASE}${path}`,
+      {
+        ...options,
+        headers
+      }
+    );
 
   let data = null;
 
@@ -80,14 +490,19 @@ async function api(path, options = {}) {
       'application/json'
     )
   ) {
-    data = await response.json();
+
+    data =
+      await response.json();
+
   } else {
+
     const text =
       await response.text();
 
-    data = text
-      ? { message: text }
-      : null;
+    data =
+      text
+        ? { message: text }
+        : null;
   }
 
   if (!response.ok) {
@@ -123,11 +538,7 @@ async function login() {
 
     if (status) {
       status.textContent =
-        getLanguage() === 'ru'
-          ? 'Введите имя пользователя и пароль.'
-          : getLanguage() === 'uz'
-            ? 'Foydalanuvchi nomi va parolni kiriting.'
-            : 'Enter username and password.';
+        t('enterCredentials');
     }
 
     return;
@@ -135,11 +546,7 @@ async function login() {
 
   if (status) {
     status.textContent =
-      getLanguage() === 'ru'
-        ? 'Выполняется вход...'
-        : getLanguage() === 'uz'
-          ? 'Tizimga kirilmoqda...'
-          : 'Signing in...';
+      t('signingIn');
   }
 
   try {
@@ -149,10 +556,12 @@ async function login() {
         '/auth/login',
         {
           method: 'POST',
-          body: JSON.stringify({
-            username,
-            password
-          })
+
+          body:
+            JSON.stringify({
+              username,
+              password
+            })
         }
       );
 
@@ -161,12 +570,14 @@ async function login() {
       data?.token;
 
     if (!token) {
+
       throw new Error(
         'Access token was not returned by the server.'
       );
     }
 
-    state.token = token;
+    state.token =
+      token;
 
     sessionStorage.setItem(
       TOKEN_KEY,
@@ -174,13 +585,8 @@ async function login() {
     );
 
     if (status) {
-
       status.textContent =
-        getLanguage() === 'ru'
-          ? 'Вход выполнен.'
-          : getLanguage() === 'uz'
-            ? 'Tizimga muvaffaqiyatli kirildi.'
-            : 'Login successful.';
+        t('loginSuccessful');
     }
 
     await loadCurrentUser();
@@ -196,18 +602,9 @@ async function login() {
 
     if (status) {
 
-      let prefix;
-
-      if (getLanguage() === 'ru') {
-        prefix = 'Ошибка входа: ';
-      } else if (getLanguage() === 'uz') {
-        prefix = 'Kirishda xatolik: ';
-      } else {
-        prefix = 'Login failed: ';
-      }
-
       status.textContent =
-        prefix + error.message;
+        t('loginFailed') +
+        error.message;
     }
   }
 }
@@ -223,9 +620,11 @@ function bindLoginForm() {
     $('loginForm');
 
   if (!form) {
+
     console.error(
       'loginForm not found'
     );
+
     return;
   }
 
@@ -252,7 +651,8 @@ async function loadCurrentUser() {
     const data =
       await api('/auth/me');
 
-    state.user = data;
+    state.user =
+      data;
 
     updateUserUI();
 
@@ -290,6 +690,7 @@ function updateUserUI() {
     $('roleBadge');
 
   if (badge) {
+
     badge.textContent =
       String(role).toUpperCase();
   }
@@ -309,12 +710,14 @@ function showDashboard() {
     $('dashboardView');
 
   if (loginView) {
+
     loginView.classList.add(
       'hidden'
     );
   }
 
   if (dashboardView) {
+
     dashboardView.classList.remove(
       'hidden'
     );
@@ -344,12 +747,14 @@ function logout() {
     $('loginView');
 
   if (dashboardView) {
+
     dashboardView.classList.add(
       'hidden'
     );
   }
 
   if (loginView) {
+
     loginView.classList.remove(
       'hidden'
     );
@@ -385,44 +790,30 @@ async function checkHealth() {
 
   try {
 
-    await api('/health/live');
+    await api(
+      '/health/live'
+    );
 
     if (text) {
       text.textContent =
-        getLanguage() === 'ru'
-          ? 'онлайн'
-          : getLanguage() === 'uz'
-            ? 'online'
-            : 'online';
+        t('online');
     }
 
     if (badge) {
       badge.textContent =
-        getLanguage() === 'ru'
-          ? 'API: онлайн'
-          : getLanguage() === 'uz'
-            ? 'API: online'
-            : 'API: online';
+        t('apiOnline');
     }
 
   } catch (error) {
 
     if (text) {
       text.textContent =
-        getLanguage() === 'ru'
-          ? 'офлайн'
-          : getLanguage() === 'uz'
-            ? 'offline'
-            : 'offline';
+        t('offline');
     }
 
     if (badge) {
       badge.textContent =
-        getLanguage() === 'ru'
-          ? 'API: офлайн'
-          : getLanguage() === 'uz'
-            ? 'API: offline'
-            : 'API: offline';
+        t('apiOffline');
     }
   }
 }
@@ -441,14 +832,16 @@ function openWorkspace(title) {
     $('workspaceTitle');
 
   if (workspace) {
+
     workspace.classList.remove(
       'hidden'
     );
   }
 
   if (workspaceTitle) {
+
     workspaceTitle.textContent =
-      title;
+      translateModuleTitle(title);
   }
 }
 
@@ -459,6 +852,7 @@ function closeWorkspace() {
     $('workspace');
 
   if (workspace) {
+
     workspace.classList.add(
       'hidden'
     );
@@ -468,6 +862,7 @@ function closeWorkspace() {
     .querySelectorAll('.tool')
     .forEach(
       (tool) => {
+
         tool.classList.add(
           'hidden'
         );
@@ -490,6 +885,7 @@ function openModule(moduleName) {
     .querySelectorAll('.tool')
     .forEach(
       (tool) => {
+
         tool.classList.add(
           'hidden'
         );
@@ -532,6 +928,7 @@ function openModule(moduleName) {
       $(toolId);
 
     if (tool) {
+
       tool.classList.remove(
         'hidden'
       );
@@ -542,6 +939,7 @@ function openModule(moduleName) {
     moduleName ===
     'Scientific Jobs'
   ) {
+
     loadJobs();
   }
 
@@ -549,6 +947,7 @@ function openModule(moduleName) {
     moduleName ===
     'Reports & History'
   ) {
+
     loadReports();
   }
 
@@ -556,6 +955,7 @@ function openModule(moduleName) {
     moduleName ===
     'Virtual Laboratory'
   ) {
+
     loadWorkflows();
   }
 }
@@ -579,20 +979,22 @@ async function analyzeMolecule() {
   if (!smiles) {
 
     if (status) {
+
       status.textContent =
-        'SMILES required.';
+        getLanguage() === 'ru'
+          ? 'Введите SMILES.'
+          : getLanguage() === 'uz'
+            ? 'SMILES kiriting.'
+            : 'Enter SMILES.';
     }
 
     return;
   }
 
   if (status) {
+
     status.textContent =
-      getLanguage() === 'uz'
-        ? 'Tahlil qilinmoqda...'
-        : getLanguage() === 'ru'
-          ? 'Анализ выполняется...'
-          : 'Analyzing...';
+      t('analyzing');
   }
 
   try {
@@ -602,13 +1004,16 @@ async function analyzeMolecule() {
         '/molecules/analyze',
         {
           method: 'POST',
-          body: JSON.stringify({
-            smiles
-          })
+
+          body:
+            JSON.stringify({
+              smiles
+            })
         }
       );
 
     if (result) {
+
       result.textContent =
         JSON.stringify(
           data,
@@ -618,17 +1023,15 @@ async function analyzeMolecule() {
     }
 
     if (status) {
+
       status.textContent =
-        getLanguage() === 'uz'
-          ? 'Tahlil tugadi.'
-          : getLanguage() === 'ru'
-            ? 'Анализ завершён.'
-            : 'Analysis completed.';
+        t('analysisCompleted');
     }
 
   } catch (error) {
 
     if (status) {
+
       status.textContent =
         error.message;
     }
@@ -654,24 +1057,18 @@ async function runBioinformatics() {
   if (!sequence) {
 
     if (status) {
+
       status.textContent =
-        getLanguage() === 'uz'
-          ? 'Ketma-ketlikni kiriting.'
-          : getLanguage() === 'ru'
-            ? 'Введите последовательность.'
-            : 'Enter a sequence.';
+        t('sequenceRequired');
     }
 
     return;
   }
 
   if (status) {
+
     status.textContent =
-      getLanguage() === 'uz'
-        ? 'Tahlil qilinmoqda...'
-        : getLanguage() === 'ru'
-          ? 'Анализ выполняется...'
-          : 'Analyzing...';
+      t('analyzing');
   }
 
   try {
@@ -681,13 +1078,16 @@ async function runBioinformatics() {
         '/bioinformatics/analyze',
         {
           method: 'POST',
-          body: JSON.stringify({
-            sequence
-          })
+
+          body:
+            JSON.stringify({
+              sequence
+            })
         }
       );
 
     if (result) {
+
       result.textContent =
         JSON.stringify(
           data,
@@ -697,17 +1097,15 @@ async function runBioinformatics() {
     }
 
     if (status) {
+
       status.textContent =
-        getLanguage() === 'uz'
-          ? 'Tayyor.'
-          : getLanguage() === 'ru'
-            ? 'Готово.'
-            : 'Done.';
+        t('done');
     }
 
   } catch (error) {
 
     if (status) {
+
       status.textContent =
         error.message;
     }
@@ -733,8 +1131,9 @@ async function loadPDB() {
   if (!pdbId) {
 
     if (status) {
+
       status.textContent =
-        'PDB ID required.';
+        t('pdbRequired');
     }
 
     return;
@@ -743,12 +1142,9 @@ async function loadPDB() {
   try {
 
     if (status) {
+
       status.textContent =
-        getLanguage() === 'uz'
-          ? 'Yuklanmoqda...'
-          : getLanguage() === 'ru'
-            ? 'Загрузка...'
-            : 'Loading...';
+        t('loading');
     }
 
     const data =
@@ -757,6 +1153,7 @@ async function loadPDB() {
       );
 
     if (result) {
+
       result.textContent =
         JSON.stringify(
           data,
@@ -766,17 +1163,15 @@ async function loadPDB() {
     }
 
     if (status) {
+
       status.textContent =
-        getLanguage() === 'uz'
-          ? 'Yuklandi.'
-          : getLanguage() === 'ru'
-            ? 'Загружено.'
-            : 'Loaded.';
+        t('loaded');
     }
 
   } catch (error) {
 
     if (status) {
+
       status.textContent =
         error.message;
     }
@@ -802,15 +1197,18 @@ async function createDiscoverySession() {
   if (!target) {
 
     if (status) {
+
       status.textContent =
-        getLanguage() === 'uz'
-          ? 'Nishonni kiriting.'
-          : getLanguage() === 'ru'
-            ? 'Введите мишень.'
-            : 'Enter a target.';
+        t('targetRequired');
     }
 
     return;
+  }
+
+  if (status) {
+
+    status.textContent =
+      t('loading');
   }
 
   try {
@@ -820,13 +1218,16 @@ async function createDiscoverySession() {
         '/discovery/screen',
         {
           method: 'POST',
-          body: JSON.stringify({
-            target
-          })
+
+          body:
+            JSON.stringify({
+              target
+            })
         }
       );
 
     if (result) {
+
       result.textContent =
         JSON.stringify(
           data,
@@ -835,9 +1236,16 @@ async function createDiscoverySession() {
         );
     }
 
+    if (status) {
+
+      status.textContent =
+        t('done');
+    }
+
   } catch (error) {
 
     if (status) {
+
       status.textContent =
         error.message;
     }
@@ -875,13 +1283,29 @@ async function loadJobStatus() {
         data?.active ??
         0;
 
-      status.textContent =
-        `Worker: ${worker} | Queue: ${queue} | Active: ${active}`;
+      if (getLanguage() === 'ru') {
+
+        status.textContent =
+          `Worker: ${worker} | Очередь: ${queue} | Активных: ${active}`;
+
+      } else if (
+        getLanguage() === 'uz'
+      ) {
+
+        status.textContent =
+          `Worker: ${worker} | Navbat: ${queue} | Faol: ${active}`;
+
+      } else {
+
+        status.textContent =
+          `Worker: ${worker} | Queue: ${queue} | Active: ${active}`;
+      }
     }
 
   } catch (error) {
 
     if (status) {
+
       status.textContent =
         error.message;
     }
@@ -899,18 +1323,17 @@ async function loadJobs() {
     $('jobsResult');
 
   if (result) {
+
     result.textContent =
-      getLanguage() === 'uz'
-        ? 'Yuklanmoqda...'
-        : getLanguage() === 'ru'
-          ? 'Загрузка...'
-          : 'Loading...';
+      t('jobsLoading');
   }
 
   try {
 
     const data =
-      await api('/jobs');
+      await api(
+        '/jobs'
+      );
 
     const jobs =
       data?.jobs || [];
@@ -920,17 +1343,16 @@ async function loadJobs() {
       if (result) {
 
         result.textContent =
-          getLanguage() === 'uz'
-            ? 'Hozircha ilmiy vazifalar mavjud emas.'
-            : getLanguage() === 'ru'
-              ? 'На данный момент научных задач нет.'
-              : 'No scientific jobs available yet.';
+          t('noJobs');
       }
+
+      await loadJobStatus();
 
       return;
     }
 
     if (result) {
+
       result.textContent =
         JSON.stringify(
           data,
@@ -942,6 +1364,7 @@ async function loadJobs() {
   } catch (error) {
 
     if (result) {
+
       result.textContent =
         error.message;
     }
@@ -967,6 +1390,12 @@ async function createJob() {
   const result =
     $('jobCreateResult');
 
+  if (status) {
+
+    status.textContent =
+      t('loading');
+  }
+
   try {
 
     const data =
@@ -974,22 +1403,22 @@ async function createJob() {
         '/jobs',
         {
           method: 'POST',
-          body: JSON.stringify({
-            type: jobType
-          })
+
+          body:
+            JSON.stringify({
+              type: jobType
+            })
         }
       );
 
     if (status) {
+
       status.textContent =
-        getLanguage() === 'uz'
-          ? 'Vazifa yaratildi.'
-          : getLanguage() === 'ru'
-            ? 'Задача создана.'
-            : 'Job created.';
+        t('jobCreated');
     }
 
     if (result) {
+
       result.textContent =
         JSON.stringify(
           data,
@@ -1003,6 +1432,7 @@ async function createJob() {
   } catch (error) {
 
     if (status) {
+
       status.textContent =
         error.message;
     }
@@ -1025,16 +1455,15 @@ async function loadReports() {
   try {
 
     if (status) {
+
       status.textContent =
-        getLanguage() === 'uz'
-          ? 'Yuklanmoqda...'
-          : getLanguage() === 'ru'
-            ? 'Загрузка...'
-            : 'Loading...';
+        t('reportsLoading');
     }
 
     const data =
-      await api('/reports');
+      await api(
+        '/reports'
+      );
 
     const reports =
       data?.reports || [];
@@ -1044,16 +1473,13 @@ async function loadReports() {
       if (result) {
 
         result.textContent =
-          getLanguage() === 'uz'
-            ? 'Hozircha hisobotlar mavjud emas.'
-            : getLanguage() === 'ru'
-              ? 'Отчётов пока нет.'
-              : 'No reports available yet.';
+          t('noReports');
       }
 
     } else {
 
       if (result) {
+
         result.textContent =
           JSON.stringify(
             data,
@@ -1064,17 +1490,15 @@ async function loadReports() {
     }
 
     if (status) {
+
       status.textContent =
-        getLanguage() === 'uz'
-          ? 'Yuklandi.'
-          : getLanguage() === 'ru'
-            ? 'Загружено.'
-            : 'Loaded.';
+        t('loaded');
     }
 
   } catch (error) {
 
     if (status) {
+
       status.textContent =
         error.message;
     }
@@ -1083,7 +1507,7 @@ async function loadReports() {
 
 
 /* =========================================================
-   WORKFLOWS
+   WORKFLOWS / VIRTUAL LABORATORY
 ========================================================= */
 
 async function loadWorkflows() {
@@ -1096,10 +1520,48 @@ async function loadWorkflows() {
 
   try {
 
+    if (status) {
+
+      status.textContent =
+        t('workflowsLoading');
+    }
+
     const data =
-      await api('/workflows');
+      await api(
+        '/workflows'
+      );
+
+    const workflows =
+      data?.workflows || [];
+
+    /*
+     * IMPORTANT:
+     * Empty workflow list is NOT an API error.
+     */
+
+    if (!workflows.length) {
+
+      if (result) {
+
+        result.textContent =
+          t('noWorkflows');
+      }
+
+      if (status) {
+
+        const count =
+          data?.count ?? 0;
+
+        status.textContent =
+          t('workflowsCount') +
+          count;
+      }
+
+      return;
+    }
 
     if (result) {
+
       result.textContent =
         JSON.stringify(
           data,
@@ -1109,18 +1571,22 @@ async function loadWorkflows() {
     }
 
     if (status) {
+
       status.textContent =
-        getLanguage() === 'uz'
-          ? 'Yuklandi.'
-          : getLanguage() === 'ru'
-            ? 'Загружено.'
-            : 'Loaded.';
+        t('loaded');
     }
 
   } catch (error) {
 
     if (status) {
+
       status.textContent =
+        error.message;
+    }
+
+    if (result) {
+
+      result.textContent =
         error.message;
     }
   }
@@ -1143,18 +1609,22 @@ async function searchResearch() {
     $('researchResult');
 
   if (!query) {
+
+    if (result) {
+
+      result.textContent =
+        t('researchEmpty');
+    }
+
     return;
   }
 
   try {
 
     if (status) {
+
       status.textContent =
-        getLanguage() === 'uz'
-          ? 'Qidirilmoqda...'
-          : getLanguage() === 'ru'
-            ? 'Поиск...'
-            : 'Searching...';
+        t('searching');
     }
 
     const data =
@@ -1162,13 +1632,16 @@ async function searchResearch() {
         '/research/search',
         {
           method: 'POST',
-          body: JSON.stringify({
-            query
-          })
+
+          body:
+            JSON.stringify({
+              query
+            })
         }
       );
 
     if (result) {
+
       result.textContent =
         JSON.stringify(
           data,
@@ -1177,13 +1650,247 @@ async function searchResearch() {
         );
     }
 
+    if (status) {
+
+      status.textContent =
+        t('done');
+    }
+
   } catch (error) {
 
     if (status) {
+
       status.textContent =
         error.message;
     }
+
+    if (result) {
+
+      result.textContent =
+        error.message;
+    }
   }
+}
+
+
+/* =========================================================
+   REFRESH DYNAMIC TEXT
+========================================================= */
+
+function refreshDynamicUI() {
+
+  /*
+   * API status
+   */
+  const apiText =
+    $('apiText');
+
+  const healthBadge =
+    $('healthBadge');
+
+  if (apiText) {
+
+    const current =
+      apiText.textContent
+        .toLowerCase();
+
+    if (
+      current.includes('online') ||
+      current.includes('онлайн')
+    ) {
+
+      apiText.textContent =
+        t('online');
+
+    } else if (
+      current.includes('offline') ||
+      current.includes('офлайн')
+    ) {
+
+      apiText.textContent =
+        t('offline');
+    }
+  }
+
+  if (healthBadge) {
+
+    const current =
+      healthBadge.textContent
+        .toLowerCase();
+
+    if (
+      current.includes('online') ||
+      current.includes('онлайн')
+    ) {
+
+      healthBadge.textContent =
+        t('apiOnline');
+
+    } else if (
+      current.includes('offline') ||
+      current.includes('офлайн')
+    ) {
+
+      healthBadge.textContent =
+        t('apiOffline');
+    }
+  }
+
+
+  /*
+   * Workspace title
+   */
+  const workspaceTitle =
+    $('workspaceTitle');
+
+  if (
+    workspaceTitle &&
+    !workspaceTitle.closest('.hidden')
+  ) {
+
+    const moduleButtons =
+      document.querySelectorAll(
+        '.module'
+      );
+
+    moduleButtons.forEach(
+      (button) => {
+
+        const original =
+          button.dataset.module;
+
+        if (
+          original &&
+          workspaceTitle.textContent ===
+            translateModuleTitle(original)
+        ) {
+
+          workspaceTitle.textContent =
+            translateModuleTitle(
+              original
+            );
+        }
+      }
+    );
+  }
+
+
+  /*
+   * Existing empty states
+   */
+
+  const jobsResult =
+    $('jobsResult');
+
+  if (jobsResult) {
+
+    const text =
+      jobsResult.textContent;
+
+    if (
+      text ===
+        'No scientific jobs available yet.' ||
+      text ===
+        'Hozircha ilmiy vazifalar mavjud emas.' ||
+      text ===
+        'На данный момент научных задач нет.'
+    ) {
+
+      jobsResult.textContent =
+        t('noJobs');
+    }
+  }
+
+
+  const reportsResult =
+    $('reportsResult');
+
+  if (reportsResult) {
+
+    const text =
+      reportsResult.textContent;
+
+    if (
+      text ===
+        'No reports available yet.' ||
+      text ===
+        'Hozircha hisobotlar mavjud emas.' ||
+      text ===
+        'Отчётов пока нет.'
+    ) {
+
+      reportsResult.textContent =
+        t('noReports');
+    }
+  }
+
+
+  const workflowResult =
+    $('workflowResult');
+
+  if (workflowResult) {
+
+    const text =
+      workflowResult.textContent;
+
+    if (
+      text ===
+        'No workflows available yet.' ||
+      text ===
+        'Hozircha workflowlar mavjud emas.' ||
+      text ===
+        'Пока нет доступных workflow.'
+    ) {
+
+      workflowResult.textContent =
+        t('noWorkflows');
+    }
+  }
+}
+
+
+/* =========================================================
+   LANGUAGE SELECTOR
+========================================================= */
+
+function bindLanguageSelectors() {
+
+  const selectors =
+    [
+      $('loginLanguageSelector'),
+      $('languageSelector')
+    ].filter(Boolean);
+
+  selectors.forEach(
+    (selector) => {
+
+      selector.addEventListener(
+        'change',
+        function () {
+
+          const language =
+            selector.value;
+
+          localStorage.setItem(
+            'medgen_language',
+            language
+          );
+
+          /*
+           * index.html owns the main
+           * static translation engine.
+           *
+           * We only refresh dynamic content.
+           */
+
+          setTimeout(
+            refreshDynamicUI,
+            0
+          );
+        }
+      );
+    }
+  );
 }
 
 
@@ -1193,24 +1900,16 @@ async function searchResearch() {
 
 function bindEvents() {
 
-  const loginForm =
-    $('loginForm');
+  bindLoginForm();
 
-  if (loginForm) {
-    loginForm.addEventListener(
-      'submit',
-      function (event) {
-        event.preventDefault();
-        login();
-      }
-    );
-  }
+  bindLanguageSelectors();
 
 
   const logoutBtn =
     $('logoutBtn');
 
   if (logoutBtn) {
+
     logoutBtn.addEventListener(
       'click',
       logout
@@ -1222,6 +1921,7 @@ function bindEvents() {
     $('workspaceClose');
 
   if (workspaceClose) {
+
     workspaceClose.addEventListener(
       'click',
       closeWorkspace
@@ -1251,6 +1951,7 @@ function bindEvents() {
     $('molecularRun');
 
   if (molecularRun) {
+
     molecularRun.addEventListener(
       'click',
       analyzeMolecule
@@ -1262,6 +1963,7 @@ function bindEvents() {
     $('bioRun');
 
   if (bioRun) {
+
     bioRun.addEventListener(
       'click',
       runBioinformatics
@@ -1273,6 +1975,7 @@ function bindEvents() {
     $('pdbRun');
 
   if (pdbRun) {
+
     pdbRun.addEventListener(
       'click',
       loadPDB
@@ -1284,6 +1987,7 @@ function bindEvents() {
     $('discoveryRun');
 
   if (discoveryRun) {
+
     discoveryRun.addEventListener(
       'click',
       createDiscoverySession
@@ -1295,6 +1999,7 @@ function bindEvents() {
     $('jobCreate');
 
   if (jobCreate) {
+
     jobCreate.addEventListener(
       'click',
       createJob
@@ -1306,6 +2011,7 @@ function bindEvents() {
     $('jobsRefresh');
 
   if (jobsRefresh) {
+
     jobsRefresh.addEventListener(
       'click',
       loadJobs
@@ -1317,6 +2023,7 @@ function bindEvents() {
     $('reportsRefresh');
 
   if (reportsRefresh) {
+
     reportsRefresh.addEventListener(
       'click',
       loadReports
@@ -1328,6 +2035,7 @@ function bindEvents() {
     $('workflowRefresh');
 
   if (workflowRefresh) {
+
     workflowRefresh.addEventListener(
       'click',
       loadWorkflows
@@ -1339,6 +2047,7 @@ function bindEvents() {
     $('researchRun');
 
   if (researchRun) {
+
     researchRun.addEventListener(
       'click',
       searchResearch
@@ -1356,10 +2065,12 @@ async function init() {
   bindEvents();
 
   /*
-   * IMPORTANT:
-   * Login language selector is handled by index.html.
-   * We only synchronize UI after initialization.
+   * index.html handles static
+   * translation.
    */
+
+  refreshDynamicUI();
+
 
   if (state.token) {
 
@@ -1422,13 +2133,17 @@ window.loadPDB =
 window.searchResearch =
   searchResearch;
 
+window.refreshDynamicUI =
+  refreshDynamicUI;
+
 
 /* =========================================================
    START
 ========================================================= */
 
 if (
-  document.readyState === 'loading'
+  document.readyState ===
+  'loading'
 ) {
 
   document.addEventListener(
