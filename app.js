@@ -2269,6 +2269,34 @@ async function runDocking() {
    JOB STATUS
 ========================================================= */
 
+async function createLabWorkflow() {
+  const name = $('labName')?.value?.trim() || 'MedGen Virtual Experiment';
+  const workflow_type = $('labType')?.value || 'custom';
+  const raw = $('labInput')?.value?.trim() || '{}';
+  const status = $('workflowStatus');
+  const result = $('workflowResult');
+  let input;
+  try {
+    input = JSON.parse(raw);
+  } catch {
+    if (status) status.textContent = 'Input JSON noto‘g‘ri.';
+    return;
+  }
+  if (status) status.textContent = 'Workflow yaratilmoqda...';
+  try {
+    const data = await api('/workflows', {
+      method: 'POST',
+      body: JSON.stringify({ workflow_type, input: { name, ...input } })
+    });
+    renderResult(result, data);
+    if (status) status.textContent = 'Virtual Laboratory workflow yaratildi.';
+    await loadWorkflows();
+  } catch (error) {
+    if (status) status.textContent = error.message;
+  }
+}
+
+
 async function loadJobStatus() {
 
   const status =
@@ -3037,6 +3065,9 @@ function bindEvents() {
     );
   }
 
+
+  const labRun = $('labRun');
+  if (labRun) labRun.addEventListener('click', createLabWorkflow);
 
   const workflowRefresh =
     $('workflowRefresh');
