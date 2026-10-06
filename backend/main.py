@@ -92,6 +92,9 @@ TOKEN_TTL_SECONDS = int(os.getenv("MEDGEN_TOKEN_TTL_SECONDS", "28800"))
 
 tokens = {}
 token_created_at = {}
+login_attempts = {}
+LOGIN_WINDOW_SECONDS = int(os.getenv("MEDGEN_LOGIN_WINDOW_SECONDS", "300"))
+LOGIN_MAX_ATTEMPTS = int(os.getenv("MEDGEN_LOGIN_MAX_ATTEMPTS", "8"))
 user_profiles = {}
 user_consents = {}
 activity_log = []
@@ -237,28 +240,25 @@ def health_live():
 
 @app.post("/api/v1/auth/login")
 def login(data: LoginRequest):
+    now = datetime.now(timezone.utc)
+    key = data.username.strip().lower()
+    attempts = login_attempts.get(key, [])
+    attempts = [t for t in attempts if (now - t).total_seconds() < LOGIN_WINDOW_SECONDS]
 
-    if (
-        data.username != ADMIN_USERNAME
-        or data.password != ADMIN_PASSWORD
-    ):
-        raise HTTPException(
-            status_code=401,
-            detail="Invalid username or password",
-        )
+    if len(attempts) >= LOGIN_MAX_ATTEMPTS:
+        raise HTTPException(status_code=429, detail="Too many login attempts. Try again later.")
 
-    token = make_token(
-        data.username
-    )
+    if data.username != ADMIN_USERNAME or data.password != ADMIN_PASSWORD:
+        attempts.append(now)
+        login_attempts[key] = attempts
+        raise HTTPException(status_code=401, detail="Invalid username or password")
 
+    login_attempts.pop(key, None)
+    token = make_token(data.username)
     tokens[token] = data.username
-    token_created_at[token] = datetime.now(timezone.utc).isoformat()
-    activity_log.insert(0, {"type": "login", "username": data.username, "at": token_created_at[token]})
-
-    return {
-        "access_token": token,
-        "token_type": "bearer",
-    }
+    token_created_at[token] = now.isoformat()
+    activity_log.insert(0, {"type": "login", "username": data.username, "at": now.isoformat()})
+    return {"access_token": token, "token_type": "bearer"}
 
 
 @app.get("/api/v1/auth/me")
