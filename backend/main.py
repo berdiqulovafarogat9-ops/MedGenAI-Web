@@ -124,7 +124,7 @@ def _db_load():
         _db_init()
         with psycopg.connect(DATABASE_URL) as conn:
             rows = conn.execute("SELECT state_key, state_value FROM medgen_state").fetchall()
-        stores={"user_accounts":user_accounts,"user_profiles":user_profiles,"user_consents":user_consents,"experiments_store":experiments_store,"activity_log":activity_log}
+        stores={"user_accounts":user_accounts,"user_profiles":user_profiles,"user_consents":user_consents,"experiments_store":experiments_store,"reports_store":reports_store,"activity_log":activity_log}
         for key,value in rows:
             if key in stores and isinstance(value,(dict,list)):
                 stores[key].clear()
@@ -1233,6 +1233,12 @@ def research_agent(data: ResearchAgentRequest, user=Depends(get_current_user)):
     reports_store.insert(0,{"id":secrets.token_hex(10),"type":"research_intelligence","title":"Research Intelligence — "+query,"user":user["username"],"created_at":now,"report":report})
     activity_log.insert(0,{"type":"research_agent","username":user["username"],"query":query,"evidence_count":len(evidence),"at":now})
     return report
+
+
+@app.get("/api/v1/research/history")
+def research_history(user=Depends(get_current_user)):
+    items = [x for x in reports_store if x.get("type") == "research_intelligence" and x.get("user") == user["username"]]
+    return {"status": "ok", "count": len(items), "reports": items[:50]}
 
 
 @app.get("/api/v1/research/pubmed/{pmid}")
