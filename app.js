@@ -2520,12 +2520,14 @@ function bindLanguageSelectors() {
           );
 
           /*
-           * index.html handles all
-           * static data-i18n elements.
-           *
-           * We refresh dynamic statuses here.
+           * Apply the selected language immediately to all
+           * static data-i18n / data-i18n-placeholder elements.
            */
+          if (typeof window.translatePage === 'function') {
+            window.translatePage(lang);
+          }
 
+          /* Refresh dynamic statuses and module titles too. */
           refreshDynamicUI();
         }
       );
