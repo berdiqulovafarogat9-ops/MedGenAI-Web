@@ -100,6 +100,7 @@ const dynamicTranslations = {
       'virtual screening',
 
     developmentWarning:
+      'Development-stage heuristic screening only. No validated docking, binding affinity, ADMET, or clinical prediction is performed.',
 
     superAdminDashboard: 'Super Admin Dashboard',
     users: 'Users',
@@ -115,8 +116,7 @@ const dynamicTranslations = {
     loadingDetails: 'Loading...',
     total: 'Total',
     search: 'Search...',
-    noMatchingData: 'No matching data found.',
-      'Development-stage heuristic screening only. No validated docking, binding affinity, ADMET, or clinical prediction is performed.'
+    noMatchingData: 'No matching data found.'
   },
 
 
@@ -249,6 +249,7 @@ const dynamicTranslations = {
       'virtual screening',
 
     developmentWarning:
+      'Faqat ishlab chiqish bosqichidagi evristik screening. Tasdiqlangan docking, bog‘lanish affiniteti, ADMET yoki klinik prognoz amalga oshirilmaydi.',
 
     superAdminDashboard: 'Super Admin Dashboard',
     users: 'Foydalanuvchilar',
@@ -264,8 +265,7 @@ const dynamicTranslations = {
     loadingDetails: 'Yuklanmoqda...',
     total: 'Jami',
     search: 'Qidirish...',
-    noMatchingData: 'Mos ma’lumot topilmadi.',
-      'Faqat ishlab chiqish bosqichidagi evristik screening. Tasdiqlangan docking, bog‘lanish affiniteti, ADMET yoki klinik prognoz amalga oshirilmaydi.'
+    noMatchingData: 'Mos ma’lumot topilmadi.'
   },
 
 
@@ -425,22 +425,6 @@ const resultKeys = {
   status: {
     uz: 'holat',
     ru: 'статус',
-
-    superAdminDashboard: 'Панель супер-администратора',
-    users: 'Пользователи',
-    activeTokens: 'Активные токены',
-    jobs: 'Задачи',
-    docking: 'Docking',
-    experiments: 'Эксперименты',
-    reports: 'Отчёты',
-    workflows: 'Workflow',
-    details: 'Подробнее',
-    viewDetails: 'Просмотр',
-    close: 'Закрыть',
-    loadingDetails: 'Загрузка...',
-    total: 'Всего',
-    search: 'Поиск...',
-    noMatchingData: 'Совпадений не найдено.',
     en: 'status'
   },
 
