@@ -1142,7 +1142,13 @@ def _study_type(article: dict) -> str:
         return "PHASE_2"
     if re.search(r"\bphase\s*(1|i)\b", text):
         return "PHASE_1"
-    if "case report" in text or "case series" in text:
+    case_report_signal = (
+        "case report" in text
+        or "case series" in text
+        or re.search(r"\bwe report (?:a|an) (?:rare )?case\b", text)
+        or re.search(r"\b(?:a|an|one)\s+\d{1,3}[- ]year[- ]old\b", text)
+    )
+    if case_report_signal:
         return "CASE_REPORT_OR_SERIES"
     if "case-control" in text or "case control" in text:
         return "CASE_CONTROL"
