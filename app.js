@@ -1095,7 +1095,12 @@ async function openProfile() {
       localProfile = JSON.parse(localStorage.getItem('medgen_profile_' + username) || '{}');
     } catch (_) {}
 
-    const p = { ...localProfile, ...serverProfile };
+    const p = { ...localProfile };
+    Object.entries(serverProfile).forEach(([key, value]) => {
+      if (value !== '' && value !== null && value !== undefined) {
+        p[key] = value;
+      }
+    });
 
     $('profileFullName').value = p.full_name || '';
     $('profileEmail').value = p.email || '';
