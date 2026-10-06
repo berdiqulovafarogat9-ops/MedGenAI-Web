@@ -4,5 +4,6 @@ pydantic
 rdkit
 numpy
 scipy
+gemmi
 vina
 meeko
