@@ -15,7 +15,7 @@ try:
 except Exception:
     psycopg = None
 from urllib.parse import quote
-from urllib.request import Request, urlopen
+from urllib.request import Request as URLRequest, urlopen
 from urllib.error import HTTPError, URLError
 
 from fastapi import BackgroundTasks, Depends, FastAPI, HTTPException, Request
@@ -1076,7 +1076,7 @@ def _pubmed_articles(query: str, limit: int = 8) -> list[dict]:
     limit = max(1, min(int(limit), 12))
     url = ("https://eutils.ncbi.nlm.nih.gov/entrez/eutils/esearch.fcgi"
            "?db=pubmed&term=" + quote(query) + "&retmax=" + str(limit) + "&retmode=xml")
-    req = Request(url, headers={"User-Agent": "MedGenAI/1.0 (research-agent)"})
+    req = URLRequest(url, headers={"User-Agent": "MedGenAI/1.0 (research-agent)"})
     with urlopen(req, timeout=15) as response:
         root = ET.fromstring(response.read())
     pmids = [x.text for x in root.findall(".//Id") if x.text]
@@ -1084,7 +1084,7 @@ def _pubmed_articles(query: str, limit: int = 8) -> list[dict]:
         return []
     fetch = ("https://eutils.ncbi.nlm.nih.gov/entrez/eutils/efetch.fcgi"
              "?db=pubmed&id=" + ",".join(pmids) + "&retmode=xml")
-    req = Request(fetch, headers={"User-Agent": "MedGenAI/1.0 (research-agent)"})
+    req = URLRequest(fetch, headers={"User-Agent": "MedGenAI/1.0 (research-agent)"})
     with urlopen(req, timeout=15) as response:
         articles = ET.fromstring(response.read())
     results=[]
