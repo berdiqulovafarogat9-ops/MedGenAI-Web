@@ -1130,48 +1130,50 @@ def _extract_evidence_sentences(query: str, abstract: str, max_sentences: int = 
 
 
 def _study_type(article: dict) -> str:
+    """Deterministic study-design classifier with explicit precedence."""
     text=((article.get("title","") or "")+" "+(article.get("abstract","") or "")).lower()
-    if "meta-analysis" in text or "systematic review" in text:
-        return "systematic_review_meta_analysis"
-    if "review" in text and "case review" not in text:
-        return "review"
-    if "randomized controlled trial" in text or "randomised controlled trial" in text:
-        return "randomized_controlled_trial"
-    for phase in ("phase 3","phase iii","phase 2","phase ii","phase 1","phase i"):
-        if phase in text:
-            return phase.replace(" ","_")
+    if any(x in text for x in ("systematic review","meta-analysis","meta analysis")):
+        return "REVIEW_SYSTEMATIC_OR_META_ANALYSIS"
+    if re.search(r"\\b(randomized|randomised) controlled trial\\b|\\b(rct)\\b", text):
+        return "RCT"
+    if re.search(r"\\bphase\\s*(3|iii)\\b", text):
+        return "PHASE_3"
+    if re.search(r"\\bphase\\s*(2|ii)\\b", text):
+        return "PHASE_2"
+    if re.search(r"\\bphase\\s*(1|i)\\b", text):
+        return "PHASE_1"
+    if "case report" in text or "case series" in text:
+        return "CASE_REPORT_OR_SERIES"
+    if "case-control" in text or "case control" in text:
+        return "CASE_CONTROL"
     if "prospective" in text:
-        return "prospective_study"
-    if "retrospective" in text:
-        return "retrospective_study"
-    if "case-control" in text:
-        return "case_control"
-    if "case series" in text:
-        return "case_series"
-    if "case report" in text:
-        return "case_report"
-    if "cohort" in text:
-        return "cohort_study"
-    if "observational" in text:
-        return "observational_study"
+        return "PROSPECTIVE_STUDY"
+    if "retrospective" in text or "real-world" in text or "real world" in text:
+        return "RETROSPECTIVE_OR_REAL_WORLD"
+    if "review" in text:
+        return "REVIEW"
     if "machine learning" in text or "random forest" in text or "logistic regression" in text:
-        return "computational_modeling"
-    return "unspecified"
+        return "COMPUTATIONAL_MODELING"
+    if "cohort" in text:
+        return "COHORT"
+    if "observational" in text:
+        return "OBSERVATIONAL"
+    return "OTHER"
 
 
 def _evidence_grade(article: dict) -> str:
-    """Automated research-triage tier; not a formal clinical evidence hierarchy."""
+    """Research-triage tier; not a formal clinical evidence hierarchy."""
     study=_study_type(article)
-    if study in ("systematic_review_meta_analysis","randomized_controlled_trial","phase_3","phase_iii"):
+    if study in ("RCT","PHASE_3"):
         return "A"
-    if study in ("phase_2","phase_ii","prospective_study"):
+    if study in ("PHASE_2","PROSPECTIVE_STUDY"):
         return "B"
-    if study in ("retrospective_study","cohort_study","case_control","observational_study","computational_modeling"):
+    if study in ("RETROSPECTIVE_OR_REAL_WORLD","CASE_CONTROL","COMPUTATIONAL_MODELING","COHORT","OBSERVATIONAL"):
         return "C"
-    if study in ("case_series","case_report"):
+    if study == "CASE_REPORT_OR_SERIES":
         return "D"
-    if study in ("review",):
-        return "R"
+    if study in ("REVIEW_SYSTEMATIC_OR_META_ANALYSIS","REVIEW"):
+        return "NA"
     return "E"
 
 
@@ -1189,45 +1191,55 @@ def _claim_polarity(claim: str) -> str:
 
 def _claim_topics(claim: str) -> set[str]:
     text=(claim or "").lower()
-    terms=("egfr","alk","nsclc","lung cancer","os","overall survival","pfs","progression-free survival",
-           "response","response rate","resistance","toxicity","adverse","mtap","tp53","brain metastases",
+    terms=("egfr","alk","nsclc","lung cancer","overall survival","progression-free survival",
+           "response rate","resistance","toxicity","adverse","mtap","tp53","brain metastases",
            "amivantamab","lazertinib","sunvozertinib","chemotherapy","tki")
     return {t for t in terms if t in text}
 
 
+def _claim_outcomes(claim: str) -> set[str]:
+    text=(claim or "").lower()
+    terms=("overall survival","longer survival","progression-free survival","response rate",
+           "response","resistance","toxicity","adverse","brain metastases","sensitivity")
+    return {t for t in terms if t in text}
+
+
 def _compare_claims(evidence: list[dict]) -> list[dict]:
+    """Compare only overlapping topic + outcome claims; never declare contradiction."""
     comparisons=[]
     for i in range(len(evidence)):
         a=evidence[i]
         ca=(a.get("evidence") or [a.get("title","")])[0]
-        ta=_claim_topics(ca)
-        if not ta: continue
         for j in range(i+1,len(evidence)):
             b=evidence[j]
             cb=(b.get("evidence") or [b.get("title","")])[0]
-            tb=_claim_topics(cb)
-            shared=sorted(ta & tb)
-            if not shared: continue
+            shared_topics=sorted(_claim_topics(ca) & _claim_topics(cb))
+            shared_outcomes=sorted(_claim_outcomes(ca) & _claim_outcomes(cb))
+            if not shared_topics or not shared_outcomes:
+                continue
             pa,pb=_claim_polarity(ca),_claim_polarity(cb)
             if {pa,pb}=={"positive","negative"}:
-                status="potential_conflict"
+                status="review_needed"
             elif "mixed" in (pa,pb):
-                status="different_or_qualified_findings"
+                status="qualifies"
+            elif pa==pb and pa!="neutral":
+                status="supports"
             else:
-                status="compatible_or_nonconflicting"
+                status="insufficient"
             comparisons.append({
                 "pmids":[a.get("pmid"),b.get("pmid")],
-                "shared_topics":shared[:8],
+                "shared_topics":shared_topics[:6],
+                "shared_outcomes":shared_outcomes[:4],
                 "direction":[pa,pb],
-                "status":status,
-                "note":"Automated claim-level triage; populations, interventions, endpoints and study designs must be checked before concluding conflict."
+                "comparison":status,
+                "basis":"Overlapping topic and outcome terms in extracted abstract evidence.",
+                "note":"Automated triage only; population, intervention/exposure, comparator and endpoint definitions require expert review."
             })
     return comparisons[:20]
 
 
 def _detect_evidence_tensions(evidence: list[dict]) -> list[dict]:
-    comparisons=_compare_claims(evidence)
-    return [x for x in comparisons if x["status"]=="potential_conflict"][:10]
+    return [x for x in _compare_claims(evidence) if x["comparison"]=="review_needed"][:10]
 
 
 def _build_research_synthesis(evidence: list[dict]) -> dict:
@@ -1237,36 +1249,38 @@ def _build_research_synthesis(evidence: list[dict]) -> dict:
     for item in evidence:
         claim=(item.get("evidence") or [item.get("title","")])[0]
         grade=item.get("evidence_grade","E")
-        st=item.get("study_type","unspecified")
+        st=item.get("study_type","OTHER")
         grades[grade]=grades.get(grade,0)+1
         study_types[st]=study_types.get(st,0)+1
         findings.append({
             "pmid":item.get("pmid"),
-            "claim":claim,
+            "claim":claim[:500],
             "claim_polarity":_claim_polarity(claim),
             "study_type":st,
             "study_evidence_grade":grade,
             "citation":item.get("citation","")
         })
     comparisons=_compare_claims(evidence)
+    non_na=[k for k in ("A","B","C","D","E") if k in grades]
+    summary=(
+        f"Retrieved {len(evidence)} PubMed records. "
+        f"Study designs: {', '.join(f'{k}={v}' for k,v in study_types.items()) or 'not classified'}. "
+        f"Automated comparison found {len(comparisons)} overlapping topic/outcome pairs."
+    )
     return {
+        "executive_summary":summary,
         "key_findings":findings[:8],
-        "grade_distribution":grades,
         "study_type_distribution":study_types,
+        "evidence_grade_distribution":grades,
         "claim_evidence_map":[
             {"claim":x["claim"],"supporting_citation":x["citation"],
              "study_type":x["study_type"],"study_evidence_grade":x["study_evidence_grade"]}
             for x in findings[:8]
         ],
-        "cross_paper_comparison":comparisons,
+        "cross_paper_comparisons":comparisons,
         "possible_tensions":_detect_evidence_tensions(evidence),
-        "scientific_synthesis":{
-            "summary":"The retrieved literature contains multiple study designs and addresses molecular drivers, treatment response/resistance, adverse effects and predictive modeling. Findings should be interpreted within each study population and endpoint rather than treated as interchangeable evidence.",
-            "evidence_scope":len(evidence),
-            "strongest_evidence_grades":[k for k in ("A","B") if k in grades],
-            "limitations":["PubMed retrieval and abstracts only","Automated classification is not peer review","No causal or clinical recommendation is inferred"]
-        },
-        "method_note":"Automated metadata and claim-level comparison for research triage; expert review required."
+        "limitations":["PubMed records and abstracts only","Automated classification is research triage, not peer review","No causal, efficacy, diagnostic or treatment recommendation is inferred"],
+        "method_note":"Automated metadata/text classification with claim-level topic/outcome overlap; expert review required."
     }
 
 def normalize_pubmed_query(query: str) -> str:
