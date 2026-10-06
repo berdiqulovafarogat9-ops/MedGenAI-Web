@@ -958,6 +958,192 @@ def prepare_docking(
     }
 }
 
+
+# =========================================================
+# REAL VINA DOCKING
+# =========================================================
+
+class DockingRunRequest(BaseModel):
+    target: str = "EGFR"
+    ligand_smiles: str
+    pdb_id: str = "1M17"
+    center_x: float = 22.0
+    center_y: float = 0.2
+    center_z: float = 52.8
+    size_x: float = 20.0
+    size_y: float = 20.0
+    size_z: float = 20.0
+    exhaustiveness: int = 8
+    n_poses: int = 3
+
+
+def _run_command(command, cwd, timeout=120):
+    import subprocess
+    try:
+        completed = subprocess.run(
+            command,
+            cwd=cwd,
+            capture_output=True,
+            text=True,
+            timeout=timeout,
+        )
+    except FileNotFoundError as exc:
+        raise HTTPException(
+            status_code=503,
+            detail=f"Docking preparation tool not found: {exc.filename}",
+        )
+    except subprocess.TimeoutExpired:
+        raise HTTPException(
+            status_code=504,
+            detail="Docking preparation timed out.",
+        )
+    if completed.returncode != 0:
+        detail = (completed.stderr or completed.stdout or "Unknown docking error").strip()
+        raise HTTPException(status_code=500, detail=detail[-4000:])
+    return completed
+
+
+@app.post("/api/v1/docking/run")
+def docking_run(
+    data: DockingRunRequest,
+    user=Depends(get_current_user),
+):
+    if not VINA_AVAILABLE:
+        raise HTTPException(
+            status_code=503,
+            detail="AutoDock Vina is not available in the current runtime.",
+        )
+
+    target = data.target.strip()
+    pdb_id = data.pdb_id.strip().upper()
+    smiles = data.ligand_smiles.strip()
+
+    if not target or not smiles:
+        raise HTTPException(status_code=400, detail="Target and ligand SMILES are required.")
+    if len(pdb_id) != 4:
+        raise HTTPException(status_code=400, detail="PDB ID must contain 4 characters.")
+    if min(data.size_x, data.size_y, data.size_z) <= 0:
+        raise HTTPException(status_code=400, detail="Docking box sizes must be positive.")
+    if not 1 <= data.exhaustiveness <= 64:
+        raise HTTPException(status_code=400, detail="Exhaustiveness must be between 1 and 64.")
+    if not 1 <= data.n_poses <= 20:
+        raise HTTPException(status_code=400, detail="n_poses must be between 1 and 20.")
+
+    mol = Chem.MolFromSmiles(smiles)
+    if mol is None:
+        raise HTTPException(status_code=400, detail="Invalid ligand SMILES.")
+
+    import tempfile
+    from pathlib import Path
+    from urllib.request import urlretrieve
+
+    with tempfile.TemporaryDirectory(prefix="medgen_dock_") as tmp:
+        work = Path(tmp)
+        receptor_pdb = work / f"{pdb_id}.pdb"
+        ligand_sdf = work / "ligand.sdf"
+        ligand_pdbqt = work / "ligand.pdbqt"
+        receptor_pdbqt = work / f"{pdb_id}_receptor.pdbqt"
+        output_pdbqt = work / "docked_poses.pdbqt"
+
+        try:
+            urlretrieve(
+                f"https://files.rcsb.org/download/{pdb_id}.pdb",
+                receptor_pdb,
+            )
+        except Exception as exc:
+            raise HTTPException(status_code=502, detail=f"Unable to download PDB {pdb_id}: {exc}")
+
+        # Build a real 3D ligand from the submitted SMILES.
+        mol = Chem.AddHs(mol)
+        params = AllChem.ETKDGv3()
+        params.randomSeed = 42
+        if AllChem.EmbedMolecule(mol, params) != 0:
+            raise HTTPException(status_code=400, detail="Unable to generate a 3D ligand conformer.")
+        AllChem.UFFOptimizeMolecule(mol, maxIters=200)
+        writer = Chem.SDWriter(str(ligand_sdf))
+        writer.write(mol)
+        writer.close()
+
+        # Meeko tools create PDBQT inputs used by Vina.
+        _run_command(
+            [
+                "mk_prepare_ligand.py",
+                "-i",
+                str(ligand_sdf),
+                "-o",
+                str(ligand_pdbqt),
+            ],
+            cwd=str(work),
+        )
+
+        # Receptor preparation follows the documented Meeko workflow.
+        _run_command(
+            [
+                "mk_prepare_receptor.py",
+                "-i",
+                str(receptor_pdb),
+                "-o",
+                str(work / f"{pdb_id}_receptor"),
+                "-p",
+            ],
+            cwd=str(work),
+        )
+
+        if not receptor_pdbqt.exists():
+            candidates = list(work.glob(f"{pdb_id}_receptor*.pdbqt"))
+            if not candidates:
+                raise HTTPException(status_code=500, detail="Receptor PDBQT was not generated.")
+            receptor_pdbqt = candidates[0]
+
+        v = Vina(sf_name="vina", verbosity=0)
+        v.set_receptor(str(receptor_pdbqt))
+        v.set_ligand_from_file(str(ligand_pdbqt))
+        v.compute_vina_maps(
+            center=[data.center_x, data.center_y, data.center_z],
+            box_size=[data.size_x, data.size_y, data.size_z],
+        )
+        v.dock(
+            exhaustiveness=data.exhaustiveness,
+            n_poses=data.n_poses,
+        )
+        v.write_poses(str(output_pdbqt), n_poses=data.n_poses, overwrite=True)
+
+        energies = []
+        try:
+            energies = [float(x) for x in v.energies(n_poses=data.n_poses)[:, 0]]
+        except Exception:
+            energies = []
+
+        return {
+            "status": "completed",
+            "module": "Molecular Docking",
+            "workflow": "AutoDock Vina",
+            "target": target,
+            "pdb_id": pdb_id,
+            "ligand_smiles": smiles,
+            "box": {
+                "center": [data.center_x, data.center_y, data.center_z],
+                "size": [data.size_x, data.size_y, data.size_z],
+            },
+            "parameters": {
+                "exhaustiveness": data.exhaustiveness,
+                "n_poses": data.n_poses,
+            },
+            "scores_kcal_mol": energies,
+            "best_score_kcal_mol": min(energies) if energies else None,
+            "engine": "AutoDock Vina",
+            "preparation": {
+                "ligand": "RDKit 3D + Meeko PDBQT",
+                "receptor": "Meeko PDBQT",
+            },
+            "warning": (
+                "Docking scores are computational predictions, not experimental "
+                "binding affinities or clinical evidence."
+            ),
+            "user": user["username"],
+        }
+    }
+
 # =========================================================
 # DISCOVERY SESSION DETAILS
 # =========================================================
