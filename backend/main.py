@@ -1169,7 +1169,7 @@ def research_search(
         "&retmax=" + str(limit) + "&retmode=xml"
     )
     try:
-        req = Request(url, headers={"User-Agent": "MedGenAI/1.0"})
+        req = URLRequest(url, headers={"User-Agent": "MedGenAI/1.0"})
         with urlopen(req, timeout=15) as response:
             root = ET.fromstring(response.read())
         pmids = [x.text for x in root.findall(".//Id") if x.text]
@@ -1179,7 +1179,7 @@ def research_search(
                 "https://eutils.ncbi.nlm.nih.gov/entrez/eutils/efetch.fcgi"
                 "?db=pubmed&id=" + ",".join(pmids) + "&retmode=xml"
             )
-            req = Request(fetch, headers={"User-Agent": "MedGenAI/1.0"})
+            req = URLRequest(fetch, headers={"User-Agent": "MedGenAI/1.0"})
             with urlopen(req, timeout=15) as response:
                 articles = ET.fromstring(response.read())
             for article in articles.findall(".//PubmedArticle"):
