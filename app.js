@@ -13,7 +13,8 @@ const TOKEN_KEY = 'medgen_access_token';
 const state = {
   token: sessionStorage.getItem(TOKEN_KEY) || '',
   user: null,
-  profileEditMode: false
+  profileEditMode: false,
+  lastResearchData: null
 };
 
 
@@ -1901,6 +1902,8 @@ async function analyzeMolecule() {
         }
       );
 
+    state.lastResearchData = data;
+
     renderResult(
       result,
       data
@@ -2601,6 +2604,15 @@ function bindLanguageSelectors() {
 function refreshDynamicUI() {
 
   checkHealth();
+
+  if ($('adminDashboard')) {
+    loadAdminDashboard();
+  }
+
+  const researchResult = $('researchResult');
+  if (researchResult && state.lastResearchData) {
+    renderResult(researchResult, state.lastResearchData);
+  }
 
   const workspace =
     $('workspace');
