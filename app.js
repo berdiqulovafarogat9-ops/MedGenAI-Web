@@ -2560,13 +2560,30 @@ async function runResearchAgent() {
   const status = $('researchStatus');
   const result = $('researchResult');
   if (!query) { if (status) status.textContent = 'Research query is required.'; return; }
-  if (status) status.textContent = 'Research Agent: retrieving evidence...';
+
+  if (status) status.textContent = '1/4 Question → 2/4 Evidence...';
   try {
-    const data = await api('/research/agent', { method: 'POST', body: JSON.stringify({ query, focus, limit: 8 }) });
+    const data = await api('/research/agent', {
+      method: 'POST',
+      body: JSON.stringify({ query, focus, limit: 8 })
+    });
     state.lastResearchData = data;
     renderResult(result, data);
-    if (status) status.textContent = 'Research Agent: evidence synthesis completed.';
-  } catch (error) { if (status) status.textContent = error.message; }
+
+    const pipeline = data?.pipeline || {};
+    const kg = data?.knowledge_graph || {};
+    if (status) {
+      status.textContent =
+        'Research Agent completed: ' +
+        'Evidence ' + (pipeline.evidence_retrieved ?? data?.evidence_count ?? 0) +
+        ' → Knowledge Graph +' + (kg.entities_added ?? 0) + ' entities, +' +
+        (kg.relations_added ?? 0) + ' relations → Reproducible Report ready.';
+    }
+    try { await searchKnowledge(); } catch (_) {}
+    try { await loadReports(); } catch (_) {}
+  } catch (error) {
+    if (status) status.textContent = 'Research Agent error: ' + error.message;
+  }
 }
 
 async function searchResearch() {
