@@ -901,10 +901,15 @@ async function api(path, options = {}) {
 
   if (!response.ok) {
 
-    const message =
-      data?.detail ||
-      data?.message ||
+    const rawMessage =
+      data?.detail ??
+      data?.message ??
       `HTTP ${response.status}`;
+
+    const message =
+      typeof rawMessage === 'string'
+        ? rawMessage
+        : JSON.stringify(rawMessage, null, 2);
 
     throw new Error(message);
   }
