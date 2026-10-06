@@ -1,262 +1,67 @@
-const $ = (id) => document.getElementById(id);
+/* =========================================================
+   MEDGEN AI — APP.JS
+   Compatible with current index.html
+========================================================= */
+
+const API_BASE =
+  window.MEDGEN_API_BASE ||
+  'https://medgenai-web-1.onrender.com/api/v1';
+
+const TOKEN_KEY = 'medgen_access_token';
 
 const state = {
-  token: sessionStorage.getItem('medgen_access_token') || '',
+  token: sessionStorage.getItem(TOKEN_KEY) || '',
   user: null
 };
 
-const CONFIG = {
-  apiBase:
-    window.MEDGEN_API_BASE ||
-    'https://medgenai-web-1.onrender.com/api/v1',
-  tokenKey: 'medgen_access_token'
-};
-
 
 /* =========================================================
-   TRANSLATIONS
+   HELPERS
 ========================================================= */
 
-const LANG = {
+const $ = (id) =>
+  document.getElementById(id);
 
-  en: {
-    noJobs: 'No scientific jobs available yet.',
-    noReports: 'No reports available yet.',
-    development: 'Development',
-    ready: 'Ready',
-    pending: 'Pending',
-    running: 'Running',
-    idle: 'Idle',
-    unknown: 'Unknown',
-
-    molecular: 'Molecular',
-    docking: 'Docking',
-    structurePrediction: 'Structure Prediction',
-
-    apiOnline: 'API: online',
-    apiOffline: 'API: offline',
-
-    workspace: 'Workspace',
-    scientificWorker: 'Scientific Worker',
-    workerStatus: 'Worker: {worker} | Queue: {queue} | Active: {active}',
-    refreshWorker: 'Refresh Worker',
-
-    taskCreated: 'Task created successfully.',
-    taskError: 'Failed to create task.',
-    loaded: 'Loaded.',
-    loading: 'Loading...',
-
-    reports: 'Reports & History',
-    research: 'Research Assistant',
-    laboratory: 'Virtual Laboratory',
-
-    systemInfo: 'System Information',
-    authenticatedOnly:
-      'Dashboard is available only to authenticated users.',
-
-    registrationDisabled: 'Registration: disabled',
-    privateEnvironment: 'Environment: private',
-
-    loginSuccess: 'Login successful.',
-    loginFailed: 'Login failed.',
-    logout: 'Logout',
-
-    user: 'User',
-    admin: 'Administrator',
-
-    noData: 'No data available.'
-  },
-
-  uz: {
-    noJobs: 'Hozircha ilmiy vazifalar mavjud emas.',
-    noReports: 'Hozircha hisobotlar mavjud emas.',
-    development: 'Ishlab chiqish',
-    ready: 'Tayyor',
-    pending: 'Kutilmoqda',
-    running: 'Bajarilmoqda',
-    idle: 'Faol emas',
-    unknown: 'Noma’lum',
-
-    molecular: 'Molekulyar',
-    docking: 'Dokking',
-    structurePrediction: 'Tuzilmani bashorat qilish',
-
-    apiOnline: 'API: online',
-    apiOffline: 'API: offline',
-
-    workspace: 'Ish maydoni',
-    scientificWorker: 'Ilmiy ishchi',
-    workerStatus:
-      'Ishchi: {worker} | Navbat: {queue} | Faol: {active}',
-    refreshWorker: 'Ishchini yangilash',
-
-    taskCreated: 'Vazifa muvaffaqiyatli yaratildi.',
-    taskError: 'Vazifani yaratib bo‘lmadi.',
-    loaded: 'Yuklandi.',
-    loading: 'Yuklanmoqda...',
-
-    reports: 'Hisobotlar va tarix',
-    research: 'Ilmiy tadqiqot yordamchisi',
-    laboratory: 'Virtual laboratoriya',
-
-    systemInfo: 'Tizim',
-    authenticatedOnly:
-      'Dashboardga faqat autentifikatsiyadan o‘tgan foydalanuvchilar kira oladi.',
-
-    registrationDisabled: 'Ro‘yxatdan o‘tish: o‘chirilgan',
-    privateEnvironment: 'Muhit: shaxsiy',
-
-    loginSuccess: 'Tizimga muvaffaqiyatli kirildi.',
-    loginFailed: 'Tizimga kirishda xatolik yuz berdi.',
-    logout: 'Chiqish',
-
-    user: 'Foydalanuvchi',
-    admin: 'Administrator',
-
-    noData: 'Ma’lumot mavjud emas.'
-  },
-
-  ru: {
-    noJobs: 'На данный момент научных задач нет.',
-    noReports: 'Отчётов пока нет.',
-    development: 'Разработка',
-    ready: 'Готов',
-    pending: 'Ожидание',
-    running: 'Выполняется',
-    idle: 'Неактивен',
-    unknown: 'Неизвестно',
-
-    molecular: 'Молекулярный',
-    docking: 'Докинг',
-    structurePrediction: 'Предсказание структуры',
-
-    apiOnline: 'API: онлайн',
-    apiOffline: 'API: офлайн',
-
-    workspace: 'Рабочая область',
-    scientificWorker: 'Научный обработчик',
-    workerStatus:
-      'Обработчик: {worker} | Очередь: {queue} | Активных: {active}',
-    refreshWorker: 'Обновить обработчик',
-
-    taskCreated: 'Задача успешно создана.',
-    taskError: 'Не удалось создать задачу.',
-    loaded: 'Загружено.',
-    loading: 'Загрузка...',
-
-    reports: 'Отчёты и история',
-    research: 'Помощник научного исследования',
-    laboratory: 'Виртуальная лаборатория',
-
-    systemInfo: 'Система',
-    authenticatedOnly:
-      'Доступ к Dashboard разрешён только авторизованным пользователям.',
-
-    registrationDisabled: 'Регистрация: отключена',
-    privateEnvironment: 'Среда: частная',
-
-    loginSuccess: 'Вход выполнен успешно.',
-    loginFailed: 'Ошибка входа.',
-    logout: 'Выйти',
-
-    user: 'Пользователь',
-    admin: 'Администратор',
-
-    noData: 'Данные отсутствуют.'
-  }
-
-};
-
-
-/* =========================================================
-   LANGUAGE
-========================================================= */
 
 function getLanguage() {
-  return localStorage.getItem('medgen_language') || 'en';
+  return localStorage.getItem('medgen_language') || 'uz';
 }
 
-function setLanguage(lang) {
-  if (!LANG[lang]) {
-    lang = 'en';
+
+function setText(id, text) {
+  const el = $(id);
+
+  if (el) {
+    el.textContent = text;
   }
-
-  localStorage.setItem('medgen_language', lang);
-}
-
-function t(key, replacements = {}) {
-  const lang = getLanguage();
-
-  let text =
-    LANG[lang]?.[key] ??
-    LANG.en?.[key] ??
-    key;
-
-  Object.keys(replacements).forEach((keyName) => {
-    text = text.replace(
-      `{${keyName}}`,
-      String(replacements[keyName])
-    );
-  });
-
-  return text;
 }
 
 
 /* =========================================================
-   BACKEND VALUE TRANSLATION
-========================================================= */
-
-function translateBackendValue(value) {
-  if (value === null || value === undefined) {
-    return '';
-  }
-
-  const raw = String(value);
-  const normalized = raw.toLowerCase().trim();
-
-  const map = {
-    development: 'development',
-    dev: 'development',
-
-    ready: 'ready',
-    pending: 'pending',
-    queued: 'pending',
-
-    running: 'running',
-    processing: 'running',
-
-    idle: 'idle',
-
-    unknown: 'unknown'
-  };
-
-  const key = map[normalized];
-
-  if (key) {
-    return t(key);
-  }
-
-  return raw;
-}
-
-
-/* =========================================================
-   API REQUEST
+   API
 ========================================================= */
 
 async function api(path, options = {}) {
+
   const headers = {
-    'Content-Type': 'application/json',
     ...(options.headers || {})
   };
 
+  if (
+    options.body &&
+    !headers['Content-Type']
+  ) {
+    headers['Content-Type'] =
+      'application/json';
+  }
+
   if (state.token) {
-    headers.Authorization = `Bearer ${state.token}`;
+    headers.Authorization =
+      `Bearer ${state.token}`;
   }
 
   const response = await fetch(
-    `${CONFIG.apiBase}${path}`,
+    `${API_BASE}${path}`,
     {
       ...options,
       headers
@@ -265,13 +70,28 @@ async function api(path, options = {}) {
 
   let data = null;
 
-  try {
+  const contentType =
+    response.headers.get(
+      'content-type'
+    ) || '';
+
+  if (
+    contentType.includes(
+      'application/json'
+    )
+  ) {
     data = await response.json();
-  } catch {
-    data = null;
+  } else {
+    const text =
+      await response.text();
+
+    data = text
+      ? { message: text }
+      : null;
   }
 
   if (!response.ok) {
+
     const message =
       data?.detail ||
       data?.message ||
@@ -289,59 +109,78 @@ async function api(path, options = {}) {
 ========================================================= */
 
 async function login() {
+
   const username =
-    $('username')?.value?.trim() || '';
+    $('loginUser')?.value?.trim() || '';
 
   const password =
-    $('password')?.value || '';
+    $('loginPassword')?.value || '';
 
-  const loginResult =
-    $('loginResult');
+  const status =
+    $('loginStatus');
 
   if (!username || !password) {
-    if (loginResult) {
-      loginResult.textContent =
-        t('loginFailed');
+
+    if (status) {
+      status.textContent =
+        getLanguage() === 'ru'
+          ? 'Введите имя пользователя и пароль.'
+          : getLanguage() === 'uz'
+            ? 'Foydalanuvchi nomi va parolni kiriting.'
+            : 'Enter username and password.';
     }
 
     return;
   }
 
-  try {
-    if (loginResult) {
-      loginResult.textContent =
-        t('loading');
-    }
+  if (status) {
+    status.textContent =
+      getLanguage() === 'ru'
+        ? 'Выполняется вход...'
+        : getLanguage() === 'uz'
+          ? 'Tizimga kirilmoqda...'
+          : 'Signing in...';
+  }
 
-    const data = await api(
-      '/auth/login',
-      {
-        method: 'POST',
-        body: JSON.stringify({
-          username,
-          password
-        })
-      }
-    );
+  try {
+
+    const data =
+      await api(
+        '/auth/login',
+        {
+          method: 'POST',
+          body: JSON.stringify({
+            username,
+            password
+          })
+        }
+      );
 
     const token =
       data?.access_token ||
       data?.token;
 
     if (!token) {
-      throw new Error('No access token returned.');
+      throw new Error(
+        'Access token was not returned by the server.'
+      );
     }
 
     state.token = token;
 
     sessionStorage.setItem(
-      CONFIG.tokenKey,
+      TOKEN_KEY,
       token
     );
 
-    if (loginResult) {
-      loginResult.textContent =
-        t('loginSuccess');
+    if (status) {
+
+      status.textContent =
+        getLanguage() === 'ru'
+          ? 'Вход выполнен.'
+          : getLanguage() === 'uz'
+            ? 'Tizimga muvaffaqiyatli kirildi.'
+            : 'Login successful.';
     }
 
     await loadCurrentUser();
@@ -350,13 +189,55 @@ async function login() {
 
   } catch (error) {
 
-    console.error('Login error:', error);
+    console.error(
+      'LOGIN ERROR:',
+      error
+    );
 
-    if (loginResult) {
-      loginResult.textContent =
-        `${t('loginFailed')} ${error.message}`;
+    if (status) {
+
+      let prefix;
+
+      if (getLanguage() === 'ru') {
+        prefix = 'Ошибка входа: ';
+      } else if (getLanguage() === 'uz') {
+        prefix = 'Kirishda xatolik: ';
+      } else {
+        prefix = 'Login failed: ';
+      }
+
+      status.textContent =
+        prefix + error.message;
     }
   }
+}
+
+
+/* =========================================================
+   LOGIN FORM EVENT
+========================================================= */
+
+function bindLoginForm() {
+
+  const form =
+    $('loginForm');
+
+  if (!form) {
+    console.error(
+      'loginForm not found'
+    );
+    return;
+  }
+
+  form.addEventListener(
+    'submit',
+    function (event) {
+
+      event.preventDefault();
+
+      login();
+    }
+  );
 }
 
 
@@ -365,6 +246,7 @@ async function login() {
 ========================================================= */
 
 async function loadCurrentUser() {
+
   try {
 
     const data =
@@ -379,7 +261,7 @@ async function loadCurrentUser() {
   } catch (error) {
 
     console.error(
-      'Unable to load current user:',
+      'AUTH ME ERROR:',
       error
     );
 
@@ -388,55 +270,57 @@ async function loadCurrentUser() {
 }
 
 
+/* =========================================================
+   USER UI
+========================================================= */
+
 function updateUserUI() {
 
-  const user =
-    state.user;
-
-  if (!user) {
+  if (!state.user) {
     return;
   }
 
-  const username =
-    user.username ||
-    user.email ||
-    user.name ||
-    t('user');
-
   const role =
-    user.role ||
-    user.user_role ||
-    '';
+    state.user.role ||
+    state.user.user_role ||
+    state.user.type ||
+    'GUEST';
 
-  const usernameElements =
-    document.querySelectorAll(
-      '[data-user-name]'
-    );
+  const badge =
+    $('roleBadge');
 
-  usernameElements.forEach(
-    (element) => {
-      element.textContent = username;
-    }
-  );
-
-  const roleElements =
-    document.querySelectorAll(
-      '[data-user-role]'
-    );
-
-  roleElements.forEach(
-    (element) => {
-      element.textContent = role;
-    }
-  );
-
-  const roleElement =
-    $('userRole');
-
-  if (roleElement) {
-    roleElement.textContent =
-      role || t('user');
+  if (badge) {
+    badge.textContent =
+      String(role).toUpperCase();
   }
+}
+
+
+/* =========================================================
+   DASHBOARD
+========================================================= */
+
+function showDashboard() {
+
+  const loginView =
+    $('loginView');
+
+  const dashboardView =
+    $('dashboardView');
+
+  if (loginView) {
+    loginView.classList.add(
+      'hidden'
+    );
+  }
+
+  if (dashboardView) {
+    dashboardView.classList.remove(
+      'hidden'
+    );
+  }
+
+  checkHealth();
 }
 
 
@@ -450,76 +334,40 @@ function logout() {
   state.user = null;
 
   sessionStorage.removeItem(
-    CONFIG.tokenKey
+    TOKEN_KEY
   );
 
-  const dashboard =
-    $('dashboard');
+  const dashboardView =
+    $('dashboardView');
 
-  const loginScreen =
-    $('loginScreen');
+  const loginView =
+    $('loginView');
 
-  if (dashboard) {
-    dashboard.style.display = 'none';
+  if (dashboardView) {
+    dashboardView.classList.add(
+      'hidden'
+    );
   }
 
-  if (loginScreen) {
-    loginScreen.style.display = '';
-  }
-}
-
-
-/* =========================================================
-   SHOW DASHBOARD
-========================================================= */
-
-function showDashboard() {
-
-  const loginScreen =
-    $('loginScreen');
-
-  const dashboard =
-    $('dashboard');
-
-  if (loginScreen) {
-    loginScreen.style.display = 'none';
+  if (loginView) {
+    loginView.classList.remove(
+      'hidden'
+    );
   }
 
-  if (dashboard) {
-    dashboard.style.display = '';
+  const password =
+    $('loginPassword');
+
+  if (password) {
+    password.value = '';
   }
 
-  updateUserUI();
+  const status =
+    $('loginStatus');
 
-  translateDynamicUI();
-
-  loadJobStatus();
-  loadReports();
-}
-
-
-/* =========================================================
-   MODULE OPEN
-========================================================= */
-
-function openModule(moduleId) {
-
-  document
-    .querySelectorAll('.module-panel')
-    .forEach((panel) => {
-
-      panel.style.display =
-        'none';
-    });
-
-  const target =
-    $(moduleId);
-
-  if (target) {
-    target.style.display = '';
+  if (status) {
+    status.textContent = '';
   }
-
-  translateDynamicUI();
 }
 
 
@@ -529,29 +377,186 @@ function openModule(moduleId) {
 
 async function checkHealth() {
 
-  const healthElement =
-    $('apiStatus');
+  const text =
+    $('apiText');
 
-  if (!healthElement) {
-    return;
-  }
+  const badge =
+    $('healthBadge');
 
   try {
 
     await api('/health/live');
 
-    healthElement.textContent =
-      t('apiOnline');
+    if (text) {
+      text.textContent =
+        getLanguage() === 'ru'
+          ? 'онлайн'
+          : getLanguage() === 'uz'
+            ? 'online'
+            : 'online';
+    }
+
+    if (badge) {
+      badge.textContent =
+        getLanguage() === 'ru'
+          ? 'API: онлайн'
+          : getLanguage() === 'uz'
+            ? 'API: online'
+            : 'API: online';
+    }
 
   } catch (error) {
 
-    console.error(
-      'Health check failed:',
-      error
+    if (text) {
+      text.textContent =
+        getLanguage() === 'ru'
+          ? 'офлайн'
+          : getLanguage() === 'uz'
+            ? 'offline'
+            : 'offline';
+    }
+
+    if (badge) {
+      badge.textContent =
+        getLanguage() === 'ru'
+          ? 'API: офлайн'
+          : getLanguage() === 'uz'
+            ? 'API: offline'
+            : 'API: offline';
+    }
+  }
+}
+
+
+/* =========================================================
+   WORKSPACE
+========================================================= */
+
+function openWorkspace(title) {
+
+  const workspace =
+    $('workspace');
+
+  const workspaceTitle =
+    $('workspaceTitle');
+
+  if (workspace) {
+    workspace.classList.remove(
+      'hidden'
+    );
+  }
+
+  if (workspaceTitle) {
+    workspaceTitle.textContent =
+      title;
+  }
+}
+
+
+function closeWorkspace() {
+
+  const workspace =
+    $('workspace');
+
+  if (workspace) {
+    workspace.classList.add(
+      'hidden'
+    );
+  }
+
+  document
+    .querySelectorAll('.tool')
+    .forEach(
+      (tool) => {
+        tool.classList.add(
+          'hidden'
+        );
+      }
+    );
+}
+
+
+/* =========================================================
+   MODULES
+========================================================= */
+
+function openModule(moduleName) {
+
+  openWorkspace(
+    moduleName
+  );
+
+  document
+    .querySelectorAll('.tool')
+    .forEach(
+      (tool) => {
+        tool.classList.add(
+          'hidden'
+        );
+      }
     );
 
-    healthElement.textContent =
-      t('apiOffline');
+  const map = {
+
+    'Molecular Analysis':
+      'molecularTool',
+
+    'Bioinformatics':
+      'bioTool',
+
+    'PDB & Structure':
+      'pdbTool',
+
+    'Drug Discovery':
+      'discoveryTool',
+
+    'Scientific Jobs':
+      'jobsTool',
+
+    'Research Assistant':
+      'researchTool',
+
+    'Virtual Laboratory':
+      'workflowTool',
+
+    'Reports & History':
+      'reportsTool'
+  };
+
+  const toolId =
+    map[moduleName];
+
+  if (toolId) {
+
+    const tool =
+      $(toolId);
+
+    if (tool) {
+      tool.classList.remove(
+        'hidden'
+      );
+    }
+  }
+
+  if (
+    moduleName ===
+    'Scientific Jobs'
+  ) {
+    loadJobs();
+  }
+
+  if (
+    moduleName ===
+    'Reports & History'
+  ) {
+    loadReports();
+  }
+
+  if (
+    moduleName ===
+    'Virtual Laboratory'
+  ) {
+    loadWorkflows();
   }
 }
 
@@ -565,22 +570,29 @@ async function analyzeMolecule() {
   const smiles =
     $('smilesInput')?.value?.trim() || '';
 
+  const status =
+    $('molecularStatus');
+
   const result =
     $('molecularResult');
 
   if (!smiles) {
 
-    if (result) {
-      result.textContent =
-        t('noData');
+    if (status) {
+      status.textContent =
+        'SMILES required.';
     }
 
     return;
   }
 
-  if (result) {
-    result.textContent =
-      t('loading');
+  if (status) {
+    status.textContent =
+      getLanguage() === 'uz'
+        ? 'Tahlil qilinmoqda...'
+        : getLanguage() === 'ru'
+          ? 'Анализ выполняется...'
+          : 'Analyzing...';
   }
 
   try {
@@ -605,15 +617,19 @@ async function analyzeMolecule() {
         );
     }
 
+    if (status) {
+      status.textContent =
+        getLanguage() === 'uz'
+          ? 'Tahlil tugadi.'
+          : getLanguage() === 'ru'
+            ? 'Анализ завершён.'
+            : 'Analysis completed.';
+    }
+
   } catch (error) {
 
-    console.error(
-      'Molecule analysis error:',
-      error
-    );
-
-    if (result) {
-      result.textContent =
+    if (status) {
+      status.textContent =
         error.message;
     }
   }
@@ -624,31 +640,38 @@ async function analyzeMolecule() {
    BIOINFORMATICS
 ========================================================= */
 
-async function analyzeBioinformatics() {
+async function runBioinformatics() {
 
   const sequence =
-    $('sequenceInput')?.value?.trim() || '';
+    $('bioSequence')?.value?.trim() || '';
 
-  const sequenceType =
-    $('sequenceType')?.value ||
-    'DNA';
+  const status =
+    $('bioStatus');
 
   const result =
-    $('bioinformaticsResult');
+    $('bioResult');
 
   if (!sequence) {
 
-    if (result) {
-      result.textContent =
-        t('noData');
+    if (status) {
+      status.textContent =
+        getLanguage() === 'uz'
+          ? 'Ketma-ketlikni kiriting.'
+          : getLanguage() === 'ru'
+            ? 'Введите последовательность.'
+            : 'Enter a sequence.';
     }
 
     return;
   }
 
-  if (result) {
-    result.textContent =
-      t('loading');
+  if (status) {
+    status.textContent =
+      getLanguage() === 'uz'
+        ? 'Tahlil qilinmoqda...'
+        : getLanguage() === 'ru'
+          ? 'Анализ выполняется...'
+          : 'Analyzing...';
   }
 
   try {
@@ -659,8 +682,7 @@ async function analyzeBioinformatics() {
         {
           method: 'POST',
           body: JSON.stringify({
-            sequence,
-            sequence_type: sequenceType
+            sequence
           })
         }
       );
@@ -674,15 +696,19 @@ async function analyzeBioinformatics() {
         );
     }
 
+    if (status) {
+      status.textContent =
+        getLanguage() === 'uz'
+          ? 'Tayyor.'
+          : getLanguage() === 'ru'
+            ? 'Готово.'
+            : 'Done.';
+    }
+
   } catch (error) {
 
-    console.error(
-      'Bioinformatics error:',
-      error
-    );
-
-    if (result) {
-      result.textContent =
+    if (status) {
+      status.textContent =
         error.message;
     }
   }
@@ -693,30 +719,37 @@ async function analyzeBioinformatics() {
    PDB
 ========================================================= */
 
-async function loadPDBStructure() {
+async function loadPDB() {
 
   const pdbId =
     $('pdbInput')?.value?.trim() || '';
+
+  const status =
+    $('pdbStatus');
 
   const result =
     $('pdbResult');
 
   if (!pdbId) {
 
-    if (result) {
-      result.textContent =
-        t('noData');
+    if (status) {
+      status.textContent =
+        'PDB ID required.';
     }
 
     return;
   }
 
-  if (result) {
-    result.textContent =
-      t('loading');
-  }
-
   try {
+
+    if (status) {
+      status.textContent =
+        getLanguage() === 'uz'
+          ? 'Yuklanmoqda...'
+          : getLanguage() === 'ru'
+            ? 'Загрузка...'
+            : 'Loading...';
+    }
 
     const data =
       await api(
@@ -732,15 +765,19 @@ async function loadPDBStructure() {
         );
     }
 
+    if (status) {
+      status.textContent =
+        getLanguage() === 'uz'
+          ? 'Yuklandi.'
+          : getLanguage() === 'ru'
+            ? 'Загружено.'
+            : 'Loaded.';
+    }
+
   } catch (error) {
 
-    console.error(
-      'PDB error:',
-      error
-    );
-
-    if (result) {
-      result.textContent =
+    if (status) {
+      status.textContent =
         error.message;
     }
   }
@@ -751,27 +788,29 @@ async function loadPDBStructure() {
    DRUG DISCOVERY
 ========================================================= */
 
-async function runScreening() {
+async function createDiscoverySession() {
 
-  const smiles =
-    $('screenSmiles')?.value?.trim() || '';
+  const target =
+    $('discoveryTarget')?.value?.trim() || '';
+
+  const status =
+    $('discoveryStatus');
 
   const result =
-    $('screeningResult');
+    $('discoveryResult');
 
-  if (!smiles) {
+  if (!target) {
 
-    if (result) {
-      result.textContent =
-        t('noData');
+    if (status) {
+      status.textContent =
+        getLanguage() === 'uz'
+          ? 'Nishonni kiriting.'
+          : getLanguage() === 'ru'
+            ? 'Введите мишень.'
+            : 'Enter a target.';
     }
 
     return;
-  }
-
-  if (result) {
-    result.textContent =
-      t('loading');
   }
 
   try {
@@ -782,7 +821,7 @@ async function runScreening() {
         {
           method: 'POST',
           body: JSON.stringify({
-            smiles
+            target
           })
         }
       );
@@ -798,13 +837,8 @@ async function runScreening() {
 
   } catch (error) {
 
-    console.error(
-      'Screening error:',
-      error
-    );
-
-    if (result) {
-      result.textContent =
+    if (status) {
+      status.textContent =
         error.message;
     }
   }
@@ -812,65 +846,43 @@ async function runScreening() {
 
 
 /* =========================================================
-   SCIENTIFIC JOB STATUS
+   JOB STATUS
 ========================================================= */
 
 async function loadJobStatus() {
 
-  const result =
-    $('jobStatusResult');
-
-  if (result) {
-    result.textContent =
-      t('loading');
-  }
+  const status =
+    $('jobsStatus');
 
   try {
 
     const data =
-      await api('/jobs/status');
+      await api(
+        '/jobs/status'
+      );
 
-    const worker =
-      translateBackendValue(
+    if (status) {
+
+      const worker =
         data?.worker ||
-        data?.worker_status ||
-        'development'
-      );
+        'development';
 
-    const queue =
-      translateBackendValue(
+      const queue =
         data?.queue ||
-        data?.queue_status ||
-        'ready'
-      );
+        'ready';
 
-    const active =
-      data?.active ??
-      data?.active_jobs ??
-      0;
+      const active =
+        data?.active ??
+        0;
 
-    if (result) {
-
-      result.textContent =
-        t(
-          'workerStatus',
-          {
-            worker,
-            queue,
-            active
-          }
-        );
+      status.textContent =
+        `Worker: ${worker} | Queue: ${queue} | Active: ${active}`;
     }
 
   } catch (error) {
 
-    console.error(
-      'Job status error:',
-      error
-    );
-
-    if (result) {
-      result.textContent =
+    if (status) {
+      status.textContent =
         error.message;
     }
   }
@@ -878,7 +890,7 @@ async function loadJobStatus() {
 
 
 /* =========================================================
-   JOBS LIST
+   JOBS
 ========================================================= */
 
 async function loadJobs() {
@@ -888,7 +900,11 @@ async function loadJobs() {
 
   if (result) {
     result.textContent =
-      t('loading');
+      getLanguage() === 'uz'
+        ? 'Yuklanmoqda...'
+        : getLanguage() === 'ru'
+          ? 'Загрузка...'
+          : 'Loading...';
   }
 
   try {
@@ -902,8 +918,13 @@ async function loadJobs() {
     if (!jobs.length) {
 
       if (result) {
+
         result.textContent =
-          t('noJobs');
+          getLanguage() === 'uz'
+            ? 'Hozircha ilmiy vazifalar mavjud emas.'
+            : getLanguage() === 'ru'
+              ? 'На данный момент научных задач нет.'
+              : 'No scientific jobs available yet.';
       }
 
       return;
@@ -920,33 +941,33 @@ async function loadJobs() {
 
   } catch (error) {
 
-    console.error(
-      'Jobs error:',
-      error
-    );
-
     if (result) {
       result.textContent =
         error.message;
     }
   }
+
+  loadJobStatus();
 }
 
 
 /* =========================================================
-   CREATE SCIENTIFIC JOB
+   CREATE JOB
 ========================================================= */
 
 async function createJob() {
 
+  const jobType =
+    $('jobType')?.value ||
+    'MOLECULAR';
+
+  const status =
+    $('jobCreateStatus');
+
   const result =
-    $('jobsResult');
+    $('jobCreateResult');
 
   try {
-
-    const jobType =
-      $('jobType')?.value ||
-      'molecular';
 
     const data =
       await api(
@@ -959,11 +980,17 @@ async function createJob() {
         }
       );
 
-    if (result) {
+    if (status) {
+      status.textContent =
+        getLanguage() === 'uz'
+          ? 'Vazifa yaratildi.'
+          : getLanguage() === 'ru'
+            ? 'Задача создана.'
+            : 'Job created.';
+    }
 
+    if (result) {
       result.textContent =
-        t('taskCreated') +
-        '\n\n' +
         JSON.stringify(
           data,
           null,
@@ -971,18 +998,13 @@ async function createJob() {
         );
     }
 
-    await loadJobStatus();
+    loadJobs();
 
   } catch (error) {
 
-    console.error(
-      'Create job error:',
-      error
-    );
-
-    if (result) {
-      result.textContent =
-        `${t('taskError')} ${error.message}`;
+    if (status) {
+      status.textContent =
+        error.message;
     }
   }
 }
@@ -994,15 +1016,22 @@ async function createJob() {
 
 async function loadReports() {
 
+  const status =
+    $('reportsStatus');
+
   const result =
     $('reportsResult');
 
-  if (result) {
-    result.textContent =
-      t('loading');
-  }
-
   try {
+
+    if (status) {
+      status.textContent =
+        getLanguage() === 'uz'
+          ? 'Yuklanmoqda...'
+          : getLanguage() === 'ru'
+            ? 'Загрузка...'
+            : 'Loading...';
+    }
 
     const data =
       await api('/reports');
@@ -1013,31 +1042,40 @@ async function loadReports() {
     if (!reports.length) {
 
       if (result) {
+
         result.textContent =
-          t('noReports');
+          getLanguage() === 'uz'
+            ? 'Hozircha hisobotlar mavjud emas.'
+            : getLanguage() === 'ru'
+              ? 'Отчётов пока нет.'
+              : 'No reports available yet.';
       }
 
-      return;
+    } else {
+
+      if (result) {
+        result.textContent =
+          JSON.stringify(
+            data,
+            null,
+            2
+          );
+      }
     }
 
-    if (result) {
-      result.textContent =
-        JSON.stringify(
-          data,
-          null,
-          2
-        );
+    if (status) {
+      status.textContent =
+        getLanguage() === 'uz'
+          ? 'Yuklandi.'
+          : getLanguage() === 'ru'
+            ? 'Загружено.'
+            : 'Loaded.';
     }
 
   } catch (error) {
 
-    console.error(
-      'Reports error:',
-      error
-    );
-
-    if (result) {
-      result.textContent =
+    if (status) {
+      status.textContent =
         error.message;
     }
   }
@@ -1045,94 +1083,21 @@ async function loadReports() {
 
 
 /* =========================================================
-   GENERATE REPORT
+   WORKFLOWS
 ========================================================= */
 
-async function generateReport() {
+async function loadWorkflows() {
 
   const result =
-    $('reportsResult');
+    $('workflowResult');
 
-  if (result) {
-    result.textContent =
-      t('loading');
-  }
+  const status =
+    $('workflowStatus');
 
   try {
 
     const data =
-      await api(
-        '/reports/generate',
-        {
-          method: 'POST',
-          body: JSON.stringify({})
-        }
-      );
-
-    if (result) {
-
-      result.textContent =
-        JSON.stringify(
-          data,
-          null,
-          2
-        );
-    }
-
-  } catch (error) {
-
-    console.error(
-      'Report generation error:',
-      error
-    );
-
-    if (result) {
-      result.textContent =
-        error.message;
-    }
-  }
-}
-
-
-/* =========================================================
-   RESEARCH ASSISTANT
-========================================================= */
-
-async function runResearchAssistant() {
-
-  const question =
-    $('researchInput')?.value?.trim() || '';
-
-  const result =
-    $('researchResult');
-
-  if (!question) {
-
-    if (result) {
-      result.textContent =
-        t('noData');
-    }
-
-    return;
-  }
-
-  if (result) {
-    result.textContent =
-      t('loading');
-  }
-
-  try {
-
-    const data =
-      await api(
-        '/research/assistant',
-        {
-          method: 'POST',
-          body: JSON.stringify({
-            question
-          })
-        }
-      );
+      await api('/workflows');
 
     if (result) {
       result.textContent =
@@ -1143,15 +1108,19 @@ async function runResearchAssistant() {
         );
     }
 
+    if (status) {
+      status.textContent =
+        getLanguage() === 'uz'
+          ? 'Yuklandi.'
+          : getLanguage() === 'ru'
+            ? 'Загружено.'
+            : 'Loaded.';
+    }
+
   } catch (error) {
 
-    console.error(
-      'Research assistant error:',
-      error
-    );
-
-    if (result) {
-      result.textContent =
+    if (status) {
+      status.textContent =
         error.message;
     }
   }
@@ -1159,33 +1128,34 @@ async function runResearchAssistant() {
 
 
 /* =========================================================
-   RESEARCH SEARCH
+   RESEARCH
 ========================================================= */
 
 async function searchResearch() {
 
   const query =
-    $('researchSearchInput')?.value?.trim() || '';
+    $('researchQuery')?.value?.trim() || '';
+
+  const status =
+    $('researchStatus');
 
   const result =
-    $('researchSearchResult');
+    $('researchResult');
 
   if (!query) {
-
-    if (result) {
-      result.textContent =
-        t('noData');
-    }
-
     return;
   }
 
-  if (result) {
-    result.textContent =
-      t('loading');
-  }
-
   try {
+
+    if (status) {
+      status.textContent =
+        getLanguage() === 'uz'
+          ? 'Qidirilmoqda...'
+          : getLanguage() === 'ru'
+            ? 'Поиск...'
+            : 'Searching...';
+    }
 
     const data =
       await api(
@@ -1209,13 +1179,8 @@ async function searchResearch() {
 
   } catch (error) {
 
-    console.error(
-      'Research search error:',
-      error
-    );
-
-    if (result) {
-      result.textContent =
+    if (status) {
+      status.textContent =
         error.message;
     }
   }
@@ -1223,293 +1188,162 @@ async function searchResearch() {
 
 
 /* =========================================================
-   VIRTUAL LABORATORY
+   EVENT BINDING
 ========================================================= */
 
-async function loadExperiments() {
+function bindEvents() {
 
-  const result =
-    $('labResult');
+  const loginForm =
+    $('loginForm');
 
-  if (result) {
-    result.textContent =
-      t('loading');
-  }
-
-  try {
-
-    const data =
-      await api('/lab/experiments');
-
-    if (result) {
-
-      if (
-        !data ||
-        !data.experiments ||
-        !data.experiments.length
-      ) {
-
-        result.textContent =
-          t('noData');
-
-      } else {
-
-        result.textContent =
-          JSON.stringify(
-            data,
-            null,
-            2
-          );
+  if (loginForm) {
+    loginForm.addEventListener(
+      'submit',
+      function (event) {
+        event.preventDefault();
+        login();
       }
-    }
-
-  } catch (error) {
-
-    console.error(
-      'Laboratory error:',
-      error
     );
-
-    if (result) {
-      result.textContent =
-        error.message;
-    }
-  }
-}
-
-
-/* =========================================================
-   WORKFLOWS
-========================================================= */
-
-async function loadWorkflows() {
-
-  const result =
-    $('workflowResult');
-
-  if (result) {
-    result.textContent =
-      t('loading');
   }
 
-  try {
 
-    const data =
-      await api('/workflows');
+  const logoutBtn =
+    $('logoutBtn');
 
-    if (result) {
-      result.textContent =
-        JSON.stringify(
-          data,
-          null,
-          2
-        );
-    }
-
-  } catch (error) {
-
-    console.error(
-      'Workflow error:',
-      error
+  if (logoutBtn) {
+    logoutBtn.addEventListener(
+      'click',
+      logout
     );
-
-    if (result) {
-      result.textContent =
-        error.message;
-    }
-  }
-}
-
-
-/* =========================================================
-   DYNAMIC UI TRANSLATION
-========================================================= */
-
-function translateDynamicUI() {
-
-  const workerTitle =
-    $('workerTitle');
-
-  if (workerTitle) {
-    workerTitle.textContent =
-      t('scientificWorker');
   }
 
-  const workerRefresh =
-    $('refreshWorker');
 
-  if (workerRefresh) {
-    workerRefresh.textContent =
-      t('refreshWorker');
-  }
+  const workspaceClose =
+    $('workspaceClose');
 
-  const reportsTitle =
-    $('reportsTitle');
-
-  if (reportsTitle) {
-    reportsTitle.textContent =
-      t('reports');
-  }
-
-  const researchTitle =
-    $('researchTitle');
-
-  if (researchTitle) {
-    researchTitle.textContent =
-      t('research');
-  }
-
-  const labTitle =
-    $('labTitle');
-
-  if (labTitle) {
-    labTitle.textContent =
-      t('laboratory');
-  }
-
-  const systemTitle =
-    $('systemTitle');
-
-  if (systemTitle) {
-    systemTitle.textContent =
-      t('systemInfo');
-  }
-
-  checkHealth();
-}
-
-
-/* =========================================================
-   LANGUAGE SELECTOR
-========================================================= */
-
-function bindLanguageSelectors() {
-
-  const selectors =
-    document.querySelectorAll(
-      '#languageSelector, #languageSelect, [data-language-selector]'
+  if (workspaceClose) {
+    workspaceClose.addEventListener(
+      'click',
+      closeWorkspace
     );
-
-  selectors.forEach(
-    (selector) => {
-
-      selector.value =
-        getLanguage();
-
-      selector.addEventListener(
-        'change',
-        () => {
-
-          setLanguage(
-            selector.value
-          );
-
-          selectors.forEach(
-            (other) => {
-              other.value =
-                getLanguage();
-            }
-          );
-
-          translateStaticUI();
-
-          translateDynamicUI();
-
-          loadJobStatus();
-          loadJobs();
-          loadReports();
-        }
-      );
-    }
-  );
-}
-
-
-/* =========================================================
-   STATIC UI TRANSLATION
-   Works with index.html data-i18n attributes
-========================================================= */
-
-function translateStaticUI() {
-
-  const elements =
-    document.querySelectorAll(
-      '[data-i18n]'
-    );
-
-  elements.forEach(
-    (element) => {
-
-      const key =
-        element.getAttribute(
-          'data-i18n'
-        );
-
-      if (!key) {
-        return;
-      }
-
-      const value =
-        t(key);
-
-      if (
-        element.tagName === 'INPUT' ||
-        element.tagName === 'TEXTAREA'
-      ) {
-
-        element.placeholder =
-          value;
-
-      } else {
-
-        element.textContent =
-          value;
-      }
-    }
-  );
-
-
-  const placeholderElements =
-    document.querySelectorAll(
-      '[data-i18n-placeholder]'
-    );
-
-  placeholderElements.forEach(
-    (element) => {
-
-      const key =
-        element.getAttribute(
-          'data-i18n-placeholder'
-        );
-
-      if (!key) {
-        return;
-      }
-
-      element.placeholder =
-        t(key);
-    }
-  );
+  }
 
 
   document
-    .querySelectorAll(
-      '[data-i18n-title]'
-    )
+    .querySelectorAll('.module')
     .forEach(
-      (element) => {
+      (button) => {
 
-        const key =
-          element.getAttribute(
-            'data-i18n-title'
-          );
+        button.addEventListener(
+          'click',
+          () => {
 
-        if (key) {
-          element.title =
-            t(key);
-        }
+            openModule(
+              button.dataset.module
+            );
+          }
+        );
       }
     );
+
+
+  const molecularRun =
+    $('molecularRun');
+
+  if (molecularRun) {
+    molecularRun.addEventListener(
+      'click',
+      analyzeMolecule
+    );
+  }
+
+
+  const bioRun =
+    $('bioRun');
+
+  if (bioRun) {
+    bioRun.addEventListener(
+      'click',
+      runBioinformatics
+    );
+  }
+
+
+  const pdbRun =
+    $('pdbRun');
+
+  if (pdbRun) {
+    pdbRun.addEventListener(
+      'click',
+      loadPDB
+    );
+  }
+
+
+  const discoveryRun =
+    $('discoveryRun');
+
+  if (discoveryRun) {
+    discoveryRun.addEventListener(
+      'click',
+      createDiscoverySession
+    );
+  }
+
+
+  const jobCreate =
+    $('jobCreate');
+
+  if (jobCreate) {
+    jobCreate.addEventListener(
+      'click',
+      createJob
+    );
+  }
+
+
+  const jobsRefresh =
+    $('jobsRefresh');
+
+  if (jobsRefresh) {
+    jobsRefresh.addEventListener(
+      'click',
+      loadJobs
+    );
+  }
+
+
+  const reportsRefresh =
+    $('reportsRefresh');
+
+  if (reportsRefresh) {
+    reportsRefresh.addEventListener(
+      'click',
+      loadReports
+    );
+  }
+
+
+  const workflowRefresh =
+    $('workflowRefresh');
+
+  if (workflowRefresh) {
+    workflowRefresh.addEventListener(
+      'click',
+      loadWorkflows
+    );
+  }
+
+
+  const researchRun =
+    $('researchRun');
+
+  if (researchRun) {
+    researchRun.addEventListener(
+      'click',
+      searchResearch
+    );
+  }
 }
 
 
@@ -1519,15 +1353,13 @@ function translateStaticUI() {
 
 async function init() {
 
-  setLanguage(
-    getLanguage()
-  );
+  bindEvents();
 
-  bindLanguageSelectors();
-
-  translateStaticUI();
-
-  translateDynamicUI();
+  /*
+   * IMPORTANT:
+   * Login language selector is handled by index.html.
+   * We only synchronize UI after initialization.
+   */
 
   if (state.token) {
 
@@ -1543,7 +1375,7 @@ async function init() {
       state.token = '';
 
       sessionStorage.removeItem(
-        CONFIG.tokenKey
+        TOKEN_KEY
       );
     }
   }
@@ -1551,32 +1383,20 @@ async function init() {
 
 
 /* =========================================================
-   GLOBAL FUNCTIONS
+   GLOBAL ACCESS
 ========================================================= */
 
-window.login = login;
-window.logout = logout;
+window.login =
+  login;
+
+window.logout =
+  logout;
 
 window.openModule =
   openModule;
 
 window.checkHealth =
   checkHealth;
-
-window.analyzeMolecule =
-  analyzeMolecule;
-
-window.analyzeBioinformatics =
-  analyzeBioinformatics;
-
-window.loadPDBStructure =
-  loadPDBStructure;
-
-window.runScreening =
-  runScreening;
-
-window.loadJobStatus =
-  loadJobStatus;
 
 window.loadJobs =
   loadJobs;
@@ -1587,33 +1407,36 @@ window.createJob =
 window.loadReports =
   loadReports;
 
-window.generateReport =
-  generateReport;
-
-window.runResearchAssistant =
-  runResearchAssistant;
-
-window.searchResearch =
-  searchResearch;
-
-window.loadExperiments =
-  loadExperiments;
-
 window.loadWorkflows =
   loadWorkflows;
 
-window.setLanguage =
-  setLanguage;
+window.analyzeMolecule =
+  analyzeMolecule;
 
-window.translateStaticUI =
-  translateStaticUI;
+window.runBioinformatics =
+  runBioinformatics;
+
+window.loadPDB =
+  loadPDB;
+
+window.searchResearch =
+  searchResearch;
 
 
 /* =========================================================
    START
 ========================================================= */
 
-document.addEventListener(
-  'DOMContentLoaded',
-  init
-);
+if (
+  document.readyState === 'loading'
+) {
+
+  document.addEventListener(
+    'DOMContentLoaded',
+    init
+  );
+
+} else {
+
+  init();
+}
