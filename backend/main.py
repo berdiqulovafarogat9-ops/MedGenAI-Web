@@ -106,6 +106,7 @@ class ProfileRequest(BaseModel):
     country: str = ""
     research_interests: str = ""
     bio: str = ""
+    avatar: str = ""
 
 
 class ConsentRequest(BaseModel):
