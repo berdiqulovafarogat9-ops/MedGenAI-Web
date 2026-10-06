@@ -509,15 +509,9 @@ def pdb_structure(
 # =========================================================
 
 @app.get("/api/v1/jobs")
-def list_jobs(
-    user=Depends(get_current_user),
-):
-
-    return {
-        "jobs": [],
-        "count": 0,
-        "user": user["username"],
-    }
+def list_jobs(user=Depends(get_current_user)):
+    items = [j for j in jobs_store if j["user"] == user["username"]]
+    return {"jobs": items, "count": len(items), "user": user["username"]}
 
 
 @app.post("/api/v1/jobs")
@@ -526,15 +520,16 @@ def create_job(
     user=Depends(get_current_user),
 ):
 
-    return {
+    job = {
+        "id": secrets.token_hex(8),
         "status": "submitted",
         "job_type": data.job_type,
         "input": data.input,
         "user": user["username"],
-        "created_at": datetime.now(
-            timezone.utc
-        ).isoformat(),
+        "created_at": datetime.now(timezone.utc).isoformat(),
     }
+    jobs_store.insert(0, job)
+    return job
 
 
 # =========================================================
