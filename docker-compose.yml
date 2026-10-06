@@ -4,8 +4,8 @@ services:
     restart: unless-stopped
     environment:
       MEDGEN_ADMIN_USERNAME: admin
-      MEDGEN_ADMIN_PASSWORD: MedGenAI-Admin-2026
-      MEDGEN_SECRET_KEY: medgen-development-secret-change-later
+      MEDGEN_ADMIN_PASSWORD: ${MEDGEN_ADMIN_PASSWORD:?Set MEDGEN_ADMIN_PASSWORD}
+      MEDGEN_SECRET_KEY: ${MEDGEN_SECRET_KEY:?Set MEDGEN_SECRET_KEY}
     expose:
       - "8000"
 
