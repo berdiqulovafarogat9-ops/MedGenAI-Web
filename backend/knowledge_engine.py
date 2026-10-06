@@ -6,7 +6,7 @@ from typing import Any
 BIOMEDICAL_RELATIONS = {
     "causes","associated_with","targets","inhibits","activates",
     "expressed_in","participates_in","treats","biomarker_of",
-    "interacts_with","belongs_to","has_variant"
+    "interacts_with","belongs_to","has_variant","supported_by"
 }
 
 def normalize_entity(name: str) -> str:
