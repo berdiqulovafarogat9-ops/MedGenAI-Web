@@ -1083,6 +1083,18 @@ async function openProfile() {
   const modal = $('profileModal');
   if (!modal) return;
   modal.classList.remove('hidden');
+  const card = modal.querySelector('.modal-card');
+  if (card && !card.querySelector('.profile-edit-icon')) {
+    const edit = document.createElement('button');
+    edit.type = 'button';
+    edit.className = 'profile-edit-icon';
+    edit.title = 'Profilni tahrirlash';
+    edit.textContent = '✏️';
+    card.querySelector('.modal-close')?.insertAdjacentElement('afterend', edit);
+    edit.addEventListener('click', openProfileEditor);
+  }
+  document.querySelectorAll('#profileModal input, #profileModal textarea').forEach(el => el.disabled = true);
+  $('profileSave')?.style && ($('profileSave').style.display = 'none');
   const status = $('profileStatus');
   if (status) status.textContent = 'Yuklanmoqda...';
 
@@ -1335,6 +1347,7 @@ function openProfileEditor() {
   const button = $('profileSave');
   if (!modal) return;
   modal.classList.remove('hidden');
+  document.querySelectorAll('#profileModal input, #profileModal textarea').forEach(el => el.disabled = false);
   if (button) {
     button.style.display = '';
     button.disabled = false;
@@ -1384,12 +1397,7 @@ async function loadAdminDashboard() {
       });
     });
 
-    const details = $('adminDetails');
-    const edit = document.createElement('div');
-    edit.style.marginTop = '16px';
-    edit.innerHTML = '<button type="button" class="primary" id="adminProfileEdit">✏️ Profilni tahrirlash</button>';
-    box.appendChild(edit);
-    $('adminProfileEdit')?.addEventListener('click', openProfileEditor);
+    
   } catch (e) {
     box.innerHTML = '<div class="status">❌ ' + e.message + '</div>';
   }
