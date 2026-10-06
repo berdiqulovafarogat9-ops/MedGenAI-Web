@@ -6,11 +6,19 @@ import os
 import secrets
 import re
 from typing import Any
+try:
+    from pwdlib import PasswordHash
+except Exception:
+    PasswordHash = None
+try:
+    import psycopg
+except Exception:
+    psycopg = None
 from urllib.parse import quote
 from urllib.request import Request, urlopen
 from urllib.error import HTTPError, URLError
 
-from fastapi import BackgroundTasks, Depends, FastAPI, HTTPException
+from fastapi import BackgroundTasks, Depends, FastAPI, HTTPException, Request
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.security import HTTPAuthorizationCredentials, HTTPBearer
 from pydantic import BaseModel
@@ -99,6 +107,41 @@ docking_jobs_store = {}
 workflows_store = []
 reports_store = []
 experiments_store = []
+
+DATABASE_URL = os.getenv("DATABASE_URL", "").strip()
+PERSISTENCE_ENABLED = bool(DATABASE_URL and psycopg)
+password_hasher = PasswordHash.recommended() if PasswordHash else None
+
+def _db_init():
+    if not PERSISTENCE_ENABLED: return
+    with psycopg.connect(DATABASE_URL) as conn:
+        conn.execute("""CREATE TABLE IF NOT EXISTS medgen_state (state_key TEXT PRIMARY KEY, state_value JSONB NOT NULL, updated_at TIMESTAMPTZ NOT NULL DEFAULT NOW())""")
+        conn.commit()
+
+def _db_load():
+    if not PERSISTENCE_ENABLED: return
+    try:
+        _db_init()
+        with psycopg.connect(DATABASE_URL) as conn:
+            rows = conn.execute("SELECT state_key, state_value FROM medgen_state").fetchall()
+        stores={"user_accounts":user_accounts,"user_profiles":user_profiles,"user_consents":user_consents,"experiments_store":experiments_store,"activity_log":activity_log}
+        for key,value in rows:
+            if key in stores and isinstance(value,(dict,list)):
+                stores[key].clear()
+                if isinstance(stores[key],dict): stores[key].update(value)
+                else: stores[key].extend(value)
+    except Exception as exc: print(f"PostgreSQL load skipped: {exc}")
+
+def _db_save():
+    if not PERSISTENCE_ENABLED: return
+    stores={"user_accounts":user_accounts,"user_profiles":user_profiles,"user_consents":user_consents,"experiments_store":experiments_store,"activity_log":activity_log}
+    try:
+        with psycopg.connect(DATABASE_URL) as conn:
+            for key,value in stores.items():
+                conn.execute("INSERT INTO medgen_state(state_key,state_value,updated_at) VALUES (%s,%s::jsonb,NOW()) ON CONFLICT (state_key) DO UPDATE SET state_value=EXCLUDED.state_value,updated_at=NOW()", (key,json.dumps(value,ensure_ascii=False)))
+            conn.commit()
+    except Exception as exc: print(f"PostgreSQL save skipped: {exc}")
+
 
 
 # =========================================================
@@ -210,10 +253,18 @@ def validate_username(username: str):
 
 
 def make_password_hash(password: str) -> str:
+    if password_hasher:
+        return password_hasher.hash(password)
     return hashlib.sha256((SECRET_KEY + ":" + password).encode()).hexdigest()
 
 
 def verify_password(password: str, password_hash: str) -> bool:
+    if password_hasher:
+        try:
+            return password_hasher.verify(password, password_hash)
+        except Exception:
+            legacy = hashlib.sha256((SECRET_KEY + ":" + password).encode()).hexdigest()
+            return secrets.compare_digest(legacy, password_hash)
     return secrets.compare_digest(make_password_hash(password), password_hash)
 
 
