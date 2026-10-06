@@ -1002,7 +1002,6 @@ def _run_command(command, cwd, timeout=120):
     return completed
 
 
-@app.post("/api/v1/docking/run")
 def _execute_docking(
     data: DockingRunRequest,
     user,
