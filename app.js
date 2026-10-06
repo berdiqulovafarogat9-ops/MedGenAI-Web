@@ -3067,20 +3067,20 @@ function bindEvents() {
 
 async function addKnowledgeEntity(){
   const name=$('knowledgeEntity')?.value?.trim(); if(!name) return;
-  const r=await apiFetch('/knowledge/entities',{method:'POST',body:JSON.stringify({name,entity_type:$('knowledgeEntityType')?.value||'concept'})});
+  const r=await api('/knowledge/entities',{method:'POST',body:JSON.stringify({name,entity_type:$('knowledgeEntityType')?.value||'concept'})});
   if(r.ok) { $('knowledgeStatus').textContent='Entity added'; await searchKnowledge(); }
 }
 async function addKnowledgeRelation(){
   const subject=$('knowledgeSubject')?.value?.trim(), object=$('knowledgeObject')?.value?.trim();
   if(!subject||!object) return;
-  const r=await apiFetch('/knowledge/relations',{method:'POST',body:JSON.stringify({subject,object,relation:$('knowledgeRelation')?.value||'associated_with',evidence:$('knowledgeEvidence')?.value||''})});
+  const r=await api('/knowledge/relations',{method:'POST',body:JSON.stringify({subject,object,relation:$('knowledgeRelation')?.value||'associated_with',evidence:$('knowledgeEvidence')?.value||''})});
   if(r.ok) { $('knowledgeStatus').textContent='Relation added'; await searchKnowledge(); }
 }
 async function searchKnowledge(){
   const q=$('knowledgeQuery')?.value?.trim()||'';
-  const r=await apiFetch('/knowledge/search',{method:'POST',body:JSON.stringify({query:q,limit:25})});
+  const r=await api('/knowledge/search',{method:'POST',body:JSON.stringify({query:q,limit:25})});
   if(!r.ok) return;
-  const d=await r.json(); const s=await apiFetch('/knowledge/stats');
+  const d=await r.json(); const s=await api('/knowledge/stats');
   let stats=''; if(s.ok){const x=await s.json(); stats='\nStats: '+x.entities+' entities · '+x.relations+' relations';}
   $('knowledgeResult').textContent=JSON.stringify(d,null,2)+stats;
   $('knowledgeStatus').textContent='Knowledge graph ready';
