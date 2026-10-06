@@ -9,7 +9,7 @@ from urllib.parse import quote
 from urllib.request import Request, urlopen
 from urllib.error import HTTPError, URLError
 
-from fastapi import Depends, FastAPI, HTTPException
+from fastapi import BackgroundTasks, Depends, FastAPI, HTTPException
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.security import HTTPAuthorizationCredentials, HTTPBearer
 from pydantic import BaseModel
@@ -1003,9 +1003,9 @@ def _run_command(command, cwd, timeout=120):
 
 
 @app.post("/api/v1/docking/run")
-def docking_run(
+def _execute_docking(
     data: DockingRunRequest,
-    user=Depends(get_current_user),
+    user,
 ):
     if not VINA_AVAILABLE:
         raise HTTPException(
@@ -1167,6 +1167,54 @@ def docking_run(
             ),
             "user": user["username"],
         }
+
+@app.post("/api/v1/docking/run")
+def docking_run(
+    data: DockingRunRequest,
+    background_tasks: BackgroundTasks,
+    user=Depends(get_current_user),
+):
+    job_id = secrets.token_hex(8)
+    jobs_store[job_id] = {
+        "status": "queued",
+        "module": "Molecular Docking",
+        "workflow": "AutoDock Vina",
+        "created_at": datetime.now(timezone.utc).isoformat(),
+        "user": user["username"],
+    }
+
+    def run_job():
+        jobs_store[job_id]["status"] = "running"
+        try:
+            jobs_store[job_id]["result"] = _execute_docking(data, user)
+            jobs_store[job_id]["status"] = "completed"
+        except HTTPException as exc:
+            jobs_store[job_id]["status"] = "failed"
+            jobs_store[job_id]["error"] = exc.detail
+        except Exception as exc:
+            jobs_store[job_id]["status"] = "failed"
+            jobs_store[job_id]["error"] = str(exc)
+        jobs_store[job_id]["finished_at"] = datetime.now(timezone.utc).isoformat()
+
+    background_tasks.add_task(run_job)
+    return {
+        "status": "queued",
+        "job_id": job_id,
+        "module": "Molecular Docking",
+        "workflow": "AutoDock Vina",
+    }
+
+
+@app.get("/api/v1/docking/status/{job_id}")
+def docking_status(
+    job_id: str,
+    user=Depends(get_current_user),
+):
+    job = jobs_store.get(job_id)
+    if not job or job.get("user") != user["username"]:
+        raise HTTPException(status_code=404, detail="Docking job not found.")
+    return job
+
 
 # =========================================================
 # DISCOVERY SESSION DETAILS
