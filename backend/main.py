@@ -1339,11 +1339,11 @@ def admin_overview(user=Depends(get_current_user)):
     docking_items = list(docking_jobs_store.values())
     return {
         "status": "ready", "role": user["role"],
-        "users": len(set(tokens.values())), "active_tokens": len(tokens),
+        "users": len(set(tokens.values()) | set(user_profiles.keys()) | set(user_consents.keys())), "active_tokens": len(tokens),
         "jobs": len(jobs_store), "docking_jobs": len(docking_items),
         "docking_running": sum(1 for x in docking_items if x.get("status") in ("queued", "running")),
         "experiments": len(experiments_store), "reports": len(reports_store), "workflows": len(workflows_store),
-        "recent_activity": ([*({**x, "activity_type":"docking"} for x in docking_items[:10]), *({**x, "activity_type":"experiment"} for x in experiments_store[:10]), *({**x, "activity_type":"report"} for x in reports_store[:10])])[:20],
+        "recent_activity": activity_log[:20] + ([*({**x, "activity_type":"docking"} for x in docking_items[:10]), *({**x, "activity_type":"experiment"} for x in experiments_store[:10]), *({**x, "activity_type":"report"} for x in reports_store[:10])])[:20],
     }
 
 @app.get("/api/v1/admin/users")
