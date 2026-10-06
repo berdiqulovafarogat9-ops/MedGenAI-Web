@@ -1375,8 +1375,6 @@ async function loadAdminDetails(kind) {
   out.innerHTML = '<div class="status">Yuklanmoqda...</div>';
 
   try {
-    let data;
-
     const endpointMap = {
       users: '/admin/users',
       tokens: '/admin/tokens',
@@ -1386,8 +1384,8 @@ async function loadAdminDetails(kind) {
       reports: '/admin/reports',
       workflows: '/admin/workflows'
     };
-    data = await api(endpointMap[kind] || '/admin/activity');
 
+    const data = await api(endpointMap[kind] || '/admin/activity');
     const raw =
       data?.users ||
       data?.tokens ||
@@ -1397,42 +1395,101 @@ async function loadAdminDetails(kind) {
       data?.reports ||
       data?.workflows ||
       data?.activity ||
-      data || [];
+      [];
+
     const items = Array.isArray(raw) ? raw : [raw];
+    const stateKey = 'adminDetail_' + kind;
 
+    window[stateKey] = items;
+
+    const searchId = 'adminSearch_' + kind;
     let html =
-      '<h3>' + (titles[kind] || 'Details') + '</h3>' +
-      '<div class="status">Jami: ' + items.length + '</div>';
-
-    if (items.length) {
-      const keys = [...new Set(items.flatMap(x =>
-        x && typeof x === 'object' ? Object.keys(x) : []
-      ))].slice(0, 8);
-
-      html += '<div style="overflow:auto"><table class="admin-table"><thead><tr>' +
-        keys.map(k => '<th>' + escapeHtml(k) + '</th>').join('') +
-        '</tr></thead><tbody>' +
-        items.map(item => '<tr>' +
-          keys.map(k => {
-            const value = item?.[k];
-            return '<td>' + escapeHtml(
-              value && typeof value === 'object'
-                ? JSON.stringify(value)
-                : String(value ?? '')
-            ) + '</td>';
-          }).join('') +
-        '</tr>').join('') +
-        '</tbody></table></div>';
-    } else {
-      html += '<p class="muted">Hozircha ma’lumot yo‘q.</p>';
-    }
+      '<div style="display:flex;justify-content:space-between;align-items:center;gap:12px;flex-wrap:wrap">' +
+      '<div><h3 style="margin:0">' + escapeHtml(titles[kind] || 'Details') + '</h3>' +
+      '<div class="status">Jami: ' + items.length + '</div></div>' +
+      '<input id="' + searchId + '" type="search" placeholder="Qidirish..." style="min-width:220px;padding:10px;border-radius:8px">' +
+      '</div>' +
+      '<div id="adminTable_' + kind + '" style="margin-top:12px"></div>' +
+      '<div id="adminRecord_' + kind + '" style="margin-top:14px"></div>';
 
     out.innerHTML = html;
+
+    function renderTable(filter = '') {
+      const tableOut = $('adminTable_' + kind);
+      if (!tableOut) return;
+
+      const q = filter.trim().toLowerCase();
+      const filtered = items.filter(item =>
+        !q || JSON.stringify(item).toLowerCase().includes(q)
+      );
+
+      if (!filtered.length) {
+        tableOut.innerHTML = '<p class="muted">Mos ma’lumot topilmadi.</p>';
+        return;
+      }
+
+      const keys = [...new Set(filtered.flatMap(x =>
+        x && typeof x === 'object' ? Object.keys(x) : []
+      ))];
+
+      const visibleKeys = keys.slice(0, 12);
+
+      tableOut.innerHTML =
+        '<div style="overflow:auto;max-height:520px;border:1px solid rgba(255,255,255,.12);border-radius:10px">' +
+        '<table class="admin-table" style="min-width:900px"><thead><tr>' +
+        '<th>#</th>' +
+        visibleKeys.map(k => '<th>' + escapeHtml(k) + '</th>').join('') +
+        '<th>Ko‘rish</th>' +
+        '</tr></thead><tbody>' +
+        filtered.map((item, index) =>
+          '<tr>' +
+          '<td>' + (index + 1) + '</td>' +
+          visibleKeys.map(k => {
+            const value = item?.[k];
+            let display = value;
+            if (value && typeof value === 'object') display = JSON.stringify(value);
+            if (display === null || display === undefined) display = '';
+            return '<td style="max-width:280px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis" title="' +
+              escapeHtml(String(display)) + '">' + escapeHtml(String(display)) + '</td>';
+          }).join('') +
+          '<td><button type="button" class="admin-view-btn" data-kind="' +
+          escapeHtml(kind) + '" data-index="' + items.indexOf(item) + '">Batafsil</button></td>' +
+          '</tr>'
+        ).join('') +
+        '</tbody></table></div>';
+
+      tableOut.querySelectorAll('.admin-view-btn').forEach(btn => {
+        btn.addEventListener('click', () => {
+          const item = items[Number(btn.dataset.index)];
+          const record = $('adminRecord_' + kind);
+          if (!record) return;
+
+          record.innerHTML =
+            '<div style="border:1px solid rgba(255,255,255,.16);border-radius:10px;padding:16px">' +
+            '<div style="display:flex;justify-content:space-between;align-items:center;gap:10px">' +
+            '<h4 style="margin:0">Batafsil ma’lumot</h4>' +
+            '<button type="button" class="admin-close-record">Yopish</button>' +
+            '</div>' +
+            '<pre style="white-space:pre-wrap;overflow:auto;max-height:500px;margin-top:12px">' +
+            escapeHtml(JSON.stringify(item, null, 2)) +
+            '</pre></div>';
+
+          record.querySelector('.admin-close-record')?.addEventListener('click', () => {
+            record.innerHTML = '';
+          });
+
+          record.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+        });
+      });
+    }
+
+    $(searchId)?.addEventListener('input', e => renderTable(e.target.value));
+    renderTable();
   } catch (e) {
-    out.innerHTML = '<div class="status">❌ ' + e.message + '</div>';
+    out.innerHTML =
+      '<div class="status">❌ ' + escapeHtml(e.message || 'Xatolik') + '</div>';
   }
 }
-
 function escapeHtml(value) {
   return String(value)
     .replace(/&/g, '&amp;')
