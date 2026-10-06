@@ -1944,6 +1944,36 @@ async function loadPlatformKeys() {
   } catch (error) { if ($('platformStatus')) $('platformStatus').textContent = error.message; }
 }
 
+async function createPlatformApiKey() {
+  const org = (state.platformOrganizations || [])[0];
+  if (!org) {
+    if ($('platformStatus')) $('platformStatus').textContent = 'Avval organization yarating.';
+    return;
+  }
+  const name = window.prompt('API Key nomi:', 'MedGen Production API Key');
+  if (name === null) return;
+  const trimmed = name.trim();
+  if (!trimmed) {
+    if ($('platformStatus')) $('platformStatus').textContent = 'API Key nomi kerak.';
+    return;
+  }
+  try {
+    if ($('platformStatus')) $('platformStatus').textContent = 'API Key yaratilmoqda...';
+    const data = await api('/platform/api-keys', {
+      method: 'POST',
+      body: JSON.stringify({
+        organization_id: org.id,
+        name: trimmed
+      })
+    });
+    renderResult($('platformResult'), data);
+    if ($('platformStatus')) $('platformStatus').textContent = 'API Key yaratildi. Kalitni hozir saqlab oling — keyin qayta ko‘rsatilmaydi.';
+    await loadPlatformOverview();
+  } catch (error) {
+    if ($('platformStatus')) $('platformStatus').textContent = error.message;
+  }
+}
+
 async function createPlatformOrganization() {
   const name = $('platformOrgName')?.value?.trim() || '';
   if (!name) return;
@@ -3216,6 +3246,9 @@ function bindEvents() {
 
   const platformKeys = $('platformKeys');
   if (platformKeys) platformKeys.addEventListener('click', loadPlatformKeys);
+
+  const platformCreateKey = $('platformCreateKey');
+  if (platformCreateKey) platformCreateKey.addEventListener('click', createPlatformApiKey);
 
   const platformCreateOrg = $('platformCreateOrg');
   if (platformCreateOrg) platformCreateOrg.addEventListener('click', createPlatformOrganization);
