@@ -1273,7 +1273,7 @@ def research_agent(data: ResearchAgentRequest, user=Depends(get_current_user)):
     evidence=[{
         "rank":i+1, "pmid":a["pmid"], "title":a["title"], "journal":a["journal"],
         "publication_date":a["publication_date"], "relevance_score":a["relevance_score"],
-        "evidence":a["evidence"], "citation":f"PMID: {a['pmid']}", "url":a["url"]
+        "evidence":a["evidence"], "evidence_grade":a.get("evidence_grade","E"), "citation":f"PMID: {a['pmid']}", "url":a["url"]
     } for i,a in enumerate(articles)]
     synthesis=[]
     for item in evidence[:5]:
