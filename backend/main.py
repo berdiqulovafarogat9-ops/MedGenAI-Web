@@ -114,6 +114,17 @@ experiments_store = []
 knowledge_entities_store = []
 knowledge_relations_store = []
 
+# =========================================================
+# GLOBAL PLATFORM STATE — ORGANIZATIONS / WORKSPACES / API
+# =========================================================
+organizations_store = {}
+memberships_store = []
+workspaces_store = []
+projects_store = []
+api_keys_store = {}
+platform_audit_log = []
+usage_store = {}
+
 DATABASE_URL = os.getenv("DATABASE_URL", "").strip()
 PERSISTENCE_ENABLED = bool(DATABASE_URL and psycopg)
 password_hasher = PasswordHash.recommended() if PasswordHash else None
@@ -130,7 +141,7 @@ def _db_load():
         _db_init()
         with psycopg.connect(DATABASE_URL) as conn:
             rows = conn.execute("SELECT state_key, state_value FROM medgen_state").fetchall()
-        stores={"user_accounts":user_accounts,"user_profiles":user_profiles,"user_consents":user_consents,"experiments_store":experiments_store,"reports_store":reports_store,"activity_log":activity_log,"knowledge_entities_store":knowledge_entities_store,"knowledge_relations_store":knowledge_relations_store}
+        stores={"user_accounts":user_accounts,"user_profiles":user_profiles,"user_consents":user_consents,"experiments_store":experiments_store,"reports_store":reports_store,"activity_log":activity_log,"knowledge_entities_store":knowledge_entities_store,"knowledge_relations_store":knowledge_relations_store,"organizations_store":organizations_store,"memberships_store":memberships_store,"workspaces_store":workspaces_store,"projects_store":projects_store,"api_keys_store":api_keys_store,"platform_audit_log":platform_audit_log,"usage_store":usage_store}
         for key,value in rows:
             if key in stores and isinstance(value,(dict,list)):
                 stores[key].clear()
@@ -148,6 +159,9 @@ def _db_save():
             conn.commit()
     except Exception as exc: print(f"PostgreSQL save skipped: {exc}")
 
+
+# Load persisted application state once startup definitions are ready.
+# (Token state intentionally remains in-memory.)
 
 
 # =========================================================
@@ -1845,6 +1859,264 @@ def admin_activity(user=Depends(get_current_user)):
     require_super_admin(user)
     return {"activity": activity_log[:100]}
 
+
+# =========================================================
+# PHASE 8 — GLOBAL PLATFORM FOUNDATION
+# Organizations → Workspaces → Projects → API → Audit → Usage
+# =========================================================
+
+class OrganizationCreateRequest(BaseModel):
+    name: str
+    slug: str = ""
+
+class WorkspaceCreateRequest(BaseModel):
+    organization_id: str
+    name: str
+
+class ProjectCreateRequest(BaseModel):
+    workspace_id: str
+    name: str
+    description: str = ""
+
+class MemberRequest(BaseModel):
+    organization_id: str
+    username: str
+    role: str = "MEMBER"
+
+class ApiKeyCreateRequest(BaseModel):
+    organization_id: str
+    name: str = "MedGen API Key"
+
+class PlatformApiKeyRequest(BaseModel):
+    api_key: str
+
+PLATFORM_ROLES = {"OWNER", "ADMIN", "MEMBER", "VIEWER"}
+
+def _slugify(value: str) -> str:
+    value = re.sub(r"[^a-zA-Z0-9]+", "-", value.strip().lower()).strip("-")
+    return value[:48] or "organization"
+
+def _platform_audit(user, action: str, resource_type: str, resource_id: str = "", details: dict | None = None):
+    event = {
+        "id": secrets.token_hex(10),
+        "at": datetime.now(timezone.utc).isoformat(),
+        "username": user.get("username", "api"),
+        "action": action,
+        "resource_type": resource_type,
+        "resource_id": resource_id,
+        "details": details or {},
+    }
+    platform_audit_log.insert(0, event)
+    activity_log.insert(0, {"type": "platform", "username": event["username"], "action": action, "resource_type": resource_type, "resource_id": resource_id, "at": event["at"]})
+    return event
+
+def _org_role(user, organization_id: str) -> str | None:
+    if user.get("role") == "SUPER_ADMIN":
+        return "OWNER"
+    for item in memberships_store:
+        if item.get("organization_id") == organization_id and item.get("username") == user.get("username"):
+            return item.get("role")
+    return None
+
+def _require_org(user, organization_id: str, minimum: str = "VIEWER"):
+    role = _org_role(user, organization_id)
+    order = {"VIEWER": 0, "MEMBER": 1, "ADMIN": 2, "OWNER": 3}
+    if role is None or order.get(role, -1) < order.get(minimum, 0):
+        raise HTTPException(status_code=403, detail=f"Organization {minimum} access required.")
+    return role
+
+def _usage(username: str):
+    return usage_store.setdefault(username, {
+        "api_requests": 0,
+        "research_runs": 0,
+        "discovery_runs": 0,
+        "workflows_created": 0,
+        "last_activity": None,
+    })
+
+@app.post("/api/v1/platform/organizations")
+def platform_create_organization(data: OrganizationCreateRequest, user=Depends(get_current_user)):
+    name = data.name.strip()
+    if not name:
+        raise HTTPException(status_code=400, detail="Organization name is required.")
+    base = _slugify(data.slug or name)
+    slug = base
+    n = 2
+    while any(x.get("slug") == slug for x in organizations_store.values()):
+        slug = f"{base}-{n}"
+        n += 1
+    now = datetime.now(timezone.utc).isoformat()
+    org_id = secrets.token_hex(12)
+    organizations_store[org_id] = {"id": org_id, "name": name, "slug": slug, "created_at": now, "created_by": user["username"]}
+    memberships_store.append({"organization_id": org_id, "username": user["username"], "role": "OWNER", "joined_at": now})
+    _platform_audit(user, "organization.created", "organization", org_id, {"name": name})
+    _db_save()
+    return {"status": "created", "organization": organizations_store[org_id], "role": "OWNER"}
+
+@app.get("/api/v1/platform/organizations")
+def platform_organizations(user=Depends(get_current_user)):
+    visible = []
+    for org in organizations_store.values():
+        role = _org_role(user, org["id"])
+        if role:
+            visible.append({**org, "role": role, "member_count": sum(1 for m in memberships_store if m["organization_id"] == org["id"])})
+    return {"organizations": visible, "count": len(visible)}
+
+@app.post("/api/v1/platform/members")
+def platform_add_member(data: MemberRequest, user=Depends(get_current_user)):
+    _require_org(user, data.organization_id, "ADMIN")
+    role = data.role.upper().strip()
+    if role not in PLATFORM_ROLES or role == "OWNER":
+        raise HTTPException(status_code=400, detail="Role must be ADMIN, MEMBER, or VIEWER.")
+    username = data.username.strip()
+    if username not in user_accounts and username not in user_profiles and username.casefold() != ADMIN_USERNAME.casefold():
+        raise HTTPException(status_code=404, detail="User not found.")
+    existing = next((m for m in memberships_store if m["organization_id"] == data.organization_id and m["username"] == username), None)
+    if existing:
+        existing["role"] = role
+        action = "member.role_updated"
+    else:
+        existing = {"organization_id": data.organization_id, "username": username, "role": role, "joined_at": datetime.now(timezone.utc).isoformat()}
+        memberships_store.append(existing)
+        action = "member.added"
+    _platform_audit(user, action, "membership", f"{data.organization_id}:{username}", {"role": role})
+    _db_save()
+    return {"status": "updated", "membership": existing}
+
+@app.get("/api/v1/platform/members/{organization_id}")
+def platform_members(organization_id: str, user=Depends(get_current_user)):
+    _require_org(user, organization_id, "VIEWER")
+    return {"organization_id": organization_id, "members": [m for m in memberships_store if m["organization_id"] == organization_id]}
+
+@app.post("/api/v1/platform/workspaces")
+def platform_create_workspace(data: WorkspaceCreateRequest, user=Depends(get_current_user)):
+    _require_org(user, data.organization_id, "MEMBER")
+    name = data.name.strip()
+    if not name:
+        raise HTTPException(status_code=400, detail="Workspace name is required.")
+    wid = secrets.token_hex(12)
+    item = {"id": wid, "organization_id": data.organization_id, "name": name, "created_by": user["username"], "created_at": datetime.now(timezone.utc).isoformat()}
+    workspaces_store.append(item)
+    _platform_audit(user, "workspace.created", "workspace", wid, {"organization_id": data.organization_id})
+    _db_save()
+    return {"status": "created", "workspace": item}
+
+@app.get("/api/v1/platform/workspaces")
+def platform_workspaces(organization_id: str | None = None, user=Depends(get_current_user)):
+    if organization_id:
+        _require_org(user, organization_id, "VIEWER")
+        items = [x for x in workspaces_store if x["organization_id"] == organization_id]
+    else:
+        orgs = {x["id"] for x in organizations_store.values() if _org_role(user, x["id"])}
+        items = [x for x in workspaces_store if x["organization_id"] in orgs]
+    return {"workspaces": items, "count": len(items)}
+
+@app.post("/api/v1/platform/projects")
+def platform_create_project(data: ProjectCreateRequest, user=Depends(get_current_user)):
+    workspace = next((x for x in workspaces_store if x["id"] == data.workspace_id), None)
+    if not workspace:
+        raise HTTPException(status_code=404, detail="Workspace not found.")
+    _require_org(user, workspace["organization_id"], "MEMBER")
+    name = data.name.strip()
+    if not name:
+        raise HTTPException(status_code=400, detail="Project name is required.")
+    pid = secrets.token_hex(12)
+    item = {"id": pid, "workspace_id": data.workspace_id, "organization_id": workspace["organization_id"], "name": name, "description": data.description.strip(), "created_by": user["username"], "created_at": datetime.now(timezone.utc).isoformat()}
+    projects_store.append(item)
+    _platform_audit(user, "project.created", "project", pid, {"workspace_id": data.workspace_id})
+    _db_save()
+    return {"status": "created", "project": item}
+
+@app.get("/api/v1/platform/projects")
+def platform_projects(workspace_id: str | None = None, organization_id: str | None = None, user=Depends(get_current_user)):
+    if workspace_id:
+        workspace = next((x for x in workspaces_store if x["id"] == workspace_id), None)
+        if not workspace:
+            raise HTTPException(status_code=404, detail="Workspace not found.")
+        _require_org(user, workspace["organization_id"], "VIEWER")
+        items = [x for x in projects_store if x["workspace_id"] == workspace_id]
+    elif organization_id:
+        _require_org(user, organization_id, "VIEWER")
+        items = [x for x in projects_store if x["organization_id"] == organization_id]
+    else:
+        orgs = {x["id"] for x in organizations_store.values() if _org_role(user, x["id"])}
+        items = [x for x in projects_store if x["organization_id"] in orgs]
+    return {"projects": items, "count": len(items)}
+
+@app.post("/api/v1/platform/api-keys")
+def platform_create_api_key(data: ApiKeyCreateRequest, user=Depends(get_current_user)):
+    _require_org(user, data.organization_id, "ADMIN")
+    raw = "mgai_" + secrets.token_urlsafe(32)
+    key_id = secrets.token_hex(10)
+    digest = hashlib.sha256(raw.encode()).hexdigest()
+    now = datetime.now(timezone.utc).isoformat()
+    api_keys_store[key_id] = {"id": key_id, "organization_id": data.organization_id, "name": data.name.strip() or "MedGen API Key", "prefix": raw[:12], "key_hash": digest, "created_by": user["username"], "created_at": now, "revoked": False, "last_used_at": None}
+    _platform_audit(user, "api_key.created", "api_key", key_id, {"organization_id": data.organization_id})
+    _db_save()
+    return {"status": "created", "api_key": raw, "warning": "Store this key now. The raw API key will not be shown again.", "metadata": {k:v for k,v in api_keys_store[key_id].items() if k != "key_hash"}}
+
+@app.get("/api/v1/platform/api-keys")
+def platform_list_api_keys(organization_id: str, user=Depends(get_current_user)):
+    _require_org(user, organization_id, "ADMIN")
+    items = [{k:v for k,v in x.items() if k != "key_hash"} for x in api_keys_store.values() if x["organization_id"] == organization_id]
+    return {"api_keys": items, "count": len(items)}
+
+@app.delete("/api/v1/platform/api-keys/{key_id}")
+def platform_revoke_api_key(key_id: str, user=Depends(get_current_user)):
+    item = api_keys_store.get(key_id)
+    if not item:
+        raise HTTPException(status_code=404, detail="API key not found.")
+    _require_org(user, item["organization_id"], "ADMIN")
+    item["revoked"] = True
+    item["revoked_at"] = datetime.now(timezone.utc).isoformat()
+    _platform_audit(user, "api_key.revoked", "api_key", key_id, {})
+    _db_save()
+    return {"status": "revoked", "id": key_id}
+
+@app.post("/api/v1/platform/api-keys/validate")
+def platform_validate_api_key(data: PlatformApiKeyRequest):
+    digest = hashlib.sha256(data.api_key.strip().encode()).hexdigest()
+    item = next((x for x in api_keys_store.values() if x.get("key_hash") == digest and not x.get("revoked")), None)
+    if not item:
+        raise HTTPException(status_code=401, detail="Invalid or revoked API key.")
+    item["last_used_at"] = datetime.now(timezone.utc).isoformat()
+    org = organizations_store.get(item["organization_id"], {})
+    return {"valid": True, "organization": {"id": org.get("id"), "name": org.get("name"), "slug": org.get("slug")}, "key_id": item["id"]}
+
+@app.get("/api/v1/platform/audit")
+def platform_audit(organization_id: str | None = None, limit: int = 100, user=Depends(get_current_user)):
+    if organization_id:
+        _require_org(user, organization_id, "VIEWER")
+        items = [x for x in platform_audit_log if x.get("details", {}).get("organization_id") == organization_id or x.get("resource_id") == organization_id]
+    elif user.get("role") == "SUPER_ADMIN":
+        items = platform_audit_log
+    else:
+        visible_orgs = {x["id"] for x in organizations_store.values() if _org_role(user, x["id"])}
+        items = [x for x in platform_audit_log if x.get("resource_id") in visible_orgs or x.get("details", {}).get("organization_id") in visible_orgs]
+    return {"audit": items[:max(1, min(limit, 500))], "count": len(items)}
+
+@app.get("/api/v1/platform/usage")
+def platform_usage(user=Depends(get_current_user)):
+    item = _usage(user["username"])
+    return {"username": user["username"], "usage": item, "limits": {"api_requests": 10000, "research_runs": 1000, "discovery_runs": 1000, "workflows_created": 1000}, "plan": "foundation"}
+
+@app.get("/api/v1/platform/overview")
+def platform_overview(user=Depends(get_current_user)):
+    orgs = [x for x in organizations_store.values() if _org_role(user, x["id"])]
+    org_ids = {x["id"] for x in orgs}
+    return {
+        "status": "ready",
+        "platform": "MedGen AI Global Platform",
+        "organizations": len(orgs),
+        "workspaces": sum(1 for x in workspaces_store if x["organization_id"] in org_ids),
+        "projects": sum(1 for x in projects_store if x["organization_id"] in org_ids),
+        "api_keys": sum(1 for x in api_keys_store.values() if x["organization_id"] in org_ids and not x.get("revoked")),
+        "audit_events": len(platform_audit_log),
+        "usage": _usage(user["username"]),
+        "capabilities": ["organizations", "teams", "workspaces", "projects", "rbac", "api_keys", "audit_logs", "usage"],
+    }
+
+# =========================================================
 # =========================================================
 # ADVANCED DRUG DISCOVERY — REPRODUCIBLE PIPELINE
 # =========================================================
@@ -1890,4 +2162,14 @@ def discovery_pipeline(data: DiscoveryPipelineRequest, user=Depends(get_current_
     experiments_store.insert(0,experiment)
     activity_log.insert(0,{"type":"advanced_discovery_pipeline","username":user["username"],"target":target,"candidates":len(candidates),"at":now})
     _db_save()
+    _usage(user["username"])["discovery_runs"] += 1
+    _usage(user["username"])["last_activity"] = now
+    _db_save()
     return {"status":"completed","module":"Advanced Drug Discovery","workflow":"Target → Library Filter → Virtual Screening → Ranking → Reproducible Experiment","experiment_id":experiment["id"],"target":target,"filtered_count":len(candidates),"rejected_count":filtered["rejected_count"],"ranked_results":screening["results"],"experiment":experiment}
+
+
+# Initialize persistent platform/application state after all definitions are loaded.
+try:
+    _db_load()
+except Exception as exc:
+    print(f"MedGen state initialization skipped: {exc}")
