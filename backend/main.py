@@ -1141,7 +1141,6 @@ def docking_run(
             ),
             "user": user["username"],
         }
-    }
 
 # =========================================================
 # DISCOVERY SESSION DETAILS
