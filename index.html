@@ -274,6 +274,19 @@ frame-ancestors 'none'">
 
     </form>
 
+    <button id="showRegister" type="button" class="ghost">Ro‘yxatdan o‘tish</button>
+
+    <form id="registerForm" class="hidden">
+      <label><span>Username</span><input id="registerUsername" autocomplete="username" required></label>
+      <label><span>To‘liq ism</span><input id="registerFullName" required></label>
+      <label><span>Email</span><input id="registerEmail" type="email" autocomplete="email" required></label>
+      <label><span>Telefon raqami</span><input id="registerPhone" type="tel" autocomplete="tel" placeholder="+998 90 123 45 67"></label>
+      <label><span>Parol</span><input id="registerPassword" type="password" autocomplete="new-password" minlength="8" required></label>
+      <label><span>Parolni tasdiqlash</span><input id="registerPassword2" type="password" autocomplete="new-password" minlength="8" required></label>
+      <button class="primary" type="submit">Ro‘yxatdan o‘tish</button>
+      <button id="hideRegister" type="button" class="ghost">Kirishga qaytish</button>
+    </form>
+
     <div id="loginStatus" class="status"></div>
 
   </div>
@@ -1812,6 +1825,8 @@ frame-ancestors 'none'">
     <div class="avatar-editor"><img id="profileAvatarPreview" class="profile-avatar" alt="Profil rasmi"><button id="profileAvatarUpload" type="button" class="ghost profile-upload-btn" data-i18n="uploadPhoto">Rasm yuklash</button><input id="profileAvatar" type="file" accept="image/png,image/jpeg,image/webp" style="display:none"><button id="profileAvatarRemove" type="button" class="ghost" data-i18n="removePhoto">Rasmni o‘chirish</button></div>
     <p class="muted" data-i18n="profilePhotoHelp">Bu ma’lumotlarni siz o‘zingiz kiritasiz. MedGen AI siz haqingizda avtomatik ravishda shaxsiy ma’lumot bilmaydi.</p>
     <label><span data-i18n="fullName">To‘liq ism</span><input id="profileFullName" data-i18n-placeholder="fullNamePlaceholder" placeholder="Ism Familiya"></label>
+    <label><span>Login / Username</span><input id="profileUsername" autocomplete="username"></label>
+    <label><span>Telefon raqami</span><input id="profilePhone" type="tel" autocomplete="tel"></label>
     <label><span data-i18n="emailLabel">Email</span><input id="profileEmail" type="text" inputmode="email" autocomplete="email" placeholder="email@example.com"></label>
     <label><span data-i18n="organization">Tashkilot / universitet</span><input id="profileOrganization" data-i18n-placeholder="organizationPlaceholder" placeholder="Universitet yoki tashkilot"></label>
     <label><span data-i18n="country">Mamlakat</span><input id="profileCountry" data-i18n-placeholder="countryPlaceholder" placeholder="O‘zbekiston"></label>
@@ -1821,6 +1836,12 @@ frame-ancestors 'none'">
     </label>
     <label><span data-i18n="bioLabel">Bio</span><textarea id="profileBio" rows="3" data-i18n-placeholder="bioPlaceholder" placeholder="O‘zingiz haqingizda qisqacha"></textarea></label>
     <div id="profileStatus" class="status"></div>
+    <div class="account-security">
+      <h3>Account & Security</h3>
+      <label><span>Joriy parol</span><input id="currentPassword" type="password" autocomplete="current-password"></label>
+      <label><span>Yangi parol</span><input id="newPassword" type="password" autocomplete="new-password" minlength="8"></label>
+      <button id="changePasswordBtn" type="button" class="ghost">Parolni o‘zgartirish</button>
+    </div>
     <button id="profileSave" class="primary" data-i18n="save">Saqlash</button>
   </div>
 </div>
