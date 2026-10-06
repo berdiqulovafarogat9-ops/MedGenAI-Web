@@ -1217,6 +1217,34 @@ def docking_status(
 
 
 # =========================================================
+# SUPER ADMIN DASHBOARD
+# =========================================================
+
+def require_super_admin(user):
+    if user.get("role") != "SUPER_ADMIN":
+        raise HTTPException(status_code=403, detail="Super Admin access required.")
+    return user
+
+@app.get("/api/v1/admin/overview")
+def admin_overview(user=Depends(get_current_user)):
+    require_super_admin(user)
+    docking_items = list(docking_jobs_store.values())
+    return {
+        "status": "ready", "role": user["role"],
+        "users": len(set(tokens.values())), "active_tokens": len(tokens),
+        "jobs": len(jobs_store), "docking_jobs": len(docking_items),
+        "docking_running": sum(1 for x in docking_items if x.get("status") in ("queued", "running")),
+        "experiments": len(experiments_store), "reports": len(reports_store), "workflows": len(workflows_store),
+        "recent_activity": ([*({**x, "activity_type":"docking"} for x in docking_items[:10]), *({**x, "activity_type":"experiment"} for x in experiments_store[:10]), *({**x, "activity_type":"report"} for x in reports_store[:10])])[:20],
+    }
+
+@app.get("/api/v1/admin/users")
+def admin_users(user=Depends(get_current_user)):
+    require_super_admin(user)
+    return {"users": [{"username": u, "role": "SUPER_ADMIN" if u == ADMIN_USERNAME else "USER"} for u in sorted(set(tokens.values()))]}
+
+
+# =========================================================
 # DISCOVERY SESSION DETAILS
 # =========================================================
 
