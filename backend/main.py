@@ -21,6 +21,7 @@ from urllib.error import HTTPError, URLError
 from fastapi import BackgroundTasks, Depends, FastAPI, HTTPException, Request
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.security import HTTPAuthorizationCredentials, HTTPBearer
+from .knowledge_engine import make_entity, make_relation, search_graph, neighborhood, validate_graph, normalize_entity
 from pydantic import BaseModel
 from rdkit import Chem, DataStructs
 from rdkit.Chem import AllChem, Descriptors, Lipinski, QED, rdMolDescriptors
@@ -107,6 +108,8 @@ docking_jobs_store = {}
 workflows_store = []
 reports_store = []
 experiments_store = []
+knowledge_entities_store = []
+knowledge_relations_store = []
 
 DATABASE_URL = os.getenv("DATABASE_URL", "").strip()
 PERSISTENCE_ENABLED = bool(DATABASE_URL and psycopg)
@@ -1274,6 +1277,60 @@ def pubmed_article(pmid: str, user=Depends(get_current_user)):
         "user": user["username"],
     }
 
+
+# =========================================================
+# KNOWLEDGE LAYER — BIOMEDICAL KNOWLEDGE GRAPH
+# =========================================================
+
+class KnowledgeEntityRequest(BaseModel):
+    name: str
+    entity_type: str = "concept"
+    source: str = "user"
+
+class KnowledgeRelationRequest(BaseModel):
+    subject: str
+    relation: str
+    object: str
+    source: str = "user"
+    evidence: str = ""
+
+@app.get("/api/v1/knowledge/graph")
+def knowledge_graph(user=Depends(get_current_user)):
+    return {"status":"ok","entity_count":len(knowledge_entities_store),
+            "relation_count":len(knowledge_relations_store),
+            "entities":knowledge_entities_store[:1000],
+            "relations":knowledge_relations_store[:3000]}
+
+@app.post("/api/v1/knowledge/entities")
+def knowledge_entity(data: KnowledgeEntityRequest, user=Depends(get_current_user)):
+    entity=make_entity(data.name,data.entity_type,data.source)
+    if not entity["name"]: raise HTTPException(status_code=400, detail="Entity name is required")
+    if not any(x["id"]==entity["id"] for x in knowledge_entities_store):
+        knowledge_entities_store.append(entity)
+    return {"status":"created","entity":entity}
+
+@app.post("/api/v1/knowledge/relations")
+def knowledge_relation(data: KnowledgeRelationRequest, user=Depends(get_current_user)):
+    try: rel=make_relation(data.subject,data.relation,data.object,data.source,data.evidence)
+    except ValueError as exc: raise HTTPException(status_code=400,detail=str(exc))
+    for name in (data.subject,data.object):
+        if not any(x["id"]==normalize_entity(name) for x in knowledge_entities_store):
+            knowledge_entities_store.append(make_entity(name,"concept",data.source))
+    if rel not in knowledge_relations_store: knowledge_relations_store.append(rel)
+    return {"status":"created","relation":rel}
+
+@app.post("/api/v1/knowledge/search")
+def knowledge_search(data: ResearchRequest, user=Depends(get_current_user)):
+    return {"status":"ok",**search_graph(knowledge_entities_store,knowledge_relations_store,data.query,max(1,min(data.limit,50)))}
+
+@app.get("/api/v1/knowledge/neighborhood/{entity}")
+def knowledge_neighborhood(entity: str, hops: int=2, user=Depends(get_current_user)):
+    return {"status":"ok",**neighborhood(knowledge_entities_store,knowledge_relations_store,entity,hops)}
+
+@app.get("/api/v1/knowledge/validate")
+def knowledge_validate(user=Depends(get_current_user)):
+    errors=validate_graph(knowledge_entities_store,knowledge_relations_store)
+    return {"status":"valid" if not errors else "invalid","errors":errors,"entity_count":len(knowledge_entities_store),"relation_count":len(knowledge_relations_store)}
 
 # =========================================================
 # DRUG DISCOVERY PIPELINE
