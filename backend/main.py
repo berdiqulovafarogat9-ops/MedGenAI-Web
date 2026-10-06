@@ -22,7 +22,7 @@ from fastapi import BackgroundTasks, Depends, FastAPI, HTTPException, Request
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.security import HTTPAuthorizationCredentials, HTTPBearer
 try:
-    from .knowledge_engine import make_entity, make_relation, search_graph, neighborhood, validate_graph, normalize_entity
+    from .knowledge_engine import make_entity, make_relation, search_graph, neighborhood, validate_graph, normalize_entity, graph_stats, find_paths
 except ImportError:
     from knowledge_engine import make_entity, make_relation, search_graph, neighborhood, validate_graph, normalize_entity
 from pydantic import BaseModel
@@ -1344,6 +1344,48 @@ def knowledge_neighborhood(entity: str, hops: int=2, user=Depends(get_current_us
 def knowledge_validate(user=Depends(get_current_user)):
     errors=validate_graph(knowledge_entities_store,knowledge_relations_store)
     return {"status":"valid" if not errors else "invalid","errors":errors,"entity_count":len(knowledge_entities_store),"relation_count":len(knowledge_relations_store)}
+
+
+@app.get("/api/v1/knowledge/stats")
+def knowledge_stats(user=Depends(get_current_user)):
+    return {"status":"ok", **graph_stats(knowledge_entities_store, knowledge_relations_store)}
+
+class KnowledgePathRequest(BaseModel):
+    start: str
+    end: str
+    max_hops: int = 4
+
+@app.post("/api/v1/knowledge/paths")
+def knowledge_paths(data: KnowledgePathRequest, user=Depends(get_current_user)):
+    if not data.start.strip() or not data.end.strip():
+        raise HTTPException(status_code=400, detail="Start and end entities are required")
+    paths=find_paths(knowledge_entities_store, knowledge_relations_store, data.start, data.end, data.max_hops)
+    return {"status":"ok","start":normalize_entity(data.start),"end":normalize_entity(data.end),"paths":paths,"count":len(paths)}
+
+class KnowledgeImportRequest(BaseModel):
+    entities: list[dict[str, Any]] = []
+    relations: list[dict[str, Any]] = []
+    source: str = "import"
+
+@app.post("/api/v1/knowledge/import")
+def knowledge_import(data: KnowledgeImportRequest, user=Depends(get_current_user)):
+    added_entities=0; added_relations=0
+    for raw in data.entities:
+        entity=make_entity(str(raw.get("name","")), str(raw.get("type","concept")), data.source)
+        if entity["name"] and not any(x["id"]==entity["id"] for x in knowledge_entities_store):
+            knowledge_entities_store.append(entity); added_entities+=1
+    for raw in data.relations:
+        try:
+            rel=make_relation(str(raw.get("subject","")),str(raw.get("relation","")),str(raw.get("object","")),data.source,str(raw.get("evidence","")))
+        except ValueError:
+            continue
+        for name in (rel["subject"],rel["object"]):
+            if not any(x["id"]==normalize_entity(name) for x in knowledge_entities_store):
+                knowledge_entities_store.append(make_entity(name,"concept",data.source))
+        if rel not in knowledge_relations_store:
+            knowledge_relations_store.append(rel); added_relations+=1
+    _db_save()
+    return {"status":"imported","added_entities":added_entities,"added_relations":added_relations,**graph_stats(knowledge_entities_store,knowledge_relations_store)}
 
 # =========================================================
 # DRUG DISCOVERY PIPELINE
