@@ -1128,6 +1128,47 @@ def _extract_evidence_sentences(query: str, abstract: str, max_sentences: int = 
     return [s for _,s in scored[:max_sentences]]
 
 
+
+def _evidence_grade(article: dict) -> str:
+    """Lightweight evidence tiering from publication metadata; not a clinical evidence assessment."""
+    title=(article.get("title","") or "").lower()
+    abstract=(article.get("abstract","") or "").lower()
+    text=title+" "+abstract
+    if any(x in text for x in ["randomized","randomised","phase 3","meta-analysis","systematic review"]):
+        return "A"
+    if any(x in text for x in ["phase 2","prospective","multicentre","multicenter","cohort"]):
+        return "B"
+    if any(x in text for x in ["retrospective","case-control","observational"]):
+        return "C"
+    if any(x in text for x in ["case report","case series"]):
+        return "D"
+    return "E"
+
+
+def _detect_evidence_tensions(evidence: list[dict]) -> list[dict]:
+    """Flag possible disagreement signals for expert review; does not infer true contradiction."""
+    positive_terms=("improved","benefit","effective","associated with longer","promising","favorable","favourable")
+    negative_terms=("limited","uncertain","inferior","poor","resistance","no significant","not significant","failed")
+    pos=[]; neg=[]
+    for item in evidence:
+        claim=(item.get("evidence") or [""])[0].lower()
+        if any(t in claim for t in positive_terms): pos.append(item.get("pmid"))
+        if any(t in claim for t in negative_terms): neg.append(item.get("pmid"))
+    if pos and neg:
+        return [{"type":"possible_tension","positive_pmids":pos[:5],"negative_pmids":neg[:5],"note":"Keyword-based signal only; inspect full papers before concluding that findings conflict."}]
+    return []
+
+
+def _build_research_synthesis(evidence: list[dict]) -> dict:
+    themes=[]
+    for item in evidence:
+        claim=(item.get("evidence") or [item.get("title","")])[0]
+        themes.append({"pmid":item.get("pmid"),"claim":claim,"evidence_grade":item.get("evidence_grade","E"),"citation":item.get("citation","")})
+    grades={}
+    for item in evidence:
+        g=item.get("evidence_grade","E"); grades[g]=grades.get(g,0)+1
+    return {"key_findings":themes[:8],"grade_distribution":grades,"possible_tensions":_detect_evidence_tensions(evidence)}
+
 def normalize_pubmed_query(query: str) -> str:
     q = query.strip()
     replacements = {
@@ -1227,6 +1268,7 @@ def research_agent(data: ResearchAgentRequest, user=Depends(get_current_user)):
     for article in articles:
         article["relevance_score"]=_evidence_score(normalized, article)
         article["evidence"]=_extract_evidence_sentences(normalized, article.get("abstract", ""))
+        article["evidence_grade"]=_evidence_grade(article)
     articles.sort(key=lambda x:(x.get("relevance_score",0), x.get("publication_date", "")), reverse=True)
     evidence=[{
         "rank":i+1, "pmid":a["pmid"], "title":a["title"], "journal":a["journal"],
@@ -1236,7 +1278,8 @@ def research_agent(data: ResearchAgentRequest, user=Depends(get_current_user)):
     synthesis=[]
     for item in evidence[:5]:
         if item["evidence"]:
-            synthesis.append({"pmid":item["pmid"],"claim":item["evidence"][0],"source":item["citation"]})
+            synthesis.append({"pmid":item["pmid"],"claim":item["evidence"][0],"source":item["citation"],"evidence_grade":item["evidence_grade"]})
+    synthesis_analysis=_build_research_synthesis(evidence)
 
     # Autonomous Research pipeline:
     # Question -> Evidence -> Knowledge Graph -> Reproducible Report
@@ -1263,14 +1306,14 @@ def research_agent(data: ResearchAgentRequest, user=Depends(get_current_user)):
     report={
         "status":"completed", "module":"Autonomous Research", "query":query,
         "normalized_query":normalized,
-        "plan":["normalize_query","retrieve_pubmed_evidence","rank_relevance","extract_evidence","update_knowledge_graph","build_reproducible_report"],
+        "plan":["normalize_query","retrieve_pubmed_evidence","rank_relevance","extract_evidence","update_knowledge_graph","build_reproducible_report","evidence_grading","tension_detection"],
         "pipeline":{
             "question": query,
             "evidence_retrieved": len(evidence),
             "knowledge_graph_updated": bool(graph_entities_added or graph_relations_added),
             "report_generated": True
         },
-        "evidence_count":len(evidence), "evidence":evidence, "synthesis":synthesis,
+        "evidence_count":len(evidence), "evidence":evidence, "synthesis":synthesis, "synthesis_analysis":synthesis_analysis,
         "knowledge_graph":{
             "entities_added":len(graph_entities_added),
             "relations_added":len(graph_relations_added),
