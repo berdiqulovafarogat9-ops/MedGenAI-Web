@@ -1073,19 +1073,32 @@ async function openProfile() {
   const modal = $('profileModal');
   if (!modal) return;
   modal.classList.remove('hidden');
+  const status = $('profileStatus');
+  if (status) status.textContent = 'Yuklanmoqda...';
+
   try {
     const data = await api('/profile');
     const p = data?.profile || {};
+
     $('profileFullName').value = p.full_name || '';
     $('profileEmail').value = p.email || '';
     $('profileOrganization').value = p.organization || '';
     $('profileCountry').value = p.country || '';
+    $('profileBirthYear').value = p.birth_year ?? '';
+    $('profileBirthMonth').value = p.birth_month ?? '';
+    $('profileBirthDay').value = p.birth_day ?? '';
     $('profileInterests').value = p.research_interests || '';
     $('profileBio').value = p.bio || '';
+
     const avatar = $('profileAvatarPreview');
-    if (avatar) { avatar.src = p.avatar || ''; avatar.style.display = p.avatar ? 'block' : 'none'; }
+    if (avatar) {
+      avatar.src = p.avatar || '';
+      avatar.style.display = p.avatar ? 'block' : 'none';
+    }
+
+    if (status) status.textContent = '';
   } catch (e) {
-    $('profileStatus').textContent = e.message;
+    if (status) status.textContent = e.message;
   }
 }
 
@@ -1096,8 +1109,12 @@ function closeProfile() {
 function readAvatar(file) {
   return new Promise((resolve, reject) => {
     if (!file) return resolve('');
-    if (!['image/png','image/jpeg','image/webp'].includes(file.type)) return reject(new Error('Faqat PNG, JPEG yoki WebP rasm tanlang.'));
-    if (file.size > 2 * 1024 * 1024) return reject(new Error('Profil rasmi 2 MB dan katta bo‘lmasin.'));
+    if (!['image/png', 'image/jpeg', 'image/webp'].includes(file.type)) {
+      return reject(new Error('Faqat PNG, JPEG yoki WebP rasm tanlang.'));
+    }
+    if (file.size > 2 * 1024 * 1024) {
+      return reject(new Error('Profil rasmi 2 MB dan katta bo‘lmasin.'));
+    }
     const reader = new FileReader();
     reader.onload = () => resolve(String(reader.result));
     reader.onerror = () => reject(new Error('Rasmni o‘qib bo‘lmadi.'));
@@ -1106,28 +1123,68 @@ function readAvatar(file) {
 }
 
 async function saveProfile() {
+  const button = $('profileSave');
   const status = $('profileStatus');
+
   try {
+    if (button) {
+      button.disabled = true;
+      button.textContent = 'Saqlanmoqda...';
+    }
+    if (status) status.textContent = '';
+
     const avatar = await readAvatar($('profileAvatar')?.files?.[0]);
+
+    const birthYearRaw = $('profileBirthYear')?.value?.trim() || '';
+    const birthMonthRaw = $('profileBirthMonth')?.value?.trim() || '';
+    const birthDayRaw = $('profileBirthDay')?.value?.trim() || '';
+
+    const payload = {
+      full_name: $('profileFullName')?.value?.trim() || '',
+      email: $('profileEmail')?.value?.trim() || '',
+      organization: $('profileOrganization')?.value?.trim() || '',
+      country: $('profileCountry')?.value?.trim() || '',
+      birth_year: birthYearRaw ? Number(birthYearRaw) : null,
+      birth_month: birthMonthRaw ? Number(birthMonthRaw) : null,
+      birth_day: birthDayRaw ? Number(birthDayRaw) : null,
+      research_interests: $('profileInterests')?.value?.trim() || '',
+      bio: $('profileBio')?.value?.trim() || '',
+      avatar: avatar || state.user?.profile?.avatar || ''
+    };
+
+    if (payload.birth_year !== null &&
+        (!Number.isInteger(payload.birth_year) || payload.birth_year < 1900 || payload.birth_year > 2100)) {
+      throw new Error('Tug‘ilgan yil 1900–2100 oralig‘ida bo‘lishi kerak.');
+    }
+
+    if (payload.birth_month !== null &&
+        (!Number.isInteger(payload.birth_month) || payload.birth_month < 1 || payload.birth_month > 12)) {
+      throw new Error('Tug‘ilgan oy 1–12 oralig‘ida bo‘lishi kerak.');
+    }
+
+    if (payload.birth_day !== null &&
+        (!Number.isInteger(payload.birth_day) || payload.birth_day < 1 || payload.birth_day > 31)) {
+      throw new Error('Tug‘ilgan kun 1–31 oralig‘ida bo‘lishi kerak.');
+    }
+
     const data = await api('/profile', {
       method: 'PUT',
-      body: JSON.stringify({
-        full_name: $('profileFullName')?.value?.trim() || '',
-        email: $('profileEmail')?.value?.trim() || '',
-        organization: $('profileOrganization')?.value?.trim() || '',
-        country: $('profileCountry')?.value?.trim() || '',
-        research_interests: $('profileInterests')?.value?.trim() || '',
-        bio: $('profileBio')?.value?.trim() || '',
-        avatar: avatar || state.user?.profile?.avatar || ''
-      })
+      body: JSON.stringify(payload)
     });
+
     if (state.user) {
       state.user.profile = data.profile;
       state.user.profile_complete = Boolean(data.profile?.full_name);
     }
-    if (status) status.textContent = 'Profil saqlandi.';
+
+    if (status) status.textContent = '✅ Profil muvaffaqiyatli saqlandi.';
   } catch (e) {
-    if (status) status.textContent = e.message;
+    if (status) status.textContent = '❌ ' + e.message;
+  } finally {
+    if (button) {
+      button.disabled = false;
+      button.textContent = 'Saqlash';
+    }
   }
 }
 
@@ -1183,41 +1240,104 @@ function isSuperAdmin() {
 
 async function loadAdminDashboard() {
   if (!isSuperAdmin()) return;
-  const box = $('adminDashboard'); if (!box) return;
+  const box = $('adminDashboard');
+  if (!box) return;
+
   try {
     const d = await api('/admin/overview');
+
     const cards = [
-      ['Users',d.users,'users'],
-      ['Active tokens',d.active_tokens,'tokens'],
-      ['Jobs',d.jobs,'activity'],
-      ['Docking',d.docking_jobs,'activity'],
-      ['Experiments',d.experiments,'activity'],
-      ['Reports',d.reports,'activity'],
-      ['Workflows',d.workflows,'activity']
+      ['Users', d.users, 'users'],
+      ['Active tokens', d.active_tokens, 'tokens'],
+      ['Jobs', d.jobs, 'jobs'],
+      ['Docking', d.docking_jobs, 'docking'],
+      ['Experiments', d.experiments, 'experiments'],
+      ['Reports', d.reports, 'reports'],
+      ['Workflows', d.workflows, 'workflows']
     ];
-    box.innerHTML='<h2>Super Admin Dashboard</h2><div class="grid">'+cards.map(c=>'<button class="card admin-card" data-admin="'+c[2]+'"><strong>'+c[1]+'</strong><div>'+c[0]+'</div><small>Batafsil ko‘rish →</small></button>').join('')+'</div><div id="adminDetails"></div>';
-    box.querySelectorAll('[data-admin]').forEach(b=>b.addEventListener('click',()=>loadAdminDetails(b.dataset.admin)));
-  } catch(e) { box.innerHTML='<div class="status">'+e.message+'</div>'; }
+
+    box.innerHTML =
+      '<h2>Super Admin Dashboard</h2>' +
+      '<div class="grid">' +
+      cards.map(c =>
+        '<button type="button" class="card admin-card" data-admin="' + c[2] + '">' +
+        '<strong>' + c[1] + '</strong>' +
+        '<div>' + c[0] + '</div>' +
+        '<small>Batafsil ko‘rish →</small>' +
+        '</button>'
+      ).join('') +
+      '</div>' +
+      '<div id="adminDetails"></div>';
+
+    box.querySelectorAll('[data-admin]').forEach(button => {
+      button.addEventListener('click', async () => {
+        await loadAdminDetails(button.dataset.admin);
+      });
+    });
+  } catch (e) {
+    box.innerHTML = '<div class="status">❌ ' + e.message + '</div>';
+  }
 }
 
 async function loadAdminDetails(kind) {
   const out = $('adminDetails');
   if (!out) return;
+
+  const titles = {
+    users: 'Foydalanuvchilar',
+    tokens: 'Faol tokenlar',
+    jobs: 'Jobs',
+    docking: 'Docking',
+    experiments: 'Experiments',
+    reports: 'Reports',
+    workflows: 'Workflows'
+  };
+
+  out.innerHTML = '<div class="status">Yuklanmoqda...</div>';
+
   try {
     let data;
-    if (kind === 'users') data = await api('/admin/users');
-    else if (kind === 'tokens') data = await api('/admin/tokens');
-    else data = await api('/admin/activity');
-    out.innerHTML='<h3>Details</h3><pre class="result">'+JSON.stringify(data,null,2)+'</pre>';
-  } catch(e) {
-    out.innerHTML='<div class="status">'+e.message+'</div>';
+
+    if (kind === 'users') {
+      data = await api('/admin/users');
+    } else if (kind === 'tokens') {
+      data = await api('/admin/tokens');
+    } else {
+      data = await api('/admin/activity');
+    }
+
+    out.innerHTML =
+      '<h3>' + (titles[kind] || 'Details') + '</h3>' +
+      '<pre class="result">' +
+      escapeHtml(JSON.stringify(data, null, 2)) +
+      '</pre>';
+  } catch (e) {
+    out.innerHTML = '<div class="status">❌ ' + e.message + '</div>';
   }
+}
+
+function escapeHtml(value) {
+  return String(value)
+    .replace(/&/g, '&amp;')
+    .replace(/</g, '&lt;')
+    .replace(/>/g, '&gt;')
+    .replace(/"/g, '&quot;')
+    .replace(/'/g, '&#039;');
 }
 
 function ensureAdminDashboard() {
   if (!isSuperAdmin() || $('adminDashboard')) return;
-  const dash=$('dashboardView'); if(!dash) return;
-  const box=document.createElement('section'); box.id='adminDashboard'; box.className='tool'; box.style.marginTop='20px'; dash.appendChild(box); loadAdminDashboard();
+
+  const dash = $('dashboardView');
+  if (!dash) return;
+
+  const box = document.createElement('section');
+  box.id = 'adminDashboard';
+  box.className = 'tool';
+  box.style.marginTop = '20px';
+  dash.appendChild(box);
+
+  loadAdminDashboard();
 }
 
 
