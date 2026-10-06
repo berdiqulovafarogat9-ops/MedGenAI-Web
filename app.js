@@ -1180,10 +1180,14 @@ async function openProfile() {
     });
 
     const avatar = $('profileAvatarPreview');
+    const uploadBtn = $('profileAvatarUpload');
+    const removeBtn = $('profileAvatarRemove');
     if (avatar) {
       avatar.src = p.avatar || '';
       avatar.style.display = p.avatar ? 'block' : 'none';
     }
+    if (uploadBtn) uploadBtn.style.display = state.profileEditMode && !p.avatar ? '' : 'none';
+    if (removeBtn) removeBtn.style.display = state.profileEditMode && p.avatar ? '' : 'none';
 
     if (state.user) {
       state.user.profile = p;
