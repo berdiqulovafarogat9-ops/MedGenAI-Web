@@ -1756,3 +1756,50 @@ def admin_workflows(user=Depends(get_current_user)):
 def admin_activity(user=Depends(get_current_user)):
     require_super_admin(user)
     return {"activity": activity_log[:100]}
+
+# =========================================================
+# ADVANCED DRUG DISCOVERY — REPRODUCIBLE PIPELINE
+# =========================================================
+
+class DiscoveryPipelineRequest(BaseModel):
+    target: str
+    molecules: list[str] = []
+    max_molecular_weight: float = 500.0
+    max_logp: float = 5.0
+    max_hbd: int = 5
+    max_hba: int = 10
+    min_qed: float = 0.0
+
+@app.post("/api/v1/discovery/pipeline")
+def discovery_pipeline(data: DiscoveryPipelineRequest, user=Depends(get_current_user)):
+    target = data.target.strip()
+    if not target:
+        raise HTTPException(status_code=400, detail="Target is required")
+    if not data.molecules:
+        raise HTTPException(status_code=400, detail="At least one molecule is required")
+
+    filtered = discovery_filter(LibraryFilterRequest(
+        target=target, molecules=data.molecules,
+        max_molecular_weight=data.max_molecular_weight,
+        max_logp=data.max_logp, max_hbd=data.max_hbd,
+        max_hba=data.max_hba, min_qed=data.min_qed
+    ), user)
+    candidates = [x["smiles"] for x in filtered["passed"]]
+    screening = discovery_screen(ScreeningRequest(target=target, molecules=candidates), user) if candidates else {
+        "status":"completed","workflow":"virtual_screening","target":target,"molecule_count":0,"results":[]
+    }
+    now=datetime.now(timezone.utc).isoformat()
+    experiment={
+        "id":secrets.token_hex(10),
+        "name":f"Advanced Discovery — {target}",
+        "workflow_type":"advanced_drug_discovery", "target":target,
+        "status":"completed","input":{"molecules":data.molecules},
+        "parameters":{"filters":filtered["filters"],"pipeline":["filter","virtual_screening","rank","reproducible_record"]},
+        "results":{"filtered_count":len(candidates),"screening":screening},
+        "user":user["username"],"created_at":now,"updated_at":now,
+        "reproducibility":{"api_version":app.version,"rdkit_available":True,"docking_engine_available":VINA_AVAILABLE}
+    }
+    experiments_store.insert(0,experiment)
+    activity_log.insert(0,{"type":"advanced_discovery_pipeline","username":user["username"],"target":target,"candidates":len(candidates),"at":now})
+    _db_save()
+    return {"status":"completed","module":"Advanced Drug Discovery","workflow":"Target → Library Filter → Virtual Screening → Ranking → Reproducible Experiment","experiment_id":experiment["id"],"target":target,"filtered_count":len(candidates),"rejected_count":filtered["rejected_count"],"ranked_results":screening["results"],"experiment":experiment}
