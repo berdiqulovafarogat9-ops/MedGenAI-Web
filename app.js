@@ -4643,3 +4643,41 @@ if (document.readyState === "loading") {
     }catch(_){}
   }
 })();
+
+/* Final navigation event patch: module opens as a clean standalone workspace. */
+(function finalizeWorkspaceNavigation(){
+  function boot(){
+    document.querySelectorAll('.module').forEach(btn=>{
+      btn.addEventListener('click',()=>{
+        $('roleDashboard')?.classList.add('hidden');
+        $('userDirectoryDashboard')?.classList.add('hidden');
+        $('educationPreferencePanel')?.classList.add('hidden');
+        $('moduleDirectory')?.classList.add('hidden');
+      });
+    });
+    $('workspaceClose')?.addEventListener('click',()=>{
+      $('workspace')?.classList.add('hidden');
+      $('roleDashboard')?.classList.remove('hidden');
+      $('moduleDirectory')?.classList.add('hidden');
+      if(window.medgenRefreshRoleNavigation) window.medgenRefreshRoleNavigation();
+    });
+    const drawer=document.getElementById('medgenNavDrawer');
+    const list=document.getElementById('navModules');
+    if(drawer && list && !drawer.querySelector('[data-nav="home"]')){
+      const home=document.createElement('button');
+      home.className='nav-item';
+      home.dataset.nav='home';
+      home.innerHTML='<span>🏠</span><b>Mening dashboardim</b>';
+      drawer.insertBefore(home,list);
+      home.addEventListener('click',()=>{
+        document.getElementById('navDrawerClose')?.click();
+        $('userDirectoryDashboard')?.classList.add('hidden');
+        $('educationPreferencePanel')?.classList.add('hidden');
+        $('workspace')?.classList.add('hidden');
+        $('moduleDirectory')?.classList.add('hidden');
+        $('roleDashboard')?.classList.remove('hidden');
+      });
+    }
+  }
+  if(document.readyState==='loading') document.addEventListener('DOMContentLoaded',boot,{once:true}); else setTimeout(boot,0);
+})();
