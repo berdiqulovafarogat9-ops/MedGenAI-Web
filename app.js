@@ -3892,3 +3892,113 @@ if (
 
   init();
          }
+
+
+/* =========================================================
+   PHASE 2 — EDUCATION SYSTEM PREFERENCE
+   Users choose Global/International or their own country.
+========================================================= */
+
+const MEDGEN_COUNTRY_CODES = [
+  "AF","AL","DZ","AD","AO","AG","AR","AM","AU","AT","AZ","BS","BH","BD","BB","BY","BE","BZ","BJ","BT","BO","BA","BW","BR","BN","BG","BF","BI","CV","KH","CM","CA","CF","TD","CL","CN","CO","KM","CG","CD","CR","CI","HR","CU","CY","CZ","DK","DJ","DM","DO","EC","EG","SV","GQ","ER","EE","SZ","ET","FJ","FI","FR","GA","GM","GE","DE","GH","GR","GD","GT","GN","GW","GY","HT","HN","HU","IS","IN","ID","IR","IQ","IE","IL","IT","JM","JP","JO","KZ","KE","KI","KP","KR","KW","KG","LA","LV","LB","LS","LR","LY","LI","LT","LU","MG","MW","MY","MV","ML","MT","MH","MR","MU","MX","FM","MD","MC","MN","ME","MA","MZ","MM","NA","NR","NP","NL","NZ","NI","NE","NG","MK","NO","OM","PK","PW","PS","PA","PG","PY","PE","PH","PL","PT","QA","RO","RU","RW","KN","LC","VC","WS","SM","ST","SA","SN","RS","SC","SL","SG","SK","SI","SB","SO","ZA","SS","ES","LK","SD","SR","SE","CH","SY","TJ","TZ","TH","TL","TG","TO","TT","TN","TR","TM","TV","UG","UA","AE","GB","US","UY","UZ","VU","VA","VE","VN","YE","ZM","ZW"
+];
+
+function populateEducationCountries() {
+  const select = $("educationCountry");
+  if (!select || select.dataset.ready === "1") return;
+
+  let names;
+  try {
+    names = new Intl.DisplayNames([getLanguage(), "en"], { type: "region" });
+  } catch (_) {
+    names = null;
+  }
+
+  select.innerHTML = MEDGEN_COUNTRY_CODES.map(code => {
+    const name = names?.of(code) || code;
+    return '<option value="' + code + '">' + name + ' (' + code + ')</option>';
+  }).join("");
+  select.dataset.ready = "1";
+}
+
+function syncEducationModeUI() {
+  const mode = $("educationMode")?.value || "GLOBAL";
+  const country = $("educationCountry");
+  if (!country) return;
+  country.disabled = mode !== "COUNTRY";
+  country.setAttribute("aria-disabled", mode !== "COUNTRY" ? "true" : "false");
+}
+
+async function loadEducationPreferences() {
+  if (!state.user || !$("educationMode")) return;
+
+  populateEducationCountries();
+
+  try {
+    const data = await api("/education/preferences");
+    const p = data?.preferences || {};
+
+    $("educationMode").value = p.mode === "COUNTRY" ? "COUNTRY" : "GLOBAL";
+    $("educationCountry").value = MEDGEN_COUNTRY_CODES.includes(p.country_code) ? p.country_code : "UZ";
+    $("educationLevel").value = ["SCHOOL","COLLEGE","UNIVERSITY","POSTGRADUATE","RESEARCH"].includes(p.education_level)
+      ? p.education_level : "UNIVERSITY";
+    $("educationLanguage").value = ["en","uz","ru","es","fr","de","pt","ar","zh","ja","ko","hi","tr"].includes(p.language)
+      ? p.language : "en";
+
+    syncEducationModeUI();
+  } catch (_) {
+    syncEducationModeUI();
+  }
+}
+
+async function saveEducationPreferences() {
+  const status = $("educationPreferenceStatus");
+  const mode = $("educationMode")?.value || "GLOBAL";
+  const country = $("educationCountry")?.value || "UZ";
+  const level = $("educationLevel")?.value || "UNIVERSITY";
+  const language = $("educationLanguage")?.value || "en";
+
+  if (status) status.textContent = "Saving...";
+
+  try {
+    const data = await api("/education/preferences", {
+      method: "PUT",
+      body: JSON.stringify({
+        mode,
+        country_code: mode === "COUNTRY" ? country : "INTL",
+        education_level: level,
+        language
+      })
+    });
+
+    localStorage.setItem("medgen_education_preference", JSON.stringify(data.preferences));
+    if (status) status.textContent = "Saved.";
+  } catch (error) {
+    if (status) status.textContent = "Save failed: " + (error.message || "Unknown error");
+  }
+}
+
+function initEducationPreferences() {
+  populateEducationCountries();
+  syncEducationModeUI();
+
+  $("educationMode")?.addEventListener("change", syncEducationModeUI);
+  $("saveEducationPreference")?.addEventListener("click", saveEducationPreferences);
+
+  let attempts = 0;
+  const timer = setInterval(() => {
+    attempts += 1;
+    if (state.user) {
+      clearInterval(timer);
+      loadEducationPreferences();
+    } else if (attempts >= 60) {
+      clearInterval(timer);
+    }
+  }, 1000);
+}
+
+if (document.readyState === "loading") {
+  document.addEventListener("DOMContentLoaded", initEducationPreferences);
+} else {
+  initEducationPreferences();
+}
