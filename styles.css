@@ -89,3 +89,22 @@ textarea{width:100%;min-height:120px;box-sizing:border-box;padding:14px;border-r
   .academic-grid{grid-template-columns:1fr}
   .menu-button{padding:8px 9px}
 }
+
+
+/* PHASE 1 ROLE-FIRST HOME */
+.role-module-catalog-hidden{display:none!important}
+.role-education-hidden{display:none!important}
+.role-system-hidden{display:none!important}
+#roleDashboard{margin-top:0}
+#roleDashboard .role-dashboard-head{padding:8px 0}
+.role-stat-grid{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:10px;margin:16px 0}
+.role-stat{padding:16px;border:1px solid var(--line);border-radius:14px;background:#091827}
+.role-stat strong{display:block;font-size:25px;color:var(--accent)}
+.role-stat span{font-size:12px;color:var(--muted)}
+.role-user-groups{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:10px;margin-top:12px}
+.role-group{padding:14px;border:1px solid var(--line);border-radius:12px;background:#091827}
+.role-group b{display:block;font-size:14px}
+.role-group span{font-size:12px;color:var(--muted)}
+.profile-auto-note{font-size:11px;color:var(--muted);margin-top:5px}
+@media(max-width:800px){.role-stat-grid{grid-template-columns:repeat(2,1fr)}.role-user-groups{grid-template-columns:repeat(2,1fr)}}
+@media(max-width:520px){.role-stat-grid,.role-user-groups{grid-template-columns:1fr 1fr}.role-stat strong{font-size:21px}}
