@@ -508,6 +508,8 @@ frame-ancestors 'none'">
     </button>
 
 
+    <button class="module" data-module="Medical Academy"><b>🎓</b><strong>Medical Academy</strong><span>Virtual patients, anatomy, clinical reasoning and OSCE</span></button>
+
     <button class="module" data-module="Global Platform">
       <b>🌐</b>
       <strong>Global Platform</strong>
@@ -883,6 +885,15 @@ frame-ancestors 'none'">
         <input id="platformProjectName" placeholder="Project name">
         <div id="platformStatus" class="status"></div>
         <pre id="platformResult" class="result"></pre>
+      </div>
+
+      <div id="studentTool" class="tool hidden">
+        <div class="student-hero"><div><p class="eyebrow">STUDENT MODE</p><h2>MedGen AI Medical Academy</h2><p class="muted">Learn → See → Practice → Feedback → Repeat. Bu o‘quv simulyatsiyasi; real bemorda amaliyot o‘rnini bosmaydi.</p></div><div class="student-progress"><b id="studentScore">0</b><span>XP</span></div></div>
+        <div class="student-tabs"><button class="student-tab active" data-student-tab="cases">🩺 Virtual Patients</button><button class="student-tab" data-student-tab="anatomy">🫀 Disease 10 Layers</button><button class="student-tab" data-student-tab="skills">💉 Skills Lab</button><button class="student-tab" data-student-tab="osce">📋 OSCE</button></div>
+        <div id="studentCasePanel"><div class="student-case-grid"><div class="student-case-list" id="studentCaseList"></div><div class="student-case-main" id="studentCaseMain"></div></div></div>
+        <div id="studentAnatomyPanel" class="student-subpanel hidden"><h3>One Disease — 10 Layers</h3><div class="layer-grid" id="studentLayerGrid"></div></div>
+        <div id="studentSkillsPanel" class="student-subpanel hidden"><h3>Clinical Skills Simulation</h3><p class="muted">Inʼeksiya kabi ko‘nikmalar faqat virtual mashqda; real klinikada ustoz nazorati va protokol shart.</p><div id="studentSkillList" class="layer-grid"></div></div>
+        <div id="studentOscePanel" class="student-subpanel hidden"><h3>OSCE Mini Station</h3><div id="studentOsce"></div></div>
       </div>
 
       <!-- REPORTS -->
