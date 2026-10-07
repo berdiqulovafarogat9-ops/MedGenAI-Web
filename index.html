@@ -419,6 +419,70 @@ frame-ancestors 'none'">
   <div class="role-note">Kerak bo‘lsa boshqa modulga kirish uchun CEO/Admin tomonidan qo‘shimcha ruxsat beriladi.</div>
 </section>
 
+  <!-- EDUCATION PREFERENCE -->
+  <section id="educationPreferencePanel" class="panel education-preference-panel" aria-labelledby="educationPreferenceTitle">
+    <div style="width:100%">
+      <div class="workspace-head">
+        <div>
+          <p class="eyebrow">EDUCATION PROFILE</p>
+          <h2 id="educationPreferenceTitle">Choose your education system</h2>
+          <p class="muted">Use Global / International education or your country's system. You can change this anytime.</p>
+        </div>
+        <span id="educationPreferenceStatus" class="status"></span>
+      </div>
+
+      <div class="grid" style="margin-top:16px">
+        <label>
+          <strong>Education mode</strong>
+          <select id="educationMode">
+            <option value="GLOBAL">🌐 Global / International</option>
+            <option value="COUNTRY">🏳️ My country</option>
+          </select>
+        </label>
+
+        <label id="educationCountryWrap">
+          <strong>Country</strong>
+          <select id="educationCountry" disabled>
+            <option value="UZ">🇺🇿 Uzbekistan</option>
+          </select>
+        </label>
+
+        <label>
+          <strong>Education level</strong>
+          <select id="educationLevel">
+            <option value="SCHOOL">School</option>
+            <option value="COLLEGE">College</option>
+            <option value="UNIVERSITY" selected>University</option>
+            <option value="POSTGRADUATE">Postgraduate</option>
+            <option value="RESEARCH">Research / Scientist</option>
+          </select>
+        </label>
+
+        <label>
+          <strong>Preferred language</strong>
+          <select id="educationLanguage">
+            <option value="en" selected>🇬🇧 English</option>
+            <option value="uz">🇺🇿 O‘zbekcha</option>
+            <option value="ru">🇷🇺 Русский</option>
+            <option value="es">🇪🇸 Español</option>
+            <option value="fr">🇫🇷 Français</option>
+            <option value="de">🇩🇪 Deutsch</option>
+            <option value="pt">🇵🇹 Português</option>
+            <option value="ar">🇸🇦 العربية</option>
+            <option value="zh">🇨🇳 中文</option>
+            <option value="ja">🇯🇵 日本語</option>
+            <option value="ko">🇰🇷 한국어</option>
+            <option value="hi">🇮🇳 हिन्दी</option>
+            <option value="tr">🇹🇷 Türkçe</option>
+          </select>
+        </label>
+      </div>
+
+      <button id="saveEducationPreference" class="primary small" type="button">Save education preference</button>
+    </div>
+  </section>
+
+
   <!-- MODULES -->
 
   <section class="grid">
