@@ -3142,6 +3142,59 @@ if(!MEDICAL_CURRICULUM[studentCourse]) studentCourse=1;
 let activeStudentCase=null;
 let studentXP=Number(localStorage.getItem('medgen_student_xp')||0);
 
+function getStudentProgress(){
+  try { return JSON.parse(localStorage.getItem('medgen_student_progress')||'{}'); }
+  catch(_) { return {}; }
+}
+function saveStudentProgress(p){
+  localStorage.setItem('medgen_student_progress',JSON.stringify(p));
+}
+function isCourseComplete(year){
+  const qs=MEDICAL_CURRICULUM[year]?.questions||[];
+  if(!qs.length) return false;
+  const p=getStudentProgress();
+  return qs.every((_,i)=>p[String(year)]?.[i]===true);
+}
+function getUnlockedCourse(){
+  let max=1;
+  for(let y=1;y<=6;y++){
+    if(y===1 || isCourseComplete(y-1)) max=y;
+    else break;
+  }
+  return max;
+}
+function markCourseQuestion(year,index,ok){
+  if(!ok) return;
+  const p=getStudentProgress();
+  p[String(year)]=p[String(year)]||[];
+  p[String(year)][index]=true;
+  saveStudentProgress(p);
+  if(isCourseComplete(year) && year<6){
+    const next=getUnlockedCourse();
+    localStorage.setItem('medgen_student_course',String(next));
+  }
+}
+function renderCourseProgress(){
+  const year=getStudentCourse(), qs=MEDICAL_CURRICULUM[year]?.questions||[], p=getStudentProgress();
+  const done=qs.filter((_,i)=>p[String(year)]?.[i]===true).length;
+  const el=$('studentCourseProgress');
+  if(el) el.textContent=done+'/'+qs.length+' topshiriq bajarildi'+(isCourseComplete(year)?' • Kurs tugallandi ✅':'');
+  const next=$('studentNextCourse');
+  if(next){
+    next.disabled=!isCourseComplete(year)||year>=6;
+    next.textContent=year>=6?'🎓 Barcha kurslar ochilgan':(isCourseComplete(year)?'🚀 '+(year+1)+'-kursni erta ochish':'🔒 Avval barcha topshiriqlarni bajaring');
+  }
+}
+function unlockNextStudentCourse(){
+  const year=getStudentCourse();
+  if(year>=6 || !isCourseComplete(year)) return;
+  const next=Math.min(6,year+1);
+  localStorage.setItem('medgen_student_course',String(next));
+  studentCourse=next;
+  activeStudentCase=MEDICAL_CURRICULUM[next].cases?.[0]||null;
+  renderStudentAcademy();
+}
+
 function saveStudentXP(n){
   studentXP=Math.max(0,studentXP+n);
   localStorage.setItem('medgen_student_xp',studentXP);
@@ -3159,7 +3212,7 @@ function getStudentCourse(){
 
 function setStudentCourse(year){
   const n=Number(year);
-  if(!MEDICAL_CURRICULUM[n]) return;
+  if(!MEDICAL_CURRICULUM[n] || n>getUnlockedCourse()) return;
   studentCourse=n;
   localStorage.setItem('medgen_student_course',String(n));
   activeStudentCase=MEDICAL_CURRICULUM[n].cases?.[0]||null;
@@ -3169,6 +3222,7 @@ function setStudentCourse(year){
 function renderStudentAcademy(){
   const year=getStudentCourse(), c=MEDICAL_CURRICULUM[year];
   if($('studentCourseSelect')) $('studentCourseSelect').value=String(year);
+  renderCourseProgress();
   if($('studentCourseTitle')) $('studentCourseTitle').textContent=c.title;
   if($('studentCourseIntro')) $('studentCourseIntro').textContent=c.intro;
   if($('studentSubjectList')) $('studentSubjectList').innerHTML=c.subjects.map(s=>'<span class="course-chip">'+escapeHtml(s)+'</span>').join('');
@@ -3184,15 +3238,21 @@ function renderStudentQuiz(){
   if(!box) return;
   const qs=MEDICAL_CURRICULUM[getStudentCourse()].questions||[];
   if(!qs.length){box.innerHTML='<p class="muted">Bu kurs uchun savollar tayyorlanmoqda.</p>';return;}
-  const q=qs[0];
-  box.innerHTML='<p class="eyebrow">KURS SAVOLI</p><h3>'+escapeHtml(q.q)+'</h3><div class="option-list">'+q.o.map((v,i)=>'<button class="option-btn" data-course-option="'+i+'">'+escapeHtml(v)+'</button>').join('')+'</div><div id="studentCourseFeedback" class="status"></div>';
+  box.innerHTML='<p class="eyebrow">KURS TOPSHIRIQLARI</p>'+qs.map((q,qi)=>{
+    const done=getStudentProgress()[String(getStudentCourse())]?.[qi]===true;
+    return '<div class="course-question"><h3>'+(qi+1)+'. '+escapeHtml(q.q)+'</h3><div class="option-list">'+q.o.map((v,i)=>'<button class="option-btn" data-course-index="'+qi+'" data-course-option="'+i+'" '+(done?'disabled':'')+'>'+escapeHtml(v)+'</button>').join('')+'</div><div id="studentCourseFeedback'+qi+'" class="status">'+(done?'✅ Bajarilgan':'')+'</div></div>';
+  }).join('')+'<button id="studentNextCourse" class="primary small" type="button"></button><div id="studentCourseProgress" class="status"></div>';
   box.querySelectorAll('[data-course-option]').forEach(b=>b.onclick=()=>{
-    const ok=Number(b.dataset.courseOption)===q.a;
-    box.querySelectorAll('.option-btn').forEach(z=>z.disabled=true);
-    const f=$('studentCourseFeedback');
-    if(ok){saveStudentXP(5);f.innerHTML='✅ To‘g‘ri. '+escapeHtml(q.e);}
-    else f.innerHTML='❌ Hali xato. '+escapeHtml(q.e);
+    const qi=Number(b.dataset.courseIndex), ok=Number(b.dataset.courseOption)===qs[qi].a;
+    const group=box.querySelectorAll('[data-course-index="'+qi+'"]');
+    group.forEach(z=>z.disabled=true);
+    const f=$('studentCourseFeedback'+qi);
+    if(ok){saveStudentXP(5);markCourseQuestion(getStudentCourse(),qi,true);f.innerHTML='✅ To‘g‘ri. '+escapeHtml(qs[qi].e);}
+    else f.innerHTML='❌ Qayta urinib ko‘ring. '+escapeHtml(qs[qi].e);
+    renderCourseProgress();
   });
+  $('studentNextCourse')?.addEventListener('click',unlockNextStudentCourse);
+  renderCourseProgress();
 }
 
 function loadStudentAcademy(){
@@ -3201,7 +3261,26 @@ function loadStudentAcademy(){
   activeStudentCase=c.cases?.[0]||null;
   renderStudentAcademy();
   document.querySelectorAll('.student-tab').forEach(b=>b.onclick=()=>switchStudentTab(b.dataset.studentTab));
-  if($('studentCourseSelect')) $('studentCourseSelect').onchange=e=>setStudentCourse(e.target.value);
+  if($('studentCourseSelect')) {
+    const max=getUnlockedCourse();
+    [...$('studentCourseSelect').options].forEach(o=>{o.disabled=Number(o.value)>max;});
+    $('studentCourseSelect').onchange=e=>setStudentCourse(e.target.value);
+  }
+  renderVirtualLabLearningMode();
+}
+
+function renderVirtualLabLearningMode(){
+  const tool=$('workflowTool');
+  if(!tool) return;
+  const student=roleKey()==='student';
+  let banner=$('studentLabLearningBanner');
+  if(student && !banner){
+    banner=document.createElement('div');
+    banner.id='studentLabLearningBanner';
+    banner.className='course-note';
+    banner.innerHTML='<b>🧪 Virtual Laboratory — Learning Mode</b><br><span>Istalgan kurs talabasi laboratoriyani o‘rganish va simulyatsiya qilish uchun ishlatishi mumkin. Bu rejimda kurs imtihoni yo‘q; natijalar o‘quv/simulyatsion hisoblanadi.</span>';
+    tool.prepend(banner);
+  }
 }
 
 function switchStudentTab(x){
@@ -3265,7 +3344,7 @@ function renderStudentOsce(){
    ROLE-BASED PLATFORM ARCHITECTURE
 ========================================================= */
 const MEDGEN_ROLES = {
-  student:{title:'Talaba',icon:'🎓',desc:'Medical Academy: anatomiya, patologiya, klinik fikrlash, virtual bemor, OSCE va ko‘nikmalar.',modules:['Medical Academy']},
+  student:{title:'Talaba',icon:'🎓',desc:'Medical Academy: kursga mos anatomiya, patologiya, klinik fikrlash, virtual bemor, OSCE va ko‘nikmalar. Virtual Laboratory — faqat o‘quv/simulyatsiya rejimida ochiq.',modules:['Medical Academy','Virtual Laboratory']},
   doctor:{title:'Shifokor',icon:'👨‍⚕️',desc:'Clinical Workspace: klinik case, diagnostika, differensial tashxis, medical knowledge va simulation.',modules:['Research Assistant','Reports & History','Medical Academy']},
   researcher:{title:'Olim / Researcher',icon:'🔬',desc:'Research Workspace: ilmiy izlanish, literature, bioinformatics, knowledge graph va virtual laboratory.',modules:['Research Assistant','Bioinformatics','Virtual Laboratory','Reports & History']},
   professor:{title:'Professor',icon:'👨‍🏫',desc:'Teaching Workspace: kurslar, student progress, cases, OSCE va research.',modules:['Medical Academy','Research Assistant','Reports & History']},
