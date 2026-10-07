@@ -2065,6 +2065,131 @@ def docking_status(user=Depends(get_current_user)):
     }
 
 
+
+# =========================================================
+# PERSONAL DASHBOARD / USER DIRECTORY
+# =========================================================
+
+DASHBOARD_ROLE_LABELS = {
+    "student": "Talabalar",
+    "school_student": "O‘quvchilar",
+    "doctor": "Shifokorlar",
+    "researcher": "Tadqiqotchilar",
+    "professor": "Professorlar",
+    "lab": "Laboratoriyalar",
+    "biotech": "Biotech",
+    "pharma": "Pharma",
+    "bioinformatician": "Bioinformaticianlar",
+    "hospital": "Klinikalar / Hospital",
+    "company": "Kompaniyalar",
+    "SUPER_ADMIN": "Super Admin / Owner",
+}
+
+@app.get("/api/v1/dashboard/summary")
+def dashboard_summary(user=Depends(get_current_user)):
+    username = user["username"]
+    current_profile = user_profiles.get(username, {})
+    role = str(user.get("role") or current_profile.get("role") or "student")
+    all_users = sorted(set(user_accounts) | set(user_profiles) | set(user_consents) | set(tokens.values()))
+
+    role_counts = {}
+    for name in all_users:
+        r = "SUPER_ADMIN" if name.casefold() == str(ADMIN_USERNAME).casefold() else str(user_profiles.get(name, {}).get("role", "student"))
+        role_counts[r] = role_counts.get(r, 0) + 1
+
+    own_activity = [x for x in activity_log if x.get("username") == username][:20]
+    own_jobs = [x for x in jobs_store if x.get("username") == username]
+    own_workflows = [x for x in workflows_store if x.get("username") == username]
+    own_experiments = [x for x in experiments_store if x.get("username") == username]
+    own_reports = [x for x in reports_store if x.get("username") == username]
+
+    result = {
+        "status": "ok",
+        "username": username,
+        "role": role,
+        "role_label": DASHBOARD_ROLE_LABELS.get(role, role),
+        "personal": {
+            "profile": current_profile,
+            "activity": own_activity,
+            "jobs": len(own_jobs),
+            "workflows": len(own_workflows),
+            "experiments": len(own_experiments),
+            "reports": len(own_reports),
+        },
+        "navigation_scope": "ALL" if role == "SUPER_ADMIN" else "ROLE",
+    }
+
+    if role == "SUPER_ADMIN":
+        result["global"] = {
+            "total_users": len(all_users),
+            "role_counts": role_counts,
+            "active_sessions": len(tokens),
+            "jobs": len(jobs_store),
+            "workflows": len(workflows_store),
+            "experiments": len(experiments_store),
+            "reports": len(reports_store),
+            "docking_jobs": len(docking_jobs_store),
+            "recent_activity": activity_log[:50],
+        }
+    elif role in {"student", "school_student", "professor", "researcher", "doctor"}:
+        result["role_group"] = {
+            "role_users": role_counts.get(role, 0),
+            "group_label": DASHBOARD_ROLE_LABELS.get(role, role),
+        }
+
+    return result
+
+
+@app.get("/api/v1/academy/catalog")
+def academy_catalog(user=Depends(get_current_user)):
+    # Curated starter catalog. The UI also supports manual entry for institutions
+    # that are not yet in this catalog; no location or identity data is inferred.
+    return {
+        "status": "ok",
+        "countries": [
+            {"code": "UZ", "name": "Uzbekistan"},
+            {"code": "US", "name": "United States"},
+            {"code": "GB", "name": "United Kingdom"},
+            {"code": "DE", "name": "Germany"},
+            {"code": "FR", "name": "France"},
+            {"code": "TR", "name": "Türkiye"},
+            {"code": "RU", "name": "Russia"},
+            {"code": "KZ", "name": "Kazakhstan"},
+            {"code": "JP", "name": "Japan"},
+            {"code": "KR", "name": "South Korea"},
+            {"code": "CN", "name": "China"},
+            {"code": "IN", "name": "India"},
+            {"code": "CA", "name": "Canada"},
+            {"code": "AU", "name": "Australia"},
+            {"code": "OTHER", "name": "Other country"},
+        ],
+        "universities": {
+            "UZ": [
+                "Tashkent State Medical University",
+                "Tashkent Medical Academy",
+                "Samarkand State Medical University",
+                "Bukhara State Medical Institute",
+                "Andijan State Medical Institute",
+                "Fergana Medical Institute of Public Health",
+                "Tashkent State Dental Institute",
+                "Other / enter manually",
+            ],
+            "US": ["Harvard University", "Johns Hopkins University", "Stanford University", "Other / enter manually"],
+            "GB": ["University of Oxford", "University of Cambridge", "Imperial College London", "Other / enter manually"],
+            "DE": ["Charité – Universitätsmedizin Berlin", "Heidelberg University", "Other / enter manually"],
+            "FR": ["Université Paris Cité", "Sorbonne University", "Other / enter manually"],
+            "TR": ["Hacettepe University", "Istanbul University", "Ankara University", "Other / enter manually"],
+            "RU": ["Sechenov University", "Pirogov Russian National Research Medical University", "Other / enter manually"],
+            "KZ": ["Asfendiyarov Kazakh National Medical University", "Astana Medical University", "Other / enter manually"],
+            "JP": ["University of Tokyo", "Kyoto University", "Other / enter manually"],
+            "KR": ["Seoul National University", "Yonsei University", "Other / enter manually"],
+            "CN": ["Peking University", "Tsinghua University", "Other / enter manually"],
+            "IN": ["All India Institute of Medical Sciences", "Christian Medical College Vellore", "Other / enter manually"],
+            "CA": ["University of Toronto", "McGill University", "Other / enter manually"],
+            "AU": ["University of Melbourne", "University of Sydney", "Other / enter manually"],
+        },
+    }
+
 # =========================================================
 # SUPER ADMIN
 # =========================================================
