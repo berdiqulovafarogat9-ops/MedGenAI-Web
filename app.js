@@ -1371,7 +1371,7 @@ async function saveProfile() {
   }
 }
 
-async function ensureLegalConsent() {
+async async function ensureLegalConsent() {
   // Administrative access is not blocked by end-user consent onboarding.
   if (isSuperAdmin()) return;
   if (!state.user || state.user.consent_complete) return;
