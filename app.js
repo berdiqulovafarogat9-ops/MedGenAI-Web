@@ -1638,6 +1638,13 @@ function ensureAdminDashboard() {
 }
 
 
+function showLogin() {
+  const loginView = $('loginView');
+  const dashboardView = $('dashboardView');
+  if (dashboardView) dashboardView.classList.add('hidden');
+  if (loginView) loginView.classList.remove('hidden');
+}
+
 function showDashboard() {
 
   const loginView =
@@ -3433,8 +3440,18 @@ async function searchKnowledge(){
 
 async function init() {
 
-  bindEvents();
-  bindRoleRegistration();
+  // Deterministic startup: login is visible unless authentication succeeds.
+  showLogin();
+
+  try {
+    bindEvents();
+    bindRoleRegistration();
+  } catch (error) {
+    console.error('MEDGEN BOOT ERROR:', error);
+    const status = $('loginStatus');
+    if (status) status.textContent = 'Frontend ishga tushish xatosi: ' + (error?.message || error);
+    return;
+  }
 
   if (state.token) {
 
@@ -3466,6 +3483,9 @@ window.login =
 
 window.logout =
   logout;
+
+window.showLogin =
+  showLogin;
 
 window.openModule =
   openModule;
