@@ -166,7 +166,7 @@ frame-ancestors 'none'">
    The login shell must remain visible even if a cached/failed
    startup state or intro animation interferes with rendering. */
 #medgenIntro{display:none!important}
-#loginView{display:grid!important;visibility:visible!important;opacity:1!important}
+#loginView:not(.hidden){display:grid!important;visibility:visible!important;opacity:1!important}
 #loginView .login-card{display:block!important;visibility:visible!important;opacity:1!important;position:relative!important;z-index:100000!important}
 #loginView form{visibility:visible!important}
 
