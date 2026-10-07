@@ -1653,31 +1653,44 @@ function ensureAdminDashboard() {
 function showLogin() {
   const loginView = $('loginView');
   const dashboardView = $('dashboardView');
-  if (dashboardView) dashboardView.classList.add('hidden');
-  if (loginView) loginView.classList.remove('hidden');
+  if (dashboardView) {
+    dashboardView.classList.add('hidden');
+    dashboardView.style.display = 'none';
+  }
+  if (loginView) {
+    loginView.classList.remove('hidden');
+    loginView.style.display = 'grid';
+    loginView.style.visibility = 'visible';
+    loginView.style.opacity = '1';
+  }
 }
 
 function showDashboard() {
+  const loginView = $('loginView');
+  const dashboardView = $('dashboardView');
 
-  const loginView =
-    $('loginView');
-
-  const dashboardView =
-    $('dashboardView');
-
+  // Explicit inline display wins over stale/cached CSS or hidden classes.
   if (loginView) {
     loginView.classList.add('hidden');
+    loginView.style.display = 'none';
   }
 
   if (dashboardView) {
     dashboardView.classList.remove('hidden');
+    dashboardView.style.display = 'block';
+    dashboardView.style.visibility = 'visible';
+    dashboardView.style.opacity = '1';
   }
 
-  checkHealth();
-  ensureAdminDashboard();
-  ensureLegalConsent();
-  applyRoleDashboard();
-  if (!enforceProfileCompletion()) return;
+  try { checkHealth(); } catch (_) {}
+  try { ensureAdminDashboard(); } catch (_) {}
+  try { ensureLegalConsent(); } catch (_) {}
+  try { applyRoleDashboard(); } catch (error) {
+    console.error('ROLE DASHBOARD ERROR:', error);
+  }
+  try { enforceProfileCompletion(); } catch (error) {
+    console.error('PROFILE CHECK ERROR:', error);
+  }
 }
 
 
@@ -3485,6 +3498,25 @@ async function init() {
   }
 }
 
+
+
+/* =========================================================
+   AUTH VIEW SAFETY WATCHDOG
+   Never allow both primary views to remain invisible.
+========================================================= */
+setTimeout(function () {
+  const loginView = $('loginView');
+  const dashboardView = $('dashboardView');
+  if (!loginView || !dashboardView) return;
+  const loginHidden = getComputedStyle(loginView).display === 'none';
+  const dashHidden = getComputedStyle(dashboardView).display === 'none';
+  if (loginHidden && dashHidden) {
+    console.error('AUTH VIEW WATCHDOG: both views hidden; restoring login.');
+    showLogin();
+    const status = $('loginStatus');
+    if (status) status.textContent = 'Sessiya tasdiqlanmadi. Qayta login qiling.';
+  }
+}, 2500);
 
 /* =========================================================
    GLOBAL ACCESS
