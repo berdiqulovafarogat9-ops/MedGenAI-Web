@@ -652,101 +652,135 @@ def molecule_analyze(
     }
 
 # =========================================================
-# BIOINFORMATICS
+# BIOINFORMATICS — PHASE 2 SCIENTIFIC CORE
 # =========================================================
 
-def detect_sequence_type(
-    sequence: str,
-) -> str:
+DNA_ALPHABET = set("ACGTN")
+RNA_ALPHABET = set("ACGUN")
+PROTEIN_ALPHABET = set("ACDEFGHIKLMNPQRSTVWYBXZJUO")
 
-    clean = (
-        sequence
-        .upper()
-        .replace(" ", "")
-        .replace("\n", "")
-        .replace("\r", "")
-    )
 
+def _clean_sequence(raw: str) -> str:
+    # Accept plain sequence text and simple FASTA input.
+    lines = [
+        line.strip()
+        for line in str(raw or "").splitlines()
+        if line.strip()
+    ]
+    if lines and lines[0].startswith(">"):
+        lines = lines[1:]
+    return "".join(lines).replace(" ", "").upper()
+
+
+def detect_sequence_type(sequence: str) -> str:
+    clean = _clean_sequence(sequence)
     if not clean:
         return "UNKNOWN"
 
-    dna_chars = set("ACGTN")
-    rna_chars = set("ACGUN")
-
     chars = set(clean)
-
-    if chars.issubset(dna_chars):
+    if chars.issubset(DNA_ALPHABET):
         return "DNA"
-
-    if chars.issubset(rna_chars):
+    if chars.issubset(RNA_ALPHABET):
         return "RNA"
+    if chars.issubset(PROTEIN_ALPHABET):
+        return "PROTEIN"
+    return "UNKNOWN"
 
-    return "PROTEIN"
+
+def _reverse_complement(sequence: str, sequence_type: str) -> str | None:
+    if sequence_type == "DNA":
+        table = str.maketrans("ACGTN", "TGCAN")
+    elif sequence_type == "RNA":
+        table = str.maketrans("ACGUN", "UGCAN")
+    else:
+        return None
+    return sequence.translate(table)[::-1]
 
 
-@app.post(
-    "/api/v1/bioinformatics/analyze"
-)
+def _orf_summary(sequence: str, sequence_type: str) -> dict[str, Any] | None:
+    if sequence_type not in {"DNA", "RNA"}:
+        return None
+
+    stop_codons = {"TAA", "TAG", "TGA"} if sequence_type == "DNA" else {"UAA", "UAG", "UGA"}
+    start_codon = "ATG" if sequence_type == "DNA" else "AUG"
+    orfs: list[dict[str, int]] = []
+
+    # Lightweight six-frame ORF scan; this is an exploratory analysis,
+    # not a gene-calling or clinical annotation pipeline.
+    strands = [("forward", sequence), ("reverse_complement", _reverse_complement(sequence, sequence_type) or "")]
+    for strand_name, strand in strands:
+        for frame in range(3):
+            i = frame
+            while i + 2 < len(strand):
+                codon = strand[i:i + 3]
+                if codon == start_codon:
+                    j = i + 3
+                    while j + 2 < len(strand):
+                        if strand[j:j + 3] in stop_codons:
+                            aa_len = (j - i) // 3
+                            if aa_len >= 2:
+                                orfs.append({
+                                    "strand": strand_name,
+                                    "frame": frame + 1,
+                                    "start": i + 1,
+                                    "end": j + 3,
+                                    "codons": aa_len + 1,
+                                })
+                            break
+                        j += 3
+                    i = j + 3 if j + 2 < len(strand) else len(strand)
+                else:
+                    i += 3
+
+    return {
+        "count": len(orfs),
+        "open_reading_frames": orfs[:100],
+        "truncated": len(orfs) > 100,
+    }
+
+
+@app.post("/api/v1/bioinformatics/analyze")
 def bioinformatics_analyze(
     data: SequenceRequest,
     user=Depends(get_current_user),
 ):
-
-    sequence = (
-        data.sequence
-        .upper()
-        .replace(" ", "")
-        .replace("\n", "")
-        .replace("\r", "")
-    )
+    sequence = _clean_sequence(data.sequence)
 
     if not sequence:
-        raise HTTPException(
-            status_code=400,
-            detail="Sequence is required",
-        )
+        raise HTTPException(status_code=400, detail="Sequence is required.")
 
-    detected_type = detect_sequence_type(
-        sequence
-    )
-
-    requested_type = (
-        data.sequence_type.upper()
-    )
-
+    detected_type = detect_sequence_type(sequence)
+    requested_type = str(data.sequence_type or "AUTO").upper().strip()
     if requested_type != "AUTO":
+        if requested_type not in {"DNA", "RNA", "PROTEIN"}:
+            raise HTTPException(
+                status_code=400,
+                detail="sequence_type must be AUTO, DNA, RNA, or PROTEIN.",
+            )
         detected_type = requested_type
 
+    alphabet = DNA_ALPHABET if detected_type == "DNA" else RNA_ALPHABET if detected_type == "RNA" else PROTEIN_ALPHABET
+    invalid_symbols = sorted(set(sequence) - alphabet)
+
+    if invalid_symbols:
+        raise HTTPException(
+            status_code=400,
+            detail={
+                "message": "Sequence contains symbols outside the selected alphabet.",
+                "sequence_type": detected_type,
+                "invalid_symbols": invalid_symbols,
+            },
+        )
+
+    length = len(sequence)
     a_count = sequence.count("A")
     c_count = sequence.count("C")
     g_count = sequence.count("G")
     t_count = sequence.count("T")
     u_count = sequence.count("U")
-
     gc_count = g_count + c_count
-    at_count = a_count + t_count
 
-    length = len(sequence)
-
-    gc_content = (
-        round(
-            (gc_count / length) * 100,
-            2,
-        )
-        if length
-        else 0
-    )
-
-    at_content = (
-        round(
-            (at_count / length) * 100,
-            2,
-        )
-        if length
-        else 0
-    )
-
-    return {
+    result: dict[str, Any] = {
         "status": "completed",
         "module": "Bioinformatics",
         "user": user["username"],
@@ -759,26 +793,30 @@ def bioinformatics_analyze(
             "T": t_count,
             "U": u_count,
         },
-        "gc_content_percent": gc_content,
-        "at_content_percent": at_content,
-        "message": (
-            "Sequence analysis completed."
-        ),
+        "gc_content_percent": round((gc_count / length) * 100, 2) if length else 0,
+        "at_content_percent": round(((a_count + t_count) / length) * 100, 2) if length else 0,
+        "ambiguous_bases": sequence.count("N") if detected_type in {"DNA", "RNA"} else sequence.count("X"),
     }
 
+    if detected_type in {"DNA", "RNA"}:
+        result["reverse_complement"] = _reverse_complement(sequence, detected_type)
+        result["orf_analysis"] = _orf_summary(sequence, detected_type)
+        result["alphabet"] = "nucleotide"
+    else:
+        aa_counts = {aa: sequence.count(aa) for aa in sorted(PROTEIN_ALPHABET) if sequence.count(aa)}
+        result["amino_acid_composition"] = aa_counts
+        result["alphabet"] = "protein"
 
-@app.post(
-    "/api/v1/workflows/bioinformatics"
-)
+    result["message"] = "Sequence analysis completed."
+    return result
+
+
+@app.post("/api/v1/workflows/bioinformatics")
 def bioinformatics_workflow(
     data: SequenceRequest,
     user=Depends(get_current_user),
 ):
-
-    return bioinformatics_analyze(
-        data,
-        user,
-    )
+    return bioinformatics_analyze(data, user)
 
 
 # =========================================================
