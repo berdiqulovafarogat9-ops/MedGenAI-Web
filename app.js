@@ -3047,22 +3047,218 @@ function refreshDynamicUI() {
 /* =========================================================
    MEDICAL ACADEMY — PHASE 9
 ========================================================= */
-const studentCases=[
-{id:'pneumonia',title:'Community-acquired pneumonia',patient:'22 yosh, talaba',complaint:'Isitma, yo‘tal va ko‘krak og‘rig‘i.',vitals:'T 38.7°C · HR 104 · RR 24 · SpO₂ 94%',findings:['Isitma','Yo‘tal','Tachikardiya','Nafas tezlashishi'],q:'Eng to‘g‘ri klinik yo‘nalish?',o:['Nafas yo‘llari infeksiyasi','Buyrak kasalligi','Izolyatsiyalangan dermatit'],a:0},
-{id:'anaphylaxis',title:'Anafilaksiya — emergency',patient:'19 yosh',complaint:'To‘satdan nafas qisilishi, toshma, bosh aylanishi.',vitals:'BP 82/50 · HR 126 · RR 30 · SpO₂ 89%',findings:['Urtikariya','Gipotoniya','Nafas qisilishi'],q:'Ustuvor muammo?',o:['Hayot uchun xavfli sistemik allergik reaksiya','Oddiy shamollash','Dermatit'],a:0},
-{id:'diabetes',title:'Type 2 diabetes reasoning',patient:'46 yosh',complaint:'Chanqash, tez-tez siyish, holsizlik.',vitals:'BP 138/86 · HR 88 · T 36.8°C',findings:['Polidipsiya','Poliuriya','Charchoq'],q:'Qaysi yo‘nalish birinchi?',o:['Metabolik/endokrin tizim','Faqat teri','Faqat quloq'],a:0}
+const MEDICAL_CURRICULUM = {
+  1: {
+    title:'1-kurs — Fundamental fanlar',
+    subjects:['Anatomiya','Gistologiya','Fiziologiya','Biokimyo asoslari'],
+    intro:'1-kursda avval normal tuzilma va normal funksiyani mustahkamlaymiz. Klinik bemor savollari majburiy emas.',
+    questions:[
+      {q:'Yurakning asosiy nasos vazifasini qaysi bo‘lim bajaradi?',o:['Qorincha','Bo‘lmacha','Perikard','Aorta'],a:0,e:'Normal anatomiya va fiziologiya asosini tushunish.'},
+      {q:'Odamda gaz almashinuvi asosan qayerda sodir bo‘ladi?',o:['Alveolalarda','Qizilo‘ngachda','Buyrak jomida','Oshqozonda'],a:0,e:'Alveola-kapillyar membrana orqali O₂ va CO₂ almashinuvi.'},
+      {q:'Epiteliy to‘qimasining asosiy vazifalaridan biri qaysi?',o:['Qoplash va himoya','Faqat impuls o‘tkazish','Faqat qisqarish','Faqat qon ivitish'],a:0,e:'Epiteliy qoplovchi va himoyalovchi to‘qimadir.'}
+    ]
+  },
+  2: {
+    title:'2-kurs — Kasallik mexanizmlari va dori asoslari',
+    subjects:['Patologiya','Patofiziologiya','Mikrobiologiya','Farmakologiya asoslari','Immunologiya'],
+    intro:'2-kurs savollari kasallik mexanizmi, mikroblar, immun javob va dori mexanizmlariga moslashtiriladi.',
+    questions:[
+      {q:'Yallig‘lanishning klassik belgilaridan biri qaysi?',o:['Rubor — qizarish','Anosmiya — hid bilmaslik','Mioz — qorachiq torayishi','Afasia — nutq buzilishi'],a:0,e:'Yallig‘lanishning klassik belgilariga rubor, calor, tumor, dolor va functio laesa kiradi.'},
+      {q:'Antibiotiklar odatda nimaga qarshi ishlatiladi?',o:['Bakteriyalarga','Viruslarning barchasiga','Suyak sinishiga','Allergiyaning barchasiga'],a:0,e:'Antibiotiklar bakterial infeksiyalarga qarshi qo‘llanadi; viruslarga avtomatik davo emas.'},
+      {q:'Farmakologiyada “retseptor” nima?',o:['Dori yoki signal molekulasi ta’sir qiladigan biologik nishon','Faqat qon hujayrasi','Faqat ferment parchasi','Faqat anatomik bo‘shliq'],a:0,e:'Retseptor signalni tanib, hujayra javobini yuzaga chiqarishi mumkin.'}
+    ]
+  },
+  3: {
+    title:'3-kurs — Propedevtika va klinik fikrlash',
+    subjects:['Propedevtika','Ichki kasalliklar asoslari','Diagnostika','Klinik farmakologiya'],
+    intro:'3-kursdan boshlab klinik holatlar bosqichma-bosqich qo‘shiladi: anamnez → ko‘rik → differensial tashxis → tekshiruv.',
+    questions:[
+      {q:'Bemor bilan klinik suhbatni boshlashda eng to‘g‘ri qadam qaysi?',o:['Asosiy shikoyatni aniqlash','Darhol dori yozish','Darhol operatsiya qilish','Faqat bitta laborator testni tanlash'],a:0,e:'Avval bemorning asosiy shikoyati va muammo tarixini aniqlash kerak.'},
+      {q:'Taxikardiya nimani anglatadi?',o:['Yurak urish tezligining oshishi','Qon bosimining doimiy pasayishi','Nafasning to‘xtashi','Tana haroratining pasayishi'],a:0,e:'Taxikardiya — yurak urish tezligining me’yoridan oshishi.'},
+      {q:'Differensial tashxisning maqsadi nima?',o:['O‘xshash belgilar beradigan ehtimoliy kasalliklarni tizimli ajratish','Bitta tashxisni dalilsiz tanlash','Faqat dori nomlarini yodlash','Faqat anatomiya chizish'],a:0,e:'Differensial tashxis klinik dalillar asosida ehtimoliy sabablarni taqqoslaydi.'}
+    ],
+    cases:[
+      {id:'pneumonia',title:'Community-acquired pneumonia',patient:'22 yosh, talaba',complaint:'Isitma, yo‘tal va ko‘krak og‘rig‘i.',vitals:'T 38.7°C · HR 104 · RR 24 · SpO₂ 94%',findings:['Isitma','Yo‘tal','Taxikardiya','Nafas tezlashishi'],q:'Eng to‘g‘ri klinik yo‘nalish?',o:['Nafas yo‘llari infeksiyasi','Buyrak kasalligi','Izolyatsiyalangan dermatit'],a:0}
+    ]
+  },
+  4: {
+    title:'4-kurs — Klinik fanlar',
+    subjects:['Ichki kasalliklar','Umumiy xirurgiya','Pediatriya asoslari','Akusherlik-ginekologiya asoslari','Diagnostika'],
+    intro:'4-kursda klinik reasoning chuqurlashadi: simptomlar, tekshiruv natijalari, differensial tashxis va davolash prinsiplarini bog‘lash.',
+    questions:[
+      {q:'Anamnez va fizik ko‘rikdan keyin keyingi qadam nimaga asoslanadi?',o:['Klinik ehtimol va xavfga','Tasodifiy test tanlashga','Faqat bemorning yoshiga','Faqat bitta simptomga'],a:0,e:'Tekshiruv klinik savol va oldindan shakllangan ehtimolga mos tanlanadi.'}
+    ],
+    cases:[
+      {id:'diabetes',title:'Type 2 diabetes reasoning',patient:'46 yosh',complaint:'Chanqash, tez-tez siyish, holsizlik.',vitals:'BP 138/86 · HR 88 · T 36.8°C',findings:['Polidipsiya','Poliuriya','Charchoq'],q:'Qaysi yo‘nalish birinchi?',o:['Metabolik/endokrin tizim','Faqat teri','Faqat quloq'],a:0}
+    ]
+  },
+  5: {
+    title:'5-kurs — Ixtisoslashgan klinik tayyorgarlik',
+    subjects:['Kardiologiya','Nevrologiya','Infeksion kasalliklar','Shoshilinch tibbiyot','Klinik farmakoterapiya'],
+    intro:'5-kursda murakkab klinik qarorlar, xavfli holatlar va bir nechta differensial tashxis bilan ishlash kuchayadi.',
+    questions:[
+      {q:'Anafilaksiyada eng muhim tamoyil qaysi?',o:['Hayot uchun xavfli holatni darhol tanish va shoshilinch yordam algoritmini boshlash','Faqat laborator natijani kutish','Faqat dermatologik krem berish','Bemorni kuzatuvsiz qoldirish'],a:0,e:'Anafilaksiya shoshilinch baholash va mahalliy klinik protokol asosida tezkor yordamni talab qiladi.'}
+    ],
+    cases:[
+      {id:'anaphylaxis',title:'Anafilaksiya — emergency',patient:'19 yosh',complaint:'To‘satdan nafas qisilishi, toshma, bosh aylanishi.',vitals:'BP 82/50 · HR 126 · RR 30 · SpO₂ 89%',findings:['Urtikariya','Gipotoniya','Nafas qisilishi'],q:'Ustuvor muammo?',o:['Hayot uchun xavfli sistemik allergik reaksiya','Oddiy shamollash','Dermatit'],a:0}
+    ]
+  },
+  6: {
+    title:'6-kurs — Integratsiyalashgan klinik amaliyot va OSCE',
+    subjects:['Integratsiyalashgan klinik case','Shoshilinch yordam','OSCE','Klinik qaror va xavfsizlik','Internatura tayyorgarligi'],
+    intro:'6-kursda fanlar integratsiyasi, OSCE va murakkab klinik vaziyatlar ustuvor. Real bemor amaliyoti esa faqat klinik ustoz nazorati va mahalliy protokollar bilan.',
+    questions:[
+      {q:'Murakkab klinik holatda xavfsiz fikrlashning birinchi tamoyili qaysi?',o:['Hayot uchun xavfli muammolarni avval aniqlash','Barcha testlarni tartibsiz buyurish','Faqat bitta simptomni davolash','Noaniqlikni yashirish'],a:0,e:'Prioritetlash va xavfli holatlarni erta tanish klinik xavfsizlikning asosidir.'}
+    ],
+    cases:[
+      {id:'integrated',title:'Integrated clinical reasoning',patient:'58 yosh, bemor',complaint:'Ko‘krakda bosuvchi og‘riq va hansirash.',vitals:'BP 148/92 · HR 108 · RR 22 · SpO₂ 95%',findings:['Ko‘krak og‘rig‘i','Hansirash','Taxikardiya'],q:'Birinchi klinik vazifa?',o:['Hayot uchun xavfli sabablarni tezkor baholash','Faqat vitamin buyurish','Faqat dermatologik ko‘rik','Kuzatuvsiz uyga yuborish'],a:0}
+    ]
+  }
+};
+
+const studentLayers=[
+  ['1','Anatomy','Normal organ va anatomik tuzilmalar'],
+  ['2','Physiology','Normal funksiya va homeostaz'],
+  ['3','Pathophysiology','Kasallik mexanizmi'],
+  ['4','Histology','Mikroskopik o‘zgarishlar'],
+  ['5','Molecular','Gen/protein/pathway mexanizmlari'],
+  ['6','Symptoms','Belgilar va simptom sababi'],
+  ['7','Diagnostics','Laboratoriya, imaging va differensial tashxis'],
+  ['8','Pharmacology','Dori sinflari va mexanizmlari'],
+  ['9','Virtual Patient','Davolashning simulyatsion ta’siri'],
+  ['10','Clinical Case','To‘liq klinik fikrlash va OSCE']
 ];
-const studentLayers=[['1','Anatomy','Normal organ va anatomik tuzilmalar'],['2','Physiology','Normal funksiya va homeostaz'],['3','Pathophysiology','Kasallik mexanizmi'],['4','Histology','Mikroskopik o‘zgarishlar'],['5','Molecular','Gen/protein/pathway mexanizmlari'],['6','Symptoms','Belgilar va simptom sababi'],['7','Diagnostics','Laboratoriya, imaging va differensial tashxis'],['8','Pharmacology','Dori sinflari va mexanizmlari'],['9','Virtual Patient','Davolashning simulyatsion ta’siri'],['10','Clinical Case','To‘liq klinik fikrlash va OSCE']];
-const studentSkills=[['Vital signs','Virtual bemorda asosiy vital belgilarni baholash'],['History taking','Shikoyat, anamnez va red flaglarni yig‘ish'],['Physical examination','Ko‘rik natijalarini tanlash va talqin qilish'],['Injection simulation','Inʼeksiyani faqat xavfsiz virtual muhitda mashq qilish'],['ECG interpretation','ECG patternlarini o‘quv rejimida tahlil qilish'],['Lab interpretation','Laborator natijalarni klinik kontekstda talqin qilish']];
-let activeStudentCase=studentCases[0],studentXP=Number(localStorage.getItem('medgen_student_xp')||0);
-function saveStudentXP(n){studentXP=Math.max(0,studentXP+n);localStorage.setItem('medgen_student_xp',studentXP);if($('studentScore'))$('studentScore').textContent=studentXP}
-function loadStudentAcademy(){saveStudentXP(0);renderStudentCases();renderStudentLayers();renderStudentSkills();renderStudentOsce();document.querySelectorAll('.student-tab').forEach(b=>b.onclick=()=>switchStudentTab(b.dataset.studentTab))}
-function switchStudentTab(x){const m={cases:'studentCasePanel',anatomy:'studentAnatomyPanel',skills:'studentSkillsPanel',osce:'studentOscePanel'};Object.values(m).forEach(id=>$(id)?.classList.add('hidden'));$(m[x])?.classList.remove('hidden');document.querySelectorAll('.student-tab').forEach(b=>b.classList.toggle('active',b.dataset.studentTab===x))}
-function renderStudentCases(){const box=$('studentCaseList');if(!box)return;box.innerHTML=studentCases.map(x=>`<button class="student-case" data-id="${x.id}"><b>${escapeHtml(x.title)}</b><small>${escapeHtml(x.patient)}</small></button>`).join('');box.querySelectorAll('[data-id]').forEach(b=>b.onclick=()=>{activeStudentCase=studentCases.find(x=>x.id===b.dataset.id)||studentCases[0];renderStudentCase()});renderStudentCase()}
-function renderStudentCase(){const x=activeStudentCase,o=$('studentCaseMain');if(!o)return;o.innerHTML=`<div class="patient-card"><span class="patient-avatar">👤</span><div><b>${escapeHtml(x.patient)}</b><div class="muted">${escapeHtml(x.complaint)}</div></div></div><div class="vitals">${escapeHtml(x.vitals)}</div><h4>Findings</h4><div class="finding-list">${x.findings.map(v=>'<span>'+escapeHtml(v)+'</span>').join('')}</div><div class="question-card"><h3>${escapeHtml(x.q)}</h3><div class="option-list">${x.o.map((v,i)=>`<button class="option-btn" data-i="${i}">${escapeHtml(v)}</button>`).join('')}</div><div id="studentFeedback" class="status"></div></div>`;o.querySelectorAll('.option-btn').forEach(b=>b.onclick=()=>{const ok=Number(b.dataset.i)===x.a;o.querySelectorAll('.option-btn').forEach(z=>z.disabled=true);const f=$('studentFeedback');if(ok){saveStudentXP(10);f.innerHTML='✅ To‘g‘ri. Keyingi bosqich: anamnez → ko‘rik → differensial tashxis → mos tekshiruvni asoslash.'}else f.innerHTML='❌ Qayta o‘ylang: simptomlar, vital belgilar va klinik kontekstni birga baholang.'})}
-function renderStudentLayers(){const b=$('studentLayerGrid');if(!b)return;b.innerHTML=studentLayers.map(x=>`<div class="layer-card"><b>${x[0]}</b><strong>${x[1]}</strong><span>${x[2]}</span></div>`).join('')}
-function renderStudentSkills(){const b=$('studentSkillList');if(!b)return;b.innerHTML=studentSkills.map((x,i)=>`<button class="layer-card" data-skill="${i}"><b>0${i+1}</b><strong>${x[0]}</strong><span>${x[1]}</span></button>`).join('');b.querySelectorAll('[data-skill]').forEach(q=>q.onclick=()=>{const x=studentSkills[Number(q.dataset.skill)];alert(x[0]+'\\n\\n'+x[1]+'\\n\\nSIMULATION ONLY — real clinical practice requires supervised training.');saveStudentXP(5)})}
-function renderStudentOsce(){const b=$('studentOsce');if(!b)return;b.innerHTML='<div class="question-card"><p class="eyebrow">OSCE STATION</p><h3>Isitma va yo‘tal bilan kelgan bemorni boshlang‘ich baholash</h3><p class="muted">Safety → anamnez → vital signs → ko‘rik → differensial tashxis → tekshiruvni asoslash.</p><button class="primary small" id="osceStart">Start station</button><div id="osceResult" class="status"></div></div>';$('osceStart')?.addEventListener('click',()=>{if($('osceResult'))$('osceResult').innerHTML='🟢 Checklist bajarildi. Natija: clinical reasoning practice +15 XP.';saveStudentXP(15)})}
+const studentSkills=[
+  ['Vital signs','Kursga mos virtual bemorda vital belgilarni baholash'],
+  ['History taking','Kurs darajasiga mos shikoyat, anamnez va red flaglarni yig‘ish'],
+  ['Physical examination','Ko‘rik natijalarini tanlash va talqin qilish'],
+  ['Injection simulation','Inʼeksiyani faqat xavfsiz virtual muhitda mashq qilish'],
+  ['ECG interpretation','ECG patternlarini o‘quv rejimida tahlil qilish'],
+  ['Lab interpretation','Laborator natijalarni klinik kontekstda talqin qilish']
+];
+
+let studentCourse=Number(localStorage.getItem('medgen_student_course')||1);
+if(!MEDICAL_CURRICULUM[studentCourse]) studentCourse=1;
+let activeStudentCase=null;
+let studentXP=Number(localStorage.getItem('medgen_student_xp')||0);
+
+function saveStudentXP(n){
+  studentXP=Math.max(0,studentXP+n);
+  localStorage.setItem('medgen_student_xp',studentXP);
+  if($('studentScore')) $('studentScore').textContent=studentXP;
+}
+
+function getStudentCourse(){
+  const profileYear=Number(state.user?.profile?.study_year||state.user?.profile?.course_year||0);
+  if(profileYear>=1 && profileYear<=6) {
+    studentCourse=profileYear;
+    localStorage.setItem('medgen_student_course',String(profileYear));
+  }
+  return studentCourse;
+}
+
+function setStudentCourse(year){
+  const n=Number(year);
+  if(!MEDICAL_CURRICULUM[n]) return;
+  studentCourse=n;
+  localStorage.setItem('medgen_student_course',String(n));
+  activeStudentCase=MEDICAL_CURRICULUM[n].cases?.[0]||null;
+  renderStudentAcademy();
+}
+
+function renderStudentAcademy(){
+  const year=getStudentCourse(), c=MEDICAL_CURRICULUM[year];
+  if($('studentCourseSelect')) $('studentCourseSelect').value=String(year);
+  if($('studentCourseTitle')) $('studentCourseTitle').textContent=c.title;
+  if($('studentCourseIntro')) $('studentCourseIntro').textContent=c.intro;
+  if($('studentSubjectList')) $('studentSubjectList').innerHTML=c.subjects.map(s=>'<span class="course-chip">'+escapeHtml(s)+'</span>').join('');
+  renderStudentQuiz();
+  renderStudentCases();
+  renderStudentLayers();
+  renderStudentSkills();
+  renderStudentOsce();
+}
+
+function renderStudentQuiz(){
+  const box=$('studentCourseQuiz');
+  if(!box) return;
+  const qs=MEDICAL_CURRICULUM[getStudentCourse()].questions||[];
+  if(!qs.length){box.innerHTML='<p class="muted">Bu kurs uchun savollar tayyorlanmoqda.</p>';return;}
+  const q=qs[0];
+  box.innerHTML='<p class="eyebrow">KURS SAVOLI</p><h3>'+escapeHtml(q.q)+'</h3><div class="option-list">'+q.o.map((v,i)=>'<button class="option-btn" data-course-option="'+i+'">'+escapeHtml(v)+'</button>').join('')+'</div><div id="studentCourseFeedback" class="status"></div>';
+  box.querySelectorAll('[data-course-option]').forEach(b=>b.onclick=()=>{
+    const ok=Number(b.dataset.courseOption)===q.a;
+    box.querySelectorAll('.option-btn').forEach(z=>z.disabled=true);
+    const f=$('studentCourseFeedback');
+    if(ok){saveStudentXP(5);f.innerHTML='✅ To‘g‘ri. '+escapeHtml(q.e);}
+    else f.innerHTML='❌ Hali xato. '+escapeHtml(q.e);
+  });
+}
+
+function loadStudentAcademy(){
+  saveStudentXP(0);
+  const c=MEDICAL_CURRICULUM[getStudentCourse()];
+  activeStudentCase=c.cases?.[0]||null;
+  renderStudentAcademy();
+  document.querySelectorAll('.student-tab').forEach(b=>b.onclick=()=>switchStudentTab(b.dataset.studentTab));
+  if($('studentCourseSelect')) $('studentCourseSelect').onchange=e=>setStudentCourse(e.target.value);
+}
+
+function switchStudentTab(x){
+  const m={course:'studentCoursePanel',cases:'studentCasePanel',anatomy:'studentAnatomyPanel',skills:'studentSkillsPanel',osce:'studentOscePanel'};
+  Object.values(m).forEach(id=>$(id)?.classList.add('hidden'));
+  $(m[x])?.classList.remove('hidden');
+  document.querySelectorAll('.student-tab').forEach(b=>b.classList.toggle('active',b.dataset.studentTab===x));
+  if(x==='cases' && getStudentCourse()<3) {
+    const p=$('studentCasePanel');
+    if(p) p.innerHTML='<div class="course-lock"><b>🩺 Virtual Patients hali erta.</b><span>1–2-kursda avval fundamental fanlar va kasallik mexanizmlari o‘rganiladi. Klinik bemor simulyatsiyasi 3-kursdan bosqichma-bosqich ochiladi.</span></div>';
+  } else if(x==='cases') renderStudentCases();
+}
+
+function renderStudentCases(){
+  const box=$('studentCaseList'), main=$('studentCaseMain');
+  const year=getStudentCourse(), cases=MEDICAL_CURRICULUM[year].cases||[];
+  if(!box||!main) return;
+  if(year<3 || !cases.length){
+    box.innerHTML='<div class="course-lock"><b>📚 Klinik case hozircha ochilmagan</b><span>Bu bosqichda kursga mos fundamental savollar va mavzular ustuvor.</span></div>';
+    main.innerHTML='<div class="course-lock"><b>Avval kurs dasturini o‘rganing</b><span>Virtual patient moduli 3-kursdan boshlab murakkablashadi.</span></div>';
+    return;
+  }
+  if(!activeStudentCase || !cases.some(x=>x.id===activeStudentCase.id)) activeStudentCase=cases[0];
+  box.innerHTML=cases.map(x=>'<button class="student-case" data-id="'+x.id+'"><b>'+escapeHtml(x.title)+'</b><small>'+escapeHtml(x.patient)+'</small></button>').join('');
+  box.querySelectorAll('[data-id]').forEach(b=>b.onclick=()=>{activeStudentCase=cases.find(x=>x.id===b.dataset.id)||cases[0];renderStudentCase()});
+  renderStudentCase();
+}
+
+function renderStudentCase(){
+  const x=activeStudentCase,o=$('studentCaseMain');
+  if(!x||!o)return;
+  o.innerHTML='<div class="patient-card"><span class="patient-avatar">👤</span><div><b>'+escapeHtml(x.patient)+'</b><div class="muted">'+escapeHtml(x.complaint)+'</div></div></div><div class="vitals">'+escapeHtml(x.vitals)+'</div><h4>Findings</h4><div class="finding-list">'+x.findings.map(v=>'<span>'+escapeHtml(v)+'</span>').join('')+'</div><div class="question-card"><h3>'+escapeHtml(x.q)+'</h3><div class="option-list">'+x.o.map((v,i)=>'<button class="option-btn" data-i="'+i+'">'+escapeHtml(v)+'</button>').join('')+'</div><div id="studentFeedback" class="status"></div></div>';
+  o.querySelectorAll('.option-btn').forEach(b=>b.onclick=()=>{
+    const ok=Number(b.dataset.i)===x.a;
+    o.querySelectorAll('.option-btn').forEach(z=>z.disabled=true);
+    const f=$('studentFeedback');
+    if(ok){saveStudentXP(10);f.innerHTML='✅ To‘g‘ri. Keyingi bosqich: anamnez → ko‘rik → differensial tashxis → mos tekshiruvni asoslash.'}
+    else f.innerHTML='❌ Qayta o‘ylang: simptomlar, vital belgilar va klinik kontekstni birga baholang.'
+  });
+}
+
+function renderStudentLayers(){
+  const b=$('studentLayerGrid');if(!b)return;
+  b.innerHTML=studentLayers.map(x=>'<div class="layer-card"><b>'+x[0]+'</b><strong>'+x[1]+'</strong><span>'+x[2]+'</span></div>').join('');
+}
+function renderStudentSkills(){
+  const b=$('studentSkillList');if(!b)return;
+  b.innerHTML=studentSkills.map((x,i)=>'<button class="layer-card" data-skill="'+i+'"><b>0'+(i+1)+'</b><strong>'+x[0]+'</strong><span>'+x[1]+'</span></button>').join('');
+  b.querySelectorAll('[data-skill]').forEach(q=>q.onclick=()=>{const x=studentSkills[Number(q.dataset.skill)];alert(x[0]+'\n\n'+x[1]+'\n\nSIMULATION ONLY — real clinical practice requires supervised training.');saveStudentXP(5)});
+}
+function renderStudentOsce(){
+  const b=$('studentOsce');if(!b)return;
+  const year=getStudentCourse();
+  const label=year<3?'OSCE tayyorgarligi — avval basic checklist':'OSCE Station — kurs darajasiga mos klinik vazifa';
+  b.innerHTML='<div class="question-card"><p class="eyebrow">OSCE</p><h3>'+label+'</h3><p class="muted">'+(year<3?'Fundamental fanlar bo‘yicha termin, anatomiya va basic communication mashqlari.':'Safety → anamnez → vital signs → ko‘rik → differensial tashxis → tekshiruvni asoslash.')+'</p><button class="primary small" id="osceStart">Start station</button><div id="osceResult" class="status"></div></div>';
+  $('osceStart')?.addEventListener('click',()=>{if($('osceResult'))$('osceResult').innerHTML='🟢 Checklist bajarildi. Kurs '+year+' uchun o‘quv simulyatsiyasi +15 XP.';saveStudentXP(15)});
+}
 
 
 /* =========================================================
@@ -3086,9 +3282,12 @@ function getLocalRole(){
   try{return JSON.parse(localStorage.getItem('medgen_role_'+u)||'null');}catch(_){return null;}
 }
 function roleKey(){
-  const server=state.user?.role||state.user?.user_role||state.user?.type;
-  if(server && MEDGEN_ROLES[String(server).toLowerCase()]) return String(server).toLowerCase();
-  return getLocalRole()?.key || 'student';
+  const raw=String(state.user?.role||state.user?.user_role||state.user?.type||'').toLowerCase();
+  const aliases={super_admin:'admin',superadmin:'admin',founder:'admin',ceo:'admin',owner:'admin'};
+  if(aliases[raw]) return aliases[raw];
+  if(MEDGEN_ROLES[raw]) return raw;
+  const local=getLocalRole()?.key;
+  return MEDGEN_ROLES[local] ? local : 'student';
 }
 function applyRoleDashboard(){
   const key=roleKey(), role=MEDGEN_ROLES[key]||MEDGEN_ROLES.student;
