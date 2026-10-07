@@ -303,7 +303,24 @@ frame-ancestors 'none'">
       <label><span>Email</span><input id="registerEmail" type="email" autocomplete="email" required></label>
       <label><span>Telefon raqami</span><input id="registerPhone" type="tel" autocomplete="tel" placeholder="+998 90 123 45 67"></label>
       <label><span>Parol</span><input id="registerPassword" type="password" autocomplete="new-password" minlength="8" required></label>
-      <label><span>Parolni tasdiqlash</span><input id="registerPassword2" type="password" autocomplete="new-password" minlength="8" required></label>
+      <label><span>Parolni tasdiqlash</span><input id="registerPassword2" type="password" autocomplete="new-password" minlength="8" required></label><div class="role-registration-block">
+  <div class="role-title">Sizning asosiy professional rolingiz</div>
+  <div class="role-subtitle">Faqat bitta asosiy rol tanlang. Keyingi rollar CEO/Admin tasdig‘idan keyin ochiladi.</div>
+  <div id="registerRoleGrid" class="role-grid">
+    <button type="button" class="role-choice" data-role="student">🎓<b>Talaba</b><span>Medical Academy</span></button>
+    <button type="button" class="role-choice" data-role="doctor">👨‍⚕️<b>Shifokor</b><span>Clinical Workspace</span></button>
+    <button type="button" class="role-choice" data-role="researcher">🔬<b>Olim / Researcher</b><span>Research Workspace</span></button>
+    <button type="button" class="role-choice" data-role="professor">👨‍🏫<b>Professor</b><span>Teaching Workspace</span></button>
+    <button type="button" class="role-choice" data-role="lab">🧪<b>Laborant</b><span>Laboratory</span></button>
+    <button type="button" class="role-choice" data-role="biotech">🧬<b>Biotexnolog</b><span>Biotechnology</span></button>
+    <button type="button" class="role-choice" data-role="pharma">💊<b>Pharma</b><span>Drug Discovery</span></button>
+    <button type="button" class="role-choice" data-role="bioinformatician">🧑‍💻<b>Bioinformatician</b><span>Omics & Pipelines</span></button>
+    <button type="button" class="role-choice" data-role="hospital">🏥<b>Klinika / Hospital</b><span>Clinical Training</span></button>
+    <button type="button" class="role-choice" data-role="company">🏢<b>Biotech / Pharma Company</b><span>Enterprise</span></button>
+  </div>
+  <input id="registerRole" type="hidden" value="">
+  <div id="registerRoleStatus" class="role-status">Asosiy rolni tanlang.</div>
+</div>
       <button class="primary" type="submit">Ro‘yxatdan o‘tish</button>
       <button id="hideRegister" type="button" class="ghost">Kirishga qaytish</button>
     </form>
@@ -384,6 +401,15 @@ frame-ancestors 'none'">
 
   </div>
 
+
+<section id="roleDashboard" class="role-dashboard hidden">
+  <div class="role-dashboard-head">
+    <div><p class="eyebrow">PERSONALIZED WORKSPACE</p><h2 id="roleDashboardTitle">MedGen AI</h2><p id="roleDashboardDesc" class="muted"></p></div>
+    <span id="roleDashboardBadge" class="role-dashboard-badge"></span>
+  </div>
+  <div id="roleQuickGrid" class="role-quick-grid"></div>
+  <div class="role-note">Kerak bo‘lsa boshqa modulga kirish uchun CEO/Admin tomonidan qo‘shimcha ruxsat beriladi.</div>
+</section>
 
   <!-- MODULES -->
 
