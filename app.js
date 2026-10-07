@@ -1229,19 +1229,31 @@ function isProfileComplete(p) {
 }
 
 function enforceProfileCompletion() {
-  // Super Admin must always be able to enter the control center,
-  // even when the administrative account has no research profile yet.
+  // The main dashboard must ALWAYS become visible after successful login.
+  // Incomplete profile data must not hide the dashboard or force a modal
+  // over it. Restricted modules can remain locked until the profile is completed.
   if (isSuperAdmin()) return true;
-  if (!state.user || isProfileComplete(state.user.profile || {})) return true;
+  if (!state.user || isProfileComplete(state.user.profile || {})) {
+    document.querySelectorAll('.module, #workspace, #adminDashboard').forEach(el => {
+      if (el) el.classList.remove('profile-locked');
+    });
+    return true;
+  }
 
   document.querySelectorAll('.module, #workspace, #adminDashboard').forEach(el => {
     if (el) el.classList.add('profile-locked');
   });
 
-  openProfile();
   const status = $('profileStatus');
-  if (status) status.textContent = '⚠️ Profilni to‘ldirish majburiy. Davom etish uchun ism, email, mamlakat va tug‘ilgan sanani kiriting.';
-  return false;
+  if (status) {
+    status.textContent = '⚠️ Profil hali to‘liq emas. Dashboard ochildi; ayrim funksiyalar profil tasdiqlangach ochiladi.';
+  }
+  const roleStatus = $('roleDashboardDesc');
+  if (roleStatus && !roleStatus.dataset.profileNoticeShown) {
+    roleStatus.textContent += '  |  ⚠️ Profilni to‘ldirish talab qilinadi.';
+    roleStatus.dataset.profileNoticeShown = '1';
+  }
+  return true;
 }
 
 function closeProfile() {
