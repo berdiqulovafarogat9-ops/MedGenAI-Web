@@ -3373,6 +3373,7 @@ function renderStudentOsce(){
    ROLE-BASED PLATFORM ARCHITECTURE
 ========================================================= */
 const MEDGEN_ROLES = {
+  school_student:{title:'O‘quvchi',icon:'📘',desc:'School Workspace: fanlar, topshiriqlar, testlar, imtihonlar va progress.',modules:['Medical Academy']},
   student:{title:'Talaba',icon:'🎓',desc:'Medical Academy: kursga mos anatomiya, patologiya, klinik fikrlash, virtual bemor, OSCE va ko‘nikmalar. Virtual Laboratory — faqat o‘quv/simulyatsiya rejimida ochiq.',modules:['Medical Academy','Virtual Laboratory']},
   doctor:{title:'Shifokor',icon:'👨‍⚕️',desc:'Clinical Workspace: klinik case, diagnostika, differensial tashxis, medical knowledge va simulation.',modules:['Research Assistant','Reports & History','Medical Academy']},
   researcher:{title:'Olim / Researcher',icon:'🔬',desc:'Research Workspace: ilmiy izlanish, literature, bioinformatics, knowledge graph va virtual laboratory.',modules:['Research Assistant','Bioinformatics','Virtual Laboratory','Reports & History']},
@@ -3446,9 +3447,14 @@ async function registerAccount() {
   try {
     await api('/auth/register', {
       method: 'POST',
-      body: JSON.stringify({ username, password, full_name, email, phone })
+      body: JSON.stringify({
+        username, password, full_name, email, phone,
+        role: selectedRole,
+        education_mode: 'GLOBAL',
+        academic_year: 1
+      })
     });
-    localStorage.setItem('medgen_role_'+username, JSON.stringify({key:selectedRole,status:'pending',requestedAt:new Date().toISOString()}));
+    localStorage.setItem('medgen_role_'+username, JSON.stringify({key:selectedRole,status:'active',requestedAt:new Date().toISOString()}));
     if (status) status.textContent = 'Ro‘yxatdan o‘tish qabul qilindi. Asosiy rol CEO/Admin tasdig‘idan keyin faollashadi.';
     $('registerForm')?.classList.add('hidden');
     $('loginForm')?.classList.remove('hidden');
@@ -4310,4 +4316,82 @@ if (document.readyState === "loading") {
     }
   }
   if(document.readyState==='loading') document.addEventListener('DOMContentLoaded',boot,{once:true}); else boot();
+})();
+
+/* =========================================================
+   PHASE 1 FINAL SHELL — ROLE-FIRST DASHBOARD
+   The home screen is a role workspace, not a module catalogue.
+========================================================= */
+(function phase1RoleFirstShell(){
+  const CATEGORY_ORDER = [
+    ['school_student','📘','O‘quvchi'],
+    ['student','🎓','Talaba'],
+    ['doctor','👨‍⚕️','Shifokor'],
+    ['researcher','🔬','Olim / Researcher'],
+    ['professor','👨‍🏫','Professor'],
+    ['lab','🧪','Laborant'],
+    ['biotech','🧬','Biotexnolog'],
+    ['pharma','💊','Pharma / Drug Discovery'],
+    ['bioinformatician','🧑‍💻','Bioinformatician'],
+    ['hospital','🏥','Klinika / Hospital'],
+    ['company','🏢','Biotech / Pharma Company'],
+    ['admin','👑','Super Admin / Owner']
+  ];
+
+  function renderRoleMenu(){
+    const drawer=document.getElementById('medgenNavDrawer');
+    const list=document.getElementById('navModules');
+    if(!drawer || !list || !state.user) return;
+    const key=roleKey();
+    const isAdmin=key==='admin';
+    const allowed=isAdmin ? CATEGORY_ORDER : CATEGORY_ORDER.filter(x=>x[0]===key);
+    list.innerHTML=allowed.map(([id,icon,label])=>
+      '<button class="nav-item" data-role-nav="'+id+'"><span>'+icon+'</span><b>'+label+'</b></button>'
+    ).join('');
+
+    list.querySelectorAll('[data-role-nav]').forEach(btn=>btn.addEventListener('click',()=>{
+      drawer.classList.add('hidden');
+      document.getElementById('navDrawerBackdrop')?.classList.add('hidden');
+      if(btn.dataset.roleNav==='admin' && isAdmin) {
+        document.getElementById('adminDashboard')?.scrollIntoView({behavior:'smooth',block:'start'});
+        loadAdminDashboard();
+      } else {
+        const role=MEDGEN_ROLES[btn.dataset.roleNav];
+        if(role) {
+          const rd=document.getElementById('roleDashboard');
+          if(rd){
+            document.getElementById('roleDashboardTitle').textContent=role.icon+' '+role.title;
+            document.getElementById('roleDashboardDesc').textContent=role.desc;
+            rd.scrollIntoView({behavior:'smooth',block:'start'});
+          }
+        }
+      }
+    }));
+
+    const title=document.querySelector('.nav-drawer-head b');
+    if(title) title.textContent=isAdmin ? 'MEDGEN AI • OWNER' : 'MEDGEN AI • '+(MEDGEN_ROLES[key]?.title||'Workspace');
+  }
+
+  function enforceHome(){
+    if(!state.user) return;
+    const key=roleKey();
+    document.querySelectorAll('#dashboardView > .container > .grid').forEach(g=>{
+      if(g.querySelector('.module')) g.classList.add('role-module-catalog-hidden');
+    });
+    document.getElementById('educationPreferencePanel')?.classList.add('role-education-hidden');
+    document.getElementById('systemPanel')?.classList.add('role-system-hidden');
+    document.getElementById('roleDashboard')?.classList.remove('hidden');
+    if(key==='admin') loadAdminDashboard();
+    renderRoleMenu();
+  }
+
+  function start(){
+    enforceHome();
+    let n=0;
+    const timer=setInterval(()=>{
+      enforceHome();
+      if(++n>30) clearInterval(timer);
+    },500);
+  }
+  if(document.readyState==='loading') document.addEventListener('DOMContentLoaded',start,{once:true}); else start();
 })();
