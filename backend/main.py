@@ -176,6 +176,15 @@ class RegisterRequest(BaseModel):
     phone: str = ""
     country: str = ""
     organization: str = ""
+    role: str = "student"
+    education_mode: str = "GLOBAL"
+    country_code: str = ""
+    university: str = ""
+    faculty: str = ""
+    major: str = ""
+    academic_year: int = 1
+    group: str = ""
+    student_id: str = ""
 
 
 class AccountUpdateRequest(BaseModel):
@@ -339,13 +348,14 @@ def get_current_user(
         token_created_at.pop(credentials.credentials, None)
         raise HTTPException(status_code=401, detail="Token expired")
 
+    stored_role = str(
+        user_profiles.get(username, {}).get("role") or "student"
+    ).lower()
+    if str(username).strip().casefold() == str(ADMIN_USERNAME).strip().casefold():
+        stored_role = "SUPER_ADMIN"
     return {
         "username": username,
-        "role": (
-            "SUPER_ADMIN"
-            if str(username).strip().casefold() == str(ADMIN_USERNAME).strip().casefold()
-            else "USER"
-        ),
+        "role": stored_role,
     }
 
 
@@ -413,13 +423,37 @@ def register(data: RegisterRequest):
         "password_hash": make_password_hash(data.password),
         "created_at": datetime.now(timezone.utc).isoformat(),
     }
+    allowed_roles = {
+        "student", "school_student", "doctor", "researcher", "professor",
+        "lab", "biotech", "pharma", "bioinformatician", "hospital", "company"
+    }
+    role = str(data.role or "student").strip().lower()
+    if role not in allowed_roles:
+        role = "student"
+    if not 1 <= int(data.academic_year) <= 6:
+        raise HTTPException(status_code=400, detail="Academic year must be between 1 and 6.")
     user_profiles[username] = {
         "full_name": data.full_name.strip(), "email": email, "phone": data.phone.strip(),
         "country": data.country.strip(), "organization": data.organization.strip(),
         "birth_year": None, "birth_month": None, "birth_day": None,
         "research_interests": "", "bio": "", "avatar": "",
+        "role": role,
+        "role_status": "active",
+        "academic_profile": {
+            "country_code": str(data.country_code or "").upper()[:2],
+            "education_mode": str(data.education_mode or "GLOBAL").upper(),
+            "university": str(data.university or "").strip()[:200],
+            "faculty": str(data.faculty or "").strip()[:200],
+            "major": str(data.major or "").strip()[:200],
+            "year": int(data.academic_year),
+            "group": str(data.group or "").strip()[:100],
+            "student_id": str(data.student_id or "").strip()[:100],
+            "study_language": "en",
+            "academic_degree": "MD/MBBS",
+        },
     }
-    return {"status": "registered", "username": username}
+    _db_save()
+    return {"status": "registered", "username": username, "role": role}
 
 
 @app.get("/api/v1/auth/me")
@@ -2043,10 +2077,19 @@ def require_super_admin(user):
 @app.get("/api/v1/admin/overview")
 def admin_overview(user=Depends(get_current_user)):
     require_super_admin(user)
+    all_users = sorted(set(tokens.values()) | set(user_accounts.keys()) | set(user_profiles.keys()) | set(user_consents.keys()))
+    role_counts = {}
+    for username in all_users:
+        r = str(
+            "SUPER_ADMIN" if username.casefold() == str(ADMIN_USERNAME).casefold()
+            else user_profiles.get(username, {}).get("role", "student")
+        ).lower()
+        role_counts[r] = role_counts.get(r, 0) + 1
     return {
         "status": "ready",
         "role": user["role"],
-        "users": len(set(tokens.values()) | set(user_accounts.keys()) | set(user_profiles.keys()) | set(user_consents.keys())),
+        "users": len(all_users),
+        "role_counts": role_counts,
         "active_tokens": len(tokens),
         "jobs": len(jobs_store),
         "docking_jobs": len(docking_jobs_store),
@@ -2066,7 +2109,11 @@ def admin_users(user=Depends(get_current_user)):
         "users": [
             {
                 "username": u,
-                "role": "SUPER_ADMIN" if u == ADMIN_USERNAME else "USER",
+                "role": (
+                    "SUPER_ADMIN"
+                    if str(u).strip().casefold() == str(ADMIN_USERNAME).strip().casefold()
+                    else user_profiles.get(u, {}).get("role", "student")
+                ),
                 "profile": user_profiles.get(u, {}),
                 "consent": user_consents.get(u, {}),
                 "active_tokens": sum(1 for x in tokens.values() if x == u),
