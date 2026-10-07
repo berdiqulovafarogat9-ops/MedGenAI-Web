@@ -4169,7 +4169,17 @@ if (document.readyState === "loading") {
     document.getElementById('p1SubmitAssessment').addEventListener('click',submitAssessment);
     document.getElementById('p1CloseAssessment').addEventListener('click',()=>document.getElementById('p1Assessment').classList.add('hidden'));
 
-    load();
+    if (sessionStorage.getItem('medgen_access_token')) {
+      load();
+    } else {
+      const waitForLogin = setInterval(() => {
+        if (sessionStorage.getItem('medgen_access_token')) {
+          clearInterval(waitForLogin);
+          load();
+        }
+      }, 700);
+      setTimeout(() => clearInterval(waitForLogin), 120000);
+    }
   };
   if(document.readyState==='loading') document.addEventListener('DOMContentLoaded',boot,{once:true}); else boot();
 })();
