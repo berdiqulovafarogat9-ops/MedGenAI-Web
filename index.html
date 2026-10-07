@@ -922,12 +922,37 @@ frame-ancestors 'none'">
       </div>
 
       <div id="studentTool" class="tool hidden">
-        <div class="student-hero"><div><p class="eyebrow">STUDENT MODE</p><h2>MedGen AI Medical Academy</h2><p class="muted">Learn → See → Practice → Feedback → Repeat. Bu o‘quv simulyatsiyasi; real bemorda amaliyot o‘rnini bosmaydi.</p></div><div class="student-progress"><b id="studentScore">0</b><span>XP</span></div></div>
-        <div class="student-tabs"><button class="student-tab active" data-student-tab="cases">🩺 Virtual Patients</button><button class="student-tab" data-student-tab="anatomy">🫀 Disease 10 Layers</button><button class="student-tab" data-student-tab="skills">💉 Skills Lab</button><button class="student-tab" data-student-tab="osce">📋 OSCE</button></div>
-        <div id="studentCasePanel"><div class="student-case-grid"><div class="student-case-list" id="studentCaseList"></div><div class="student-case-main" id="studentCaseMain"></div></div></div>
+        <div class="student-hero"><div><p class="eyebrow">STUDENT MODE</p><h2>MedGen AI Medical Academy</h2><p class="muted">Kursga mos o‘qitish: <b>avval nazariya → keyin mashq → keyin klinik simulyatsiya</b>. Real bemordagi amaliyotni almashtirmaydi.</p></div><div class="student-progress"><b id="studentScore">0</b><span>XP</span></div></div>
+
+        <div class="course-selector">
+          <div><div class="eyebrow">INDIVIDUAL CURRICULUM</div><h3 id="studentCourseTitle">1-kurs — Fundamental fanlar</h3><p id="studentCourseIntro" class="muted"></p></div>
+          <label class="course-select-label">O‘quv kursi
+            <select id="studentCourseSelect">
+              <option value="1">1-kurs</option><option value="2">2-kurs</option><option value="3">3-kurs</option>
+              <option value="4">4-kurs</option><option value="5">5-kurs</option><option value="6">6-kurs</option>
+            </select>
+          </label>
+        </div>
+
+        <div id="studentSubjectList" class="course-chips"></div>
+
+        <div class="student-tabs">
+          <button class="student-tab active" data-student-tab="course">📚 Kurs dasturi</button>
+          <button class="student-tab" data-student-tab="cases">🩺 Virtual Patients</button>
+          <button class="student-tab" data-student-tab="anatomy">🫀 Disease 10 Layers</button>
+          <button class="student-tab" data-student-tab="skills">💉 Skills Lab</button>
+          <button class="student-tab" data-student-tab="osce">📋 OSCE</button>
+        </div>
+
+        <div id="studentCoursePanel" class="student-subpanel">
+          <div class="course-note">🎓 <b>Daraja moslashtirilgan:</b> har bir kursning mavzusi, savollari va klinik vazifalari alohida. 1-kursga 5–6-kurs klinik case savollari aralashtirilmaydi.</div>
+          <div id="studentCourseQuiz" class="question-card"></div>
+        </div>
+
+        <div id="studentCasePanel" class="student-subpanel hidden"><div class="student-case-grid"><div class="student-case-list" id="studentCaseList"></div><div class="student-case-main" id="studentCaseMain"></div></div></div>
         <div id="studentAnatomyPanel" class="student-subpanel hidden"><h3>One Disease — 10 Layers</h3><div class="layer-grid" id="studentLayerGrid"></div></div>
-        <div id="studentSkillsPanel" class="student-subpanel hidden"><h3>Clinical Skills Simulation</h3><p class="muted">Inʼeksiya kabi ko‘nikmalar faqat virtual mashqda; real klinikada ustoz nazorati va protokol shart.</p><div id="studentSkillList" class="layer-grid"></div></div>
-        <div id="studentOscePanel" class="student-subpanel hidden"><h3>OSCE Mini Station</h3><div id="studentOsce"></div></div>
+        <div id="studentSkillsPanel" class="student-subpanel hidden"><h3>Clinical Skills Simulation</h3><p class="muted">Ko‘nikmalar ham kurs darajasiga moslanadi. Inʼeksiya kabi amaliyotlar faqat virtual mashqda; real klinikada ustoz nazorati va protokol shart.</p><div id="studentSkillList" class="layer-grid"></div></div>
+        <div id="studentOscePanel" class="student-subpanel hidden"><h3>OSCE</h3><div id="studentOsce"></div></div>
       </div>
 
       <!-- REPORTS -->
@@ -1040,7 +1065,7 @@ frame-ancestors 'none'">
      Keep app.js unchanged.
 -->
 
-<script src="app.js?v=20261008-6"></script>
+<script src="app.js?v=20261008-7"></script>
 
 
 <!-- =================================
