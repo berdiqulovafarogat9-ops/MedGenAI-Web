@@ -1167,6 +1167,8 @@ async function openProfile() {
     let account = {};
     try { account = await api('/account'); } catch (_) {}
     const serverProfile = data?.profile || {};
+    let academicProfile = {};
+    try { academicProfile = (await api('/academy/profile'))?.profile || {}; } catch (_) {}
     const username = state.user?.username || data?.username || account?.username || 'current';
     let localProfile = {};
     try {
@@ -1194,6 +1196,16 @@ async function openProfile() {
         : '';
     $('profileInterests').value = p.research_interests || '';
     $('profileBio').value = p.bio || '';
+    $('profileEducationMode') && ($('profileEducationMode').value = academicProfile.education_mode || 'GLOBAL');
+    $('profileAcademicCountry') && ($('profileAcademicCountry').value = academicProfile.country_code || '');
+    $('profileUniversity') && ($('profileUniversity').value = academicProfile.university || p.organization || '');
+    $('profileFaculty') && ($('profileFaculty').value = academicProfile.faculty || '');
+    $('profileMajor') && ($('profileMajor').value = academicProfile.major || '');
+    $('profileAcademicYear') && ($('profileAcademicYear').value = String(academicProfile.year || 1));
+    $('profileGroup') && ($('profileGroup').value = academicProfile.group || '');
+    $('profileStudentId') && ($('profileStudentId').value = academicProfile.student_id || '');
+    $('profileStudyLanguage') && ($('profileStudyLanguage').value = academicProfile.study_language || 'en');
+    $('profileAcademicDegree') && ($('profileAcademicDegree').value = academicProfile.academic_degree || 'MD/MBBS');
 
     const profileSaveButton = $('profileSave');
     if (profileSaveButton) {
@@ -1364,6 +1376,22 @@ async function saveProfile() {
         username: $('profileUsername')?.value?.trim() || undefined,
         phone: payload.phone,
         email: payload.email
+      })
+    });
+
+    await api('/academy/profile', {
+      method: 'PUT',
+      body: JSON.stringify({
+        education_mode: $('profileEducationMode')?.value || 'GLOBAL',
+        country_code: ($('profileAcademicCountry')?.value || '').trim().toUpperCase(),
+        university: $('profileUniversity')?.value?.trim() || '',
+        faculty: $('profileFaculty')?.value?.trim() || '',
+        major: $('profileMajor')?.value?.trim() || '',
+        year: Number($('profileAcademicYear')?.value || 1),
+        group: $('profileGroup')?.value?.trim() || '',
+        student_id: $('profileStudentId')?.value?.trim() || '',
+        study_language: $('profileStudyLanguage')?.value || 'en',
+        academic_degree: $('profileAcademicDegree')?.value?.trim() || 'MD/MBBS'
       })
     });
 
@@ -4181,5 +4209,105 @@ if (document.readyState === "loading") {
       setTimeout(() => clearInterval(waitForLogin), 120000);
     }
   };
+  if(document.readyState==='loading') document.addEventListener('DOMContentLoaded',boot,{once:true}); else boot();
+})();
+
+/* =========================================================
+   PHASE 1 UI ARCHITECTURE — SINGLE NAVIGATION / NO DUPLICATES
+========================================================= */
+(function initMedGenNavigationAndAcademicProfile() {
+  function boot() {
+    if (document.getElementById('medgenNavDrawer')) return;
+
+    const top = document.querySelector('.top-actions');
+    const header = document.querySelector('.topbar');
+    const modalCard = document.querySelector('#profileModal .modal-card');
+    if (!top || !header) return;
+
+    const menuBtn = document.createElement('button');
+    menuBtn.id = 'medgenMenuBtn';
+    menuBtn.className = 'ghost menu-button';
+    menuBtn.type = 'button';
+    menuBtn.textContent = '☰ Menyu';
+    top.insertBefore(menuBtn, top.firstChild);
+
+    const drawer = document.createElement('aside');
+    drawer.id = 'medgenNavDrawer';
+    drawer.className = 'nav-drawer hidden';
+    drawer.innerHTML = `
+      <div class="nav-drawer-head"><div><b>MEDGEN AI</b><small>Platform Menu</small></div><button id="navDrawerClose" class="ghost">×</button></div>
+      <div class="nav-section-title">PLATFORM</div>
+      <div id="navModules" class="nav-modules"></div>
+      <div class="nav-section-title">ACCOUNT</div>
+      <button class="nav-item" data-nav="profile">👤 Profilim</button>
+      <button class="nav-item" data-nav="education">🎓 Ta’lim sozlamalari</button>
+      <button class="nav-item" data-nav="system">⚙️ System</button>
+      <div id="navAdminWrap"></div>
+    `;
+    document.body.appendChild(drawer);
+
+    const backdrop=document.createElement('div');
+    backdrop.id='navDrawerBackdrop';
+    backdrop.className='nav-backdrop hidden';
+    document.body.appendChild(backdrop);
+
+    const modules=[
+      ['Medical Academy','🎓','Medical Academy'],
+      ['Bioinformatics','🧬','Bioinformatics'],
+      ['Molecular Analysis','⚗️','Molecular Analysis'],
+      ['PDB & Structure','🧫','PDB & Structure'],
+      ['Drug Discovery','💊','Drug Discovery'],
+      ['Virtual Laboratory','🧪','Virtual Laboratory'],
+      ['Research Assistant','📚','Research Assistant'],
+      ['Scientific Jobs','⚙️','Scientific Jobs'],
+      ['Reports & History','📊','Reports & History'],
+      ['Global Platform','🌐','Global Platform']
+    ];
+    const list=document.getElementById('navModules');
+    list.innerHTML=modules.map(([id,icon,label])=>`<button class="nav-item" data-module-nav="${id}"><span>${icon}</span><b>${label}</b></button>`).join('');
+
+    const open=()=>{drawer.classList.remove('hidden');backdrop.classList.remove('hidden');};
+    const close=()=>{drawer.classList.add('hidden');backdrop.classList.add('hidden');};
+    menuBtn.addEventListener('click',open);
+    backdrop.addEventListener('click',close);
+    document.getElementById('navDrawerClose').addEventListener('click',close);
+
+    list.querySelectorAll('[data-module-nav]').forEach(btn=>btn.addEventListener('click',()=>{
+      close();
+      if(typeof openModule==='function') openModule(btn.dataset.moduleNav);
+      document.querySelector('.module[data-module="'+CSS.escape(btn.dataset.moduleNav)+'"]')?.scrollIntoView({behavior:'smooth',block:'center'});
+    }));
+
+    drawer.querySelector('[data-nav="profile"]').addEventListener('click',()=>{close(); if(typeof openProfile==='function') openProfile();});
+    drawer.querySelector('[data-nav="education"]').addEventListener('click',()=>{close(); document.getElementById('educationPreferencePanel')?.classList.remove('compact-hidden'); document.getElementById('educationPreferencePanel')?.scrollIntoView({behavior:'smooth',block:'start'});});
+    drawer.querySelector('[data-nav="system"]').addEventListener('click',()=>{close(); document.getElementById('systemPanel')?.scrollIntoView({behavior:'smooth',block:'start'});});
+
+    if (modalCard && !modalCard.querySelector('#academicProfileSection')) {
+      const sec=document.createElement('section');
+      sec.id='academicProfileSection';
+      sec.className='academic-profile-section';
+      sec.innerHTML=`
+        <hr><div class="eyebrow">ACADEMIC PROFILE</div>
+        <h3>Universitet va ta’lim ma’lumotlari</h3>
+        <div class="academic-grid">
+          <label>Ta’lim tizimi<select id="profileEducationMode"><option value="GLOBAL">Global / International</option><option value="COUNTRY">Mening mamlakatim</option></select></label>
+          <label>Mamlakat kodi<input id="profileAcademicCountry" maxlength="2" placeholder="UZ"></label>
+          <label>Universitet<input id="profileUniversity" placeholder="Universitet"></label>
+          <label>Fakultet<input id="profileFaculty" placeholder="Fakultet"></label>
+          <label>Yo‘nalish<input id="profileMajor" placeholder="Davolash ishi / Medicine"></label>
+          <label>Kurs<select id="profileAcademicYear"><option value="1">1-kurs</option><option value="2">2-kurs</option><option value="3">3-kurs</option><option value="4">4-kurs</option><option value="5">5-kurs</option><option value="6">6-kurs</option></select></label>
+          <label>Guruh<input id="profileGroup" placeholder="Guruh"></label>
+          <label>Student ID <span class="muted">(ixtiyoriy)</span><input id="profileStudentId"></label>
+          <label>O‘qish tili<input id="profileStudyLanguage" value="en" placeholder="en"></label>
+          <label>Akademik daraja<input id="profileAcademicDegree" value="MD/MBBS"></label>
+        </div>
+      `;
+      const security=modalCard.querySelector('.account-security');
+      modalCard.insertBefore(sec,security||null);
+      sec.querySelectorAll('input,select').forEach(el=>el.addEventListener('change',()=>{
+        if(el.id==='profileEducationMode') document.getElementById('profileAcademicCountry').disabled=el.value==='GLOBAL';
+      }));
+    }
+  }
   if(document.readyState==='loading') document.addEventListener('DOMContentLoaded',boot,{once:true}); else boot();
 })();
