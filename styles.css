@@ -25,3 +25,10 @@ textarea{width:100%;min-height:120px;box-sizing:border-box;padding:14px;border-r
 .course-lock{display:grid;gap:7px;padding:22px;border:1px dashed var(--line);border-radius:14px;background:#071524;color:#dce8f6}
 .course-lock span{color:var(--muted);line-height:1.5;font-size:13px}
 @media(max-width:650px){.course-selector{flex-direction:column}.course-select-label{width:100%}}
+
+
+.course-question{padding:15px;margin:0 0 12px;border:1px solid var(--line);border-radius:14px;background:#081725}
+.course-question h3{margin:0 0 12px;font-size:16px;line-height:1.45}
+#studentCourseProgress{margin-top:10px}
+#studentNextCourse{margin-top:8px}
+#studentNextCourse:disabled{opacity:.55;cursor:not-allowed}
