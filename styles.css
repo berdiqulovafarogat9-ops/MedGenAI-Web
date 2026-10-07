@@ -32,3 +32,16 @@ textarea{width:100%;min-height:120px;box-sizing:border-box;padding:14px;border-r
 #studentCourseProgress{margin-top:10px}
 #studentNextCourse{margin-top:8px}
 #studentNextCourse:disabled{opacity:.55;cursor:not-allowed}
+
+
+/* PHASE 1 ACADEMY */
+#phase1AcademyPanel{margin-top:18px}
+#phase1AcademyPanel .card{padding:18px;margin:12px 0;border:1px solid rgba(255,255,255,.08);border-radius:14px}
+.p1-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(190px,1fr));gap:12px;margin:12px 0}
+.p1-grid label{display:flex;flex-direction:column;gap:6px;font-weight:600}
+.p1-subject{display:flex;justify-content:space-between;gap:14px;align-items:center;padding:14px 0;border-bottom:1px solid rgba(255,255,255,.08)}
+.p1-subject small{display:block;opacity:.7;margin-top:4px}
+.p1-actions{display:flex;gap:6px;flex-wrap:wrap;justify-content:flex-end}
+.p1-question{padding:16px 0;border-bottom:1px solid rgba(255,255,255,.08)}
+.p1-option{display:block;padding:7px 0;font-weight:400}
+@media(max-width:700px){.p1-subject{flex-direction:column;align-items:stretch}.p1-actions{justify-content:flex-start}}
