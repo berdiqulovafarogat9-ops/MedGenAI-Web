@@ -4297,8 +4297,8 @@ if (document.readyState === "loading") {
         <h3>Universitet va ta’lim ma’lumotlari</h3>
         <div class="academic-grid">
           <label>Ta’lim tizimi<select id="profileEducationMode"><option value="GLOBAL">Global / International</option><option value="COUNTRY">Mening mamlakatim</option></select></label>
-          <label>Mamlakat kodi<input id="profileAcademicCountry" maxlength="2" placeholder="UZ"></label>
-          <label>Universitet<input id="profileUniversity" placeholder="Universitet"></label>
+          <label>Mamlakat<select id="profileAcademicCountry"></select></label>
+          <label>Universitet<input id="profileUniversity" list="profileUniversityList" placeholder="Universitetni tanlang yoki yozing"><datalist id="profileUniversityList"></datalist></label>
           <label>Fakultet<input id="profileFaculty" placeholder="Fakultet"></label>
           <label>Yo‘nalish<input id="profileMajor" placeholder="Davolash ishi / Medicine"></label>
           <label>Kurs<select id="profileAcademicYear"><option value="1">1-kurs</option><option value="2">2-kurs</option><option value="3">3-kurs</option><option value="4">4-kurs</option><option value="5">5-kurs</option><option value="6">6-kurs</option></select></label>
@@ -4394,4 +4394,252 @@ if (document.readyState === "loading") {
     },500);
   }
   if(document.readyState==='loading') document.addEventListener('DOMContentLoaded',start,{once:true}); else start();
+})();
+
+/* =========================================================
+   PHASE 1 FINAL UX — ROLE WORKSPACES / PERSONAL DASHBOARD
+========================================================= */
+(function initPhase1RoleWorkspaces() {
+  const ROLE_CARDS = {
+    student:{icon:'🎓',title:'Talabalar',desc:'Universitet talabalari, kurslar, fanlar, progress va akademik natijalar.'},
+    school_student:{icon:'📘',title:'O‘quvchilar',desc:'Maktab/college o‘quvchilari va ularning ta’lim jarayoni.'},
+    doctor:{icon:'🩺',title:'Shifokorlar',desc:'Professional learning, research va klinik ta’lim workspace.'},
+    researcher:{icon:'🔬',title:'Tadqiqotchilar',desc:'Research, scientific workflows, experiments va reports.'},
+    professor:{icon:'👨‍🏫',title:'Professorlar',desc:'Ta’lim, kurslar, topshiriqlar, assessment va ilmiy rahbarlik.'},
+    lab:{icon:'🧪',title:'Laboratoriyalar',desc:'Laboratory workflows, results va research operations.'},
+    biotech:{icon:'🧬',title:'Biotech',desc:'Biotechnology research va product workflows.'},
+    pharma:{icon:'💊',title:'Pharma',desc:'Drug discovery, research va enterprise workflows.'},
+    bioinformatician:{icon:'💻',title:'Bioinformaticianlar',desc:'Sequence, genomics, omics va computational analysis.'},
+    hospital:{icon:'🏥',title:'Klinikalar / Hospital',desc:'Clinical education, simulation va staff workflows.'},
+    company:{icon:'🏢',title:'Kompaniyalar',desc:'Enterprise projects, teams, research va operations.'},
+    SUPER_ADMIN:{icon:'👑',title:'Super Admin / Owner',desc:'Global users, activity, organizations, projects, audit va platform nazorati.'}
+  };
+
+  function currentRole() {
+    return String(state.user?.role || 'student').trim().toLowerCase();
+  }
+  function admin() { return isSuperAdmin(); }
+
+  async function loadPersonalDashboard() {
+    const box=$('roleQuickGrid');
+    const desc=$('roleDashboardDesc');
+    if(!box) return;
+    try {
+      const d=await api('/dashboard/summary');
+      const role=String(d.role||currentRole());
+      const p=d.personal||{};
+      const g=d.global;
+      const cards=[];
+      if(g){
+        cards.push(
+          ['👥', 'Jami foydalanuvchilar', g.total_users],
+          ['🎓', 'Talabalar', g.role_counts?.student||0],
+          ['📘', 'O‘quvchilar', g.role_counts?.school_student||0],
+          ['🔬', 'Tadqiqotchilar', g.role_counts?.researcher||0],
+          ['🩺', 'Shifokorlar', g.role_counts?.doctor||0],
+          ['👨‍🏫', 'Professorlar', g.role_counts?.professor||0],
+          ['🧪', 'Laboratoriyalar', g.role_counts?.lab||0],
+          ['🏢', 'Kompaniyalar', g.role_counts?.company||0]
+        );
+        if(desc) desc.textContent='Owner/Super Admin: butun platforma bo‘yicha umumiy nazorat.';
+      } else {
+        cards.push(
+          ['📚','Mening fanlarim / workspace','Ochish →'],
+          ['🧪','Mening workflowlarim',p.workflows||0],
+          ['🔬','Mening tajribalarim',p.experiments||0],
+          ['📊','Mening hisobotlarim',p.reports||0]
+        );
+        if(desc) desc.textContent=(MEDGEN_ROLES[role]?.desc||'Shaxsiy ish maydoni.');
+      }
+      box.innerHTML=cards.map((x,i)=>{
+        const val=typeof x[2]==='number'?String(x[2]):String(x[2]);
+        return '<div class="personal-stat-card"><span class="stat-icon">'+x[0]+'</span><strong>'+escapeHtml(val)+'</strong><small>'+escapeHtml(x[1])+'</small></div>';
+      }).join('');
+    } catch(e) {
+      if(desc) desc.textContent='Dashboard ma’lumotlarini yuklab bo‘lmadi: '+e.message;
+    }
+  }
+
+  function buildRoleDirectory() {
+    const list=document.getElementById('navModules');
+    if(!list) return;
+    const role=currentRole();
+    const myModules=(MEDGEN_ROLES[role]?.modules||[]);
+    const header='<div class="nav-section-title">MENING ISH MAYDONIM</div>';
+    const mine=myModules.map(m=>'<button class="nav-item" data-my-module="'+escapeHtml(m)+'"><span>•</span><b>'+escapeHtml(m)+'</b></button>').join('');
+    let users='';
+    if(admin()){
+      users='<div class="nav-section-title">FOYDALANUVCHILAR</div>'+
+        Object.entries(ROLE_CARDS).map(([key,v])=>'<button class="nav-item" data-user-role="'+key+'"><span>'+v.icon+'</span><b>'+v.title+'</b></button>').join('');
+    }
+    list.innerHTML=header+mine+users;
+    list.querySelectorAll('[data-my-module]').forEach(b=>b.addEventListener('click',()=>{
+      document.getElementById('navDrawerClose')?.click();
+      openModule(b.dataset.myModule);
+    }));
+    list.querySelectorAll('[data-user-role]').forEach(b=>b.addEventListener('click',()=>{
+      document.getElementById('navDrawerClose')?.click();
+      openUserRoleDashboard(b.dataset.userRole);
+    }));
+  }
+
+  async function openUserRoleDashboard(roleKey) {
+    if(!admin()) return;
+    const panel=$('userDirectoryDashboard');
+    const detail=$('userDirectoryDetail');
+    const cards=$('userDirectoryCards');
+    const title=$('userDirectoryTitle');
+    if(!panel||!cards) return;
+    $('roleDashboard')?.classList.add('hidden');
+    $('educationPreferencePanel')?.classList.add('hidden');
+    $('moduleDirectory')?.classList.add('hidden');
+    $('workspace')?.classList.add('hidden');
+    panel.classList.remove('hidden');
+    title.textContent=(ROLE_CARDS[roleKey]?.icon||'👥')+' '+(ROLE_CARDS[roleKey]?.title||roleKey);
+    detail?.classList.add('hidden');
+    cards.innerHTML='<div class="status">Yuklanmoqda...</div>';
+    try {
+      const d=await api('/admin/users');
+      const users=(d.users||[]).filter(u=>{
+        const r=String(u.role||'student');
+        return roleKey==='SUPER_ADMIN' ? r.toUpperCase()==='SUPER_ADMIN' : r.toLowerCase()===roleKey.toLowerCase();
+      });
+      cards.innerHTML=
+        '<div class="role-summary-main"><span>'+ (ROLE_CARDS[roleKey]?.icon||'👥') +'</span><strong>'+users.length+'</strong><small>'+escapeHtml(ROLE_CARDS[roleKey]?.title||roleKey)+'</small></div>'+
+        '<div class="role-user-list">'+(users.length?users.map(u=>{
+          const p=u.profile||{};
+          const ap=p.academic_profile||{};
+          return '<button class="role-user-row" data-role-user="'+escapeHtml(u.username)+'"><b>'+escapeHtml(p.full_name||u.username)+'</b><span>'+escapeHtml(u.username)+'</span><small>'+escapeHtml(ap.university||p.organization||'')+'</small></button>';
+        }).join(''):'<div class="muted">Hozircha foydalanuvchi yo‘q.</div>')+'</div>';
+      cards.querySelectorAll('[data-role-user]').forEach(row=>row.addEventListener('click',()=>{
+        const user=users.find(x=>x.username===row.dataset.roleUser);
+        showAdminUserDetail(user);
+      }));
+    } catch(e) { cards.innerHTML='<div class="status">❌ '+escapeHtml(e.message)+'</div>'; }
+  }
+
+  function showAdminUserDetail(user) {
+    const d=$('userDirectoryDetail'); if(!d||!user) return;
+    const p=user.profile||{}, ap=p.academic_profile||{};
+    d.classList.remove('hidden');
+    d.innerHTML='<h3>👤 '+escapeHtml(p.full_name||user.username)+'</h3>'+
+      '<div class="user-detail-grid">'+
+      '<span>Username<strong>'+escapeHtml(user.username)+'</strong></span>'+
+      '<span>Role<strong>'+escapeHtml(user.role||'')+'</strong></span>'+
+      '<span>Mamlakat<strong>'+escapeHtml(ap.country_code||p.country||'')+'</strong></span>'+
+      '<span>Universitet<strong>'+escapeHtml(ap.university||'')+'</strong></span>'+
+      '<span>Fakultet<strong>'+escapeHtml(ap.faculty||'')+'</strong></span>'+
+      '<span>Yo‘nalish<strong>'+escapeHtml(ap.major||'')+'</strong></span>'+
+      '<span>Kurs<strong>'+escapeHtml(String(ap.year||''))+'</strong></span>'+
+      '<span>Guruh<strong>'+escapeHtml(ap.group||'')+'</strong></span>'+
+      '</div>';
+  }
+
+  async function loadAcademyCatalogForProfile() {
+    const countrySelect=$('profileAcademicCountry'), list=$('profileUniversityList');
+    if(!countrySelect) return;
+    try {
+      const data=await api('/academy/catalog');
+      const countries=data.countries||[];
+      countrySelect.innerHTML=countries.map(x=>'<option value="'+escapeHtml(x.code)+'">'+escapeHtml(x.name)+' ('+escapeHtml(x.code)+')</option>').join('');
+      const guessed=(function(){
+        const tz=Intl.DateTimeFormat().resolvedOptions().timeZone||'';
+        const lang=(navigator.language||'').toLowerCase();
+        if(tz.includes('Tashkent')||lang.endsWith('-uz')) return 'UZ';
+        if(lang.endsWith('-tr')) return 'TR';
+        if(lang.endsWith('-de')) return 'DE';
+        if(lang.endsWith('-fr')) return 'FR';
+        if(lang.endsWith('-ru')) return 'RU';
+        if(lang.endsWith('-en-us')) return 'US';
+        if(lang.endsWith('-en-gb')) return 'GB';
+        return 'UZ';
+      })();
+      const existing=countrySelect.dataset.value||countrySelect.value;
+      countrySelect.value=(countries.some(x=>x.code===existing)?existing:guessed);
+      const renderUniversities=()=>{
+        const vals=data.universities?.[countrySelect.value]||['Other / enter manually'];
+        if(list) list.innerHTML=vals.map(x=>'<option value="'+escapeHtml(x)+'"></option>').join('');
+      };
+      countrySelect.addEventListener('change',renderUniversities);
+      renderUniversities();
+    } catch(_) {}
+  }
+
+  function boot() {
+    const panel=$('userDirectoryDashboard');
+    if(!panel) return;
+    document.getElementById('moduleDirectory')?.classList.add('phase1-module-directory');
+    buildRoleDirectory();
+    loadPersonalDashboard();
+    loadAcademyCatalogForProfile();
+
+    document.getElementById('userDirectoryBack')?.addEventListener('click',()=>{
+      panel.classList.add('hidden');
+      $('roleDashboard')?.classList.remove('hidden');
+      $('moduleDirectory')?.classList.add('hidden');
+      loadPersonalDashboard();
+    });
+
+    // Education settings are a menu item, not a permanent giant dashboard card.
+    const oldEdu=document.querySelector('[data-nav="education"]');
+    if(oldEdu) oldEdu.addEventListener('click',()=>{
+      $('roleDashboard')?.classList.add('hidden');
+      $('moduleDirectory')?.classList.add('hidden');
+      $('workspace')?.classList.add('hidden');
+      $('educationPreferencePanel')?.classList.remove('hidden');
+    });
+
+    // Rebuild role navigation after every login because role becomes known then.
+    window.medgenRefreshRoleNavigation=buildRoleDirectory;
+  }
+  if(document.readyState==='loading') document.addEventListener('DOMContentLoaded',boot,{once:true}); else boot();
+})();
+
+// Keep the module area and education settings out of the permanent dashboard.
+(function enforceSingleHomeView(){
+  function apply(){
+    $('moduleDirectory')?.classList.add('hidden');
+    $('educationPreferencePanel')?.classList.add('hidden');
+    $('userDirectoryDashboard')?.classList.add('hidden');
+  }
+  if(document.readyState==='loading') document.addEventListener('DOMContentLoaded',apply,{once:true}); else apply();
+})();
+
+// Patch module navigation so every module is a separate workspace.
+(function patchModuleNavigation(){
+  const original=openModule;
+  window.openModule=function(moduleName){
+    $('roleDashboard')?.classList.add('hidden');
+    $('userDirectoryDashboard')?.classList.add('hidden');
+    $('educationPreferencePanel')?.classList.add('hidden');
+    $('moduleDirectory')?.classList.add('hidden');
+    original(moduleName);
+  };
+  const originalClose=closeWorkspace;
+  window.closeWorkspace=function(){
+    originalClose();
+    $('workspace')?.classList.add('hidden');
+    $('roleDashboard')?.classList.remove('hidden');
+    if(window.medgenRefreshRoleNavigation) window.medgenRefreshRoleNavigation();
+    loadPersonalDashboardSafe();
+  };
+  async function loadPersonalDashboardSafe(){
+    try{
+      const d=await api('/dashboard/summary');
+      const q=$('roleQuickGrid'); if(!q) return;
+      if(d.global){
+        const g=d.global;
+        q.innerHTML=[
+          ['👥','Jami foydalanuvchilar',g.total_users],
+          ['🎓','Talabalar',g.role_counts?.student||0],
+          ['📘','O‘quvchilar',g.role_counts?.school_student||0],
+          ['🔬','Tadqiqotchilar',g.role_counts?.researcher||0],
+          ['🩺','Shifokorlar',g.role_counts?.doctor||0],
+          ['👨‍🏫','Professorlar',g.role_counts?.professor||0],
+          ['🧪','Laboratoriyalar',g.role_counts?.lab||0],
+          ['🏢','Kompaniyalar',g.role_counts?.company||0]
+        ].map(x=>'<div class="personal-stat-card"><span class="stat-icon">'+x[0]+'</span><strong>'+x[2]+'</strong><small>'+x[1]+'</small></div>').join('');
+      }
+    }catch(_){}
+  }
 })();
