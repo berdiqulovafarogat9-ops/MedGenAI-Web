@@ -1030,7 +1030,23 @@ async function login() {
         t('loginSuccessful');
     }
 
-    await loadCurrentUser();
+    // Login token is already valid at this point.
+    // Do not block the dashboard if the optional /auth/me profile
+    // request fails or is unavailable.
+    try {
+      const me = await loadCurrentUser();
+      if (!me) {
+        state.user = data?.user || {
+          username,
+          role: 'student'
+        };
+      }
+    } catch (_) {
+      state.user = data?.user || {
+        username,
+        role: 'student'
+      };
+    }
 
     showDashboard();
 
