@@ -259,6 +259,13 @@ class SequenceRequest(BaseModel):
     sequence_type: str = "AUTO"
 
 
+class EducationPreferenceRequest(BaseModel):
+    mode: str = "GLOBAL"
+    country_code: str = "INTL"
+    education_level: str = "UNIVERSITY"
+    language: str = "en"
+
+
 # =========================================================
 # AUTH FUNCTIONS
 # =========================================================
@@ -433,6 +440,66 @@ def me(
             consent.get("research_disclaimer_accepted", False),
         ]),
     }
+
+
+# =========================================================
+# EDUCATION PREFERENCES — GLOBAL OR COUNTRY-SPECIFIC
+# =========================================================
+
+EDUCATION_MODES = {"GLOBAL", "COUNTRY"}
+EDUCATION_LEVELS = {"SCHOOL", "COLLEGE", "UNIVERSITY", "POSTGRADUATE", "RESEARCH"}
+EDUCATION_LANGUAGES = {"en", "uz", "ru", "es", "fr", "de", "pt", "ar", "zh", "ja", "ko", "hi", "tr"}
+
+@app.get("/api/v1/education/preferences")
+def get_education_preferences(user=Depends(get_current_user)):
+    profile = user_profiles.setdefault(user["username"], {})
+    preferences = profile.get("education_preferences") or {
+        "mode": "GLOBAL",
+        "country_code": "INTL",
+        "education_level": "UNIVERSITY",
+        "language": "en",
+    }
+    return {"status": "ok", "preferences": preferences}
+
+
+@app.put("/api/v1/education/preferences")
+def update_education_preferences(
+    data: EducationPreferenceRequest,
+    user=Depends(get_current_user),
+):
+    mode = str(data.mode or "GLOBAL").upper().strip()
+    country_code = str(data.country_code or "INTL").upper().strip()
+    education_level = str(data.education_level or "UNIVERSITY").upper().strip()
+    language = str(data.language or "en").lower().strip()
+
+    if mode not in EDUCATION_MODES:
+        raise HTTPException(status_code=400, detail="mode must be GLOBAL or COUNTRY.")
+    if mode == "COUNTRY" and (len(country_code) != 2 or country_code == "INTL"):
+        raise HTTPException(status_code=400, detail="A valid ISO-style two-letter country code is required for COUNTRY mode.")
+    if mode == "GLOBAL":
+        country_code = "INTL"
+    if education_level not in EDUCATION_LEVELS:
+        raise HTTPException(status_code=400, detail="Invalid education level.")
+    if language not in EDUCATION_LANGUAGES:
+        raise HTTPException(status_code=400, detail="Unsupported education language.")
+
+    preferences = {
+        "mode": mode,
+        "country_code": country_code,
+        "education_level": education_level,
+        "language": language,
+        "updated_at": datetime.now(timezone.utc).isoformat(),
+    }
+    user_profiles.setdefault(user["username"], {})["education_preferences"] = preferences
+    activity_log.insert(0, {
+        "type": "education_preferences_updated",
+        "username": user["username"],
+        "mode": mode,
+        "country_code": country_code,
+        "at": preferences["updated_at"],
+    })
+    _db_save()
+    return {"status": "saved", "preferences": preferences}
 
 
 @app.post("/api/v1/auth/logout")
