@@ -2706,3 +2706,458 @@ try:
     _db_load()
 except Exception as exc:
     print(f"MedGen state initialization skipped: {exc}")
+
+# =========================================================
+# PHASE 1 — MEDICAL ACADEMY CORE (FINALIZED FOUNDATION)
+# =========================================================
+
+ACADEMY_COURSES = {
+    1: {
+        "title": "1-kurs — Fundamental fanlar",
+        "subjects": [
+            ("Anatomy", "Anatomiya", "human body structure"),
+            ("Histology", "Gistologiya", "tissue structure"),
+            ("Physiology", "Fiziologiya", "normal body function"),
+            ("Biochemistry", "Biokimyo", "molecular processes of life"),
+            ("Genetics", "Genetika", "genes and inheritance"),
+            ("Microbiology", "Mikrobiologiya", "microorganisms and infection"),
+            ("Immunology", "Immunologiya", "immune system"),
+            ("Pathology", "Patologiya", "mechanisms of disease"),
+            ("Medical terminology", "Tibbiy terminologiya", "medical language"),
+            ("Public health", "Jamoat salomatligi", "population health"),
+        ],
+    },
+    2: {"title": "2-kurs — Preklinik fanlar", "subjects": [
+        ("Pathophysiology", "Patofiziologiya", "mechanisms of altered function"),
+        ("Pharmacology", "Farmakologiya", "drug actions and safety"),
+        ("Clinical biochemistry", "Klinik biokimyo", "laboratory interpretation"),
+        ("Medical microbiology", "Tibbiy mikrobiologiya", "pathogens and diagnosis"),
+        ("Immunopathology", "Immunopatologiya", "immune-mediated disease"),
+        ("Genomic medicine", "Genom tibbiyoti", "genomic medicine"),
+        ("Topographic anatomy", "Topografik anatomiya", "anatomical relationships"),
+        ("Operative surgery", "Operativ xirurgiya", "surgical principles"),
+        ("Radiology basics", "Radiologiya asoslari", "medical imaging principles"),
+        ("Medical statistics", "Tibbiy statistika", "evidence and statistics"),
+    ]},
+    3: {"title": "3-kurs — Klinik fanlarga kirish", "subjects": [
+        ("Internal medicine", "Ichki kasalliklar", "clinical assessment"),
+        ("General surgery", "Umumiy xirurgiya", "surgical assessment"),
+        ("Pediatrics", "Pediatriya", "child health"),
+        ("Obstetrics and gynecology", "Akusherlik va ginekologiya", "maternal health"),
+        ("Neurology", "Nevrologiya", "nervous system disorders"),
+        ("Infectious diseases", "Yuqumli kasalliklar", "infectious syndromes"),
+        ("Dermatology", "Dermatologiya", "skin disease"),
+        ("ENT", "Otorinolaringologiya", "ear nose throat"),
+        ("Ophthalmology", "Oftalmologiya", "eye disease"),
+        ("Clinical pharmacology", "Klinik farmakologiya", "safe prescribing"),
+    ]},
+    4: {"title": "4-kurs — Klinik chuqurlashtirish", "subjects": [
+        ("Cardiology", "Kardiologiya", "cardiovascular disease"),
+        ("Pulmonology", "Pulmonologiya", "respiratory disease"),
+        ("Gastroenterology", "Gastroenterologiya", "digestive disease"),
+        ("Nephrology", "Nefrologiya", "kidney disease"),
+        ("Endocrinology", "Endokrinologiya", "endocrine disease"),
+        ("Hematology", "Gematologiya", "blood disorders"),
+        ("Rheumatology", "Revmatologiya", "rheumatic disease"),
+        ("Oncology", "Onkologiya", "cancer medicine"),
+        ("Clinical genetics", "Klinik genetika", "genetic disorders"),
+        ("Emergency medicine", "Shoshilinch tibbiyot", "acute care"),
+    ]},
+    5: {"title": "5-kurs — Klinik amaliyot", "subjects": [
+        ("Advanced internal medicine", "Ichki kasalliklar II", "complex medical care"),
+        ("Advanced surgery", "Xirurgiya II", "advanced surgical care"),
+        ("Anesthesiology", "Anesteziologiya", "perioperative care"),
+        ("Traumatology", "Travmatologiya", "trauma care"),
+        ("Critical care", "Reanimatologiya", "critical illness"),
+        ("Family medicine", "Oilaviy tibbiyot", "primary care"),
+        ("Psychiatry", "Psixiatriya", "mental health"),
+        ("Urology", "Urologiya", "urinary and male reproductive health"),
+        ("Clinical nutrition", "Klinik ovqatlanish", "nutrition in disease"),
+        ("Medical ethics", "Tibbiy etika", "professional practice"),
+    ]},
+    6: {"title": "6-kurs — Integratsion klinik tayyorgarlik", "subjects": [
+        ("Integrated medicine", "Integratsion tibbiyot", "integrated clinical reasoning"),
+        ("Integrated surgery", "Integratsion xirurgiya", "integrated surgical reasoning"),
+        ("Clinical decision making", "Klinik qaror qabul qilish", "structured clinical reasoning"),
+        ("Evidence-based medicine", "Dalillarga asoslangan tibbiyot", "evidence appraisal"),
+        ("Clinical research", "Klinik tadqiqot", "research methods"),
+        ("Health systems", "Sog‘liqni saqlash tizimlari", "health systems"),
+        ("Rehabilitation", "Reabilitatsiya", "functional recovery"),
+        ("Palliative care", "Palliativ yordam", "symptom-focused care"),
+        ("Disaster medicine", "Falokatlar tibbiyoti", "mass-casualty principles"),
+        ("Final OSCE", "Yakuniy OSCE", "integrated practical skills"),
+    ]},
+}
+
+ACADEMY_ASSESSMENT_TYPES = ("theory", "practice", "quiz", "case", "exam")
+
+def _academy_subject(course: int, subject_id: str):
+    course_data = ACADEMY_COURSES.get(course)
+    if not course_data:
+        raise HTTPException(status_code=404, detail="Course not found.")
+    for sid, name, objective in course_data["subjects"]:
+        if sid == subject_id:
+            return {"id": sid, "name": name, "objective": objective}
+    raise HTTPException(status_code=404, detail="Subject not found.")
+
+def _academy_profile(username: str):
+    p = user_profiles.setdefault(username, {})
+    ap = p.setdefault("academic_profile", {})
+    defaults = {
+        "country_code": "",
+        "education_mode": "GLOBAL",
+        "university": "",
+        "faculty": "",
+        "major": "",
+        "year": 1,
+        "group": "",
+        "student_id": "",
+        "study_language": "en",
+        "academic_degree": "MD/MBBS",
+    }
+    for k, v in defaults.items():
+        ap.setdefault(k, v)
+    return ap
+
+def _academy_progress(username: str):
+    p = user_profiles.setdefault(username, {})
+    return p.setdefault("academy_progress", {})
+
+def _academy_key(course: int, subject_id: str):
+    return f"{course}:{subject_id}"
+
+def _academy_question_bank(course: int, subject: dict):
+    topic = subject["objective"]
+    sid = subject["id"]
+    base = [
+        {
+            "id": f"{course}-{sid}-q1",
+            "question": f"Which statement best describes {topic}?",
+            "options": [
+                f"It is a core concept of {topic}.",
+                "It is unrelated to biomedical science.",
+                "It is only an administrative process.",
+                "It has no measurable scientific basis.",
+            ],
+            "answer": 0,
+            "explanation": f"The first option states the intended core learning objective: {topic}.",
+        },
+        {
+            "id": f"{course}-{sid}-q2",
+            "question": f"What is the safest learning approach when studying {topic}?",
+            "options": [
+                "Learn the mechanism, practice it, then verify with assessment.",
+                "Skip theory and memorize a final answer.",
+                "Treat every simulation as real-patient care.",
+                "Use an unverified source as the only authority.",
+            ],
+            "answer": 0,
+            "explanation": "Medical Academy separates theory, practice, assessment and supervised simulation.",
+        },
+        {
+            "id": f"{course}-{sid}-q3",
+            "question": f"Why is {topic} important in medical education?",
+            "options": [
+                "It supports structured scientific and clinical reasoning.",
+                "It replaces all laboratory and clinical evidence.",
+                "It guarantees a diagnosis without examination.",
+                "It removes the need for qualified supervision.",
+            ],
+            "answer": 0,
+            "explanation": "Educational knowledge supports reasoning but does not replace real clinical validation.",
+        },
+        {
+            "id": f"{course}-{sid}-q4",
+            "question": f"Which action improves mastery of {topic}?",
+            "options": [
+                "Recall, apply, explain and review errors.",
+                "Only reread the same paragraph.",
+                "Ignore incorrect answers.",
+                "Avoid practice until the final exam.",
+            ],
+            "answer": 0,
+            "explanation": "Active recall, application and error review are appropriate learning methods.",
+        },
+        {
+            "id": f"{course}-{sid}-q5",
+            "question": f"When should a student revisit {topic}?",
+            "options": [
+                "After practice or an assessment exposes a knowledge gap.",
+                "Never after passing one question.",
+                "Only after graduation.",
+                "Only when a patient is waiting.",
+            ],
+            "answer": 0,
+            "explanation": "Assessment results should drive targeted review.",
+        },
+        {
+            "id": f"{course}-{sid}-q6",
+            "question": f"What is a correct interpretation of a MedGen AI {topic} simulation?",
+            "options": [
+                "An educational exercise, not an independent clinical authorization.",
+                "A legally binding clinical order.",
+                "A guaranteed treatment recommendation.",
+                "A substitute for a licensed clinician.",
+            ],
+            "answer": 0,
+            "explanation": "The Academy is educational; clinical decisions require qualified professionals and validated evidence.",
+        },
+        {
+            "id": f"{course}-{sid}-q7",
+            "question": f"Which evidence hierarchy principle applies while learning {topic}?",
+            "options": [
+                "Use reliable, current sources and critically evaluate evidence.",
+                "Accept every generated answer as fact.",
+                "Prefer anonymous claims over validated evidence.",
+                "Ignore uncertainty.",
+            ],
+            "answer": 0,
+            "explanation": "Scientific learning requires source criticism and explicit uncertainty.",
+        },
+        {
+            "id": f"{course}-{sid}-q8",
+            "question": f"What should be recorded after a {topic} practice session?",
+            "options": [
+                "Performance, errors, feedback and next learning objective.",
+                "Only the final score.",
+                "Nothing if the attempt was difficult.",
+                "Only a screenshot.",
+            ],
+            "answer": 0,
+            "explanation": "A useful academic record captures progress and remediation needs.",
+        },
+        {
+            "id": f"{course}-{sid}-q9",
+            "question": f"How does {topic} connect to other medical subjects?",
+            "options": [
+                "Biomedical subjects are integrated through mechanisms and clinical reasoning.",
+                "Each subject is completely isolated.",
+                "Integration is never needed.",
+                "Only one subject can be scientifically valid.",
+            ],
+            "answer": 0,
+            "explanation": "Medical education progressively integrates foundational and clinical knowledge.",
+        },
+        {
+            "id": f"{course}-{sid}-q10",
+            "question": f"What should happen after a weak result in {topic}?",
+            "options": [
+                "Review the gap, repeat targeted practice and reassess.",
+                "Automatically promote the student.",
+                "Delete the academic record.",
+                "Treat the score as a clinical diagnosis.",
+            ],
+            "answer": 0,
+            "explanation": "Remediation and reassessment are more meaningful than a one-question promotion rule.",
+        },
+    ]
+    cases = [
+        {
+            "id": f"{course}-{sid}-case1",
+            "scenario": f"A student is learning {topic} and makes a systematic error during a simulated exercise.",
+            "prompt": "What is the best next step?",
+            "options": ["Identify the error, review the relevant concept and repeat practice.", "Ignore it.", "Use the result as a patient diagnosis.", "Skip all future assessments."],
+            "answer": 0,
+        },
+        {
+            "id": f"{course}-{sid}-case2",
+            "scenario": f"A learning resource gives a confident but unsupported statement about {topic}.",
+            "prompt": "What should the student do?",
+            "options": ["Check reliable sources and mark uncertainty before accepting it.", "Accept it because it sounds confident.", "Publish it as clinical guidance.", "Remove the uncertainty."],
+            "answer": 0,
+        },
+        {
+            "id": f"{course}-{sid}-case3",
+            "scenario": f"A simulated {topic} task has a low score.",
+            "prompt": "Which educational response is appropriate?",
+            "options": ["Target the weak objectives, practice again and reassess.", "Promote immediately.", "Hide the result.", "Stop studying the subject."],
+            "answer": 0,
+        },
+    ]
+    return {"quiz": base, "exam": base + base, "case": cases}
+
+class AcademyProfileRequest(BaseModel):
+    country_code: str = ""
+    education_mode: str = "GLOBAL"
+    university: str = ""
+    faculty: str = ""
+    major: str = ""
+    year: int = 1
+    group: str = ""
+    student_id: str = ""
+    study_language: str = "en"
+    academic_degree: str = "MD/MBBS"
+
+class AcademyAssessmentStartRequest(BaseModel):
+    course: int
+    subject_id: str
+    assessment_type: str
+
+class AcademyAssessmentSubmitRequest(BaseModel):
+    course: int
+    subject_id: str
+    assessment_type: str
+    answers: dict[str, int]
+
+@app.get("/api/v1/academy/profile")
+def academy_get_profile(user=Depends(get_current_user)):
+    return {"status": "ok", "profile": _academy_profile(user["username"])}
+
+@app.put("/api/v1/academy/profile")
+def academy_update_profile(data: AcademyProfileRequest, user=Depends(get_current_user)):
+    mode = str(data.education_mode or "GLOBAL").upper()
+    if mode not in {"GLOBAL", "COUNTRY"}:
+        raise HTTPException(status_code=400, detail="education_mode must be GLOBAL or COUNTRY.")
+    if mode == "COUNTRY" and not re.fullmatch(r"[A-Z]{2}", str(data.country_code or "").upper()):
+        raise HTTPException(status_code=400, detail="Country code must be two letters in COUNTRY mode.")
+    if not 1 <= int(data.year) <= 6:
+        raise HTTPException(status_code=400, detail="University course must be between 1 and 6.")
+    if not str(data.university).strip():
+        raise HTTPException(status_code=400, detail="University is required.")
+    if not str(data.faculty).strip():
+        raise HTTPException(status_code=400, detail="Faculty is required.")
+    if not str(data.major).strip():
+        raise HTTPException(status_code=400, detail="Major is required.")
+    if not str(data.group).strip():
+        raise HTTPException(status_code=400, detail="Group is required.")
+    profile = _academy_profile(user["username"])
+    profile.update({
+        "country_code": str(data.country_code or "").upper() if mode == "COUNTRY" else "INTL",
+        "education_mode": mode,
+        "university": str(data.university).strip()[:200],
+        "faculty": str(data.faculty).strip()[:200],
+        "major": str(data.major).strip()[:200],
+        "year": int(data.year),
+        "group": str(data.group).strip()[:100],
+        "student_id": str(data.student_id or "").strip()[:100],
+        "study_language": str(data.study_language or "en").lower()[:10],
+        "academic_degree": str(data.academic_degree or "MD/MBBS").strip()[:100],
+        "updated_at": datetime.now(timezone.utc).isoformat(),
+    })
+    activity_log.insert(0, {"type": "academy_profile_updated", "username": user["username"], "at": profile["updated_at"]})
+    _db_save()
+    return {"status": "saved", "profile": profile}
+
+@app.get("/api/v1/academy/curriculum")
+def academy_curriculum(user=Depends(get_current_user)):
+    ap = _academy_profile(user["username"])
+    mode = ap.get("education_mode", "GLOBAL")
+    return {
+        "status": "ok",
+        "mode": mode,
+        "country_code": ap.get("country_code", "INTL"),
+        "courses": {
+            str(k): {
+                "title": v["title"],
+                "subjects": [{"id": s[0], "name": s[1], "objective": s[2]} for s in v["subjects"]],
+            } for k, v in ACADEMY_COURSES.items()
+        },
+        "note": "Curriculum is an educational framework; official university promotion remains the responsibility of the institution."
+    }
+
+@app.get("/api/v1/academy/subject/{course}/{subject_id:path}")
+def academy_subject(course: int, subject_id: str, user=Depends(get_current_user)):
+    subject = _academy_subject(course, subject_id)
+    bank = _academy_question_bank(course, subject)
+    return {
+        "status": "ok",
+        "course": course,
+        "subject": subject,
+        "modules": {
+            "theory": [
+                {"id": f"{course}-{subject_id}-theory-1", "title": "Core concepts", "objective": subject["objective"]},
+                {"id": f"{course}-{subject_id}-theory-2", "title": "Mechanisms and integration", "objective": "Explain, compare and connect the major concepts."},
+                {"id": f"{course}-{subject_id}-theory-3", "title": "Evidence and safety", "objective": "Recognize uncertainty and use reliable sources."},
+            ],
+            "practice": [
+                {"id": f"{course}-{subject_id}-practice-1", "title": "Guided practice", "task": f"Explain the main mechanism of {subject['objective']} in your own words."},
+                {"id": f"{course}-{subject_id}-practice-2", "title": "Application exercise", "task": "Apply the concept to a structured educational example and record errors."},
+                {"id": f"{course}-{subject_id}-practice-3", "title": "Integration exercise", "task": "Connect this subject with at least two other medical subjects."},
+            ],
+            "quiz": {"count": len(bank["quiz"]), "passing_score": 70},
+            "case": {"count": len(bank["case"]), "passing_score": 70},
+            "exam": {"count": len(bank["exam"]), "passing_score": 70},
+        }
+    }
+
+@app.post("/api/v1/academy/assessment/start")
+def academy_start_assessment(data: AcademyAssessmentStartRequest, user=Depends(get_current_user)):
+    if data.assessment_type not in ACADEMY_ASSESSMENT_TYPES:
+        raise HTTPException(status_code=400, detail="Invalid assessment type.")
+    subject = _academy_subject(data.course, data.subject_id)
+    bank = _academy_question_bank(data.course, subject)
+    if data.assessment_type in {"theory", "practice"}:
+        items = [{"id": f"{data.course}-{data.subject_id}-{data.assessment_type}-1", "prompt": f"Complete the {data.assessment_type} learning activity for {subject['objective']}.", "instruction": "Submit completion only after you have actually performed the activity."}]
+    elif data.assessment_type == "case":
+        items = [{"id": q["id"], "scenario": q["scenario"], "prompt": q["prompt"], "options": q["options"]} for q in bank["case"]]
+    else:
+        pool = bank["quiz"]
+        items = [{"id": q["id"], "question": q["question"], "options": q["options"]} for q in pool]
+        if data.assessment_type == "exam":
+            items = [{"id": q["id"], "question": q["question"], "options": q["options"]} for q in bank["exam"]]
+    return {"status": "started", "course": data.course, "subject_id": data.subject_id, "assessment_type": data.assessment_type, "items": items, "time_limit_minutes": 45 if data.assessment_type == "exam" else None}
+
+@app.post("/api/v1/academy/assessment/submit")
+def academy_submit_assessment(data: AcademyAssessmentSubmitRequest, user=Depends(get_current_user)):
+    if data.assessment_type not in ACADEMY_ASSESSMENT_TYPES:
+        raise HTTPException(status_code=400, detail="Invalid assessment type.")
+    subject = _academy_subject(data.course, data.subject_id)
+    bank = _academy_question_bank(data.course, subject)
+    if data.assessment_type in {"theory", "practice"}:
+        score = 100 if data.answers.get("completion") == 1 else 0
+        total = 1
+    else:
+        questions = bank["case"] if data.assessment_type == "case" else (bank["exam"] if data.assessment_type == "exam" else bank["quiz"])
+        correct = sum(1 for q in questions if data.answers.get(q["id"]) == q["answer"])
+        total = len(questions)
+        score = round(correct * 100 / total) if total else 0
+    key = _academy_key(data.course, data.subject_id)
+    progress = _academy_progress(user["username"])
+    record = progress.setdefault(key, {})
+    record[data.assessment_type] = {
+        "score": score,
+        "passed": score >= 70,
+        "attempts": int(record.get(data.assessment_type, {}).get("attempts", 0)) + 1,
+        "updated_at": datetime.now(timezone.utc).isoformat(),
+    }
+    _db_save()
+    return {"status": "recorded", "score": score, "passed": score >= 70, "total": total, "progress": record}
+
+@app.get("/api/v1/academy/dashboard")
+def academy_dashboard(user=Depends(get_current_user)):
+    ap = _academy_profile(user["username"])
+    progress = _academy_progress(user["username"])
+    course = int(ap.get("year", 1))
+    subjects = []
+    for sid, name, objective in ACADEMY_COURSES[course]["subjects"]:
+        record = progress.get(_academy_key(course, sid), {})
+        passed = [x for x in ACADEMY_ASSESSMENT_TYPES if record.get(x, {}).get("passed")]
+        subjects.append({
+            "id": sid, "name": name, "objective": objective,
+            "completed_assessments": passed,
+            "complete": all(x in passed for x in ACADEMY_ASSESSMENT_TYPES),
+            "record": record,
+        })
+    complete_count = sum(1 for s in subjects if s["complete"])
+    overall = round(complete_count * 100 / len(subjects)) if subjects else 0
+    return {"status": "ok", "course": course, "course_title": ACADEMY_COURSES[course]["title"], "overall_progress": overall, "subjects": subjects, "academic_profile": ap}
+
+@app.get("/api/v1/academy/eligibility/{course}")
+def academy_eligibility(course: int, user=Depends(get_current_user)):
+    if course not in ACADEMY_COURSES:
+        raise HTTPException(status_code=404, detail="Course not found.")
+    progress = _academy_progress(user["username"])
+    requirements = []
+    for sid, name, _ in ACADEMY_COURSES[course]["subjects"]:
+        rec = progress.get(_academy_key(course, sid), {})
+        ok = all(rec.get(t, {}).get("passed", False) for t in ACADEMY_ASSESSMENT_TYPES)
+        requirements.append({"subject_id": sid, "subject": name, "ready": ok})
+    ready = bool(requirements) and all(x["ready"] for x in requirements)
+    return {
+        "status": "ok",
+        "course": course,
+        "eligible_for_next_course": ready and course < max(ACADEMY_COURSES),
+        "course_complete": ready,
+        "requirements": requirements,
+        "rule": "Promotion requires completion of theory, practice, case, quiz and exam for every subject; no three-question shortcut exists."
+    }
