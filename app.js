@@ -1669,15 +1669,20 @@ function ensureAdminDashboard() {
 function showLogin() {
   const loginView = $('loginView');
   const dashboardView = $('dashboardView');
+
   if (dashboardView) {
     dashboardView.classList.add('hidden');
-    dashboardView.style.display = 'none';
+    dashboardView.hidden = true;
+    dashboardView.style.setProperty('display', 'none', 'important');
+    dashboardView.style.setProperty('visibility', 'hidden', 'important');
   }
+
   if (loginView) {
     loginView.classList.remove('hidden');
-    loginView.style.display = 'grid';
-    loginView.style.visibility = 'visible';
-    loginView.style.opacity = '1';
+    loginView.hidden = false;
+    loginView.style.setProperty('display', 'grid', 'important');
+    loginView.style.setProperty('visibility', 'visible', 'important');
+    loginView.style.setProperty('opacity', '1', 'important');
   }
 }
 
@@ -1685,17 +1690,22 @@ function showDashboard() {
   const loginView = $('loginView');
   const dashboardView = $('dashboardView');
 
-  // Explicit inline display wins over stale/cached CSS or hidden classes.
+  // Use both the HTML hidden property and !important inline styles.
+  // This removes every possible conflict with the .hidden CSS class.
   if (loginView) {
     loginView.classList.add('hidden');
-    loginView.style.display = 'none';
+    loginView.hidden = true;
+    loginView.style.setProperty('display', 'none', 'important');
+    loginView.style.setProperty('visibility', 'hidden', 'important');
   }
 
   if (dashboardView) {
     dashboardView.classList.remove('hidden');
-    dashboardView.style.display = 'block';
-    dashboardView.style.visibility = 'visible';
-    dashboardView.style.opacity = '1';
+    dashboardView.hidden = false;
+    dashboardView.style.setProperty('display', 'block', 'important');
+    dashboardView.style.setProperty('visibility', 'visible', 'important');
+    dashboardView.style.setProperty('opacity', '1', 'important');
+    dashboardView.style.setProperty('min-height', '100vh', 'important');
   }
 
   try { checkHealth(); } catch (_) {}
