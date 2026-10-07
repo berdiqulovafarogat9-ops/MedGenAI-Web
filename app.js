@@ -4002,3 +4002,174 @@ if (document.readyState === "loading") {
 } else {
   initEducationPreferences();
 }
+
+
+/* =========================================================
+   PHASE 1 — MEDICAL ACADEMY UI
+   Full academic profile + per-subject assessments
+========================================================= */
+(function initPhase1AcademyUI() {
+  const boot = () => {
+    if (document.getElementById('phase1AcademyPanel')) return;
+    const studentTool = document.getElementById('studentTool');
+    if (!studentTool) return;
+
+    const panel = document.createElement('section');
+    panel.id = 'phase1AcademyPanel';
+    panel.className = 'tool';
+    panel.innerHTML = `
+      <div class="student-hero">
+        <div>
+          <p class="eyebrow">PHASE 1 • MEDICAL ACADEMY</p>
+          <h2>To‘liq akademik profil va o‘quv tizimi</h2>
+          <p class="muted">Har bir fan: <b>Nazariya → Mashq → Quiz → Case → Imtihon</b>. Kurs o‘tishi 3 ta savol bilan belgilanmaydi.</p>
+        </div>
+        <div class="student-progress"><b id="p1Overall">0%</b><span>PROGRESS</span></div>
+      </div>
+
+      <div class="card-grid">
+        <div class="card">
+          <h3>🎓 Shaxsiy akademik profil</h3>
+          <div class="p1-grid">
+            <label>Ta’lim tizimi<select id="p1Mode"><option value="GLOBAL">Global / International</option><option value="COUNTRY">Mening mamlakatim</option></select></label>
+            <label>Mamlakat kodi<input id="p1Country" placeholder="UZ"></label>
+            <label>Universitet<input id="p1University" placeholder="University"></label>
+            <label>Fakultet<input id="p1Faculty" placeholder="Faculty"></label>
+            <label>Yo‘nalish<input id="p1Major" placeholder="Davolash ishi / Medicine"></label>
+            <label>Kurs<select id="p1Year"><option>1</option><option>2</option><option>3</option><option>4</option><option>5</option><option>6</option></select></label>
+            <label>Guruh<input id="p1Group" placeholder="Group"></label>
+            <label>Student ID <span class="muted">(ixtiyoriy)</span><input id="p1StudentId"></label>
+            <label>O‘qish tili<input id="p1Language" value="en" placeholder="en"></label>
+            <label>Akademik daraja<input id="p1Degree" value="MD/MBBS"></label>
+          </div>
+          <button id="p1SaveProfile" class="primary small" type="button">💾 Akademik profilni saqlash</button>
+          <div id="p1ProfileStatus" class="status"></div>
+        </div>
+
+        <div class="card">
+          <h3>📊 Kurs nazorati</h3>
+          <p id="p1CourseTitle" class="muted">Yuklanmoqda...</p>
+          <div id="p1Eligibility" class="status"></div>
+          <button id="p1EligibilityBtn" class="ghost small" type="button">Kurs yakunini tekshirish</button>
+        </div>
+      </div>
+
+      <div class="card">
+        <h3>📚 Fanlar</h3>
+        <div id="p1Subjects"></div>
+      </div>
+      <div id="p1Assessment" class="card hidden">
+        <div style="display:flex;justify-content:space-between;gap:10px;align-items:center;flex-wrap:wrap">
+          <div><h3 id="p1AssessmentTitle"></h3><p id="p1AssessmentMeta" class="muted"></p></div>
+          <button id="p1CloseAssessment" class="ghost small" type="button">Yopish</button>
+        </div>
+        <div id="p1AssessmentBody"></div>
+        <button id="p1SubmitAssessment" class="primary" type="button">Natijani topshirish</button>
+        <div id="p1AssessmentStatus" class="status"></div>
+      </div>
+      <p class="muted" style="margin-top:12px">⚠️ Academy simulyatsiyalari ta’limiy maqsadda. Ular real bemor, klinik tashxis, davolash yoki universitetning rasmiy akademik qarorini almashtirmaydi.</p>
+    `;
+    studentTool.insertAdjacentElement('afterend', panel);
+
+    const esc = s => String(s ?? '').replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+    const apiCall = async (path, opts={}) => {
+      const token = sessionStorage.getItem(typeof TOKEN_KEY !== 'undefined' ? TOKEN_KEY : 'medgen_access_token') || '';
+      const res = await fetch((typeof API_BASE !== 'undefined' ? API_BASE : '/api/v1') + path, {
+        ...opts, headers:{'Content-Type':'application/json', ...(opts.headers||{}), ...(token?{Authorization:'Bearer '+token}:{})}
+      });
+      const data = await res.json().catch(()=>({}));
+      if (!res.ok) throw new Error(data.detail || data.message || ('HTTP '+res.status));
+      return data;
+    };
+
+    let current = null;
+    let currentAssessment = null;
+
+    function set(id, value) { const el=document.getElementById(id); if(el) el.innerHTML=value; }
+    function val(id) { return document.getElementById(id)?.value || ''; }
+
+    async function load() {
+      try {
+        const [p, d] = await Promise.all([apiCall('/academy/profile'), apiCall('/academy/dashboard')]);
+        const ap = p.profile || {};
+        ['Mode','Country','University','Faculty','Major','Year','Group','StudentId','Language','Degree'].forEach(k => {});
+        document.getElementById('p1Mode').value=ap.education_mode||'GLOBAL';
+        document.getElementById('p1Country').value=ap.country_code||'';
+        document.getElementById('p1University').value=ap.university||'';
+        document.getElementById('p1Faculty').value=ap.faculty||'';
+        document.getElementById('p1Major').value=ap.major||'';
+        document.getElementById('p1Year').value=String(ap.year||1);
+        document.getElementById('p1Group').value=ap.group||'';
+        document.getElementById('p1StudentId').value=ap.student_id||'';
+        document.getElementById('p1Language').value=ap.study_language||'en';
+        document.getElementById('p1Degree').value=ap.academic_degree||'MD/MBBS';
+        current=d.course;
+        set('p1Overall', d.overall_progress+'%');
+        set('p1CourseTitle', esc(d.course_title));
+        renderSubjects(d.subjects);
+      } catch(e) {
+        set('p1ProfileStatus','❌ '+esc(e.message));
+      }
+    }
+
+    function renderSubjects(subjects) {
+      set('p1Subjects', subjects.map(s => {
+        const done=s.complete?'✅':(s.completed_assessments.length+'/5');
+        return `
+          <div class="p1-subject">
+            <div><b>${esc(s.name)}</b><small>${esc(s.objective)} • ${done}</small></div>
+            <div class="p1-actions">
+              ${['theory','practice','quiz','case','exam'].map(t => `<button class="ghost small p1-assess" data-sub="${esc(s.id)}" data-type="${t}">${t==='theory'?'📖 Nazariya':t==='practice'?'🧪 Mashq':t==='quiz'?'📝 Quiz':t==='case'?'🩺 Case':'🎯 Imtihon'}</button>`).join('')}
+            </div>
+          </div>`;
+      }).join(''));
+      document.querySelectorAll('.p1-assess').forEach(btn=>btn.addEventListener('click',()=>startAssessment(btn.dataset.sub,btn.dataset.type)));
+    }
+
+    async function startAssessment(subject, type) {
+      try {
+        currentAssessment={course:current, subject_id:subject, assessment_type:type};
+        const d=await apiCall('/academy/assessment/start',{method:'POST',body:JSON.stringify(currentAssessment)});
+        set('p1AssessmentTitle', esc(subject)+' — '+esc(type));
+        set('p1AssessmentMeta', type==='exam'?'45 daqiqa':type==='theory'?'Nazariy modul':'Baholash');
+        const body=document.getElementById('p1AssessmentBody');
+        body.innerHTML=d.items.map((q,i)=>{
+          if(type==='theory'||type==='practice') return `<div class="p1-question"><b>${i+1}. ${esc(q.prompt)}</b><p>${esc(q.instruction)}</p><label><input type="checkbox" data-q="${esc(q.id)}" class="p1-complete"> Bajarildi</label></div>`;
+          return `<div class="p1-question"><b>${i+1}. ${esc(q.question||q.prompt)}</b>${q.scenario?`<p><i>${esc(q.scenario)}</i></p>`:''}<div>${q.options.map((o,j)=>`<label class="p1-option"><input type="radio" name="q_${esc(q.id)}" value="${j}" data-q="${esc(q.id)}"> ${esc(o)}</label>`).join('')}</div></div>`;
+        }).join('');
+        document.getElementById('p1Assessment').classList.remove('hidden');
+        document.getElementById('p1Assessment').scrollIntoView({behavior:'smooth',block:'start'});
+        set('p1AssessmentStatus','');
+      } catch(e){set('p1AssessmentStatus','❌ '+esc(e.message));}
+    }
+
+    async function submitAssessment() {
+      if(!currentAssessment) return;
+      const answers={};
+      if(currentAssessment.assessment_type==='theory'||currentAssessment.assessment_type==='practice'){
+        answers.completion=document.querySelector('.p1-complete')?.checked?1:0;
+      } else {
+        document.querySelectorAll('#p1AssessmentBody input[data-q]:checked').forEach(x=>answers[x.dataset.q]=Number(x.value));
+      }
+      try {
+        const d=await apiCall('/academy/assessment/submit',{method:'POST',body:JSON.stringify({...currentAssessment,answers})});
+        set('p1AssessmentStatus', d.passed?'✅ O‘tdi: '+d.score+'%':'❌ O‘tmadi: '+d.score+'%. Xatolarni ko‘rib, qayta mashq qiling.');
+        await load();
+      }catch(e){set('p1AssessmentStatus','❌ '+esc(e.message));}
+    }
+
+    document.getElementById('p1SaveProfile').addEventListener('click',async()=>{
+      const mode=val('p1Mode');
+      const payload={country_code:val('p1Country').toUpperCase(),education_mode:mode,university:val('p1University'),faculty:val('p1Faculty'),major:val('p1Major'),year:Number(val('p1Year')),group:val('p1Group'),student_id:val('p1StudentId'),study_language:val('p1Language'),academic_degree:val('p1Degree')};
+      try{await apiCall('/academy/profile',{method:'PUT',body:JSON.stringify(payload)});set('p1ProfileStatus','✅ Akademik profil saqlandi.');await load();}catch(e){set('p1ProfileStatus','❌ '+esc(e.message));}
+    });
+    document.getElementById('p1EligibilityBtn').addEventListener('click',async()=>{
+      try{const d=await apiCall('/academy/eligibility/'+current);set('p1Eligibility',(d.course_complete?'✅ Kurs to‘liq yakunlangan. ':'⏳ Talablar bajarilmagan. ')+(d.eligible_for_next_course?'Keyingi kurs ochildi.':'Keyingi kurs hali ochilmadi.'));}catch(e){set('p1Eligibility','❌ '+esc(e.message));}
+    });
+    document.getElementById('p1SubmitAssessment').addEventListener('click',submitAssessment);
+    document.getElementById('p1CloseAssessment').addEventListener('click',()=>document.getElementById('p1Assessment').classList.add('hidden'));
+
+    load();
+  };
+  if(document.readyState==='loading') document.addEventListener('DOMContentLoaded',boot,{once:true}); else boot();
+})();
