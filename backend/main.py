@@ -3012,14 +3012,17 @@ def academy_update_profile(data: AcademyProfileRequest, user=Depends(get_current
         raise HTTPException(status_code=400, detail="Country code must be two letters in COUNTRY mode.")
     if not 1 <= int(data.year) <= 6:
         raise HTTPException(status_code=400, detail="University course must be between 1 and 6.")
-    if not str(data.university).strip():
-        raise HTTPException(status_code=400, detail="University is required.")
-    if not str(data.faculty).strip():
-        raise HTTPException(status_code=400, detail="Faculty is required.")
-    if not str(data.major).strip():
-        raise HTTPException(status_code=400, detail="Major is required.")
-    if not str(data.group).strip():
-        raise HTTPException(status_code=400, detail="Group is required.")
+    role = str(user.get("role") or user.get("user_role") or "").lower()
+    academic_required = role == "student"
+    if academic_required:
+        if not str(data.university).strip():
+            raise HTTPException(status_code=400, detail="University is required for student profiles.")
+        if not str(data.faculty).strip():
+            raise HTTPException(status_code=400, detail="Faculty is required for student profiles.")
+        if not str(data.major).strip():
+            raise HTTPException(status_code=400, detail="Major is required for student profiles.")
+        if not str(data.group).strip():
+            raise HTTPException(status_code=400, detail="Group is required for student profiles.")
     profile = _academy_profile(user["username"])
     profile.update({
         "country_code": str(data.country_code or "").upper() if mode == "COUNTRY" else "INTL",
