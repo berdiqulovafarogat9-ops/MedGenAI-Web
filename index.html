@@ -419,6 +419,19 @@ frame-ancestors 'none'">
   <div class="role-note">Kerak bo‘lsa boshqa modulga kirish uchun CEO/Admin tomonidan qo‘shimcha ruxsat beriladi.</div>
 </section>
 
+  <section id="userDirectoryDashboard" class="user-directory-dashboard hidden" aria-label="Foydalanuvchilar">
+    <div class="dashboard-section-head">
+      <div>
+        <p class="eyebrow">USER WORKSPACES</p>
+        <h2 id="userDirectoryTitle">Foydalanuvchilar</h2>
+        <p id="userDirectorySubtitle" class="muted">Har bir rol uchun alohida dashboard.</p>
+      </div>
+      <button id="userDirectoryBack" class="ghost" type="button">← Mening dashboardim</button>
+    </div>
+    <div id="userDirectoryCards" class="user-directory-cards"></div>
+    <div id="userDirectoryDetail" class="user-directory-detail hidden"></div>
+  </section>
+
   <!-- EDUCATION PREFERENCE -->
   <section id="educationPreferencePanel" class="panel education-preference-panel" aria-labelledby="educationPreferenceTitle">
     <div style="width:100%">
@@ -485,7 +498,7 @@ frame-ancestors 'none'">
 
   <!-- MODULES -->
 
-  <section class="grid">
+  <section id="moduleDirectory" class="grid">
 
     <button
       class="module"
