@@ -1076,6 +1076,7 @@ async function loadCurrentUser() {
     state.user = data;
 
     updateUserUI();
+    applyRoleDashboard();
 
     return data;
 
@@ -1656,6 +1657,7 @@ function showDashboard() {
   checkHealth();
   ensureAdminDashboard();
   ensureLegalConsent();
+  applyRoleDashboard();
   if (!enforceProfileCompletion()) return;
 }
 
@@ -3004,6 +3006,57 @@ function renderStudentLayers(){const b=$('studentLayerGrid');if(!b)return;b.inne
 function renderStudentSkills(){const b=$('studentSkillList');if(!b)return;b.innerHTML=studentSkills.map((x,i)=>`<button class="layer-card" data-skill="${i}"><b>0${i+1}</b><strong>${x[0]}</strong><span>${x[1]}</span></button>`).join('');b.querySelectorAll('[data-skill]').forEach(q=>q.onclick=()=>{const x=studentSkills[Number(q.dataset.skill)];alert(x[0]+'\\n\\n'+x[1]+'\\n\\nSIMULATION ONLY — real clinical practice requires supervised training.');saveStudentXP(5)})}
 function renderStudentOsce(){const b=$('studentOsce');if(!b)return;b.innerHTML='<div class="question-card"><p class="eyebrow">OSCE STATION</p><h3>Isitma va yo‘tal bilan kelgan bemorni boshlang‘ich baholash</h3><p class="muted">Safety → anamnez → vital signs → ko‘rik → differensial tashxis → tekshiruvni asoslash.</p><button class="primary small" id="osceStart">Start station</button><div id="osceResult" class="status"></div></div>';$('osceStart')?.addEventListener('click',()=>{if($('osceResult'))$('osceResult').innerHTML='🟢 Checklist bajarildi. Natija: clinical reasoning practice +15 XP.';saveStudentXP(15)})}
 
+
+/* =========================================================
+   ROLE-BASED PLATFORM ARCHITECTURE
+========================================================= */
+const MEDGEN_ROLES = {
+  student:{title:'Talaba',icon:'🎓',desc:'Medical Academy: anatomiya, patologiya, klinik fikrlash, virtual bemor, OSCE va ko‘nikmalar.',modules:['Medical Academy']},
+  doctor:{title:'Shifokor',icon:'👨‍⚕️',desc:'Clinical Workspace: klinik case, diagnostika, differensial tashxis, medical knowledge va simulation.',modules:['Research Assistant','Reports & History','Medical Academy']},
+  researcher:{title:'Olim / Researcher',icon:'🔬',desc:'Research Workspace: ilmiy izlanish, literature, bioinformatics, knowledge graph va virtual laboratory.',modules:['Research Assistant','Bioinformatics','Virtual Laboratory','Reports & History']},
+  professor:{title:'Professor',icon:'👨‍🏫',desc:'Teaching Workspace: kurslar, student progress, cases, OSCE va research.',modules:['Medical Academy','Research Assistant','Reports & History']},
+  lab:{title:'Laborant',icon:'🧪',desc:'Laboratory Workspace: protokollar, virtual experiments, molecular analysis va natijalar.',modules:['Virtual Laboratory','Molecular Analysis','Reports & History']},
+  biotech:{title:'Biotexnolog',icon:'🧬',desc:'Biotechnology Workspace: molecular biology, bioinformatics, structures va virtual lab.',modules:['Bioinformatics','Molecular Analysis','PDB & Structure','Virtual Laboratory']},
+  pharma:{title:'Pharma / Drug Discovery',icon:'💊',desc:'Drug Discovery Workspace: target, structure, screening, docking va discovery reports.',modules:['Drug Discovery','PDB & Structure','Molecular Analysis','Reports & History']},
+  bioinformatician:{title:'Bioinformatician',icon:'🧑‍💻',desc:'Bioinformatics Workspace: sequence, genomics, omics pipelines va analysis.',modules:['Bioinformatics','Research Assistant','Reports & History']},
+  hospital:{title:'Klinika / Hospital',icon:'🏥',desc:'Clinical Training Workspace: simulation, staff education, cases va analytics.',modules:['Medical Academy','Reports & History']},
+  company:{title:'Biotech / Pharma Company',icon:'🏢',desc:'Enterprise Workspace: projects, research, drug discovery, reports va organization tools.',modules:['Drug Discovery','Research Assistant','Virtual Laboratory','Global Platform','Reports & History']},
+  admin:{title:'Founder / CEO / Super Admin',icon:'👑',desc:'Global Platform: barcha modullar, organizations, users, projects, analytics va audit.',modules:['Global Platform','Medical Academy','Bioinformatics','Molecular Analysis','PDB & Structure','Drug Discovery','Scientific Jobs','Research Assistant','Virtual Laboratory','Reports & History']}
+};
+function getLocalRole(){
+  const u=state.user?.username||'';
+  try{return JSON.parse(localStorage.getItem('medgen_role_'+u)||'null');}catch(_){return null;}
+}
+function roleKey(){
+  const server=state.user?.role||state.user?.user_role||state.user?.type;
+  if(server && MEDGEN_ROLES[String(server).toLowerCase()]) return String(server).toLowerCase();
+  return getLocalRole()?.key || 'student';
+}
+function applyRoleDashboard(){
+  const key=roleKey(), role=MEDGEN_ROLES[key]||MEDGEN_ROLES.student;
+  const title=$('roleDashboardTitle'), desc=$('roleDashboardDesc'), badge=$('roleDashboardBadge');
+  if(title) title.textContent=role.icon+' '+role.title;
+  if(desc) desc.textContent=role.desc;
+  if(badge) badge.textContent='PRIMARY ROLE';
+  const quick=$('roleQuickGrid');
+  if(quick) quick.innerHTML=role.modules.map(m=>'<button class="role-quick" data-role-module="'+m+'"><b>'+m+'</b><span>Ochish →</span></button>').join('');
+  quick?.querySelectorAll('[data-role-module]').forEach(b=>b.addEventListener('click',()=>openModule(b.dataset.roleModule)));
+  document.querySelectorAll('.module').forEach(btn=>{
+    const allowed=role.modules.includes(btn.dataset.module) || key==='admin';
+    btn.classList.toggle('role-hidden',!allowed);
+  });
+  const rd=$('roleDashboard'); if(rd) rd.classList.remove('hidden');
+  updateUserUI();
+}
+function bindRoleRegistration(){
+  const grid=$('registerRoleGrid'), hidden=$('registerRole'), status=$('registerRoleStatus');
+  grid?.querySelectorAll('.role-choice').forEach(btn=>btn.addEventListener('click',()=>{
+    grid.querySelectorAll('.role-choice').forEach(x=>x.classList.remove('selected'));
+    btn.classList.add('selected'); if(hidden) hidden.value=btn.dataset.role;
+    if(status) status.textContent='Tanlandi: '+(MEDGEN_ROLES[btn.dataset.role]?.title||btn.dataset.role);
+  }));
+}
+
 /* =========================================================
    EVENT BINDING
 ========================================================= */
@@ -3015,7 +3068,10 @@ async function registerAccount() {
   const phone = $('registerPhone')?.value?.trim() || '';
   const password = $('registerPassword')?.value || '';
   const password2 = $('registerPassword2')?.value || '';
+  const selectedRole = $('registerRole')?.value || '';
   const status = $('loginStatus');
+
+  if (!selectedRole) { if (status) status.textContent = 'Avval asosiy professional rolingizni tanlang.'; return; }
 
   if (password !== password2) {
     if (status) status.textContent = 'Parollar bir xil emas.';
@@ -3027,7 +3083,8 @@ async function registerAccount() {
       method: 'POST',
       body: JSON.stringify({ username, password, full_name, email, phone })
     });
-    if (status) status.textContent = 'Ro‘yxatdan o‘tish muvaffaqiyatli. Endi kiring.';
+    localStorage.setItem('medgen_role_'+username, JSON.stringify({key:selectedRole,status:'pending',requestedAt:new Date().toISOString()}));
+    if (status) status.textContent = 'Ro‘yxatdan o‘tish qabul qilindi. Asosiy rol CEO/Admin tasdig‘idan keyin faollashadi.';
     $('registerForm')?.classList.add('hidden');
     $('loginForm')?.classList.remove('hidden');
     if ($('loginUser')) $('loginUser').value = username;
@@ -3377,6 +3434,7 @@ async function searchKnowledge(){
 async function init() {
 
   bindEvents();
+  bindRoleRegistration();
 
   if (state.token) {
 
