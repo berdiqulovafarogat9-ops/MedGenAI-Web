@@ -2203,7 +2203,8 @@ async function runBioinformatics() {
           method: 'POST',
 
           body: JSON.stringify({
-            sequence
+            sequence,
+            sequence_type: $('bioSequenceType')?.value || 'AUTO'
           })
         }
       );
