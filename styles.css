@@ -108,3 +108,40 @@ textarea{width:100%;min-height:120px;box-sizing:border-box;padding:14px;border-r
 .profile-auto-note{font-size:11px;color:var(--muted);margin-top:5px}
 @media(max-width:800px){.role-stat-grid{grid-template-columns:repeat(2,1fr)}.role-user-groups{grid-template-columns:repeat(2,1fr)}}
 @media(max-width:520px){.role-stat-grid,.role-user-groups{grid-template-columns:1fr 1fr}.role-stat strong{font-size:21px}}
+
+
+/* =========================================================
+   PHASE 1 — PERSONAL HOME + ROLE DIRECTORY
+========================================================= */
+#moduleDirectory{display:none!important}
+#educationPreferencePanel{display:none!important}
+#userDirectoryDashboard.hidden{display:none!important}
+#userDirectoryDashboard{margin-top:18px}
+.dashboard-section-head{display:flex;justify-content:space-between;align-items:flex-start;gap:14px;margin-bottom:16px}
+.user-directory-cards{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:12px}
+.personal-stat-card,.role-summary-main{border:1px solid rgba(255,255,255,.09);background:rgba(255,255,255,.035);border-radius:14px;padding:16px;min-height:112px;display:flex;flex-direction:column;justify-content:center}
+.personal-stat-card .stat-icon{font-size:24px}
+.personal-stat-card strong,.role-summary-main strong{font-size:28px;margin-top:4px}
+.personal-stat-card small,.role-summary-main small{opacity:.68}
+.role-summary-main{grid-column:1/-1;align-items:center;text-align:center;min-height:150px}
+.role-summary-main>span{font-size:32px}
+.role-user-list{grid-column:1/-1;display:grid;gap:8px}
+.role-user-row{display:grid;grid-template-columns:1.2fr 1fr 1.4fr;gap:10px;text-align:left;padding:12px;border-radius:10px;border:1px solid rgba(255,255,255,.08);background:rgba(255,255,255,.025);color:inherit;cursor:pointer}
+.role-user-row span,.role-user-row small{opacity:.7}
+.user-directory-detail{margin-top:14px;padding:16px;border-radius:14px;border:1px solid rgba(255,255,255,.1);background:rgba(255,255,255,.035)}
+.user-detail-grid{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:10px}
+.user-detail-grid span{display:flex;flex-direction:column;gap:4px;padding:10px;border-radius:10px;background:rgba(255,255,255,.03)}
+.user-detail-grid strong{font-weight:700}
+#roleQuickGrid{display:grid!important;grid-template-columns:repeat(4,minmax(0,1fr));gap:10px}
+@media(max-width:900px){
+  .user-directory-cards{grid-template-columns:repeat(2,minmax(0,1fr))}
+  #roleQuickGrid{grid-template-columns:repeat(2,minmax(0,1fr))}
+  .user-detail-grid{grid-template-columns:repeat(2,minmax(0,1fr))}
+}
+@media(max-width:600px){
+  .dashboard-section-head{flex-direction:column}
+  .user-directory-cards{grid-template-columns:1fr}
+  #roleQuickGrid{grid-template-columns:1fr 1fr}
+  .role-user-row{grid-template-columns:1fr}
+  .user-detail-grid{grid-template-columns:1fr}
+}
