@@ -45,3 +45,47 @@ textarea{width:100%;min-height:120px;box-sizing:border-box;padding:14px;border-r
 .p1-question{padding:16px 0;border-bottom:1px solid rgba(255,255,255,.08)}
 .p1-option{display:block;padding:7px 0;font-weight:400}
 @media(max-width:700px){.p1-subject{flex-direction:column;align-items:stretch}.p1-actions{justify-content:flex-start}}
+
+
+/* =========================================================
+   PHASE 1 UX — ONE DASHBOARD, DRAWER NAVIGATION
+========================================================= */
+#roleDashboard{display:none!important}
+.education-preference-panel{padding:16px 20px!important;margin:16px 0!important}
+.education-preference-panel .workspace-head{align-items:center}
+.education-preference-panel .workspace-head h2{font-size:20px;margin:2px 0}
+.education-preference-panel .workspace-head .muted{display:none}
+.education-preference-panel .grid{grid-template-columns:repeat(4,minmax(0,1fr));gap:10px!important}
+.education-preference-panel label strong{font-size:12px}
+.education-preference-panel select{min-height:40px}
+.education-preference-panel #saveEducationPreference{margin-top:10px}
+#systemPanel{display:none!important}
+
+.menu-button{display:inline-flex!important;align-items:center;gap:6px}
+.nav-backdrop{position:fixed;inset:0;background:rgba(0,0,0,.5);z-index:110000}
+.nav-backdrop.hidden{display:none}
+.nav-drawer{position:fixed;top:0;left:0;bottom:0;width:min(360px,88vw);z-index:110001;background:#081422;border-right:1px solid rgba(255,255,255,.12);box-shadow:20px 0 60px rgba(0,0,0,.35);padding:18px;overflow:auto}
+.nav-drawer.hidden{display:none}
+.nav-drawer-head{display:flex;justify-content:space-between;align-items:center;padding-bottom:16px;border-bottom:1px solid rgba(255,255,255,.1)}
+.nav-drawer-head b{display:block;font-size:20px}
+.nav-drawer-head small{opacity:.6}
+.nav-section-title{font-size:11px;letter-spacing:1.5px;opacity:.55;margin:20px 4px 8px}
+.nav-modules{display:grid;gap:7px}
+.nav-item{width:100%;display:flex;align-items:center;gap:10px;text-align:left;padding:11px 12px;border-radius:10px;border:1px solid rgba(255,255,255,.08);background:rgba(255,255,255,.035);color:inherit;cursor:pointer}
+.nav-item:hover{background:rgba(255,255,255,.08)}
+.nav-item span{font-size:18px;width:24px;text-align:center}
+.nav-item b{font-size:13px}
+.academic-profile-section{margin:20px 0 6px;padding:4px 0}
+.academic-profile-section hr{border:0;border-top:1px solid rgba(255,255,255,.1);margin-bottom:20px}
+.academic-profile-section h3{margin:5px 0 14px}
+.academic-grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:10px}
+.academic-grid label{margin:0!important}
+@media(max-width:800px){
+  .education-preference-panel .grid{grid-template-columns:repeat(2,minmax(0,1fr))}
+}
+@media(max-width:520px){
+  .education-preference-panel{padding:12px!important}
+  .education-preference-panel .grid{grid-template-columns:1fr 1fr}
+  .academic-grid{grid-template-columns:1fr}
+  .menu-button{padding:8px 9px}
+}
