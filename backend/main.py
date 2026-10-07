@@ -2389,7 +2389,8 @@ def platform_status(user=Depends(get_current_user)):
             "reproducible_research": True,
             "audit_logging": True,
             "quota_layer": True,
-            "webhook_layer": True,\n            "webhook_dispatcher": True
+            "webhook_layer": True,
+            "webhook_dispatcher": True
         }
     }
 
