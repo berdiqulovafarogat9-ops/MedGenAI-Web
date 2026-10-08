@@ -1255,7 +1255,7 @@ frame-ancestors 'none'">
       signInTitle: "Sign in",
 
       loginDescription:
-        "Private development mode — public registration is disabled.",
+        "Global Biomedical AI Platform — registration is available.",
 
       username: "Username",
       password: "Password",
@@ -1480,7 +1480,7 @@ frame-ancestors 'none'">
         "Tizimga kirish",
 
       loginDescription:
-        "Shaxsiy ishlab chiqish rejimi — ommaviy ro‘yxatdan o‘tish o‘chirilgan.",
+        "Global Biomedikal AI Platformasi — ro‘yxatdan o‘tish mavjud.",
 
       username:
         "Foydalanuvchi nomi",
@@ -1708,7 +1708,7 @@ frame-ancestors 'none'">
         "Войти",
 
       loginDescription:
-        "Приватный режим разработки — публичная регистрация отключена.",
+        "Global Biomedical AI Platform — регистрация доступна.",
 
       username:
         "Имя пользователя",
@@ -2190,6 +2190,7 @@ document.addEventListener("DOMContentLoaded", function () {
   const roleKey=()=>String(window.__MEDGEN_USER?.role||'student').toUpperCase()==='SUPER_ADMIN'?'SUPER_ADMIN':String(window.__MEDGEN_USER?.role||'student').toLowerCase();
   const ALL_MODULES=['Medical Academy','Bioinformatics','Molecular Analysis','PDB & Structure','Drug Discovery','Scientific Jobs','Research Assistant','Virtual Laboratory','Reports & History','Global Platform'];
   const ROLE_MODULES={
+    SUPER_ADMIN:ALL_MODULES,
     student:['Medical Academy','Bioinformatics','Molecular Analysis','PDB & Structure','Virtual Laboratory','Research Assistant','Reports & History'],
     school_student:['Medical Academy','Bioinformatics','Molecular Analysis','Virtual Laboratory','Research Assistant'],
     doctor:['Medical Academy','PDB & Structure','Molecular Analysis','Virtual Laboratory','Research Assistant','Reports & History'],
@@ -2235,7 +2236,7 @@ document.addEventListener("DOMContentLoaded", function () {
       (research.length?'<div class="final-section-title">'+ft('research')+'</div><div class="final-grid">'+research.map(m=>'<button class="final-module" data-final-module="'+esc(m)+'"><span>'+icons[m]+'</span><b>'+esc(moduleLabel(m))+'</b><small>'+ft('open')+'</small></button>').join('')+'</div>':'')+
       '<div class="final-section-title">'+ft('platform')+'</div><div class="final-grid secondary">'+
       serviceCard('support','🆘',ft('support'),ft('supportDesc'))+serviceCard('ai','🤖',ft('assistant'),ft('aiDesc'))+serviceCard('community','💬',ft('community'),ft('communityDesc'))+serviceCard('security','🔐',ft('security'),ft('securityDesc'))+
-      '</div>'+(key==='admin'?'<div class="final-admin-strip"><b>👑 '+ft('owner')+'</b><span>'+esc(ft('ownerDash'))+'</span><button id="finalAdminOpen" class="primary small">'+ft('ownerDash')+'</button></div>':'');
+      '</div>'+(key==='SUPER_ADMIN'?'<div class="final-admin-strip"><b>👑 '+ft('owner')+'</b><span>'+esc(ft('ownerDash'))+'</span><button id="finalAdminOpen" class="primary small">'+ft('ownerDash')+'</button></div>':'');
     d.querySelector('.container')?.prepend(home);
     home.querySelectorAll('[data-final-module]').forEach(b=>b.onclick=()=>openModuleSafe(b.dataset.finalModule));
     home.querySelectorAll('[data-final-service]').forEach(b=>b.onclick=()=>openService(b.dataset.finalService));
@@ -2261,7 +2262,7 @@ document.addEventListener("DOMContentLoaded", function () {
     roleKeys.forEach(k=>{const b=document.createElement('button');b.className='final-nav';b.dataset.roleCommunity=k;b.innerHTML='👥 '+esc(roleLabel(k))+' <span class="role-count">—</span>';drawer.appendChild(b);});
     if(key==='admin'){ const analytics=document.createElement('div');analytics.className='final-nav-title';analytics.textContent=lang()==='ru'?'АНАЛИТИКА ПОЛЬЗОВАТЕЛЕЙ':lang()==='en'?'USER ANALYTICS':'FOYDALANUVCHILAR ANALITIKASI';drawer.appendChild(analytics); const stats=document.createElement('div');stats.id='finalRoleStats';stats.className='final-role-stats';stats.textContent='Yuklanmoqda...';drawer.appendChild(stats); }
     drawer.querySelector('#finalMenuClose').onclick=()=>drawer.classList.remove('open');
-    drawer.querySelectorAll('[data-role-community]').forEach(b=>b.onclick=()=>{drawer.classList.remove('open');openService('community');});
+    drawer.querySelectorAll('[data-role-community]').forEach(b=>b.onclick=()=>{drawer.classList.remove('open');window.__MEDGEN_COMMUNITY_ROLE=b.dataset.roleCommunity;openFunctionalService('community');});
     if(key==='admin') fetch((window.MEDGEN_API_BASE||'https://medgenai-web-1.onrender.com/api/v1')+'/dashboard/summary',{headers:{Authorization:'Bearer '+(sessionStorage.getItem('medgen_access_token')||'')}}).then(x=>x.json()).then(d=>{const g=d.global||{};document.querySelectorAll('[data-role-community]').forEach(b=>{const k=[...b.dataset.roleCommunity? [b.dataset.roleCommunity]:[]][0]; const n=g.role_counts?.[k]??0; const s=b.querySelector('.role-count');if(s)s.textContent=n;}); const out=document.getElementById('finalRoleStats');if(out)out.innerHTML=roleKeys.map(k=>'<div><b>'+esc(roleLabel(k))+'</b>: '+(g.role_counts?.[k]||0)+' · Jobs '+(g.role_activity?.[k]?.jobs||0)+' · Workflow '+(g.role_activity?.[k]?.workflows||0)+' · Reports '+(g.role_activity?.[k]?.reports||0)+'</div>').join('');}).catch(()=>{});
 
     drawer.querySelectorAll('[data-final-nav="home"]').forEach(b=>b.onclick=()=>{drawer.classList.remove('open');openHome()});
