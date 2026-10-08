@@ -8,6 +8,7 @@ RUN pip install --no-cache-dir -r requirements.txt
 
 COPY main.py .
 COPY knowledge_engine.py .
+COPY phase1_academy_ext.py .
 
 EXPOSE 8000
 
