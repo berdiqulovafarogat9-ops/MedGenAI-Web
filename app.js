@@ -965,7 +965,7 @@ async function api(path, options = {}) {
    LOGIN
 ========================================================= */
 
-async async function login() {
+async function login() {
 
   const username =
     $('loginUser')?.value?.trim() || '';
