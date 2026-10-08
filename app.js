@@ -1049,6 +1049,8 @@ async function login() {
     }
 
     showDashboard();
+    window.__MEDGEN_USER = state.user;
+    if (window.medgenFinalBoot) window.medgenFinalBoot(state.user);
     // Legal consent and complete profile are mandatory after first login.
     await ensureLegalConsent();
     if (state.user && !isProfileComplete(state.user.profile || {})) {
@@ -1377,9 +1379,19 @@ async function saveProfile() {
       avatar: savedAvatar
     };
 
-    if (!payload.full_name || !payload.email || !payload.country ||
+    if (!payload.full_name || !payload.email || !payload.country || !payload.region ||
+        !payload.district || !payload.city ||
         payload.birth_year === null || payload.birth_month === null || payload.birth_day === null) {
-      throw new Error('Profilni to‘liq to‘ldiring: ism, email, mamlakat va tug‘ilgan sana majburiy.');
+      throw new Error('Profilni to‘liq to‘ldiring: ism, email, mamlakat, viloyat, tuman, shahar va tug‘ilgan sana majburiy.');
+    }
+
+    const role = String(state.user?.role || '').toLowerCase();
+    if (['student','school_student','researcher','professor'].includes(role)) {
+      if (!$('profileUniversity')?.value?.trim() || !$('profileFaculty')?.value?.trim() ||
+          !$('profileMajor')?.value?.trim() || !$('profileGroup')?.value?.trim() ||
+          !$('profileStudentId')?.value?.trim()) {
+        throw new Error('Ta’lim profili ham to‘liq bo‘lishi kerak: universitet, fakultet, yo‘nalish, guruh va talaba ID.');
+      }
     }
 
     if (!/^\S+@\S+\.\S+$/.test(payload.email)) {
