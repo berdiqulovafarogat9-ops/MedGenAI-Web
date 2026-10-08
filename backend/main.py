@@ -4071,6 +4071,7 @@ def create_scientific_report(data: ScientificReportRequest,user=Depends(get_curr
     }
     reports_store.insert(0,report)
     activity_log.insert(0,{"type":"scientific_report_created","username":user["username"],"report_id":report["id"],"experiment_id":experiment["id"],"at":report["created_at"]})
+    _db_save()
     return {"status":"completed","module":"Scientific Research","report":report}
 
 @app.get("/api/v1/scientific/reports/{report_id}")
