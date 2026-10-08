@@ -55,7 +55,7 @@ app = FastAPI(
 ALLOWED_CORS_ORIGINS = [
     origin.strip() for origin in os.getenv(
         "MEDGEN_CORS_ORIGINS",
-        "https://medgenai-web.onrender.com,http://localhost:3000,http://localhost:5173"
+        "https://medgenai-web-1.onrender.com,https://medgenai-web.onrender.com,http://localhost:3000,http://localhost:5173"
     ).split(",") if origin.strip()
 ]
 
