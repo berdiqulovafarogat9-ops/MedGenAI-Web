@@ -2242,6 +2242,7 @@ document.addEventListener("DOMContentLoaded", function () {
     document.getElementById('finalAdminOpen')?.addEventListener('click',()=>{hideAll();document.getElementById('adminDashboard')?.classList.remove('hidden');if(typeof loadAdminDashboard==='function')loadAdminDashboard()});
   }
   function openService(kind){
+    window.__medgenFinalService=kind;
     hideAll();let id={support:'supportCenter',ai:'aiCenter',community:'communityCenter',security:'securityCenter'}[kind];
     let el=document.getElementById(id);if(!el){el=document.createElement('section');el.id=id;el.className='final-panel';document.querySelector('#dashboardView .container')?.prepend(el);}
     const back='<button class="ghost final-back">'+ft('back')+'</button>';
@@ -2264,6 +2265,17 @@ document.addEventListener("DOMContentLoaded", function () {
   }
   function bootUser(u){window.__MEDGEN_USER=u||window.__MEDGEN_USER||{role:'student'};try{if(typeof state!=='undefined'){state.user=window.__MEDGEN_USER;state.token=sessionStorage.getItem('medgen_access_token')||state.token}}catch(_){};renderMenu();renderHome();}
   window.medgenFinalBoot=bootUser;
+  window.medgenFinalRefreshLanguage=function(){
+    try{ renderMenu(); }catch(_){}
+    const dash=document.getElementById('roleDashboard');
+    if(dash && !dash.classList.contains('hidden')){ try{ renderHome(); }catch(_){} }
+    const svc=window.__medgenFinalService;
+    if(svc){
+      const map={support:'supportCenter',ai:'aiCenter',community:'communityCenter',security:'securityCenter'};
+      const el=document.getElementById(map[svc]);
+      if(el && !el.classList.contains('hidden')){ try{ openService(svc); }catch(_){} }
+    }
+  };
   document.addEventListener('DOMContentLoaded',()=>{document.getElementById('medgenMenuBtn')?.addEventListener('click',()=>{renderMenu();document.getElementById('finalMenuDrawer')?.classList.add('open')});});
 })();
 </script>
