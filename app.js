@@ -4906,3 +4906,59 @@ function runScientificWorkflow(){
     .catch(e=>{status.textContent='Workflow error'; out.textContent=e.message;});
 }
 document.addEventListener('DOMContentLoaded',()=>document.getElementById('workflowRun')?.addEventListener('click',runScientificWorkflow));
+
+/* =========================================================
+   PHASE 2 VISUAL LAB — 2D RDKit + 3Dmol.js
+   ========================================================= */
+async function renderMolecule2D(){
+  const smiles=$('visualSmiles')?.value?.trim()||$('smilesInput')?.value?.trim()||'';
+  const status=$('visual2dStatus'),canvas=$('visual2dCanvas');
+  if(!smiles){if(status)status.textContent='SMILES kiriting.';return;}
+  if(status)status.textContent='2D rendering...';
+  try{
+    const d=await api('/molecules/2d',{method:'POST',body:JSON.stringify({smiles,width:520,height:360})});
+    if(canvas)canvas.innerHTML=d.svg;
+    if(status)status.textContent='2D tayyor';
+  }catch(e){if(status)status.textContent=e.message;}
+}
+async function renderMolecule3D(){
+  const smiles=$('visualSmiles')?.value?.trim()||$('smilesInput')?.value?.trim()||'';
+  const status=$('visual3dStatus'),el=$('visual3dCanvas');
+  if(!smiles){if(status)status.textContent='SMILES kiriting.';return;}
+  if(!window.$3Dmol){if(status)status.textContent='3D viewer yuklanmadi.';return;}
+  if(status)status.textContent='3D rendering...';
+  try{
+    const d=await api('/molecules/3d',{method:'POST',body:JSON.stringify({smiles,optimize:true})});
+    el.innerHTML='';
+    const viewer=$3Dmol.createViewer(el,{backgroundColor:'#07111f'});
+    viewer.addModel(d.mol_block,'mol');
+    viewer.setStyle({},{stick:{radius:0.14},sphere:{scale:0.25}});
+    viewer.zoomTo();viewer.render();
+    if(status)status.textContent='3D molekula tayyor';
+  }catch(e){if(status)status.textContent=e.message;}
+}
+async function renderPdb3D(){
+  const pdb=($('visualPdb')?.value||'').trim().toUpperCase();
+  const status=$('visual3dStatus'),el=$('visual3dCanvas');
+  if(!/^[A-Z0-9]{4}$/.test(pdb)){if(status)status.textContent='4 belgili PDB ID kiriting.';return;}
+  if(!window.$3Dmol){if(status)status.textContent='3D viewer yuklanmadi.';return;}
+  if(status)status.textContent='PDB yuklanmoqda...';
+  try{
+    const d=await api('/pdb/structures/'+encodeURIComponent(pdb)+'/viewer');
+    el.innerHTML='';
+    const viewer=$3Dmol.createViewer(el,{backgroundColor:'#07111f'});
+    viewer.addModel(d.pdb,'pdb');
+    viewer.setStyle({cartoon:{}});
+    viewer.addStyle({hetflag:true},{stick:{radius:0.18}});
+    viewer.zoomTo();viewer.render();
+    if(status)status.textContent='PDB 3D tayyor: '+pdb;
+  }catch(e){if(status)status.textContent=e.message;}
+}
+(function bindVisualLab(){
+  function bind(){
+    $('visual2dRun')?.addEventListener('click',renderMolecule2D);
+    $('visual3dMoleculeRun')?.addEventListener('click',renderMolecule3D);
+    $('visual3dPdbRun')?.addEventListener('click',renderPdb3D);
+  }
+  if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',bind,{once:true});else bind();
+})();
