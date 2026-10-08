@@ -2319,6 +2319,15 @@ document.addEventListener("DOMContentLoaded", function () {
     </div>
   </div>
 </section>
-<script src="https://3dmol.csb.pitt.edu/build/3Dmol-min.js"></script>
+<script src="https://3dmol.csb.pitt.edu/build/3Dmol-min.js"></script><script>
+(function(){
+  function showVisualLab(){
+    const p=document.getElementById('moleculeVisualPanel');
+    if(p)p.classList.remove('hidden');
+  }
+  window.showMedGenVisualLab=showVisualLab;
+  document.addEventListener('DOMContentLoaded',showVisualLab);
+})();
+</script>
 </body>
 </html>
