@@ -50,7 +50,7 @@ textarea{width:100%;min-height:120px;box-sizing:border-box;padding:14px;border-r
 /* =========================================================
    PHASE 1 UX — ONE DASHBOARD, DRAWER NAVIGATION
 ========================================================= */
-#roleDashboard{display:none!important}
+#roleDashboard:not(.hidden){display:block!important}
 .education-preference-panel{padding:16px 20px!important;margin:16px 0!important}
 .education-preference-panel .workspace-head{align-items:center}
 .education-preference-panel .workspace-head h2{font-size:20px;margin:2px 0}
