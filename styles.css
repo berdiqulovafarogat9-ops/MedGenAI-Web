@@ -161,3 +161,12 @@ textarea{width:100%;min-height:120px;box-sizing:border-box;padding:14px;border-r
 .profile-auto-note{font-size:11px;color:var(--muted);line-height:1.45;margin-top:6px}
 @media(max-width:800px){.security-grid{grid-template-columns:1fr 1fr}}
 @media(max-width:520px){.security-grid,.location-grid{grid-template-columns:1fr}}
+
+/* DASHBOARD VISIBILITY SAFETY */
+#dashboardView:not(.hidden){display:block!important;visibility:visible!important;opacity:1!important;min-height:100vh!important}
+#dashboardView:not(.hidden) .topbar{display:flex!important;visibility:visible!important;opacity:1!important}
+#dashboardView:not(.hidden) .topbar .brand,
+#dashboardView:not(.hidden) .topbar .top-actions{display:flex!important;visibility:visible!important;opacity:1!important}
+#dashboardView:not(.hidden) .container{display:block!important;visibility:visible!important;opacity:1!important}
+#dashboardView:not(.hidden) .hero{display:flex!important;visibility:visible!important;opacity:1!important}
+#dashboardView:not(.hidden) #roleDashboard:not(.hidden){display:block!important;visibility:visible!important;opacity:1!important}
