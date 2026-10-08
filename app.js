@@ -1218,6 +1218,10 @@ async function openProfile() {
     $('profileAcademicDegree') && ($('profileAcademicDegree').value = academicProfile.academic_degree || 'MD/MBBS');
 
     const profileSaveButton = $('profileSave');
+    $('openSecurityFromProfile')?.addEventListener('click', () => {
+      closeProfile();
+      openSecurityCenter();
+    }, {once:true});
     if (profileSaveButton) {
       profileSaveButton.style.display = state.profileEditMode ? '' : 'none';
       profileSaveButton.disabled = false;
@@ -1892,6 +1896,12 @@ function closeWorkspace() {
         'hidden'
       );
     });
+
+  $('adminDashboard')?.classList.add('hidden');
+  $('securityCenter')?.classList.add('hidden');
+  $('userDirectoryDashboard')?.classList.add('hidden');
+  $('educationPreferencePanel')?.classList.add('hidden');
+  $('roleDashboard')?.classList.remove('hidden');
 }
 
 
@@ -3593,6 +3603,7 @@ function bindEvents() {
 
   const profileSave = $('profileSave');
   if (profileSave) profileSave.addEventListener('click', saveProfile);
+  $('detectLocationBtn')?.addEventListener('click',()=>detectProfileLocation(false));
 
   const legalAccept = $('legalAccept');
   if (legalAccept) legalAccept.addEventListener('click', acceptLegalConsent);
