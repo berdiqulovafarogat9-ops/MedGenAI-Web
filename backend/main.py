@@ -3518,3 +3518,253 @@ def assistant_chat(data: AssistantMessageRequest, user=Depends(get_current_user)
     else:
         answer="Men MedGen AI platformasi bo‘yicha yordamchi sifatida ishlayman. Bioinformatics, Molecular Analysis, Drug Discovery, Research, Academy, login yoki platforma funksiyasi haqida savol bering."
     return {"status":"ok","answer":answer,"role":_safe_role(user),"disclaimer":"AI javobi ilmiy yoki klinik qarorning yagona manbai emas."}
+
+
+# =========================================================
+# PHASE 2 — SCIENTIFIC CORE HARDENING
+# Bioinformatics + Molecular Analysis + Structure + Discovery
+# =========================================================
+
+class SequenceTranslateRequest(BaseModel):
+    sequence: str
+    frame: int = 1
+
+class SequenceAlignRequest(BaseModel):
+    sequence_a: str
+    sequence_b: str
+    match: int = 1
+    mismatch: int = -1
+    gap: int = -2
+
+class MoleculeBatchRequest(BaseModel):
+    smiles: list[str]
+
+class MoleculeSimilarityRequest(BaseModel):
+    reference_smiles: str
+    query_smiles: list[str]
+    threshold: float = 0.0
+
+class Molecule3DRequest(BaseModel):
+    smiles: str
+    optimize: bool = True
+
+class PDBDownloadRequest(BaseModel):
+    format: str = "pdb"
+
+
+_CODON_TABLE = {
+    "TTT":"F","TTC":"F","TTA":"L","TTG":"L","TCT":"S","TCC":"S","TCA":"S","TCG":"S",
+    "TAT":"Y","TAC":"Y","TAA":"*","TAG":"*","TGT":"C","TGC":"C","TGA":"*","TGG":"W",
+    "CTT":"L","CTC":"L","CTA":"L","CTG":"L","CCT":"P","CCC":"P","CCA":"P","CCG":"P",
+    "CAT":"H","CAC":"H","CAA":"Q","CAG":"Q","CGT":"R","CGC":"R","CGA":"R","CGG":"R",
+    "ATT":"I","ATC":"I","ATA":"I","ATG":"M","ACT":"T","ACC":"T","ACA":"T","ACG":"T",
+    "AAT":"N","AAC":"N","AAA":"K","AAG":"K","AGT":"S","AGC":"S","AGA":"R","AGG":"R",
+    "GTT":"V","GTC":"V","GTA":"V","GTG":"V","GCT":"A","GCC":"A","GCA":"A","GCG":"A",
+    "GAT":"D","GAC":"D","GAA":"E","GAG":"E","GGT":"G","GGC":"G","GGA":"G","GGG":"G",
+}
+
+def _translate_dna(sequence: str, frame: int = 1) -> dict[str, Any]:
+    seq = _clean_sequence(sequence).replace("U", "T")
+    if not seq:
+        raise HTTPException(status_code=400, detail="Sequence is required")
+    if frame not in (1, 2, 3):
+        raise HTTPException(status_code=400, detail="Frame must be 1, 2 or 3")
+    start = frame - 1
+    codons = [seq[i:i+3] for i in range(start, len(seq) - 2, 3)]
+    protein = "".join(_CODON_TABLE.get(c, "X") for c in codons)
+    return {
+        "sequence_type": "DNA",
+        "frame": frame,
+        "codon_count": len(codons),
+        "protein": protein,
+        "stop_codons": protein.count("*"),
+        "ambiguous_codons": protein.count("X"),
+    }
+
+@app.post("/api/v1/bioinformatics/translate")
+def bioinformatics_translate(data: SequenceTranslateRequest, user=Depends(get_current_user)):
+    result = _translate_dna(data.sequence, data.frame)
+    result.update({
+        "status": "completed",
+        "module": "Bioinformatics",
+        "workflow": "DNA_translation",
+        "user": user["username"],
+        "warning": "Exploratory translation only; not a clinical or gene-annotation result.",
+    })
+    return result
+
+@app.post("/api/v1/bioinformatics/align")
+def bioinformatics_align(data: SequenceAlignRequest, user=Depends(get_current_user)):
+    a = _clean_sequence(data.sequence_a)
+    b = _clean_sequence(data.sequence_b)
+    if not a or not b:
+        raise HTTPException(status_code=400, detail="Both sequences are required")
+    if len(a) > 5000 or len(b) > 5000:
+        raise HTTPException(status_code=413, detail="Sequences are limited to 5000 characters for interactive alignment")
+    n, m = len(a), len(b)
+    prev = [j * data.gap for j in range(m + 1)]
+    rows = []
+    trace = []
+    for i in range(1, n + 1):
+        cur = [i * data.gap]
+        row_trace = []
+        for j in range(1, m + 1):
+            diag = prev[j-1] + (data.match if a[i-1] == b[j-1] else data.mismatch)
+            up = prev[j] + data.gap
+            left = cur[j-1] + data.gap
+            best = max(diag, up, left)
+            cur.append(best)
+            row_trace.append(0 if best == diag else (1 if best == up else 2))
+        prev = cur
+        rows.append(cur)
+        trace.append(row_trace)
+    i, j = n, m
+    aa, bb = [], []
+    while i or j:
+        if i and j and trace[i-1][j-1] == 0:
+            aa.append(a[i-1]); bb.append(b[j-1]); i -= 1; j -= 1
+        elif i and (not j or trace[i-1][j-1] == 1):
+            aa.append(a[i-1]); bb.append("-"); i -= 1
+        else:
+            aa.append("-"); bb.append(b[j-1]); j -= 1
+    aligned_a, aligned_b = "".join(reversed(aa)), "".join(reversed(bb))
+    matches = sum(x == y for x, y in zip(aligned_a, aligned_b) if x != "-" and y != "-")
+    comparable = sum(x != "-" and y != "-" for x, y in zip(aligned_a, aligned_b))
+    identity = round(matches / comparable * 100, 2) if comparable else 0.0
+    return {
+        "status": "completed", "module": "Bioinformatics", "workflow": "global_alignment",
+        "score": prev[m], "identity_percent": identity,
+        "aligned_length": len(aligned_a), "matches": matches, "comparable_positions": comparable,
+        "alignment": {"sequence_a": aligned_a, "sequence_b": aligned_b},
+        "parameters": {"match": data.match, "mismatch": data.mismatch, "gap": data.gap},
+        "user": user["username"],
+        "warning": "Educational/research alignment; not a clinical interpretation.",
+    }
+
+def _molecule_descriptors(smiles: str) -> dict[str, Any]:
+    mol = Chem.MolFromSmiles(str(smiles).strip())
+    if mol is None:
+        raise ValueError("Invalid SMILES")
+    return {
+        "input_smiles": str(smiles).strip(),
+        "canonical_smiles": Chem.MolToSmiles(mol),
+        "molecular_formula": rdMolDescriptors.CalcMolFormula(mol),
+        "molecular_weight": round(Descriptors.MolWt(mol), 4),
+        "exact_molecular_weight": round(Descriptors.ExactMolWt(mol), 4),
+        "logP": round(Descriptors.MolLogP(mol), 4),
+        "TPSA": round(Descriptors.TPSA(mol), 4),
+        "HBD": int(Lipinski.NumHDonors(mol)),
+        "HBA": int(Lipinski.NumHAcceptors(mol)),
+        "rotatable_bonds": int(Lipinski.NumRotatableBonds(mol)),
+        "rings": int(Lipinski.RingCount(mol)),
+        "aromatic_rings": int(Lipinski.NumAromaticRings(mol)),
+        "heavy_atoms": int(mol.GetNumHeavyAtoms()),
+        "formal_charge": int(Chem.GetFormalCharge(mol)),
+        "fraction_csp3": round(Lipinski.FractionCSP3(mol), 4),
+        "QED": round(QED.qed(mol), 4),
+    }
+
+@app.post("/api/v1/molecules/batch-analyze")
+def molecule_batch_analyze(data: MoleculeBatchRequest, user=Depends(get_current_user)):
+    if not data.smiles:
+        raise HTTPException(status_code=400, detail="At least one SMILES is required")
+    if len(data.smiles) > 500:
+        raise HTTPException(status_code=413, detail="Maximum 500 molecules per interactive request")
+    results, errors = [], []
+    for smi in data.smiles:
+        try:
+            results.append(_molecule_descriptors(smi))
+        except ValueError as exc:
+            errors.append({"smiles": smi, "error": str(exc)})
+    return {
+        "status": "completed", "module": "Molecular Analysis", "count": len(results),
+        "results": results, "errors": errors, "user": user["username"],
+    }
+
+@app.post("/api/v1/molecules/similarity")
+def molecule_similarity(data: MoleculeSimilarityRequest, user=Depends(get_current_user)):
+    try:
+        ref = Chem.MolFromSmiles(data.reference_smiles.strip())
+    except Exception:
+        ref = None
+    if ref is None:
+        raise HTTPException(status_code=400, detail="Invalid reference SMILES")
+    if not data.query_smiles:
+        raise HTTPException(status_code=400, detail="Query molecules are required")
+    if not 0 <= data.threshold <= 1:
+        raise HTTPException(status_code=400, detail="Threshold must be between 0 and 1")
+    generator = AllChem.GetMorganGenerator(radius=2, fpSize=2048)
+    ref_fp = generator.GetFingerprint(ref)
+    results = []
+    for smi in data.query_smiles[:1000]:
+        mol = Chem.MolFromSmiles(str(smi).strip())
+        if mol is None:
+            results.append({"smiles": smi, "valid": False, "error": "Invalid SMILES"})
+            continue
+        sim = float(DataStructs.TanimotoSimilarity(ref_fp, generator.GetFingerprint(mol)))
+        results.append({"smiles": smi, "valid": True, "similarity": round(sim, 6), "above_threshold": sim >= data.threshold})
+    results.sort(key=lambda x: x.get("similarity", -1), reverse=True)
+    return {
+        "status": "completed", "module": "Molecular Analysis", "workflow": "molecular_similarity",
+        "reference_smiles": data.reference_smiles, "threshold": data.threshold,
+        "results": results, "user": user["username"],
+    }
+
+@app.post("/api/v1/molecules/3d")
+def molecule_3d(data: Molecule3DRequest, user=Depends(get_current_user)):
+    mol = Chem.MolFromSmiles(data.smiles.strip())
+    if mol is None:
+        raise HTTPException(status_code=400, detail="Invalid SMILES")
+    mol = Chem.AddHs(mol)
+    params = AllChem.ETKDGv3()
+    params.randomSeed = 20261008
+    embed_status = AllChem.EmbedMolecule(mol, params)
+    if embed_status != 0:
+        raise HTTPException(status_code=422, detail="3D conformer generation failed")
+    optimized = False
+    if data.optimize:
+        try:
+            optimized = AllChem.UFFOptimizeMolecule(mol, maxIters=200) == 0
+        except Exception:
+            optimized = False
+    return {
+        "status": "completed", "module": "Molecular Analysis", "workflow": "3d_conformer",
+        "canonical_smiles": Chem.MolToSmiles(Chem.RemoveHs(mol)),
+        "optimized": optimized,
+        "atom_count": mol.GetNumAtoms(),
+        "mol_block": Chem.MolToMolBlock(mol),
+        "user": user["username"],
+        "warning": "3D conformer is a computational starting geometry, not an experimentally determined structure.",
+    }
+
+@app.get("/api/v1/pdb/structures/{pdb_id}/links")
+def pdb_structure_links(pdb_id: str, user=Depends(get_current_user)):
+    pdb_id = pdb_id.strip().upper()
+    if not re.fullmatch(r"[0-9A-Z]{4}", pdb_id):
+        raise HTTPException(status_code=400, detail="PDB ID must contain 4 alphanumeric characters")
+    return {
+        "status": "ready", "module": "PDB & Structure", "pdb_id": pdb_id,
+        "sources": {
+            "rcsb_entry": f"https://www.rcsb.org/structure/{pdb_id}",
+            "pdb_file": f"https://files.rcsb.org/download/{pdb_id}.pdb",
+            "mmcif_file": f"https://files.rcsb.org/download/{pdb_id}.cif",
+        },
+        "user": user["username"],
+    }
+
+@app.get("/api/v1/scientific/core/status")
+def scientific_core_status(user=Depends(get_current_user)):
+    return {
+        "status": "operational", "phase": 2, "module": "Scientific Core",
+        "components": {
+            "rdkit": True, "bioinformatics": True, "pdb_rcsb": True,
+            "morgan_similarity": True, "molecule_3d": True,
+            "drug_discovery_screening": True, "docking_engine": VINA_AVAILABLE,
+        },
+        "user": user["username"],
+        "limitations": [
+            "Docking requires a prepared receptor and ligand PDBQT inputs.",
+            "Sequence annotation is not a clinical diagnosis.",
+            "Property-based screening is not experimental efficacy or safety evidence.",
+        ],
+    }
