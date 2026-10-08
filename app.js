@@ -3008,8 +3008,11 @@ function bindLanguageSelectors() {
             window.translatePage(lang);
           }
 
-          /* Refresh dynamic statuses and module titles too. */
+          /* Refresh dynamic statuses, module titles, and the unified final shell. */
           refreshDynamicUI();
+          if (typeof window.medgenFinalRefreshLanguage === 'function') {
+            window.medgenFinalRefreshLanguage();
+          }
         }
       );
     }
