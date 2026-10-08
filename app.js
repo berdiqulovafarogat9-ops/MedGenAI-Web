@@ -3456,6 +3456,7 @@ function applyRoleDashboard(){
   });
   const rd=$('roleDashboard'); if(rd) rd.classList.remove('hidden');
   updateUserUI();
+  window.medgenRefreshRoleNavigation?.();
 }
 function bindRoleRegistration(){
   const grid=$('registerRoleGrid'), hidden=$('registerRole'), status=$('registerRoleStatus');
@@ -4393,6 +4394,7 @@ async function detectProfileLocation(fromSecurity=false){
   if(!navigator.geolocation){if(status)status.textContent='❌ Bu qurilmada geolocation mavjud emas.';return;}
   if(status)status.textContent='📍 Qurilma joylashuviga ruxsat so‘ralmoqda...';
   navigator.geolocation.getCurrentPosition(async pos=>{
+    if(fromSecurity) await openProfile();
     const lat=Number(pos.coords.latitude),lon=Number(pos.coords.longitude),btn=$('detectLocationBtn');
     if(btn){btn.dataset.lat=String(lat);btn.dataset.lon=String(lon);btn.dataset.source='DEVICE_GEOLOCATION';}
     try{
@@ -4402,7 +4404,7 @@ async function detectProfileLocation(fromSecurity=false){
       if($('profileCountry')&&code)$('profileCountry').value=code;if($('profileAcademicCountry')&&code)$('profileAcademicCountry').value=code;if($('profileRegion'))$('profileRegion').value=a.state||a.region||'';if($('profileDistrict'))$('profileDistrict').value=a.county||a.city_district||a.district||'';if($('profileCity'))$('profileCity').value=a.city||a.town||a.village||a.municipality||'';if($('profileLocationLabel'))$('profileLocationLabel').value=a.suburb||a.neighbourhood||a.quarter||'';if(btn)btn.dataset.source='DEVICE_GEOLOCATION_REVERSE';
       if(status)status.textContent='✅ Joylashuv aniqlandi. Saqlash uchun Profilni saqlang.';
     }catch(_){if(status)status.textContent='✅ Koordinata aniqlandi, lekin hudud nomini avtomatik olish imkoni bo‘lmadi. Mamlakat/viloyat/tumanni tekshiring.';}
-    if(fromSecurity){$('securityCenter')?.classList.add('hidden');openProfile();}
+    if(fromSecurity){$('securityCenter')?.classList.add('hidden');}
   },()=>{if(status)status.textContent='⚠️ Joylashuv ruxsati berilmadi yoki aniqlanmadi. Mamlakat/viloyat/tumanni qo‘lda tanlang.';},{enableHighAccuracy:false,timeout:12000,maximumAge:300000});
 }
 /* =========================================================
