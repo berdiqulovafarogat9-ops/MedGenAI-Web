@@ -1153,7 +1153,7 @@ async function openProfile() {
     card.querySelector('.modal-close')?.insertAdjacentElement('afterend', edit);
     edit.addEventListener('click', openProfileEditor);
   }
-  document.querySelectorAll('#profileModal input, #profileModal textarea').forEach(el => el.disabled = !state.profileEditMode);
+  document.querySelectorAll('#profileModal input, #profileModal textarea, #profileModal select').forEach(el => el.disabled = !state.profileEditMode);
   const changePasswordBtn = $('changePasswordBtn');
   if (changePasswordBtn) changePasswordBtn.addEventListener('click', changeAccountPassword);
 
@@ -1235,7 +1235,7 @@ async function openProfile() {
       profileSaveButton.disabled = false;
       profileSaveButton.textContent = 'Saqlash';
     }
-    document.querySelectorAll('#profileModal input, #profileModal textarea').forEach(el => {
+    document.querySelectorAll('#profileModal input, #profileModal textarea, #profileModal select').forEach(el => {
       el.disabled = !state.profileEditMode;
     });
 
@@ -1447,7 +1447,7 @@ async function saveProfile() {
     document.querySelectorAll('.profile-locked').forEach(el => el.classList.remove('profile-locked'));
 
     state.profileEditMode = false;
-    document.querySelectorAll('#profileModal input, #profileModal textarea').forEach(el => el.disabled = true);
+    document.querySelectorAll('#profileModal input, #profileModal textarea, #profileModal select').forEach(el => el.disabled = true);
     if (status) status.textContent = '✅ Profil muvaffaqiyatli saqlandi.';
     if (button) {
       button.style.display = 'none';
