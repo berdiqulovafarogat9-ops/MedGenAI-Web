@@ -2312,9 +2312,9 @@ document.addEventListener("DOMContentLoaded", function () {
     const role=(window.__MEDGEN_USER&&window.__MEDGEN_USER.role)||'student';
     const label=(window.__MEDGEN_USER&&window.__MEDGEN_USER.role_label)||role;
     const el=shell('💬 '+label+' Community','<div class="community-card">Bu yopiq xona faqat sizning rolingiz uchun.</div><div id="communityMsgs">Yuklanmoqda...</div><form id="communityForm" class="ai-compose"><input id="communityInput" placeholder="Xabar yozing..." required><button class="primary">Yuborish</button></form>');
-    async function load(){try{const d=await api('/community');document.getElementById('communityMsgs').innerHTML=d.messages.length?d.messages.map(x=>'<div class="community-card"><b>'+x.username+'</b><br>'+x.message+'<br><small>'+x.created_at+'</small></div>').join(''):'Hozircha xabar yo‘q — birinchi bo‘lib yozing.';}catch(e){document.getElementById('communityMsgs').textContent=e.message;}}
+    async function load(){try{const d=await api('/community'+(window.__MEDGEN_COMMUNITY_ROLE?'?role='+encodeURIComponent(window.__MEDGEN_COMMUNITY_ROLE):''));document.getElementById('communityMsgs').innerHTML=d.messages.length?d.messages.map(x=>'<div class="community-card"><b>'+x.username+'</b><br>'+x.message+'<br><small>'+x.created_at+'</small></div>').join(''):'Hozircha xabar yo‘q — birinchi bo‘lib yozing.';}catch(e){document.getElementById('communityMsgs').textContent=e.message;}}
     await load();
-    document.getElementById('communityForm').onsubmit=async e=>{e.preventDefault();const i=document.getElementById('communityInput'),q=i.value.trim();try{await api('/community/messages',{method:'POST',body:JSON.stringify({message:q})});i.value='';load();}catch(x){alert(x.message)}};
+    document.getElementById('communityForm').onsubmit=async e=>{e.preventDefault();const i=document.getElementById('communityInput'),q=i.value.trim();try{await api('/community/messages',{method:'POST',body:JSON.stringify({message:q,role:window.__MEDGEN_COMMUNITY_ROLE||undefined})});i.value='';load();}catch(x){alert(x.message)}};
   }
   window.openFunctionalService=function(kind){ if(kind==='support') return support(); if(kind==='assistant') return assistant(); if(kind==='community') return community(); };
   document.addEventListener('click',e=>{
