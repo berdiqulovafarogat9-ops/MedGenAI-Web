@@ -1191,14 +1191,14 @@ frame-ancestors 'none'">
       if(!username||!password){ if(status) status.textContent='Foydalanuvchi nomi va parolni kiriting.'; return; }
       if(status) status.textContent='Tizimga kirilmoqda...';
       try{
-        const res=await fetch('/api/v1/auth/login',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({username,password})});
+        const res=await fetch('https://medgenai-web-1.onrender.com/api/v1/auth/login',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({username,password})});
         const data=await res.json().catch(()=>({}));
         if(!res.ok) throw new Error(data.detail||data.message||('HTTP '+res.status));
         const token=data.access_token||data.token; if(!token) throw new Error('Server access token qaytarmadi.');
         sessionStorage.setItem('medgen_access_token',token);
         let user=data.user||{username,role:'student'};
         try{
-          const me=await fetch('/api/v1/auth/me',{headers:{Authorization:'Bearer '+token}});
+          const me=await fetch('https://medgenai-web-1.onrender.com/api/v1/auth/me',{headers:{Authorization:'Bearer '+token}});
           if(me.ok) user=await me.json();
         }catch(_){}
         showDashboardFallback(user);
