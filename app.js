@@ -4282,6 +4282,7 @@ if (document.readyState === "loading") {
       <div id="navModules" class="nav-modules"></div>
       <div class="nav-section-title">ACCOUNT</div>
       <button class="nav-item" data-nav="profile">👤 Profilim</button>
+      <button class="nav-item" data-nav="security">🔐 Maxfiylik / Xavfsizlik</button>
       <button class="nav-item" data-nav="education">🎓 Ta’lim sozlamalari</button>
       <button class="nav-item" data-nav="system">⚙️ System</button>
       <div id="navAdminWrap"></div>
@@ -4321,6 +4322,7 @@ if (document.readyState === "loading") {
     }));
 
     drawer.querySelector('[data-nav="profile"]').addEventListener('click',()=>{close(); if(typeof openProfile==='function') openProfile();});
+    drawer.querySelector('[data-nav="security"]').addEventListener('click',()=>{close();openSecurityCenter();});
     drawer.querySelector('[data-nav="education"]').addEventListener('click',()=>{close(); document.getElementById('educationPreferencePanel')?.classList.remove('compact-hidden'); document.getElementById('educationPreferencePanel')?.scrollIntoView({behavior:'smooth',block:'start'});});
     drawer.querySelector('[data-nav="system"]').addEventListener('click',()=>{close(); document.getElementById('systemPanel')?.scrollIntoView({behavior:'smooth',block:'start'});});
 
@@ -4354,6 +4356,47 @@ if (document.readyState === "loading") {
   if(document.readyState==='loading') document.addEventListener('DOMContentLoaded',boot,{once:true}); else boot();
 })();
 
+/* =========================================================
+   SECURITY CENTER + LOCATION PERMISSIONS
+========================================================= */
+async function loadSecurityCenter() {
+  const grid=$('securityGrid'); if(!grid)return;
+  grid.innerHTML='<div class="status">Yuklanmoqda...</div>';
+  try {
+    const d=await api('/security/summary');
+    const consent=d.consent_complete?'✅ Tasdiqlangan':'⚠️ Tasdiqlash kerak';
+    const identity=d.identity?.status==='PENDING_PROVIDER'?'🟡 Provayder kutilyapti':'⚪ Tasdiqlanmagan';
+    const loc=d.location?.label||[d.location?.country,d.location?.region,d.location?.district,d.location?.city].filter(Boolean).join(' · ')||'Kiritilmagan';
+    grid.innerHTML='<div class="security-card"><span>📜</span><strong>Roziliklar</strong><div>'+escapeHtml(consent)+'</div><small>Terms, Privacy, Data Processing va Research Disclaimer.</small></div>'+
+      '<div class="security-card"><span>🪪</span><strong>Identifikatsiya</strong><div>'+escapeHtml(identity)+'</div><small>Passport/selfie xom ma’lumotlari MedGen AI tomonidan saqlanmaydi.</small><button id="identityStart" class="ghost small" type="button">Identifikatsiyani boshlash</button></div>'+
+      '<div class="security-card"><span>🔐</span><strong>Hisob xavfsizligi</strong><div>'+Number(d.active_sessions||0)+' faol sessiya</div><small>Parolni Profil → Account & Security orqali almashtiring.</small></div>'+
+      '<div class="security-card"><span>📍</span><strong>Joylashuv</strong><div>'+escapeHtml(loc)+'</div><small>Joylashuv faqat foydalanuvchi ruxsati bilan aniqlanadi.</small><button id="securityLocation" class="ghost small" type="button">Joylashuv ruxsatini tekshirish</button></div>'+
+      '<div class="security-card"><span>🛡️</span><strong>Maxfiylik</strong><div>Minimal ma’lumot prinsipi</div><small>Keraksiz passport, raw biometric yoki aniq koordinatalar avtomatik yig‘ilmaydi.</small></div>'+
+      '<div class="security-card"><span>🔑</span><strong>Parol</strong><div>Account password</div><small>Kuchli parol va sessiya nazorati talab qilinadi.</small></div>';
+    $('identityStart')?.addEventListener('click',async()=>{try{const x=await api('/security/identity/request',{method:'POST',body:JSON.stringify({method:'DOCUMENT_PROVIDER'})});$('securityStatus').textContent='🟡 '+(x.identity?.note||'Identifikatsiya so‘rovi yuborildi.');await loadSecurityCenter();}catch(e){$('securityStatus').textContent='❌ '+e.message;}});
+    $('securityLocation')?.addEventListener('click',()=>detectProfileLocation(true));
+  } catch(e) { grid.innerHTML='<div class="status">❌ '+escapeHtml(e.message)+'</div>'; }
+}
+function openSecurityCenter(){
+  $('roleDashboard')?.classList.add('hidden');$('userDirectoryDashboard')?.classList.add('hidden');$('moduleDirectory')?.classList.add('hidden');$('educationPreferencePanel')?.classList.add('hidden');$('workspace')?.classList.add('hidden');$('adminDashboard')?.classList.add('hidden');$('securityCenter')?.classList.remove('hidden');loadSecurityCenter();
+}
+async function detectProfileLocation(fromSecurity=false){
+  const status=$('locationStatus')||$('securityStatus');
+  if(!navigator.geolocation){if(status)status.textContent='❌ Bu qurilmada geolocation mavjud emas.';return;}
+  if(status)status.textContent='📍 Qurilma joylashuviga ruxsat so‘ralmoqda...';
+  navigator.geolocation.getCurrentPosition(async pos=>{
+    const lat=Number(pos.coords.latitude),lon=Number(pos.coords.longitude),btn=$('detectLocationBtn');
+    if(btn){btn.dataset.lat=String(lat);btn.dataset.lon=String(lon);btn.dataset.source='DEVICE_GEOLOCATION';}
+    try{
+      const url='https://nominatim.openstreetmap.org/reverse?format=jsonv2&lat='+encodeURIComponent(lat)+'&lon='+encodeURIComponent(lon)+'&accept-language='+encodeURIComponent(getLanguage());
+      const res=await fetch(url,{headers:{'Accept':'application/json','Accept-Language':getLanguage()}});
+      const geo=await res.json(),a=geo?.address||{},code=String(a.country_code||'').toUpperCase();
+      if($('profileCountry')&&code)$('profileCountry').value=code;if($('profileAcademicCountry')&&code)$('profileAcademicCountry').value=code;if($('profileRegion'))$('profileRegion').value=a.state||a.region||'';if($('profileDistrict'))$('profileDistrict').value=a.county||a.city_district||a.district||'';if($('profileCity'))$('profileCity').value=a.city||a.town||a.village||a.municipality||'';if($('profileLocationLabel'))$('profileLocationLabel').value=a.suburb||a.neighbourhood||a.quarter||'';if(btn)btn.dataset.source='DEVICE_GEOLOCATION_REVERSE';
+      if(status)status.textContent='✅ Joylashuv aniqlandi. Saqlash uchun Profilni saqlang.';
+    }catch(_){if(status)status.textContent='✅ Koordinata aniqlandi, lekin hudud nomini avtomatik olish imkoni bo‘lmadi. Mamlakat/viloyat/tumanni tekshiring.';}
+    if(fromSecurity){$('securityCenter')?.classList.add('hidden');openProfile();}
+  },()=>{if(status)status.textContent='⚠️ Joylashuv ruxsati berilmadi yoki aniqlanmadi. Mamlakat/viloyat/tumanni qo‘lda tanlang.';},{enableHighAccuracy:false,timeout:12000,maximumAge:300000});
+}
 /* =========================================================
    PHASE 1 FINAL SHELL — ROLE-FIRST DASHBOARD
    The home screen is a role workspace, not a module catalogue.
@@ -4616,6 +4659,7 @@ if (document.readyState === "loading") {
       loadPersonalDashboard();
     });
 
+    $('securityBack')?.addEventListener('click',()=>{$('securityCenter')?.classList.add('hidden');$('roleDashboard')?.classList.remove('hidden');loadPersonalDashboard();});
     // Education settings are a menu item, not a permanent giant dashboard card.
     const oldEdu=document.querySelector('[data-nav="education"]');
     if(oldEdu) oldEdu.addEventListener('click',()=>{
