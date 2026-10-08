@@ -2368,5 +2368,66 @@ document.addEventListener("DOMContentLoaded", function () {
 
 <script>window.MEDGEN_API_BASE="https://medgenai-web-1.onrender.com/api/v1";</script>
 <script src="/phase1-academy.js?v=20261009-restore"></script>
-</body>
+
+<style id="medgen-final-layout-fix">
+#scientificWorkflowPanel,#moleculeVisualPanel,#moduleDirectory{display:none!important}
+#workspace.hidden,#profileModal.hidden{display:none!important}
+#medgenQuickMenu{position:fixed;top:64px;left:12px;z-index:100000;display:none;width:min(340px,calc(100vw - 24px));max-height:calc(100vh - 80px);overflow:auto;background:#07111f;border:1px solid rgba(255,255,255,.14);border-radius:16px;padding:12px;box-shadow:0 18px 60px rgba(0,0,0,.45)}
+#medgenQuickMenu.open{display:block}
+#medgenQuickMenu button{display:block;width:100%;text-align:left;margin:5px 0;padding:11px 12px;border-radius:10px;border:1px solid rgba(255,255,255,.1);background:rgba(255,255,255,.05);color:inherit;cursor:pointer}
+</style>
+<script id="medgen-navigation-fix">
+(function(){
+'use strict';
+function hideHomeExtras(){
+  ['moduleDirectory','scientificWorkflowPanel','moleculeVisualPanel'].forEach(id=>document.getElementById(id)?.style.setProperty('display','none','important'));
+}
+function showProfile(){
+  ['roleDashboard','workspace','userDirectoryDashboard','educationPreferencePanel','securityCenter','moduleDirectory','scientificWorkflowPanel','moleculeVisualPanel'].forEach(id=>document.getElementById(id)?.classList.add('hidden'));
+  const p=document.getElementById('profileModal');
+  if(p){p.classList.remove('hidden');p.style.display='block';}
+}
+function openModule(name){
+  const b=[...document.querySelectorAll('.module[data-module]')].find(x=>(x.dataset.module||'').toLowerCase()===name.toLowerCase());
+  if(b){b.click();return;}
+  if(typeof window.openModule==='function'){try{window.openModule(name)}catch(e){}}
+}
+function buildMenu(){
+  let d=document.getElementById('medgenQuickMenu');
+  if(!d){
+    d=document.createElement('aside');d.id='medgenQuickMenu';
+    document.body.appendChild(d);
+  }
+  const mods=[...document.querySelectorAll('.module[data-module]')];
+  d.innerHTML='<b style="display:block;padding:6px 8px 10px;font-size:16px">☰ Menyu</b>'+
+    '<button data-home>🏠 Mening dashboardim</button>'+
+    '<button data-profile>👤 Profilim</button>'+
+    '<div style="padding:10px 8px 4px;opacity:.65;font-size:12px">ILMIY MODULLAR</div>'+
+    mods.map(b=>'<button data-module-name="'+String(b.dataset.module).replace(/"/g,'&quot;')+'">'+(b.querySelector('b')?.textContent||'🧬')+' '+(b.querySelector('strong')?.textContent||b.dataset.module)+'</button>').join('');
+  d.querySelector('[data-home]').onclick=()=>{d.classList.remove('open');hideHomeExtras();document.getElementById('profileModal')?.classList.add('hidden');document.getElementById('roleDashboard')?.classList.remove('hidden');};
+  d.querySelector('[data-profile]').onclick=()=>{d.classList.remove('open');showProfile();};
+  d.querySelectorAll('[data-module-name]').forEach(x=>x.onclick=()=>{d.classList.remove('open');openModule(x.dataset.moduleName);});
+  return d;
+}
+function bind(){
+  hideHomeExtras();
+  const menu=document.getElementById('medgenMenuBtn');
+  if(menu && !menu.dataset.navFix){
+    menu.dataset.navFix='1';
+    menu.addEventListener('click',function(e){e.preventDefault();e.stopImmediatePropagation();buildMenu().classList.toggle('open')},true);
+  }
+  const profile=document.getElementById('profileBtn');
+  if(profile && !profile.dataset.navFix){
+    profile.dataset.navFix='1';
+    profile.addEventListener('click',function(e){e.preventDefault();e.stopImmediatePropagation();showProfile()},true);
+  }
+  document.addEventListener('click',function(e){
+    const d=document.getElementById('medgenQuickMenu');
+    if(d?.classList.contains('open') && !d.contains(e.target) && e.target.id!=='medgenMenuBtn')d.classList.remove('open');
+  },true);
+}
+if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',bind,{once:true});else bind();
+})();
+</script>
+\n</body>
 </html>
