@@ -43,6 +43,14 @@ body{margin:0}.phase1-center{min-height:100vh;display:grid;place-items:center;pa
   </header>
   <main class="phase1-container container">
     <div id="phase1Home"></div>
+    <section id="roleDashboard" class="role-dashboard panel">
+      <div class="role-dashboard-head">
+        <div><div class="eyebrow">PERSONAL WORKSPACE</div><h1 id="roleDashboardTitle">🎓 Talaba</h1><p id="roleDashboardDesc" class="muted">Shaxsiy ish maydoningiz.</p></div>
+        <span id="roleDashboardBadge" class="final-role">PRIMARY ROLE</span>
+      </div>
+      <div id="roleProfileSummary" class="role-profile-summary"></div>
+      <div id="roleQuickGrid" class="final-grid"></div>
+    </section>
     <section id="workspace" class="panel hidden">
       <div style="display:flex;align-items:center;gap:10px">
         <h2 id="workspaceTitle">Ish maydoni</h2><button id="workspaceClose" type="button">Yopish</button>
@@ -63,19 +71,50 @@ body{margin:0}.phase1-center{min-height:100vh;display:grid;place-items:center;pa
   </main>
 </section>
 
-<div id="profileModal" class="hidden" style="position:fixed;inset:0;display:none;place-items:center;z-index:100002;background:rgba(0,0,0,.65)">
-  <div class="panel" style="width:min(520px,90vw)">
-    <h2>Profilim</h2>
-    <input id="profileUsername" placeholder="Username">
-    <input id="profileEmail" placeholder="Email">
-    <input id="profileFullName" placeholder="Full name">
-    <input id="profileOrganization" placeholder="Organization">
-    <input id="profileCountry" placeholder="Country">
-    <button id="profileClose" type="button">Yopish</button>
+<div id="profileModal" class="hidden" style="position:fixed;inset:0;display:none;place-items:center;z-index:100002;background:rgba(0,0,0,.72)">
+  <div class="panel profile-card">
+    <button id="profileClose" class="modal-close" type="button">×</button>
+    <div class="eyebrow">PROFILE</div><h2>Profilim</h2>
+    <div class="profile-grid">
+      <label>Username<input id="profileUsername" disabled></label>
+      <label>To‘liq ism<input id="profileFullName"></label>
+      <label>Email<input id="profileEmail" type="email"></label>
+      <label>Telefon<input id="profilePhone"></label>
+      <label>Mamlakat<select id="profileCountry"><option value="">Mamlakatni tanlang</option></select></label>
+      <label>Viloyat / Region<input id="profileRegion"></label>
+      <label>Shahar<input id="profileCity"></label>
+      <label>Tug‘ilgan sana<input id="profileBirthDate" placeholder="DD.MM.YYYY"></label>
+      <label>Ta’lim tizimi<select id="profileEducationMode"><option value="GLOBAL">Global / International</option><option value="COUNTRY">Mening mamlakatim</option></select></label>
+      <label>Universitet<input id="profileUniversity" list="profileUniversityList" placeholder="Universitetni tanlang yoki yozing"><datalist id="profileUniversityList"></datalist></label>
+      <label>Fakultet<input id="profileFaculty"></label>
+      <label>Yo‘nalish<input id="profileMajor"></label>
+      <label>Kurs<select id="profileAcademicYear"><option>1</option><option>2</option><option>3</option><option>4</option><option>5</option><option>6</option></select></label>
+      <label>Guruh<input id="profileGroup"></label>
+      <label>Student ID<input id="profileStudentId"></label>
+      <label>O‘qish tili<select id="profileStudyLanguage"><option value="uz">O‘zbek</option><option value="en">English</option><option value="ru">Русский</option><option value="tr">Türkçe</option><option value="de">Deutsch</option></select></label>
+      <label>Akademik daraja<input id="profileAcademicDegree" value="MD/MBBS"></label>
+      <label style="grid-column:1/-1">Tashkilot / Ish joyi<input id="profileOrganization"></label>
+    </div>
+    <div id="profileStatus" class="status"></div>
+    <button id="profileSave" class="primary" type="button">Saqlash</button>
+  </div>
+</div>
+
+<div id="legalModal" class="hidden" style="position:fixed;inset:0;display:none;place-items:center;z-index:100003;background:rgba(0,0,0,.82)">
+  <div class="panel profile-card">
+    <div class="eyebrow">FIRST ACCESS SECURITY</div><h2>🔐 Xavfsizlik va maxfiylik</h2>
+    <p class="muted">Birinchi kirishda majburiy roziliklar. Biometrik ma’lumotlar MedGen serveriga xom holatda yuborilmaydi.</p>
+    <label><input id="consentTerms" type="checkbox"> Foydalanish shartlariga roziman</label>
+    <label><input id="consentPrivacy" type="checkbox"> Maxfiylik siyosatiga roziman</label>
+    <label><input id="consentData" type="checkbox"> Ma’lumotlarni qayta ishlashga roziman</label>
+    <label><input id="consentResearch" type="checkbox"> Ilmiy/medical natijalar mustaqil mutaxassis tomonidan tekshirilishi kerakligini qabul qilaman</label>
+    <button id="legalAccept" class="primary" type="button">Roziman va davom etaman</button>
+    <div id="legalStatus" class="status"></div>
   </div>
 </div>
 
 <script src="/phase1-shell.js?v=20261008-3"></script>
-<script src="/phase1-controller.js?v=20261008-3"></script>
+
+<script src="/phase1-controller.js?v=20261008-4"></script>
 </body>
 </html>
