@@ -3677,7 +3677,8 @@ def academy_dashboard(user=Depends(get_current_user)):
 def academy_eligibility(course: int, user=Depends(get_current_user)):
     if course not in ACADEMY_COURSES:
         raise HTTPException(status_code=404, detail="Course not found.")
-    progress = _academy_progress(user["username"])\n    required_components = ("theory", "practice", "quiz", "case", "skills", "osce", "exam")
+    progress = _academy_progress(user["username"])
+    required_components = ("theory", "practice", "quiz", "case", "skills", "osce", "exam")
     requirements = []
     for sid, name, _ in ACADEMY_COURSES[course]["subjects"]:
         rec = progress.get(_academy_key(course, sid), {})
