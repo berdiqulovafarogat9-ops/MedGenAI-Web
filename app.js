@@ -4884,3 +4884,25 @@ async function runMolecule3D() {
   }
   if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',bind,{once:true});else bind();
 })();
+
+
+function runScientificWorkflow(){
+  const status=document.getElementById('workflowStatus'), out=document.getElementById('workflowResult');
+  const body={
+    name:document.getElementById('workflowName')?.value || 'MedGen Scientific Workflow',
+    target:document.getElementById('workflowTarget')?.value || '',
+    pdb_id:document.getElementById('workflowPdb')?.value || '',
+    chain_id:document.getElementById('workflowChain')?.value || '',
+    sequence:document.getElementById('workflowSequence')?.value || '',
+    ligand_smiles:document.getElementById('workflowLigand')?.value || '',
+    run_similarity:true,
+    similarity_library:(document.getElementById('workflowLibrary')?.value || '').split(/\r?\n/).map(x=>x.trim()).filter(Boolean)
+  };
+  if(!body.target){ status.textContent='Target is required'; return; }
+  status.textContent='Running scientific workflow...'; out.textContent='';
+  fetch(API_BASE+'/scientific/workflow',{method:'POST',headers:{'Content-Type':'application/json',...authHeaders()},body:JSON.stringify(body)})
+    .then(async r=>{const j=await r.json(); if(!r.ok) throw new Error(j.detail||'Workflow failed'); return j;})
+    .then(j=>{status.textContent='Workflow completed'; out.textContent=JSON.stringify(j,null,2);})
+    .catch(e=>{status.textContent='Workflow error'; out.textContent=e.message;});
+}
+document.addEventListener('DOMContentLoaded',()=>document.getElementById('workflowRun')?.addEventListener('click',runScientificWorkflow));
