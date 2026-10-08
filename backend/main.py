@@ -3976,6 +3976,22 @@ def create_lab_pipeline(data: LabPipelineRequest, user=Depends(get_current_user)
     _db_save()
     return {"status":"ready","module":"Virtual Laboratory","experiment":experiment}
 
+@app.post("/api/v1/lab/experiments/{experiment_id}/execute")
+def execute_lab_experiment(experiment_id: str, user=Depends(get_current_user)):
+    experiment=next((e for e in experiments_store if e.get("id")==experiment_id),None)
+    if not experiment: raise HTTPException(status_code=404,detail="Experiment not found")
+    if experiment.get("user")!=user["username"] and user.get("role")!="SUPER_ADMIN": raise HTTPException(status_code=403,detail="Access denied")
+    results=experiment.setdefault("results",{}).setdefault("steps",[])
+    for item in results:
+        if item.get("status")=="ready":
+            if item.get("step")=="virtual_screening": item["status"]="completed"; item["result"]={"engine":"MedGen screening workflow","status":"prepared"}
+            elif item.get("step")=="report": item["status"]="completed"
+    experiment["status"]="completed"
+    experiment["updated_at"]=datetime.now(timezone.utc).isoformat()
+    activity_log.insert(0,{"type":"lab_experiment_executed","username":user["username"],"experiment_id":experiment_id,"at":experiment["updated_at"]})
+    _db_save()
+    return {"status":"completed","module":"Virtual Laboratory","experiment":experiment}
+
 @app.get("/api/v1/lab/experiments/{experiment_id}")
 def get_lab_experiment(experiment_id: str, user=Depends(get_current_user)):
     experiment=next((e for e in experiments_store if e.get("id")==experiment_id),None)
