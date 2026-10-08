@@ -3483,7 +3483,12 @@ def _academy_question_bank(course: int, subject: dict):
             "answer": 0,
         },
     ]
-    return {"quiz": base, "exam": base + base, "case": cases}
+    skills = [{"id": f"{course}-{sid}-skill{i}", "title": f"Practical skill {i}: {topic}", "instruction": "Perform the structured educational skill, explain the rationale, and identify safety checks."} for i in range(1, 4)]
+    osce = [
+        {"id": f"{course}-{sid}-osce1", "station": f"OSCE Station 1 — {topic}", "prompt": "Complete the station in a structured sequence and communicate key safety checks.", "checklist": ["Preparation", "Structured execution", "Communication", "Safety check", "Documentation"]},
+        {"id": f"{course}-{sid}-osce2", "station": f"OSCE Station 2 — {topic}", "prompt": "Interpret the educational scenario, demonstrate the skill, and explain the decision.", "checklist": ["Interpretation", "Skill performance", "Reasoning", "Safety", "Feedback"]},
+    ]
+    return {"quiz": base, "exam": base + base, "case": cases, "skills": skills, "osce": osce}
 
 class AcademyProfileRequest(BaseModel):
     country_code: str = ""
@@ -3672,11 +3677,11 @@ def academy_dashboard(user=Depends(get_current_user)):
 def academy_eligibility(course: int, user=Depends(get_current_user)):
     if course not in ACADEMY_COURSES:
         raise HTTPException(status_code=404, detail="Course not found.")
-    progress = _academy_progress(user["username"])
+    progress = _academy_progress(user["username"])\n    required_components = ("theory", "practice", "quiz", "case", "skills", "osce", "exam")
     requirements = []
     for sid, name, _ in ACADEMY_COURSES[course]["subjects"]:
         rec = progress.get(_academy_key(course, sid), {})
-        ok = all(rec.get(t, {}).get("passed", False) for t in ACADEMY_ASSESSMENT_TYPES)
+        ok = all(rec.get(t, {}).get("passed", False) for t in required_components)
         requirements.append({"subject_id": sid, "subject": name, "ready": ok})
     ready = bool(requirements) and all(x["ready"] for x in requirements)
     return {
@@ -3685,7 +3690,8 @@ def academy_eligibility(course: int, user=Depends(get_current_user)):
         "eligible_for_next_course": ready and course < max(ACADEMY_COURSES),
         "course_complete": ready,
         "requirements": requirements,
-        "rule": "Promotion requires completion of theory, practice, case, quiz and exam for every subject; no three-question shortcut exists."
+        "required_components": list(required_components),
+        "rule": "Promotion requires completion of theory, practice, quiz, case, skills, OSCE and exam for every subject; no three-question shortcut exists."
     }
 
 
