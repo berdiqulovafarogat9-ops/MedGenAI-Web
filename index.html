@@ -718,6 +718,20 @@ frame-ancestors 'none'">
           Analyze molecule
         </button>
 
+        <div class="scientific-subtools" style="margin-top:12px;display:grid;gap:8px">
+          <textarea id="moleculeBatchInput" placeholder="Batch SMILES — one molecule per line"></textarea>
+          <button id="moleculeBatchRun" class="ghost small" type="button">🧪 Batch analysis</button>
+          <div id="moleculeBatchStatus" class="status"></div>
+          <pre id="moleculeBatchResult" class="result"></pre>
+          <textarea id="moleculeSimilarityInput" placeholder="Reference SMILES + query SMILES (one per line)"></textarea>
+          <button id="moleculeSimilarityRun" class="ghost small" type="button">🔬 Similarity search</button>
+          <div id="moleculeSimilarityStatus" class="status"></div>
+          <pre id="moleculeSimilarityResult" class="result"></pre>
+          <button id="molecule3dRun" class="ghost small" type="button">🧊 Generate 3D conformer</button>
+          <div id="molecule3dStatus" class="status"></div>
+          <pre id="molecule3dResult" class="result"></pre>
+        </div>
+
         <div
           id="molecularStatus"
           class="status">
@@ -755,6 +769,17 @@ frame-ancestors 'none'">
           placeholder="DNA / RNA / protein sequence or FASTA"
           data-i18n-placeholder="sequencePlaceholder">
         </textarea>
+
+        <div class="scientific-subtools" style="margin-top:12px;display:grid;gap:8px">
+          <input id="bioFrame" type="number" min="1" max="3" value="1" placeholder="Reading frame 1-3">
+          <button id="bioTranslateRun" class="ghost small" type="button">🧬 Translate DNA → Protein</button>
+          <div id="bioTranslateStatus" class="status"></div>
+          <pre id="bioTranslateResult" class="result"></pre>
+          <textarea id="bioSequenceB" placeholder="Second sequence for global alignment"></textarea>
+          <button id="bioAlignRun" class="ghost small" type="button">↔️ Global sequence alignment</button>
+          <div id="bioAlignStatus" class="status"></div>
+          <pre id="bioAlignResult" class="result"></pre>
+        </div>
 
         <button
           id="bioRun"
