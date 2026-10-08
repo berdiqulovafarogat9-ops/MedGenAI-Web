@@ -3763,6 +3763,10 @@ def pdb_structure_links(pdb_id: str, user=Depends(get_current_user)):
         "user": user["username"],
     }
 
+
+SCIENTIFIC_INPUT_LIMIT = int(os.getenv("MEDGEN_SCIENTIFIC_INPUT_LIMIT", "5000"))
+SCIENTIFIC_LIBRARY_LIMIT = int(os.getenv("MEDGEN_SCIENTIFIC_LIBRARY_LIMIT", "200"))
+
 @app.get("/api/v1/scientific/core/status")
 def scientific_core_status(user=Depends(get_current_user)):
     return {
