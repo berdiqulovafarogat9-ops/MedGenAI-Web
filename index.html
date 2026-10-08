@@ -419,6 +419,19 @@ frame-ancestors 'none'">
   <div class="role-note">Kerak bo‘lsa boshqa modulga kirish uchun CEO/Admin tomonidan qo‘shimcha ruxsat beriladi.</div>
 </section>
 
+  <section id="securityCenter" class="security-center hidden" aria-label="Xavfsizlik va maxfiylik">
+    <div class="dashboard-section-head">
+      <div>
+        <p class="eyebrow">SECURITY CENTER</p>
+        <h2>Maxfiylik, xavfsizlik va identifikatsiya</h2>
+        <p class="muted">Roziliklar, hisob xavfsizligi, identifikatsiya va joylashuv ruxsatlari shu yerda boshqariladi.</p>
+      </div>
+      <button id="securityBack" class="ghost" type="button">← Mening dashboardim</button>
+    </div>
+    <div id="securityGrid" class="security-grid"></div>
+    <div id="securityStatus" class="status"></div>
+  </section>
+
   <section id="userDirectoryDashboard" class="user-directory-dashboard hidden" aria-label="Foydalanuvchilar">
     <div class="dashboard-section-head">
       <div>
@@ -2018,6 +2031,15 @@ frame-ancestors 'none'">
     <label><span data-i18n="emailLabel">Email</span><input id="profileEmail" type="text" inputmode="email" autocomplete="email" placeholder="email@example.com"></label>
     <label><span data-i18n="organization">Tashkilot / universitet</span><input id="profileOrganization" data-i18n-placeholder="organizationPlaceholder" placeholder="Universitet yoki tashkilot"></label>
     <label><span data-i18n="country">Mamlakat</span><input id="profileCountry" data-i18n-placeholder="countryPlaceholder" placeholder="O‘zbekiston"></label>
+    <div class="profile-section-title"><h3>📍 Joylashuv va hudud</h3><p class="profile-auto-note">Mamlakat avtomatik tavsiya qilinishi mumkin. Viloyat/tuman aniq bo‘lishi uchun siz tanlaysiz yoki qurilma joylashuviga ruxsat berasiz. Aniq koordinatalar faqat ruxsat bilan saqlanadi.</p></div>
+    <div class="location-grid">
+      <label>Viloyat / Region<select id="profileRegion"><option value="">Tanlang</option></select></label>
+      <label>Tuman / District<select id="profileDistrict"><option value="">Avval viloyatni tanlang</option></select></label>
+      <label>Shahar / City<input id="profileCity" placeholder="Toshkent, Bo‘ka va h.k."></label>
+      <label>Joylashuv<input id="profileLocationLabel" placeholder="Mahalla / hudud (ixtiyoriy)"></label>
+    </div>
+    <button id="detectLocationBtn" type="button" class="ghost small">📍 Qurilma joylashuvini aniqlash</button>
+    <div id="locationStatus" class="status"></div>
     <label><span data-i18n="researchInterests">Ilmiy qiziqishlar</span><input id="profileInterests" data-i18n-placeholder="researchInterestsPlaceholder" placeholder="Bioinformatika, drug discovery..."></label>
     <label><span data-i18n="birthDate">Tug‘ilgan sana</span>
       <input id="profileBirthDate" type="text" inputmode="numeric" autocomplete="bday" placeholder="KK.OO.YYYY" maxlength="10">
@@ -2026,6 +2048,8 @@ frame-ancestors 'none'">
     <div id="profileStatus" class="status"></div>
     <div class="account-security">
       <h3>Account & Security</h3>
+      <p class="muted">Parol, sessiyalar, roziliklar va identifikatsiya alohida Security Center orqali boshqariladi.</p>
+      <button id="openSecurityFromProfile" type="button" class="ghost">🔐 Security Center</button>
       <label><span>Joriy parol</span><input id="currentPassword" type="password" autocomplete="current-password"></label>
       <label><span>Yangi parol</span><input id="newPassword" type="password" autocomplete="new-password" minlength="8"></label>
       <button id="changePasswordBtn" type="button" class="ghost">Parolni o‘zgartirish</button>
