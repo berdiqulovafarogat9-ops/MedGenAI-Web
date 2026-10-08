@@ -2283,6 +2283,17 @@ def dashboard_summary(user=Depends(get_current_user)):
     }
 
     if role == "SUPER_ADMIN":
+        role_activity = {}
+        for name in all_users:
+            rr = "SUPER_ADMIN" if name.casefold() == str(ADMIN_USERNAME).casefold() else str(user_profiles.get(name, {}).get("role", "student"))
+            role_activity[rr] = {
+                "users": role_counts.get(rr, 0),
+                "jobs": sum(1 for x in jobs_store if x.get("username") == name),
+                "workflows": sum(1 for x in workflows_store if x.get("username") == name),
+                "experiments": sum(1 for x in experiments_store if x.get("username") == name),
+                "reports": sum(1 for x in reports_store if x.get("username") == name),
+                "recent_activity": [x for x in activity_log if x.get("username") == name][:10],
+            }
         result["global"] = {
             "total_users": len(all_users),
             "role_counts": role_counts,
