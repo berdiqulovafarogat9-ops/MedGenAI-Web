@@ -732,7 +732,7 @@ def update_profile(
     profile["location_source"] = str(profile.get("location_source") or "").strip()[:40]
     user_profiles[user["username"]] = profile
 
-    activity_log.insert
+    activity_log.insert(
         0,
         {
             "type": "profile_updated",
