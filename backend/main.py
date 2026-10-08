@@ -4494,4 +4494,8 @@ def scientific_core_status_v2(user=Depends(get_current_user)):
 try:
     from . import phase1_academy_ext  # package execution
 except ImportError:
-    import phase1_academy_ext  # direct uvicorn main:app execution
+    try:
+        import phase1_academy_ext  # direct uvicorn main:app execution
+    except ModuleNotFoundError:
+        # Optional extension: keep the core API bootable if deployment has not received the file yet.
+        phase1_academy_ext = None
