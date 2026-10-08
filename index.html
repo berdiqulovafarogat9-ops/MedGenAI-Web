@@ -2280,5 +2280,20 @@ document.addEventListener("DOMContentLoaded", function () {
   window.openService=function(kind){ if(['support','assistant','community'].includes(kind)) return window.openFunctionalService(kind); if(typeof oldOpen==='function') return oldOpen(kind); };
 })();
 </script>
+
+<section id="scientificWorkflowPanel" class="panel">
+  <h2>End-to-End Scientific Workflow</h2>
+  <p>Structure → Sequence → Molecular Analysis → Similarity → Experiment.</p>
+  <input id="workflowName" placeholder="Workflow name" value="MedGen Scientific Workflow">
+  <input id="workflowTarget" placeholder="Target (e.g. EGFR)">
+  <input id="workflowPdb" placeholder="PDB ID (optional)">
+  <input id="workflowChain" placeholder="Chain ID (optional)">
+  <textarea id="workflowSequence" placeholder="Sequence (optional)"></textarea>
+  <textarea id="workflowLigand" placeholder="Ligand SMILES (optional)"></textarea>
+  <textarea id="workflowLibrary" placeholder="Similarity library: one SMILES per line (optional)"></textarea>
+  <button id="workflowRun">Run Scientific Workflow</button>
+  <pre id="workflowStatus"></pre>
+  <pre id="workflowResult"></pre>
+</section>
 </body>
 </html>
