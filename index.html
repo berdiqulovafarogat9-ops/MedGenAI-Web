@@ -2207,3 +2207,52 @@ document.addEventListener("DOMContentLoaded", function () {
 </script>
 </body>
   </html>
+
+<script>
+/* MEDGEN FUNCTIONAL SERVICES v1 */
+(function(){
+  const API='https://medgenai-web-1.onrender.com/api/v1';
+  const token=()=>sessionStorage.getItem('medgen_access_token')||'';
+  async function api(path,opts={}){
+    const headers=Object.assign({'Content-Type':'application/json'},opts.headers||{});
+    const t=token(); if(t) headers.Authorization='Bearer '+t;
+    const r=await fetch(API+path,Object.assign({},opts,{headers}));
+    const d=await r.json().catch(()=>({detail:'Server javobi o‘qilmadi'}));
+    if(!r.ok) throw new Error(d.detail||'Server xatosi');
+    return d;
+  }
+  function shell(title,body){
+    let old=document.getElementById('functionalService');
+    if(old) old.remove();
+    const el=document.createElement('section'); el.id='functionalService'; el.className='final-panel';
+    el.innerHTML='<button class="secondary" id="functionalBack">← Dashboard</button><h2>'+title+'</h2><div id="functionalBody">'+body+'</div>';
+    (document.getElementById('dashboardView')||document.body).appendChild(el);
+    document.getElementById('functionalBack').onclick=()=>{el.remove(); if(window.medgenFinalBoot) window.medgenFinalBoot(window.__MEDGEN_USER||{});};
+    return el;
+  }
+  async function support(){
+    const el=shell('🆘 Yordam markazi','<div class="final-help-grid"><form id="supportForm"><input name="subject" placeholder="Muammo mavzusi" required><select name="category"><option>GENERAL</option><option>LOGIN</option><option>ACADEMY</option><option>BIOINFORMATICS</option><option>DRUG_DISCOVERY</option><option>RESEARCH</option><option>SECURITY</option><option>BILLING</option></select><select name="priority"><option>NORMAL</option><option>HIGH</option><option>URGENT</option></select><textarea name="message" placeholder="Muammoni batafsil yozing..." required></textarea><button class="primary">Ticket yuborish</button></form><div id="supportList">Yuklanmoqda...</div></div>');
+    try{const d=await api('/support/tickets'); document.getElementById('supportList').innerHTML=d.tickets.length?d.tickets.map(x=>'<div class="community-card"><b>'+x.id+'</b> · '+x.status+'<br>'+x.subject+'<br><small>'+x.created_at+'</small></div>').join(''):'Hozircha ticket yo‘q.';}catch(e){document.getElementById('supportList').textContent=e.message;}
+    document.getElementById('supportForm').onsubmit=async e=>{e.preventDefault();const f=new FormData(e.target);try{await api('/support/tickets',{method:'POST',body:JSON.stringify(Object.fromEntries(f))});e.target.reset();support();}catch(x){alert(x.message)}};
+  }
+  async function assistant(){
+    const el=shell('🤖 MedGen AI Assistant','<div class="ai-messages" id="aiMsgs"><div class="community-card">Salom! MedGen AI platformasi bo‘yicha savolingizni yozing.</div></div><form class="ai-compose" id="aiForm"><input id="aiInput" placeholder="Savolingiz..." autocomplete="off" required><button class="primary">Yuborish</button></form>');
+    document.getElementById('aiForm').onsubmit=async e=>{e.preventDefault();const input=document.getElementById('aiInput'),q=input.value.trim();if(!q)return;const box=document.getElementById('aiMsgs');box.innerHTML+='<div class="community-card"><b>Siz:</b> '+q.replace(/</g,'&lt;')+'</div>';input.value='';try{const d=await api('/assistant/chat',{method:'POST',body:JSON.stringify({message:q})});box.innerHTML+='<div class="community-card"><b>MedGen AI:</b> '+d.answer+'</div>';}catch(x){box.innerHTML+='<div class="community-card">Xatolik: '+x.message+'</div>';}};    
+  }
+  async function community(){
+    const role=(window.__MEDGEN_USER&&window.__MEDGEN_USER.role)||'student';
+    const label=(window.__MEDGEN_USER&&window.__MEDGEN_USER.role_label)||role;
+    const el=shell('💬 '+label+' Community','<div class="community-card">Bu yopiq xona faqat sizning rolingiz uchun.</div><div id="communityMsgs">Yuklanmoqda...</div><form id="communityForm" class="ai-compose"><input id="communityInput" placeholder="Xabar yozing..." required><button class="primary">Yuborish</button></form>');
+    async function load(){try{const d=await api('/community');document.getElementById('communityMsgs').innerHTML=d.messages.length?d.messages.map(x=>'<div class="community-card"><b>'+x.username+'</b><br>'+x.message+'<br><small>'+x.created_at+'</small></div>').join(''):'Hozircha xabar yo‘q — birinchi bo‘lib yozing.';}catch(e){document.getElementById('communityMsgs').textContent=e.message;}}
+    await load();
+    document.getElementById('communityForm').onsubmit=async e=>{e.preventDefault();const i=document.getElementById('communityInput'),q=i.value.trim();try{await api('/community/messages',{method:'POST',body:JSON.stringify({message:q})});i.value='';load();}catch(x){alert(x.message)}};
+  }
+  window.openFunctionalService=function(kind){ if(kind==='support') return support(); if(kind==='assistant') return assistant(); if(kind==='community') return community(); };
+  document.addEventListener('click',e=>{
+    const b=e.target.closest('[data-service]');
+    if(b){e.preventDefault();window.openFunctionalService(b.dataset.service);}
+  });
+  const oldOpen=window.openService;
+  window.openService=function(kind){ if(['support','assistant','community'].includes(kind)) return window.openFunctionalService(kind); if(typeof oldOpen==='function') return oldOpen(kind); };
+})();
+</script>
