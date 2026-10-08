@@ -3973,7 +3973,16 @@ def create_lab_pipeline(data: LabPipelineRequest, user=Depends(get_current_user)
     }
     experiments_store.insert(0,experiment)
     activity_log.insert(0,{"type":"lab_pipeline_created","username":user["username"],"experiment_id":experiment["id"],"target":target,"at":now})
+    _db_save()
     return {"status":"ready","module":"Virtual Laboratory","experiment":experiment}
+
+@app.get("/api/v1/lab/experiments/{experiment_id}")
+def get_lab_experiment(experiment_id: str, user=Depends(get_current_user)):
+    experiment=next((e for e in experiments_store if e.get("id")==experiment_id),None)
+    if not experiment: raise HTTPException(status_code=404,detail="Experiment not found")
+    if experiment.get("user")!=user["username"] and user.get("role")!="SUPER_ADMIN":
+        raise HTTPException(status_code=403,detail="Access denied")
+    return {"status":"ok","module":"Virtual Laboratory","experiment":experiment}
 
 @app.post("/api/v1/scientific/reports")
 def create_scientific_report(data: ScientificReportRequest,user=Depends(get_current_user)):
