@@ -145,3 +145,19 @@ textarea{width:100%;min-height:120px;box-sizing:border-box;padding:14px;border-r
   .role-user-row{grid-template-columns:1fr}
   .user-detail-grid{grid-template-columns:1fr}
 }
+
+
+/* FINAL SINGLE-VIEW ARCHITECTURE */
+#adminDashboard.hidden{display:none!important}
+.admin-dashboard-section{margin-top:18px;padding:20px;border:1px solid var(--line);border-radius:18px;background:rgba(13,27,45,.72)}
+.security-center{margin-top:18px;padding:20px;border:1px solid var(--line);border-radius:18px;background:rgba(13,27,45,.72)}
+.security-grid{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:12px;margin-top:14px}
+.security-card{padding:15px;border:1px solid rgba(255,255,255,.1);border-radius:14px;background:rgba(255,255,255,.035)}
+.security-card strong{display:block;margin:5px 0}
+.security-card small{display:block;color:var(--muted);line-height:1.45}
+.location-grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:10px}
+.location-grid label{margin:0}
+.profile-section-title{margin:20px 0 8px;padding-top:16px;border-top:1px solid rgba(255,255,255,.1)}
+.profile-auto-note{font-size:11px;color:var(--muted);line-height:1.45;margin-top:6px}
+@media(max-width:800px){.security-grid{grid-template-columns:1fr 1fr}}
+@media(max-width:520px){.security-grid,.location-grid{grid-template-columns:1fr}}
