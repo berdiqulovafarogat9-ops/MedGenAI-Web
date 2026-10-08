@@ -2163,13 +2163,14 @@ document.addEventListener("DOMContentLoaded", function () {
   };
   const icons={'Medical Academy':'🎓','Bioinformatics':'🧬','Molecular Analysis':'⚗️','PDB & Structure':'🧫','Drug Discovery':'💊','Scientific Jobs':'⚙️','Research Assistant':'📚','Virtual Laboratory':'🧪','Reports & History':'📊','Global Platform':'🌐'};
   const roleKey=()=>String(window.__MEDGEN_USER?.role||'student').toUpperCase()==='SUPER_ADMIN'?'SUPER_ADMIN':String(window.__MEDGEN_USER?.role||'student').toLowerCase();
+  const ALL_MODULES=['Medical Academy','Bioinformatics','Molecular Analysis','PDB & Structure','Drug Discovery','Scientific Jobs','Research Assistant','Virtual Laboratory','Reports & History','Global Platform'];
   const esc=s=>String(s??'').replace(/[&<>"']/g,m=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[m]));
   function dashboard(){return document.getElementById('dashboardView')}
   function hideAll(){['roleDashboard','moduleDirectory','workspace','educationPreferencePanel','securityCenter','userDirectoryDashboard','adminDashboard','supportCenter','aiCenter','communityCenter'].forEach(id=>document.getElementById(id)?.classList.add('hidden'))}
   function openHome(){hideAll();document.getElementById('roleDashboard')?.classList.remove('hidden');renderHome()}
   function openModuleSafe(name){hideAll(); if(typeof window.openModule==='function') window.openModule(name); else {document.getElementById('workspace')?.classList.remove('hidden');} document.getElementById('roleDashboard')?.classList.add('hidden');}
   function renderHome(){
-    const d=dashboard(), key=roleKey(), r=ROLES[key]||ROLES.student; if(!d)return;
+    const d=dashboard(), key=roleKey(), r=ROLES[key]||ROLES.student; if(!d)return; r={...r,mods:ALL_MODULES};
     d.querySelector('.hero')?.classList.add('final-hide-hero');
     const old=document.getElementById('finalHome'); if(old)old.remove();
     const home=document.createElement('section');home.id='finalHome';home.className='final-home';
@@ -2192,7 +2193,7 @@ document.addEventListener("DOMContentLoaded", function () {
   function renderMenu(){
     let drawer=document.getElementById('finalMenuDrawer'); if(!drawer){drawer=document.createElement('aside');drawer.id='finalMenuDrawer';drawer.className='final-drawer';document.body.appendChild(drawer);}
     const key=roleKey(),r=ROLES[key]||ROLES.student;
-    drawer.innerHTML='<div class="final-drawer-head"><b>☰ MENYU</b><button id="finalMenuClose">×</button></div><div class="final-menu-role">'+r.icon+' '+esc(r.name)+'</div><button class="final-nav" data-final-nav="home">🏠 Dashboard</button><button class="final-nav" data-final-nav="profile">👤 Profilim</button><div class="final-nav-title">MENING ISH MAYDONIM</div>'+r.mods.map(m=>'<button class="final-nav" data-final-module="'+esc(m)+'">'+icons[m]+' '+esc(m)+'</button>').join('')+'<div class="final-nav-title">YORDAM VA JAMOAT</div><button class="final-nav" data-final-service="support">🆘 Yordam markazi</button><button class="final-nav" data-final-service="ai">🤖 MedGen AI Assistant</button><button class="final-nav" data-final-service="community">💬 Community</button><button class="final-nav" data-final-service="security">🔐 Security Center</button>'+(key==='SUPER_ADMIN'?'<div class="final-nav-title">OWNER</div><button class="final-nav" id="finalMenuAdmin">👑 Super Admin Dashboard</button>':'');
+    drawer.innerHTML='<div class="final-drawer-head"><b>☰ MENYU</b><button id="finalMenuClose">×</button></div><div class="final-menu-role">'+r.icon+' '+esc(r.name)+'</div><button class="final-nav" data-final-nav="home">🏠 Dashboard</button><button class="final-nav" data-final-nav="profile">👤 Profilim</button><div class="final-nav-title">BARCHA ILMIY MODULLAR</div>'+ALL_MODULES.map(m=>'<button class="final-nav" data-final-module="'+esc(m)+'">'+icons[m]+' '+esc(m)+'</button>').join('')+'<div class="final-nav-title">YORDAM VA JAMOAT</div><button class="final-nav" data-final-service="support">🆘 Yordam markazi</button><button class="final-nav" data-final-service="ai">🤖 MedGen AI Assistant</button><button class="final-nav" data-final-service="community">💬 Community</button><button class="final-nav" data-final-service="security">🔐 Security Center</button>'+(key==='SUPER_ADMIN'?'<div class="final-nav-title">OWNER</div><button class="final-nav" id="finalMenuAdmin">👑 Super Admin Dashboard</button>':'');
     drawer.querySelector('#finalMenuClose').onclick=()=>drawer.classList.remove('open');
     drawer.querySelectorAll('[data-final-nav="home"]').forEach(b=>b.onclick=()=>{drawer.classList.remove('open');openHome()});
     drawer.querySelectorAll('[data-final-module]').forEach(b=>b.onclick=()=>{drawer.classList.remove('open');openModuleSafe(b.dataset.finalModule)});
