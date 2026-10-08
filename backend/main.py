@@ -156,7 +156,7 @@ def _db_load():
 
 def _db_save():
     if not PERSISTENCE_ENABLED: return
-    stores={"user_accounts":user_accounts,"user_profiles":user_profiles,"user_consents":user_consents,"experiments_store":experiments_store,"reports_store":reports_store,"activity_log":activity_log,"knowledge_entities_store":knowledge_entities_store,"knowledge_relations_store":knowledge_relations_store,"organizations_store":organizations_store,"memberships_store":memberships_store,"workspaces_store":workspaces_store,"projects_store":projects_store,"api_keys_store":api_keys_store,"platform_audit_log":platform_audit_log,"usage_store":usage_store,"webhooks_store":webhooks_store}
+    stores={"user_accounts":user_accounts,"user_profiles":user_profiles,"user_consents":user_consents,"role_requests_store":role_requests_store,"experiments_store":experiments_store,"reports_store":reports_store,"activity_log":activity_log,"knowledge_entities_store":knowledge_entities_store,"knowledge_relations_store":knowledge_relations_store,"organizations_store":organizations_store,"memberships_store":memberships_store,"workspaces_store":workspaces_store,"projects_store":projects_store,"api_keys_store":api_keys_store,"platform_audit_log":platform_audit_log,"usage_store":usage_store,"webhooks_store":webhooks_store}
     try:
         with psycopg.connect(DATABASE_URL) as conn:
             for key,value in stores.items():
@@ -427,6 +427,54 @@ def get_current_user(
         "roles": approved_roles,
     }
 
+
+# =========================================================
+# ACCOUNT READINESS GUARD
+# =========================================================
+@app.middleware("http")
+async def account_readiness_guard(request: Request, call_next):
+    path = request.url.path
+    if not path.startswith("/api/v1/"):
+        return await call_next(request)
+
+    allowed = {
+        "/api/v1/health/live",
+        "/api/v1/auth/login",
+        "/api/v1/auth/register",
+        "/api/v1/auth/me",
+        "/api/v1/auth/logout",
+        "/api/v1/profile",
+        "/api/v1/account",
+        "/api/v1/legal/documents",
+        "/api/v1/legal/consent",
+        "/api/v1/academy/profile",
+        "/api/v1/education/preferences",
+        "/api/v1/roles/request",
+        "/api/v1/security/overview",
+    }
+    if path in allowed or path.startswith("/api/v1/admin/"):
+        return await call_next(request)
+
+    auth = request.headers.get("authorization", "")
+    token = auth[7:].strip() if auth.lower().startswith("bearer ") else ""
+    username = tokens.get(token)
+    if not username:
+        return await call_next(request)
+
+    profile = user_profiles.get(username, {})
+    if not is_required_profile_complete(profile):
+        return JSONResponse(
+            status_code=403,
+            content={"detail":"PROFILE_INCOMPLETE","message":"Profilni to‘liq to‘ldiring."},
+        )
+
+    consent = user_consents.get(username, {})
+    if not all(bool(consent.get(k)) for k in ("terms_accepted","privacy_accepted","data_processing_accepted","research_disclaimer_accepted")):
+        return JSONResponse(
+            status_code=403,
+            content={"detail":"LEGAL_CONSENT_REQUIRED","message":"Avval majburiy roziliklarni tasdiqlang."},
+        )
+    return await call_next(request)
 
 # =========================================================
 # HEALTH
@@ -3770,6 +3818,7 @@ class SupportTicketRequest(BaseModel):
 
 class CommunityMessageRequest(BaseModel):
     message: str
+    role: str | None = None
 
 class AssistantMessageRequest(BaseModel):
     message: str
@@ -3812,10 +3861,13 @@ def support_create_ticket(data: SupportTicketRequest, user=Depends(get_current_u
     return {"status":"created","ticket":ticket}
 
 @app.get("/api/v1/community")
-def community_feed(user=Depends(get_current_user)):
-    role=_safe_role(user)
+def community_feed(role: str | None = None, user=Depends(get_current_user)):
+    current_role=_safe_role(user)
+    requested=normalize_role(role) if role else current_role
+    if requested != current_role and current_role != "SUPER_ADMIN":
+        raise HTTPException(status_code=403, detail="Only Super Admin can inspect another role community.")
     messages=_community_store()
-    return {"status":"ok","role":role,"room":role,"messages":messages.get(role,[])[:100]}
+    return {"status":"ok","role":requested,"room":requested,"messages":messages.get(requested,[])[:100]}
 
 @app.post("/api/v1/community/messages")
 def community_post(data: CommunityMessageRequest, user=Depends(get_current_user)):
