@@ -1220,6 +1220,7 @@ async function openProfile() {
     try {
       if(window.medgenLoadAcademyCatalogForProfile) await window.medgenLoadAcademyCatalogForProfile(academicProfile.country_code||'',academicProfile.university||'');
       if($('profileAcademicCountry'))$('profileAcademicCountry').value=academicProfile.country_code||$('profileAcademicCountry').value;
+      if($('profileCountry') && !$('profileCountry').value) $('profileCountry').value=academicProfile.country_code || $('profileAcademicCountry')?.value || 'UZ';
       if($('profileRegion'))$('profileRegion').value=academicProfile.region||p.region||'';
       $('profileRegion')?.dispatchEvent(new Event('change'));
       if($('profileDistrict'))$('profileDistrict').value=academicProfile.district||p.district||'';
