@@ -2219,7 +2219,11 @@ document.addEventListener("DOMContentLoaded", function () {
   const moduleLabel=(m)=>translations?.[m]?.[lang()]||m;
   const roleLabel=(k)=>ROLE_I18N[lang()]?.[k]||ROLE_I18N.en[k]||k;
   function dashboard(){return document.getElementById('dashboardView')}
-  function hideAll(){['roleDashboard','moduleDirectory','workspace','educationPreferencePanel','securityCenter','userDirectoryDashboard','adminDashboard','supportCenter','aiCenter','communityCenter'].forEach(id=>document.getElementById(id)?.classList.add('hidden'))}
+  function hideAll(){
+    const c=document.querySelector('#dashboardView .container');
+    if(c) Array.from(c.children).forEach(x=>x.classList.add('hidden'));
+    ['roleDashboard','moduleDirectory','workspace','educationPreferencePanel','securityCenter','userDirectoryDashboard','adminDashboard','supportCenter','aiCenter','communityCenter'].forEach(id=>document.getElementById(id)?.classList.add('hidden'));
+  }
   function openHome(){hideAll();document.getElementById('roleDashboard')?.classList.remove('hidden');renderHome()}
   function openModuleSafe(name){hideAll();if(typeof window.openModule==='function')window.openModule(name);else document.getElementById('workspace')?.classList.remove('hidden');document.getElementById('roleDashboard')?.classList.add('hidden')}
   function serviceCard(kind,icon,title,desc){return '<button class="final-service" data-final-service="'+kind+'">'+icon+'<b>'+title+'</b><small>'+desc+'</small></button>'}
@@ -2228,6 +2232,9 @@ document.addEventListener("DOMContentLoaded", function () {
     const mods=ROLE_MODULES[key]||ROLE_MODULES.student;
     d.querySelector('.hero')?.classList.add('final-hide-hero');
     const old=document.getElementById('finalHome');if(old)old.remove();
+    const legacyContainer=d.querySelector('.container');
+    if(legacyContainer) Array.from(legacyContainer.children).forEach(x=>x.classList.add('hidden'));
+    document.getElementById('roleDashboard')?.classList.add('hidden');
     const home=document.createElement('section');home.id='finalHome';home.className='final-home';
     const core=mods.slice(0,Math.min(5,mods.length)),research=mods.slice(Math.min(5,mods.length));
     home.innerHTML='<div class="final-welcome"><div><div class="final-kicker">MEDGEN AI • GLOBAL BIOMEDICAL AI PLATFORM</div><h1>'+r.icon+' '+esc(roleLabel(key))+' — '+ft('workspace')+'</h1><p>'+esc(ft('welcome'))+'</p></div><span class="final-role">'+esc(ft('role'))+': '+esc(roleLabel(key))+'</span></div>'+
