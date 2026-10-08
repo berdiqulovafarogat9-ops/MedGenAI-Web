@@ -203,6 +203,13 @@ class ProfileRequest(BaseModel):
     email: str = ""
     organization: str = ""
     country: str = ""
+    region: str = ""
+    district: str = ""
+    city: str = ""
+    location_label: str = ""
+    location_lat: float | None = None
+    location_lon: float | None = None
+    location_source: str = ""
     birth_year: int | None = None
     birth_month: int | None = None
     birth_day: int | None = None
@@ -216,6 +223,10 @@ class ConsentRequest(BaseModel):
     privacy_accepted: bool
     data_processing_accepted: bool
     research_disclaimer_accepted: bool
+
+class IdentityVerificationRequest(BaseModel):
+    method: str = "DOCUMENT_PROVIDER"
+
 
 
 class MoleculeRequest(BaseModel):
@@ -434,7 +445,9 @@ def register(data: RegisterRequest):
         raise HTTPException(status_code=400, detail="Academic year must be between 1 and 6.")
     user_profiles[username] = {
         "full_name": data.full_name.strip(), "email": email, "phone": data.phone.strip(),
-        "country": data.country.strip(), "organization": data.organization.strip(),
+        "country": data.country.strip(), "region": "", "district": "", "city": "",
+        "location_label": "", "location_lat": None, "location_lon": None,
+        "location_source": "", "organization": data.organization.strip(),
         "birth_year": None, "birth_month": None, "birth_day": None,
         "research_interests": "", "bio": "", "avatar": "",
         "role": role,
@@ -642,6 +655,14 @@ def update_profile(
         )
 
     profile = data.model_dump()
+    # Normalize optional location fields; exact coordinates are only stored when
+    # the user explicitly grants browser location permission.
+    profile["country"] = str(profile.get("country") or "").strip()[:120]
+    profile["region"] = str(profile.get("region") or "").strip()[:160]
+    profile["district"] = str(profile.get("district") or "").strip()[:160]
+    profile["city"] = str(profile.get("city") or "").strip()[:160]
+    profile["location_label"] = str(profile.get("location_label") or "").strip()[:240]
+    profile["location_source"] = str(profile.get("location_source") or "").strip()[:40]
     user_profiles[user["username"]] = profile
 
     activity_log.insert(
@@ -681,6 +702,59 @@ def legal_documents():
             "text": "Hisoblash natijalari eksperimental yoki klinik tasdiq emas. Dori, tashxis yoki davolash qarorlari faqat tegishli malakali mutaxassislar tomonidan mustaqil baholanishi kerak."
         }
     }
+
+
+@app.get("/api/v1/security/summary")
+def security_summary(user=Depends(get_current_user)):
+    username = user["username"]
+    profile = user_profiles.get(username, {})
+    consent = user_consents.get(username, {})
+    identity = profile.get("identity_verification") or {
+        "status": "NOT_VERIFIED",
+        "method": "",
+        "requested_at": None,
+    }
+    return {
+        "status": "ok",
+        "consent_complete": all([
+            consent.get("terms_accepted", False),
+            consent.get("privacy_accepted", False),
+            consent.get("data_processing_accepted", False),
+            consent.get("research_disclaimer_accepted", False),
+        ]),
+        "consent_version": consent.get("version", ""),
+        "consent_accepted_at": consent.get("accepted_at"),
+        "identity": identity,
+        "active_sessions": sum(1 for owner in tokens.values() if owner == username),
+        "location": {
+            "source": profile.get("location_source", ""),
+            "label": profile.get("location_label", ""),
+            "country": profile.get("country", ""),
+            "region": profile.get("region", ""),
+            "district": profile.get("district", ""),
+            "city": profile.get("city", ""),
+            "has_coordinates": profile.get("location_lat") is not None and profile.get("location_lon") is not None,
+        },
+    }
+
+
+@app.post("/api/v1/security/identity/request")
+def request_identity_verification(data: IdentityVerificationRequest, user=Depends(get_current_user)):
+    method = str(data.method or "DOCUMENT_PROVIDER").strip().upper()
+    allowed = {"DOCUMENT_PROVIDER", "PASSPORT_PROVIDER", "NATIONAL_ID_PROVIDER"}
+    if method not in allowed:
+        raise HTTPException(status_code=400, detail="Unsupported identity verification method.")
+    now = datetime.now(timezone.utc).isoformat()
+    verification = {
+        "status": "PENDING_PROVIDER",
+        "method": method,
+        "requested_at": now,
+        "note": "No passport, selfie, or raw biometric data is stored by this endpoint. A compliant identity provider must complete the actual verification.",
+    }
+    user_profiles.setdefault(user["username"], {})["identity_verification"] = verification
+    activity_log.insert(0, {"type": "identity_verification_requested", "username": user["username"], "method": method, "at": now})
+    _db_save()
+    return {"status": "requested", "identity": verification}
 
 
 @app.post("/api/v1/legal/consent")
@@ -3153,6 +3227,13 @@ class AcademyProfileRequest(BaseModel):
     education_mode: str = "GLOBAL"
     university: str = ""
     faculty: str = ""
+    region: str = ""
+    district: str = ""
+    city: str = ""
+    location_label: str = ""
+    location_lat: float | None = None
+    location_lon: float | None = None
+    location_source: str = ""
     major: str = ""
     year: int = 1
     group: str = ""
@@ -3201,6 +3282,13 @@ def academy_update_profile(data: AcademyProfileRequest, user=Depends(get_current
         "education_mode": mode,
         "university": str(data.university).strip()[:200],
         "faculty": str(data.faculty).strip()[:200],
+        "region": str(data.region or "").strip()[:160],
+        "district": str(data.district or "").strip()[:160],
+        "city": str(data.city or "").strip()[:160],
+        "location_label": str(data.location_label or "").strip()[:240],
+        "location_lat": data.location_lat,
+        "location_lon": data.location_lon,
+        "location_source": str(data.location_source or "").strip()[:40],
         "major": str(data.major).strip()[:200],
         "year": int(data.year),
         "group": str(data.group).strip()[:100],
