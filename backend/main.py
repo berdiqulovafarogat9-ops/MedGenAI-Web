@@ -52,9 +52,16 @@ app = FastAPI(
 # CORS
 # =========================================================
 
+ALLOWED_CORS_ORIGINS = [
+    origin.strip() for origin in os.getenv(
+        "MEDGEN_CORS_ORIGINS",
+        "https://medgenai-web.onrender.com,http://localhost:3000,http://localhost:5173"
+    ).split(",") if origin.strip()
+]
+
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["*"],
+    allow_origins=ALLOWED_CORS_ORIGINS,
     allow_credentials=False,
     allow_methods=[
         "GET",
@@ -95,6 +102,7 @@ TOKEN_TTL_SECONDS = int(os.getenv("MEDGEN_TOKEN_TTL_SECONDS", "28800"))
 
 tokens = {}
 token_created_at = {}
+revoked_tokens = set()
 login_attempts = {}
 LOGIN_WINDOW_SECONDS = int(os.getenv("MEDGEN_LOGIN_WINDOW_SECONDS", "300"))
 LOGIN_MAX_ATTEMPTS = int(os.getenv("MEDGEN_LOGIN_MAX_ATTEMPTS", "8"))
@@ -198,6 +206,13 @@ class PasswordChangeRequest(BaseModel):
     current_password: str
     new_password: str
 
+class AdminRoleUpdateRequest(BaseModel):
+    username: str
+    role: str
+
+class AdminSessionRevokeRequest(BaseModel):
+    username: str
+
 
 class ProfileRequest(BaseModel):
     full_name: str = ""
@@ -292,8 +307,24 @@ class EducationPreferenceRequest(BaseModel):
 # =========================================================
 
 def validate_password(password: str):
-    if len(password) < 8 or not re.search(r"[A-Za-z]", password) or not re.search(r"\d", password):
-        raise HTTPException(status_code=400, detail="Password must be at least 8 characters and contain letters and numbers.")
+    if (
+        len(password) < 8
+        or not re.search(r"[A-Za-z]", password)
+        or not re.search(r"\d", password)
+    ):
+        raise HTTPException(
+            status_code=400,
+            detail="Password must be at least 8 characters and contain letters and numbers.",
+        )
+
+def normalize_role(value: str) -> str:
+    role = str(value or "student").strip().lower()
+    return "SUPER_ADMIN" if role.upper() == "SUPER_ADMIN" else role
+
+ALLOWED_USER_ROLES = {
+    "student", "school_student", "doctor", "researcher", "professor",
+    "lab", "biotech", "pharma", "bioinformatician", "hospital", "company"
+}
 
 
 def validate_username(username: str):
@@ -341,8 +372,14 @@ def get_current_user(
             detail="Authentication required",
         )
 
-    username = tokens.get(credentials.credentials)
-    created_at = token_created_at.get(credentials.credentials)
+    token = credentials.credentials
+    username = tokens.get(token)
+    created_at = token_created_at.get(token)
+
+    if token in revoked_tokens:
+        tokens.pop(token, None)
+        token_created_at.pop(token, None)
+        raise HTTPException(status_code=401, detail="Session revoked")
 
     if not username or not created_at:
         raise HTTPException(status_code=401, detail="Invalid or expired token")
@@ -360,9 +397,11 @@ def get_current_user(
         token_created_at.pop(credentials.credentials, None)
         raise HTTPException(status_code=401, detail="Token expired")
 
-    stored_role = str(
-        user_profiles.get(username, {}).get("role") or "student"
-    ).lower()
+    profile = user_profiles.get(username, {})
+    if str(profile.get("role_status", "active")).lower() != "active":
+        raise HTTPException(status_code=403, detail="Account is disabled")
+
+    stored_role = normalize_role(profile.get("role") or "student")
     if str(username).strip().casefold() == str(ADMIN_USERNAME).strip().casefold():
         stored_role = "SUPER_ADMIN"
     return {
@@ -416,8 +455,17 @@ def login(data: LoginRequest):
     token = make_token(data.username)
     tokens[token] = data.username
     token_created_at[token] = now.isoformat()
-    activity_log.insert(0, {"type": "login", "username": data.username, "at": now.isoformat()})
-    return {"access_token": token, "token_type": "bearer"}
+    activity_log.insert(0, {
+        "type": "login",
+        "username": data.username,
+        "at": now.isoformat(),
+    })
+    _db_save()
+    return {
+        "access_token": token,
+        "token_type": "bearer",
+        "expires_in": TOKEN_TTL_SECONDS,
+    }
 
 
 @app.post("/api/v1/auth/register")
@@ -435,12 +483,8 @@ def register(data: RegisterRequest):
         "password_hash": make_password_hash(data.password),
         "created_at": datetime.now(timezone.utc).isoformat(),
     }
-    allowed_roles = {
-        "student", "school_student", "doctor", "researcher", "professor",
-        "lab", "biotech", "pharma", "bioinformatician", "hospital", "company"
-    }
-    role = str(data.role or "student").strip().lower()
-    if role not in allowed_roles:
+    role = normalize_role(data.role)
+    if role not in ALLOWED_USER_ROLES:
         role = "student"
     if not 1 <= int(data.academic_year) <= 6:
         raise HTTPException(status_code=400, detail="Academic year must be between 1 and 6.")
@@ -466,6 +510,12 @@ def register(data: RegisterRequest):
             "academic_degree": "MD/MBBS",
         },
     }
+    activity_log.insert(0, {
+        "type": "account_registered",
+        "username": username,
+        "role": role,
+        "at": datetime.now(timezone.utc).isoformat(),
+    })
     _db_save()
     return {"status": "registered", "username": username, "role": role}
 
@@ -553,14 +603,17 @@ def update_education_preferences(
 @app.post("/api/v1/auth/logout")
 def logout(credentials: HTTPAuthorizationCredentials = Depends(security)):
     if credentials:
-        username = tokens.pop(credentials.credentials, None)
-        token_created_at.pop(credentials.credentials, None)
+        token = credentials.credentials
+        username = tokens.pop(token, None)
+        token_created_at.pop(token, None)
+        revoked_tokens.add(token)
         if username:
             activity_log.insert(0, {
                 "type": "logout",
                 "username": username,
                 "at": datetime.now(timezone.utc).isoformat(),
             })
+    _db_save()
     return {"status": "logged_out"}
 
 
@@ -596,6 +649,12 @@ def update_account(data: AccountUpdateRequest, user=Depends(get_current_user)):
         if "@" not in email:
             raise HTTPException(status_code=400, detail="Valid email is required.")
         profile["email"] = email
+    activity_log.insert(0, {
+        "type": "account_updated",
+        "username": current,
+        "at": datetime.now(timezone.utc).isoformat(),
+    })
+    _db_save()
     return {"status": "updated", "username": current, "email": profile.get("email", ""), "phone": profile.get("phone", "")}
 
 
@@ -612,6 +671,13 @@ def change_password(data: PasswordChangeRequest, user=Depends(get_current_user))
         if owner == user["username"]:
             tokens.pop(token, None)
             token_created_at.pop(token, None)
+            revoked_tokens.add(token)
+    activity_log.insert(0, {
+        "type": "password_changed",
+        "username": user["username"],
+        "at": datetime.now(timezone.utc).isoformat(),
+    })
+    _db_save()
     return {"status": "updated", "message": "Password changed. Please sign in again."}
 
 
@@ -666,7 +732,7 @@ def update_profile(
     profile["location_source"] = str(profile.get("location_source") or "").strip()[:40]
     user_profiles[user["username"]] = profile
 
-    activity_log.insert(
+    activity_log.insert
         0,
         {
             "type": "profile_updated",
@@ -675,6 +741,7 @@ def update_profile(
         },
     )
 
+    _db_save()
     return {
         "status": "saved",
         "username": user["username"],
@@ -2423,6 +2490,115 @@ def admin_tokens(user=Depends(get_current_user)):
         ]
     }
 
+
+@app.patch("/api/v1/admin/users/{username}/role")
+def admin_update_user_role(
+    username: str,
+    data: AdminRoleUpdateRequest,
+    user=Depends(get_current_user),
+):
+    require_super_admin(user)
+    target = username.strip()
+    if target not in user_accounts and target not in user_profiles:
+        raise HTTPException(status_code=404, detail="User not found.")
+
+    role = normalize_role(data.role)
+    allowed = ALLOWED_USER_ROLES | {"SUPER_ADMIN"}
+    if role not in allowed:
+        raise HTTPException(status_code=400, detail="Unsupported role.")
+
+    if target.casefold() == str(ADMIN_USERNAME).strip().casefold():
+        raise HTTPException(status_code=400, detail="Primary SUPER_ADMIN role is protected.")
+
+    profile = user_profiles.setdefault(target, {})
+    old_role = normalize_role(profile.get("role", "student"))
+    profile["role"] = role
+    profile["role_status"] = "active"
+    now = datetime.now(timezone.utc).isoformat()
+    activity_log.insert(0, {
+        "type": "admin_role_changed",
+        "actor": user["username"],
+        "username": target,
+        "old_role": old_role,
+        "new_role": role,
+        "at": now,
+    })
+    _platform_audit(
+        user,
+        "user.role_changed",
+        "user",
+        target,
+        {"old_role": old_role, "new_role": role},
+    )
+    _db_save()
+    return {"status": "updated", "username": target, "role": role}
+
+@app.patch("/api/v1/admin/users/{username}/status")
+def admin_update_user_status(
+    username: str,
+    enabled: bool,
+    user=Depends(get_current_user),
+):
+    require_super_admin(user)
+    target = username.strip()
+    if target.casefold() == str(ADMIN_USERNAME).strip().casefold():
+        raise HTTPException(status_code=400, detail="Primary SUPER_ADMIN account cannot be disabled.")
+    if target not in user_accounts and target not in user_profiles:
+        raise HTTPException(status_code=404, detail="User not found.")
+
+    profile = user_profiles.setdefault(target, {})
+    profile["role_status"] = "active" if enabled else "disabled"
+    if not enabled:
+        for token, owner in list(tokens.items()):
+            if owner == target:
+                tokens.pop(token, None)
+                token_created_at.pop(token, None)
+                revoked_tokens.add(token)
+    now = datetime.now(timezone.utc).isoformat()
+    activity_log.insert(0, {
+        "type": "admin_account_status_changed",
+        "actor": user["username"],
+        "username": target,
+        "enabled": enabled,
+        "at": now,
+    })
+    _platform_audit(
+        user,
+        "user.status_changed",
+        "user",
+        target,
+        {"enabled": enabled},
+    )
+    _db_save()
+    return {"status": "updated", "username": target, "enabled": enabled}
+
+@app.post("/api/v1/admin/users/{username}/revoke-sessions")
+def admin_revoke_user_sessions(
+    username: str,
+    user=Depends(get_current_user),
+):
+    require_super_admin(user)
+    target = username.strip()
+    if target not in user_accounts and target not in user_profiles:
+        raise HTTPException(status_code=404, detail="User not found.")
+    count = 0
+    for token, owner in list(tokens.items()):
+        if owner == target:
+            tokens.pop(token, None)
+            token_created_at.pop(token, None)
+            revoked_tokens.add(token)
+            count += 1
+    now = datetime.now(timezone.utc).isoformat()
+    activity_log.insert(0, {
+        "type": "admin_sessions_revoked",
+        "actor": user["username"],
+        "username": target,
+        "count": count,
+        "at": now,
+    })
+    _platform_audit(user, "user.sessions_revoked", "user", target, {"count": count})
+    _db_save()
+    return {"status": "revoked", "username": target, "sessions_revoked": count}
 
 @app.get("/api/v1/admin/jobs")
 def admin_jobs(user=Depends(get_current_user)):
