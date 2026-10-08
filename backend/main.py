@@ -3449,7 +3449,7 @@ def _safe_role(user):
     return str(user.get("role") or user.get("user_role") or "student")
 
 def _community_store():
-    return app_state.setdefault("community_messages", {}) if isinstance(app_state, dict) else {}
+    return user_profiles.setdefault("__MEDGEN_COMMUNITY__", {}).setdefault("messages", {})
 
 @app.get("/api/v1/support/tickets")
 def support_list_tickets(user=Depends(get_current_user)):
@@ -3482,7 +3482,7 @@ def support_create_ticket(data: SupportTicketRequest, user=Depends(get_current_u
 @app.get("/api/v1/community")
 def community_feed(user=Depends(get_current_user)):
     role=_safe_role(user)
-    messages=app_state.setdefault("community_messages", {}) if isinstance(app_state,dict) else {}
+    messages=_community_store()
     return {"status":"ok","role":role,"room":role,"messages":messages.get(role,[])[:100]}
 
 @app.post("/api/v1/community/messages")
