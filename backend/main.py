@@ -3875,11 +3875,14 @@ def community_post(data: CommunityMessageRequest, user=Depends(get_current_user)
     if not message:
         raise HTTPException(status_code=400, detail="Message is required.")
     role=_safe_role(user)
+    requested=normalize_role(data.role) if data.role else role
+    if requested != role and role != "SUPER_ADMIN":
+        raise HTTPException(status_code=403, detail="Only Super Admin can post to another role community.")
     messages=_community_store()
-    item={"id":f"MSG-{int(datetime.now(timezone.utc).timestamp()*1000)}","username":user["username"],"role":role,"message":message,"created_at":datetime.now(timezone.utc).isoformat()}
-    messages.setdefault(role,[]).insert(0,item)
-    messages[role]=messages[role][:200]
-    activity_log.insert(0,{"type":"community_message","username":user["username"],"role":role,"at":item["created_at"]})
+    item={"id":f"MSG-{int(datetime.now(timezone.utc).timestamp()*1000)}","username":user["username"],"role":requested,"message":message,"created_at":datetime.now(timezone.utc).isoformat(),"room":requested}
+    messages.setdefault(requested,[]).insert(0,item)
+    messages[requested]=messages[requested][:200]
+    activity_log.insert(0,{"type":"community_message","username":user["username"],"role":requested,"at":item["created_at"]})
     _db_save()
     return {"status":"sent","message":item}
 
