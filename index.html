@@ -2295,5 +2295,30 @@ document.addEventListener("DOMContentLoaded", function () {
   <pre id="workflowStatus"></pre>
   <pre id="workflowResult"></pre>
 </section>
+<!-- PHASE 2 VISUAL LAB -->
+<section id="moleculeVisualPanel" class="panel hidden">
+  <h2>🧬 Molecular Visual Lab</h2>
+  <p class="muted">2D chemical structure + interactive 3D molecule/protein viewer.</p>
+  <div class="grid-2">
+    <div class="panel">
+      <h3>2D Structure</h3>
+      <input id="visualSmiles" placeholder="SMILES, e.g. CCO">
+      <button id="visual2dRun">Render 2D</button>
+      <div id="visual2dStatus" class="status"></div>
+      <div id="visual2dCanvas" style="min-height:220px;display:flex;align-items:center;justify-content:center;overflow:auto"></div>
+    </div>
+    <div class="panel">
+      <h3>3D Molecule / Protein</h3>
+      <input id="visualPdb" placeholder="PDB ID, e.g. 1AKE">
+      <div style="display:flex;gap:8px;flex-wrap:wrap">
+        <button id="visual3dMoleculeRun">Show Molecule 3D</button>
+        <button id="visual3dPdbRun">Show PDB 3D</button>
+      </div>
+      <div id="visual3dStatus" class="status"></div>
+      <div id="visual3dCanvas" style="height:520px;border-radius:12px;overflow:hidden;background:#07111f"></div>
+    </div>
+  </div>
+</section>
+<script src="https://3dmol.csb.pitt.edu/build/3Dmol-min.js"></script>
 </body>
 </html>
