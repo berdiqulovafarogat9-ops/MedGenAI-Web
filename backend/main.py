@@ -4015,7 +4015,28 @@ def execute_lab_experiment(experiment_id: str, user=Depends(get_current_user)):
     results=experiment.setdefault("results",{}).setdefault("steps",[])
     for item in results:
         if item.get("status")=="ready":
-            if item.get("step")=="virtual_screening": item["status"]="completed"; item["result"]={"engine":"MedGen screening workflow","status":"prepared"}
+            if item.get("step")=="virtual_screening":
+                smiles = str(experiment.get("input", {}).get("ligand_smiles", "") or "").strip()
+                if smiles:
+                    try:
+                        screening = calculate_molecule_score(smiles)
+                        item["status"] = "completed"
+                        item["result"] = {
+                            "engine": "RDKit molecular screening",
+                            "status": "completed",
+                            "molecule": screening,
+                            "note": "Property-based computational screening only; not docking, binding-affinity or ADMET prediction."
+                        }
+                    except HTTPException as exc:
+                        item["status"] = "failed"
+                        item["result"] = {"error": str(exc.detail)}
+                else:
+                    item["status"] = "completed"
+                    item["result"] = {
+                        "engine": "MedGen screening workflow",
+                        "status": "skipped",
+                        "reason": "No ligand SMILES supplied"
+                    }
             elif item.get("step")=="report": item["status"]="completed"
     experiment["status"]="completed"
     experiment["updated_at"]=datetime.now(timezone.utc).isoformat()
