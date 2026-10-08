@@ -3549,6 +3549,11 @@ class Molecule3DRequest(BaseModel):
     smiles: str
     optimize: bool = True
 
+class Molecule2DRequest(BaseModel):
+    smiles: str
+    width: int = 520
+    height: int = 360
+
 class PDBDownloadRequest(BaseModel):
     format: str = "pdb"
 
@@ -3719,6 +3724,32 @@ def molecule_similarity(data: MoleculeSimilarityRequest, user=Depends(get_curren
         "status": "completed", "module": "Molecular Analysis", "workflow": "molecular_similarity",
         "reference_smiles": data.reference_smiles, "threshold": data.threshold,
         "results": results, "user": user["username"],
+    }
+
+@app.post("/api/v1/molecules/2d")
+def molecule_2d(data: Molecule2DRequest, user=Depends(get_current_user)):
+    smiles = str(data.smiles or "").strip()
+    if not smiles or len(smiles) > 5000:
+        raise HTTPException(status_code=400, detail="SMILES is required and must be <= 5000 characters.")
+    mol = Chem.MolFromSmiles(smiles)
+    if mol is None:
+        raise HTTPException(status_code=400, detail="Invalid SMILES")
+    width = max(240, min(int(data.width), 1200))
+    height = max(180, min(int(data.height), 900))
+    try:
+        from rdkit.Chem import Draw
+        drawer = Draw.MolDraw2DSVG(width, height)
+        drawer.drawOptions().addStereoAnnotation = True
+        drawer.DrawMolecule(mol)
+        drawer.FinishDrawing()
+        svg = drawer.GetDrawingText()
+    except Exception as exc:
+        raise HTTPException(status_code=500, detail=f"2D rendering failed: {exc}")
+    return {
+        "status": "completed", "module": "Molecular Analysis", "workflow": "2d_structure",
+        "input_smiles": smiles, "canonical_smiles": Chem.MolToSmiles(mol),
+        "svg": svg, "width": width, "height": height, "user": user["username"],
+        "warning": "2D depiction is a computational visualization, not an experimental structure.",
     }
 
 @app.post("/api/v1/molecules/3d")
