@@ -1183,8 +1183,8 @@ frame-ancestors 'none'">
     const form=byId('loginForm'); if(!form || form.dataset.fallbackBound==='1') return;
     form.dataset.fallbackBound='1';
     form.addEventListener('submit',async function(e){
-      if(typeof window.login==='function') return; 
       e.preventDefault();
+      e.stopImmediatePropagation();
       const status=byId('loginStatus');
       const username=(byId('loginUser')?.value||'').trim();
       const password=byId('loginPassword')?.value||'';
