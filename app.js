@@ -4276,12 +4276,14 @@ if (document.readyState === "loading") {
     const modalCard = document.querySelector('#profileModal .modal-card');
     if (!top || !header) return;
 
-    const menuBtn = document.createElement('button');
-    menuBtn.id = 'medgenMenuBtn';
-    menuBtn.className = 'ghost menu-button';
-    menuBtn.type = 'button';
-    menuBtn.textContent = '☰ Menyu';
-    top.insertBefore(menuBtn, top.firstChild);
+    const menuBtn = document.getElementById('medgenMenuBtn') || document.createElement('button');
+    if (!menuBtn.id) {
+      menuBtn.id = 'medgenMenuBtn';
+      menuBtn.className = 'ghost menu-button';
+      menuBtn.type = 'button';
+      menuBtn.textContent = '☰ Menyu';
+      top.insertBefore(menuBtn, top.firstChild);
+    }
 
     const drawer = document.createElement('aside');
     drawer.id = 'medgenNavDrawer';
