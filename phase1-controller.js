@@ -9,6 +9,31 @@
   const $ = (id) => document.getElementById(id);
   const token = () => sessionStorage.getItem(TOKEN_KEY) || '';
 
+  // Phase 1 owns the page boundary. Legacy feature scripts may still create
+  // top-level nodes; they must never appear beside the login/dashboard shell.
+  function installBoundaryStyles() {
+    if (document.getElementById('phase1BoundaryStyles')) return;
+    const style = document.createElement('style');
+    style.id = 'phase1BoundaryStyles';
+    style.textContent = [
+      'body.phase1-login-active > * { display:none !important; }',
+      'body.phase1-login-active > #loginView { display:grid !important; visibility:visible !important; opacity:1 !important; }',
+      'body.phase1-dashboard-active > * { display:none !important; }',
+      'body.phase1-dashboard-active > #dashboardView { display:block !important; visibility:visible !important; opacity:1 !important; }',
+      '#phase1Drawer { z-index:100001 !important; }',
+      '#profileModal { z-index:100002 !important; }'
+    ].join('\\n');
+    document.head.appendChild(style);
+  }
+
+  function enforceBoundary(mode) {
+    installBoundaryStyles();
+    document.body.classList.toggle('phase1-login-active', mode === 'login');
+    document.body.classList.toggle('phase1-dashboard-active', mode === 'dashboard');
+    // The drawer is a Phase 1 top-level overlay and is allowed only after login.
+    if (mode === 'login') $('phase1Drawer')?.classList.remove('open');
+  }
+
   const MODULES = {
     'Bioinformatics': ['bioTool'],
     'Molecular Analysis': ['molecularTool'],
@@ -65,12 +90,14 @@
   }
 
   function cleanBoundaries() {
+    enforceBoundary('dashboard');
     const login = $('loginView'), dash = $('dashboardView');
     if (login) { login.classList.add('hidden'); login.hidden = true; login.style.setProperty('display','none','important'); }
     if (dash) { dash.classList.remove('hidden'); dash.hidden = false; dash.style.setProperty('display','block','important'); }
   }
 
   function showLogin() {
+    enforceBoundary('login');
     const login = $('loginView'), dash = $('dashboardView');
     if (login) { login.classList.remove('hidden'); login.hidden = false; login.style.removeProperty('display'); }
     if (dash) { dash.classList.add('hidden'); dash.hidden = true; dash.style.setProperty('display','none','important'); }
@@ -175,6 +202,7 @@
   }
 
   function bind() {
+    installBoundaryStyles();
     // Remove listeners installed by the old shells by replacing the key controls.
     ['loginForm','medgenMenuBtn','profileBtn','logoutBtn','workspaceClose'].forEach(id=>{
       const el=$(id); if(!el) return;
@@ -239,5 +267,19 @@
   }
 
   window.medgenPhase1Controller={openHome,openWorkspace,renderMenu,openProfile,login};
-  window.addEventListener('load',bind,{once:true});
+
+  // Bind as soon as possible, then re-assert the boundary after legacy scripts
+  // finish their own startup work.
+  if (document.readyState === 'loading') {
+    document.addEventListener('DOMContentLoaded', () => {
+      installBoundaryStyles();
+      setTimeout(() => {
+        if (token() || normalize()) { cleanBoundaries(); openHome(); }
+        else showLogin();
+      }, 0);
+    }, {once:true});
+  } else {
+    installBoundaryStyles();
+  }
+  window.addEventListener('load', bind, {once:true});
 })();
