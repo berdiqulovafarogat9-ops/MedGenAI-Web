@@ -4797,3 +4797,70 @@ async function detectProfileLocation(fromSecurity=false){
   }
   if(document.readyState==='loading') document.addEventListener('DOMContentLoaded',boot,{once:true}); else setTimeout(boot,0);
 })();
+
+
+// =========================================================
+// PHASE 2 SCIENTIFIC UI — ADVANCED BIOINFORMATICS / MOLECULES
+// =========================================================
+
+async function runBioTranslation() {
+  const sequence=$('bioSequence')?.value?.trim()||'';
+  const frame=Number($('bioFrame')?.value||1);
+  const status=$('bioTranslateStatus'), result=$('bioTranslateResult');
+  if(!sequence){ if(status) status.textContent=t('sequenceRequired'); return; }
+  if(status) status.textContent=t('analyzing');
+  try {
+    const data=await api('/bioinformatics/translate',{method:'POST',body:JSON.stringify({sequence,frame})});
+    renderResult(result,data); if(status) status.textContent=t('done');
+  } catch(e){ if(status) status.textContent=e.message; }
+}
+
+async function runBioAlignment() {
+  const a=$('bioSequence')?.value?.trim()||'', b=$('bioSequenceB')?.value?.trim()||'';
+  const status=$('bioAlignStatus'), result=$('bioAlignResult');
+  if(!a||!b){if(status) status.textContent='Ikkala ketma-ketlikni kiriting.';return;}
+  if(status) status.textContent=t('analyzing');
+  try {
+    const data=await api('/bioinformatics/align',{method:'POST',body:JSON.stringify({sequence_a:a,sequence_b:b})});
+    renderResult(result,data); if(status) status.textContent=t('done');
+  } catch(e){if(status) status.textContent=e.message;}
+}
+
+async function runMoleculeBatch() {
+  const smiles=($('moleculeBatchInput')?.value||'').split(/\r?\n/).map(x=>x.trim()).filter(Boolean);
+  const status=$('moleculeBatchStatus'), result=$('moleculeBatchResult');
+  if(!smiles.length){if(status)status.textContent=t('moleculeRequired');return;}
+  if(status)status.textContent=t('analyzing');
+  try{const data=await api('/molecules/batch-analyze',{method:'POST',body:JSON.stringify({smiles})});renderResult(result,data);if(status)status.textContent=t('done');}
+  catch(e){if(status)status.textContent=e.message;}
+}
+
+async function runMoleculeSimilarity() {
+  const lines=($('moleculeSimilarityInput')?.value||'').split(/\r?\n/).map(x=>x.trim()).filter(Boolean);
+  const status=$('moleculeSimilarityStatus'), result=$('moleculeSimilarityResult');
+  if(lines.length<2){if(status)status.textContent='Reference SMILES va kamida bitta query SMILES kiriting.';return;}
+  try{
+    const data=await api('/molecules/similarity',{method:'POST',body:JSON.stringify({reference_smiles:lines[0],query_smiles:lines.slice(1)})});
+    renderResult(result,data);if(status)status.textContent=t('done');
+  }catch(e){if(status)status.textContent=e.message;}
+}
+
+async function runMolecule3D() {
+  const smiles=$('smilesInput')?.value?.trim()||'';
+  const status=$('molecule3dStatus'), result=$('molecule3dResult');
+  if(!smiles){if(status)status.textContent=t('smilesRequired');return;}
+  if(status)status.textContent=t('analyzing');
+  try{const data=await api('/molecules/3d',{method:'POST',body:JSON.stringify({smiles,optimize:true})});renderResult(result,data);if(status)status.textContent=t('done');}
+  catch(e){if(status)status.textContent=e.message;}
+}
+
+(function bindPhase2ScientificControls(){
+  function bind(){
+    $('bioTranslateRun')?.addEventListener('click',runBioTranslation);
+    $('bioAlignRun')?.addEventListener('click',runBioAlignment);
+    $('moleculeBatchRun')?.addEventListener('click',runMoleculeBatch);
+    $('moleculeSimilarityRun')?.addEventListener('click',runMoleculeSimilarity);
+    $('molecule3dRun')?.addEventListener('click',runMolecule3D);
+  }
+  if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',bind,{once:true});else bind();
+})();
