@@ -1188,6 +1188,16 @@ async function openProfile() {
     $('profileEmail').value = p.email || '';
     $('profileOrganization').value = p.organization || '';
     $('profileCountry').value = p.country || '';
+    $('profileRegion').value = p.region || '';
+    $('profileDistrict').value = p.district || '';
+    $('profileCity').value = p.city || '';
+    $('profileLocationLabel').value = p.location_label || '';
+    const locationButton = $('detectLocationBtn');
+    if (locationButton) {
+      locationButton.dataset.lat = p.location_lat ?? '';
+      locationButton.dataset.lon = p.location_lon ?? '';
+      locationButton.dataset.source = p.location_source || '';
+    }
     $('profileBirthDate').value =
       p.birth_day && p.birth_month && p.birth_year
         ? String(p.birth_day).padStart(2, '0') + '.' +
@@ -1244,6 +1254,8 @@ function isProfileComplete(p) {
     String(p.full_name || '').trim() &&
     String(p.email || '').trim() &&
     String(p.country || '').trim() &&
+    String(p.region || '').trim() &&
+    String(p.city || '').trim() &&
     Number.isInteger(Number(p.birth_year)) &&
     Number(p.birth_year) >= 1900 &&
     Number(p.birth_year) <= 2100 &&
@@ -1333,6 +1345,13 @@ async function saveProfile() {
       phone: $('profilePhone')?.value?.trim() || '',
       organization: $('profileOrganization')?.value?.trim() || '',
       country: $('profileCountry')?.value?.trim() || '',
+      region: $('profileRegion')?.value?.trim() || '',
+      district: $('profileDistrict')?.value?.trim() || '',
+      city: $('profileCity')?.value?.trim() || '',
+      location_label: $('profileLocationLabel')?.value?.trim() || '',
+      location_lat: Number($('detectLocationBtn')?.dataset?.lat || '') || null,
+      location_lon: Number($('detectLocationBtn')?.dataset?.lon || '') || null,
+      location_source: $('detectLocationBtn')?.dataset?.source || '',
       birth_year: birthYearRaw ? Number(birthYearRaw) : null,
       birth_month: birthMonthRaw ? Number(birthMonthRaw) : null,
       birth_day: birthDayRaw ? Number(birthDayRaw) : null,
@@ -1384,6 +1403,13 @@ async function saveProfile() {
       body: JSON.stringify({
         education_mode: $('profileEducationMode')?.value || 'GLOBAL',
         country_code: ($('profileAcademicCountry')?.value || '').trim().toUpperCase(),
+        region: $('profileRegion')?.value?.trim() || '',
+        district: $('profileDistrict')?.value?.trim() || '',
+        city: $('profileCity')?.value?.trim() || '',
+        location_label: $('profileLocationLabel')?.value?.trim() || '',
+        location_lat: Number($('detectLocationBtn')?.dataset?.lat || '') || null,
+        location_lon: Number($('detectLocationBtn')?.dataset?.lon || '') || null,
+        location_source: $('detectLocationBtn')?.dataset?.source || '',
         university: $('profileUniversity')?.value?.trim() || '',
         faculty: $('profileFaculty')?.value?.trim() || '',
         major: $('profileMajor')?.value?.trim() || '',
@@ -1431,8 +1457,6 @@ async function saveProfile() {
 }
 
 async function ensureLegalConsent() {
-  // Administrative access is not blocked by end-user consent onboarding.
-  if (isSuperAdmin()) return;
   if (!state.user || state.user.consent_complete) return;
   const modal = $('legalModal');
   if (!modal) return;
@@ -1680,17 +1704,12 @@ function escapeHtml(value) {
 
 function ensureAdminDashboard() {
   if (!isSuperAdmin() || $('adminDashboard')) return;
-
-  const dash = $('dashboardView');
-  if (!dash) return;
-
+  const container = $('dashboardView')?.querySelector('.container');
+  if (!container) return;
   const box = document.createElement('section');
   box.id = 'adminDashboard';
-  box.className = '';
-  box.style.marginTop = '20px';
-  dash.appendChild(box);
-
-  loadAdminDashboard();
+  box.className = 'admin-dashboard-section hidden';
+  container.appendChild(box);
 }
 
 
@@ -1883,6 +1902,12 @@ function closeWorkspace() {
 function openModule(moduleName) {
 
   if (!enforceProfileCompletion()) return;
+
+  $('roleDashboard')?.classList.add('hidden');
+  $('userDirectoryDashboard')?.classList.add('hidden');
+  $('securityCenter')?.classList.add('hidden');
+  $('educationPreferencePanel')?.classList.add('hidden');
+  $('adminDashboard')?.classList.add('hidden');
 
   openWorkspace(moduleName);
 
