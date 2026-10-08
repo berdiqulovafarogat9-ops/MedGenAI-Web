@@ -4488,3 +4488,10 @@ def scientific_core_status_v2(user=Depends(get_current_user)):
                     "molecular analysis","similarity","screening","docking","report"],
         "disclaimer":"Computational research workflow; results require scientific validation and are not clinical advice.",
         "user":user["username"]}
+
+
+# Phase 1 academic extensions are additive and backward-compatible.
+try:
+    from . import phase1_academy_ext  # package execution
+except ImportError:
+    import phase1_academy_ext  # direct uvicorn main:app execution
