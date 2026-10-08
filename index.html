@@ -1196,12 +1196,12 @@ frame-ancestors 'none'">
         if(!res.ok) throw new Error(data.detail||data.message||('HTTP '+res.status));
         const token=data.access_token||data.token; if(!token) throw new Error('Server access token qaytarmadi.');
         sessionStorage.setItem('medgen_access_token',token);
-        let user=data.user||{username,role:'student'};
+        let user=data.user||{username,role:'student'}; window.__MEDGEN_USER=user; try{state.user=user;state.token=token;}catch(_){}
         try{
           const me=await fetch('https://medgenai-web-1.onrender.com/api/v1/auth/me',{headers:{Authorization:'Bearer '+token}});
           if(me.ok) user=await me.json();
         }catch(_){}
-        showDashboardFallback(user);
+        showDashboardFallback(user); if(window.medgenFinalBoot) window.medgenFinalBoot(user);
       }catch(err){ if(status) status.textContent='Kirishda xatolik: '+err.message; }
     },true);
   });
@@ -2142,6 +2142,68 @@ document.addEventListener("DOMContentLoaded", function () {
     toggle.setAttribute("aria-label", visible ? "Show password" : "Hide password");
   });
 });
+</script>
+
+<!-- FINAL MEDGEN DASHBOARD OVERRIDE -->
+<script>
+(function(){
+  const ROLES={
+    student:{icon:'🎓',name:'Talaba',desc:'Medical Academy, fanlar, klinik tayyorgarlik va ilmiy ishlar',mods:['Medical Academy','Bioinformatics','Molecular Analysis','PDB & Structure','Drug Discovery','Research Assistant','Virtual Laboratory','Reports & History']},
+    school_student:{icon:'📘',name:'O‘quvchi',desc:'Biomedikal ta’lim, laboratoriya asoslari va bilim rivoji',mods:['Bioinformatics','Molecular Analysis','PDB & Structure','Research Assistant','Reports & History']},
+    doctor:{icon:'🩺',name:'Shifokor',desc:'Klinik ta’lim, ilmiy izlanish va professional workspace',mods:['Medical Academy','Research Assistant','PDB & Structure','Bioinformatics','Reports & History']},
+    researcher:{icon:'🔬',name:'Olim / Researcher',desc:'Ilmiy tadqiqot, bioinformatika, tajriba va hisobotlar',mods:['Bioinformatics','Molecular Analysis','PDB & Structure','Drug Discovery','Scientific Jobs','Research Assistant','Virtual Laboratory','Reports & History']},
+    professor:{icon:'👨‍🏫',name:'Professor',desc:'Ta’lim, assessment, ilmiy rahbarlik va tadqiqot',mods:['Medical Academy','Bioinformatics','Research Assistant','Virtual Laboratory','Reports & History']},
+    lab:{icon:'🧪',name:'Laboratoriya',desc:'Laboratoriya workflowlari, molekulyar tahlil va tajribalar',mods:['Molecular Analysis','Bioinformatics','PDB & Structure','Virtual Laboratory','Scientific Jobs','Reports & History']},
+    biotech:{icon:'🧬',name:'Biotexnolog',desc:'Biotexnologik tadqiqot va computational workflows',mods:['Bioinformatics','Molecular Analysis','PDB & Structure','Drug Discovery','Virtual Laboratory','Research Assistant','Reports & History']},
+    pharma:{icon:'💊',name:'Pharma',desc:'Drug discovery, screening, research va enterprise workflowlar',mods:['Drug Discovery','Molecular Analysis','PDB & Structure','Research Assistant','Scientific Jobs','Reports & History']},
+    bioinformatician:{icon:'💻',name:'Bioinformatician',desc:'Sequence, genomics, omics va computational analysis',mods:['Bioinformatics','Molecular Analysis','PDB & Structure','Scientific Jobs','Research Assistant','Reports & History']},
+    hospital:{icon:'🏥',name:'Klinika / Hospital',desc:'Klinik ta’lim, simulyatsiya va professional workflowlar',mods:['Medical Academy','Research Assistant','Bioinformatics','Reports & History']},
+    company:{icon:'🏢',name:'Biotech / Pharma Company',desc:'Enterprise projectlar, research va operations',mods:['Global Platform','Drug Discovery','Research Assistant','Scientific Jobs','Reports & History']},
+    SUPER_ADMIN:{icon:'👑',name:'Super Admin / Owner',desc:'Butun platforma, foydalanuvchilar, tashkilotlar, xavfsizlik va audit nazorati',mods:['Global Platform','Medical Academy','Bioinformatics','Molecular Analysis','PDB & Structure','Drug Discovery','Scientific Jobs','Research Assistant','Virtual Laboratory','Reports & History']}
+  };
+  const icons={'Medical Academy':'🎓','Bioinformatics':'🧬','Molecular Analysis':'⚗️','PDB & Structure':'🧫','Drug Discovery':'💊','Scientific Jobs':'⚙️','Research Assistant':'📚','Virtual Laboratory':'🧪','Reports & History':'📊','Global Platform':'🌐'};
+  const roleKey=()=>String(window.__MEDGEN_USER?.role||'student').toUpperCase()==='SUPER_ADMIN'?'SUPER_ADMIN':String(window.__MEDGEN_USER?.role||'student').toLowerCase();
+  const esc=s=>String(s??'').replace(/[&<>"']/g,m=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[m]));
+  function dashboard(){return document.getElementById('dashboardView')}
+  function hideAll(){['roleDashboard','moduleDirectory','workspace','educationPreferencePanel','securityCenter','userDirectoryDashboard','adminDashboard','supportCenter','aiCenter','communityCenter'].forEach(id=>document.getElementById(id)?.classList.add('hidden'))}
+  function openHome(){hideAll();document.getElementById('roleDashboard')?.classList.remove('hidden');renderHome()}
+  function openModuleSafe(name){hideAll(); if(typeof window.openModule==='function') window.openModule(name); else {document.getElementById('workspace')?.classList.remove('hidden');} document.getElementById('roleDashboard')?.classList.add('hidden');}
+  function renderHome(){
+    const d=dashboard(), key=roleKey(), r=ROLES[key]||ROLES.student; if(!d)return;
+    d.querySelector('.hero')?.classList.add('final-hide-hero');
+    const old=document.getElementById('finalHome'); if(old)old.remove();
+    const home=document.createElement('section');home.id='finalHome';home.className='final-home';
+    home.innerHTML='<div class="final-welcome"><div><div class="final-kicker">MEDGEN AI • GLOBAL BIOMEDICAL AI PLATFORM</div><h1>'+r.icon+' '+esc(r.name)+' Workspace</h1><p>'+esc(r.desc)+'</p></div><span class="final-role">'+esc(key==='SUPER_ADMIN'?'SUPER ADMIN / OWNER':key.toUpperCase())+'</span></div>'+
+      '<div class="final-grid">'+r.mods.map(m=>'<button class="final-module" data-final-module="'+esc(m)+'"><span>'+icons[m]+'</span><b>'+esc(m)+'</b><small>Workspace →</small></button>').join('')+'</div>'+
+      '<div class="final-grid secondary"><button class="final-service" data-final-service="support">🆘<b>Yordam markazi</b><small>Muammo va qo‘llab-quvvatlash</small></button><button class="final-service" data-final-service="ai">🤖<b>MedGen AI Assistant</b><small>Platforma bo‘yicha AI yordamchi</small></button><button class="final-service" data-final-service="community">💬<b>Community</b><small>Rolangizga tegishli guruh va muhokamalar</small></button><button class="final-service" data-final-service="security">🔐<b>Security Center</b><small>Maxfiylik, rozilik va hisob xavfsizligi</small></button></div>'+
+      (key==='SUPER_ADMIN'?'<div class="final-admin-strip"><b>👑 Owner Control</b><span>Global foydalanuvchilar, rollar, activity, organizations, projects va audit.</span><button id="finalAdminOpen" class="primary small">Super Admin Dashboard</button></div>':'');
+    d.querySelector('.container')?.prepend(home);
+    home.querySelectorAll('[data-final-module]').forEach(b=>b.onclick=()=>openModuleSafe(b.dataset.finalModule));
+    home.querySelectorAll('[data-final-service]').forEach(b=>b.onclick=()=>openService(b.dataset.finalService));
+    document.getElementById('finalAdminOpen')?.addEventListener('click',()=>{hideAll();document.getElementById('adminDashboard')?.classList.remove('hidden'); if(typeof loadAdminDashboard==='function')loadAdminDashboard();});
+  }
+  function openService(kind){hideAll();let id={support:'supportCenter',ai:'aiCenter',community:'communityCenter',security:'securityCenter'}[kind];let el=document.getElementById(id);if(!el){el=document.createElement('section');el.id=id;el.className='final-panel';document.querySelector('#dashboardView .container')?.prepend(el);}
+    if(kind==='support')el.innerHTML='<div class="final-panel-head"><div><div class="final-kicker">SUPPORT / HELP CENTER</div><h2>Yordam markazi</h2><p>Platformadan foydalanishda muammo bo‘lsa, muammoni shu yerda yuboring.</p></div><button class="ghost final-back">← Dashboard</button></div><div class="final-help-grid"><div><b>🔑 Login / Account</b><p>Login, parol, profil va security muammolari.</p></div><div><b>🧬 Scientific Modules</b><p>Bioinformatics, molecular analysis va research workflowlar.</p></div><div><b>💬 Community</b><p>Guruh, chat, xabar va moderation masalalari.</p></div></div><textarea id="supportMessage" placeholder="Muammoingizni yozing..."></textarea><button id="supportSend" class="primary">Yordam so‘rash</button><div id="supportStatus" class="status">Support backend ulanishi keyingi integratsiya qatlamida saqlanadi; bu oynada xato yuzaga kelmaydi.</div>';
+    if(kind==='ai')el.innerHTML='<div class="final-panel-head"><div><div class="final-kicker">MEDGEN AI ASSISTANT</div><h2>AI yordamchi</h2><p>Biomedikal platforma, modullar va ilmiy workflowlar bo‘yicha yordam.</p></div><button class="ghost final-back">← Dashboard</button></div><div id="aiMessages" class="ai-messages"><div class="ai-msg">🤖 Salom. Men MedGen AI Assistantman. Savolingizni yozing.</div></div><div class="ai-compose"><input id="aiInput" placeholder="Savolingizni yozing..."/><button id="aiSend" class="primary">Yuborish</button></div><div id="aiStatus" class="status"></div>';
+    if(kind==='community')el.innerHTML='<div class="final-panel-head"><div><div class="final-kicker">ROLE COMMUNITY</div><h2>Community — '+esc((ROLES[roleKey()]||ROLES.student).name)+'</h2><p>Siz faqat o‘zingizga tegishli role community kanalini ko‘rasiz. Boshqa rollar avtomatik qo‘shilmaydi.</p></div><button class="ghost final-back">← Dashboard</button></div><div class="community-card"><b>'+((ROLES[roleKey()]||ROLES.student).icon)+' '+esc((ROLES[roleKey()]||ROLES.student).name)+' Group</b><span>Discussion • Chat • Notifications • Reports</span><div class="status">Community backend xavfsiz RBAC bilan alohida integratsiya qilinadi.</div></div>';
+    if(kind==='security'){el.classList.remove('hidden');}
+    el.classList.remove('hidden');el.querySelector('.final-back')?.addEventListener('click',openHome);
+  }
+  function renderMenu(){
+    let drawer=document.getElementById('finalMenuDrawer'); if(!drawer){drawer=document.createElement('aside');drawer.id='finalMenuDrawer';drawer.className='final-drawer';document.body.appendChild(drawer);}
+    const key=roleKey(),r=ROLES[key]||ROLES.student;
+    drawer.innerHTML='<div class="final-drawer-head"><b>☰ MENYU</b><button id="finalMenuClose">×</button></div><div class="final-menu-role">'+r.icon+' '+esc(r.name)+'</div><button class="final-nav" data-final-nav="home">🏠 Dashboard</button><button class="final-nav" data-final-nav="profile">👤 Profilim</button><div class="final-nav-title">MENING ISH MAYDONIM</div>'+r.mods.map(m=>'<button class="final-nav" data-final-module="'+esc(m)+'">'+icons[m]+' '+esc(m)+'</button>').join('')+'<div class="final-nav-title">YORDAM VA JAMOAT</div><button class="final-nav" data-final-service="support">🆘 Yordam markazi</button><button class="final-nav" data-final-service="ai">🤖 MedGen AI Assistant</button><button class="final-nav" data-final-service="community">💬 Community</button><button class="final-nav" data-final-service="security">🔐 Security Center</button>'+(key==='SUPER_ADMIN'?'<div class="final-nav-title">OWNER</div><button class="final-nav" id="finalMenuAdmin">👑 Super Admin Dashboard</button>':'');
+    drawer.querySelector('#finalMenuClose').onclick=()=>drawer.classList.remove('open');
+    drawer.querySelectorAll('[data-final-nav="home"]').forEach(b=>b.onclick=()=>{drawer.classList.remove('open');openHome()});
+    drawer.querySelectorAll('[data-final-module]').forEach(b=>b.onclick=()=>{drawer.classList.remove('open');openModuleSafe(b.dataset.finalModule)});
+    drawer.querySelectorAll('[data-final-service]').forEach(b=>b.onclick=()=>{drawer.classList.remove('open');openService(b.dataset.finalService)});
+    drawer.querySelector('[data-final-nav="profile"]')?.addEventListener('click',()=>{drawer.classList.remove('open');document.getElementById('profileBtn')?.click()});
+    drawer.querySelector('#finalMenuAdmin')?.addEventListener('click',()=>{drawer.classList.remove('open');hideAll();document.getElementById('adminDashboard')?.classList.remove('hidden');if(typeof loadAdminDashboard==='function')loadAdminDashboard()});
+  }
+  function bootUser(u){window.__MEDGEN_USER=u||window.__MEDGEN_USER||{role:'student'};try{if(typeof state!=='undefined'){state.user=window.__MEDGEN_USER;state.token=sessionStorage.getItem('medgen_access_token')||state.token}}catch(_){};renderMenu();renderHome();}
+  window.medgenFinalBoot=bootUser;
+  document.addEventListener('DOMContentLoaded',()=>{document.getElementById('medgenMenuBtn')?.addEventListener('click',()=>{renderMenu();document.getElementById('finalMenuDrawer')?.classList.add('open')});});
+})();
 </script>
 </body>
   </html>
