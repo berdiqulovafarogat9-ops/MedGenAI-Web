@@ -1,3 +1,4 @@
+import uuid
 from datetime import datetime, timezone
 import hashlib
 import json
@@ -3640,6 +3641,16 @@ def bioinformatics_align(data: SequenceAlignRequest, user=Depends(get_current_us
         "user": user["username"],
         "warning": "Educational/research alignment; not a clinical interpretation.",
     }
+
+
+def _tanimoto_similarity(smiles_a: str, smiles_b: str) -> float:
+    mol_a = Chem.MolFromSmiles(str(smiles_a).strip())
+    mol_b = Chem.MolFromSmiles(str(smiles_b).strip())
+    if mol_a is None or mol_b is None:
+        raise ValueError("Invalid SMILES")
+    fp_a = AllChem.GetMorganFingerprintAsBitVect(mol_a, 2, nBits=2048)
+    fp_b = AllChem.GetMorganFingerprintAsBitVect(mol_b, 2, nBits=2048)
+    return round(float(DataStructs.TanimotoSimilarity(fp_a, fp_b)), 6)
 
 def _molecule_descriptors(smiles: str) -> dict[str, Any]:
     mol = Chem.MolFromSmiles(str(smiles).strip())
