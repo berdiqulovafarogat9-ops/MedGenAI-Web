@@ -3989,3 +3989,80 @@ def get_scientific_report(report_id:str,user=Depends(get_current_user)):
     if experiment and experiment.get("user")!=user["username"] and user.get("role")!="SUPER_ADMIN":
         raise HTTPException(status_code=403,detail="Access denied")
     return report
+
+
+# =========================================================
+# PHASE 2 — STRUCTURE PARSING + SEQUENCE/STRUCTURE BRIDGE
+# =========================================================
+
+class StructureAnalysisRequest(BaseModel):
+    pdb_id: str
+    chain_id: str = ""
+
+def _fetch_rcsb_file(pdb_id: str, suffix: str) -> bytes:
+    url=f"https://files.rcsb.org/download/{pdb_id}.{suffix}"
+    req=URLRequest(url,headers={"User-Agent":"MedGenAI/1.1"})
+    try:
+        with urlopen(req,timeout=20) as response:
+            return response.read()
+    except HTTPError as exc:
+        if exc.code==404: raise HTTPException(status_code=404,detail=f"PDB structure {pdb_id} not found")
+        raise HTTPException(status_code=502,detail="RCSB structure service returned an error")
+    except (URLError,TimeoutError):
+        raise HTTPException(status_code=503,detail="Unable to connect to RCSB structure service")
+
+@app.post("/api/v1/pdb/structures/analyze")
+def analyze_pdb_structure(data: StructureAnalysisRequest,user=Depends(get_current_user)):
+    pdb_id=data.pdb_id.strip().upper()
+    if not re.fullmatch(r"[0-9A-Z]{4}",pdb_id):
+        raise HTTPException(status_code=400,detail="PDB ID must contain 4 alphanumeric characters")
+    raw=_fetch_rcsb_file(pdb_id,"cif")
+    try:
+        import gemmi
+        doc=gemmi.cif.read_string(raw.decode("utf-8"))
+        block=doc.sole_block()
+        structure=gemmi.make_structure_from_block(block)
+        models=len(structure)
+        chains=[]
+        residues_total=0
+        atoms_total=0
+        selected=None
+        for model in structure:
+            for chain in model:
+                residue_count=sum(1 for res in chain)
+                atom_count=sum(len(res) for res in chain)
+                item={"chain_id":chain.name,"residues":residue_count,"atoms":atom_count}
+                chains.append(item)
+                residues_total+=residue_count
+                atoms_total+=atom_count
+                if data.chain_id and chain.name==data.chain_id:
+                    selected=chain
+        if data.chain_id and selected is None:
+            raise HTTPException(status_code=404,detail=f"Chain {data.chain_id} not found in {pdb_id}")
+        sequence=""
+        if selected is not None:
+            one_letter=[]
+            for res in selected:
+                code=gemmi.find_tabulated_residue(res.name).one_letter_code
+                one_letter.append(code if code else "X")
+            sequence="".join(one_letter)
+        return {"status":"completed","module":"PDB & Structure","pdb_id":pdb_id,
+                "models":models,"chains":chains,"residue_count":residues_total,"atom_count":atoms_total,
+                "selected_chain":data.chain_id or None,"sequence":sequence,
+                "sequence_length":len(sequence),"source":"RCSB Protein Data Bank",
+                "warning":"Structure-derived sequence is computational metadata and is not a clinical interpretation.",
+                "user":user["username"]}
+    except HTTPException: raise
+    except Exception as exc:
+        raise HTTPException(status_code=422,detail=f"Structure parsing failed: {exc}")
+
+@app.post("/api/v1/scientific/sequence-structure")
+def sequence_structure_bridge(data: StructureAnalysisRequest,user=Depends(get_current_user)):
+    result=analyze_pdb_structure(data,user)
+    sequence=result.get("sequence","")
+    return {"status":"completed","module":"Scientific Core","pdb_id":result["pdb_id"],
+            "chain":result.get("selected_chain"),"sequence":sequence,
+            "sequence_length":len(sequence),"structure_summary":{"models":result["models"],"chains":result["chains"],
+            "residues":result["residue_count"],"atoms":result["atom_count"]},
+            "next_steps":["Bioinformatics analysis","Molecular target selection","Virtual screening","Docking"],
+            "user":user["username"]}
