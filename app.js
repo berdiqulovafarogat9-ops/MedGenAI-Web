@@ -1049,6 +1049,11 @@ async function login() {
     }
 
     showDashboard();
+    // Legal consent and complete profile are mandatory after first login.
+    await ensureLegalConsent();
+    if (state.user && !isProfileComplete(state.user.profile || {})) {
+      openProfileEditor();
+    }
 
   } catch (error) {
 
@@ -1269,6 +1274,7 @@ function isProfileComplete(p) {
     String(p.country || '').trim() &&
     String(p.region || '').trim() &&
     String(p.city || '').trim() &&
+    String(p.district || '').trim() &&
     Number.isInteger(Number(p.birth_year)) &&
     Number(p.birth_year) >= 1900 &&
     Number(p.birth_year) <= 2100 &&
@@ -1282,9 +1288,7 @@ function isProfileComplete(p) {
 }
 
 function enforceProfileCompletion() {
-  // The main dashboard must ALWAYS become visible after successful login.
-  // Incomplete profile data must not hide the dashboard or force a modal
-  // over it. Restricted modules can remain locked until the profile is completed.
+  // Profile completion is mandatory. The dashboard may render, but scientific modules remain locked until completion.
   if (isSuperAdmin()) return true;
   if (!state.user || isProfileComplete(state.user.profile || {})) {
     document.querySelectorAll('.module, #workspace, #adminDashboard').forEach(el => {
