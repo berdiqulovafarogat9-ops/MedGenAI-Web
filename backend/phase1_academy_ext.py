@@ -152,3 +152,89 @@ def academy_final_audit(user=Depends(core.get_current_user)):
         "promotion_rule": "No three-question shortcut; all required subject components must be passed.",
         "official_promotion_note": "Platform eligibility does not replace the university's official academic decision.",
     }
+
+
+@core.app.get("/api/v1/academy/v2/subject/{course}/{subject_id:path}")
+def academy_subject_v2(course: int, subject_id: str, user=Depends(core.get_current_user)):
+    subject = _subject(course, subject_id)
+    bank = core._academy_question_bank(course, subject)
+    return {
+        "status": "ok",
+        "course": course,
+        "subject": subject,
+        "modules": {
+            "theory": [{"id": f"{course}-{subject_id}-theory-{i}", "title": title}
+                       for i, title in enumerate(["Core concepts", "Mechanisms and integration", "Evidence and safety"], 1)],
+            "practice": [{"id": f"{course}-{subject_id}-practice-{i}", "title": title}
+                         for i, title in enumerate(["Guided practice", "Application exercise", "Integration exercise"], 1)],
+            "quiz": {"items": [{"id": q["id"], "question": q["question"], "options": q["options"]} for q in bank["quiz"]], "passing_score": 70},
+            "case": {"items": [{"id": q["id"], "scenario": q["scenario"], "prompt": q["prompt"], "options": q["options"]} for q in bank["case"]], "passing_score": 70},
+            "skills": {"items": bank.get("skills", []), "passing_score": 70},
+            "osce": {"items": bank.get("osce", []), "passing_score": 70},
+            "exam": {"items": [{"id": q["id"], "question": q["question"], "options": q["options"]} for q in bank["exam"]], "passing_score": 70},
+        },
+    }
+
+
+@core.app.post("/api/v1/academy/v2/assessment/submit")
+def academy_assessment_v2(data: AssessmentExtensionRequest, user=Depends(core.get_current_user)):
+    allowed = {"theory", "practice", "quiz", "case", "skills", "osce", "exam"}
+    if data.assessment_type not in allowed:
+        raise HTTPException(status_code=400, detail="Invalid assessment type.")
+    subject = _subject(data.course, data.subject_id)
+    bank = core._academy_question_bank(data.course, subject)
+    if data.assessment_type in {"theory", "practice"}:
+        score = 100 if data.answers.get("completion") == 1 else 0
+        total = 1
+    elif data.assessment_type == "skills":
+        items = bank.get("skills", [])
+        total = len(items)
+        score = round(sum(1 for q in items if data.answers.get(q["id"]) == 1) * 100 / total) if total else 0
+    elif data.assessment_type == "osce":
+        items = bank.get("osce", [])
+        total = len(items)
+        score = round(sum(1 for q in items if data.answers.get(q["id"]) == 1) * 100 / total) if total else 0
+    else:
+        items = bank["case"] if data.assessment_type == "case" else bank["exam"] if data.assessment_type == "exam" else bank["quiz"]
+        total = len(items)
+        score = round(sum(1 for q in items if data.answers.get(q["id"]) == q["answer"]) * 100 / total) if total else 0
+    rec = _progress(user["username"]).setdefault(core._academy_key(data.course, data.subject_id), {})
+    old = rec.get(data.assessment_type, {})
+    rec[data.assessment_type] = {
+        "score": score,
+        "passed": score >= 70,
+        "attempts": int(old.get("attempts", 0)) + 1,
+        "updated_at": _now(),
+    }
+    core._db_save()
+    return {"status": "recorded", "score": score, "passed": score >= 70, "total": total, "assessment_type": data.assessment_type, "progress": rec}
+
+
+@core.app.get("/api/v1/academy/v2/dashboard")
+def academy_dashboard_v2(user=Depends(core.get_current_user)):
+    ap = core._academy_profile(user["username"])
+    p = _progress(user["username"])
+    course = int(ap.get("year", 1))
+    required = ["theory", "practice", "quiz", "case", "skills", "osce", "exam"]
+    subjects = []
+    for sid, name, objective in core.ACADEMY_COURSES[course]["subjects"]:
+        rec = p.get(core._academy_key(course, sid), {})
+        passed = [x for x in required if rec.get(x, {}).get("passed")]
+        subjects.append({
+            "id": sid,
+            "name": name,
+            "objective": objective,
+            "completed_assessments": passed,
+            "complete": len(passed) == len(required),
+            "record": rec,
+        })
+    complete = sum(1 for x in subjects if x["complete"])
+    return {
+        "status": "ok",
+        "course": course,
+        "course_title": core.ACADEMY_COURSES[course]["title"],
+        "overall_progress": round(complete * 100 / len(subjects)) if subjects else 0,
+        "required_components": required,
+        "subjects": subjects,
+        "academic_profile": ap,
+    }
