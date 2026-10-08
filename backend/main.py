@@ -4066,3 +4066,70 @@ def sequence_structure_bridge(data: StructureAnalysisRequest,user=Depends(get_cu
             "residues":result["residue_count"],"atoms":result["atom_count"]},
             "next_steps":["Bioinformatics analysis","Molecular target selection","Virtual screening","Docking"],
             "user":user["username"]}
+
+
+# =========================================================
+# PHASE 2 — END-TO-END SCIENTIFIC WORKFLOW
+# =========================================================
+class ScientificWorkflowRequest(BaseModel):
+    name: str = "MedGen Scientific Workflow"
+    target: str
+    pdb_id: str = ""
+    chain_id: str = ""
+    sequence: str = ""
+    ligand_smiles: str = ""
+    run_similarity: bool = True
+    similarity_library: list[str] = []
+
+@app.post("/api/v1/scientific/workflow")
+def run_scientific_workflow(data: ScientificWorkflowRequest,user=Depends(get_current_user)):
+    target=data.target.strip()
+    if not target: raise HTTPException(status_code=400,detail="Target is required")
+    result={"status":"completed","name":data.name,"target":target,"stages":[],
+            "owner":user["username"],"created_at":datetime.utcnow().isoformat()+"Z"}
+    seq=data.sequence.strip().upper()
+    if data.pdb_id:
+        bridge=sequence_structure_bridge(StructureAnalysisRequest(pdb_id=data.pdb_id,chain_id=data.chain_id),user)
+        seq=bridge.get("sequence","") or seq
+        result["structure"]=bridge
+        result["stages"].append({"stage":"structure","status":"completed"})
+    if seq:
+        clean=re.sub(r"[^A-Z]","",seq)
+        result["sequence"]={"length":len(clean),"sequence":clean[:5000]}
+        result["stages"].append({"stage":"sequence","status":"completed"})
+    if data.ligand_smiles.strip():
+        mol=_molecule_descriptors(data.ligand_smiles.strip())
+        result["molecule"]=mol
+        result["stages"].append({"stage":"molecular_analysis","status":"completed"})
+        if data.run_similarity and data.similarity_library:
+            sims=[]
+            ref=data.ligand_smiles.strip()
+            for candidate in data.similarity_library[:200]:
+                try:
+                    q=_molecule_descriptors(candidate)["canonical_smiles"]
+                    sims.append({"smiles":candidate,"similarity":_tanimoto_similarity(ref,candidate)})
+                except Exception: pass
+            result["similarity"]=sorted(sims,key=lambda x:x["similarity"],reverse=True)
+            result["stages"].append({"stage":"similarity","status":"completed"})
+    exp={"id":str(uuid.uuid4()),"owner":user["username"],"type":"scientific_workflow",
+         "name":data.name,"target":target,"created_at":result["created_at"],
+         "result":result}
+    experiments_store[exp["id"]]=exp
+    _db_save()
+    result["experiment_id"]=exp["id"]
+    result["report_ready"]=True
+    return result
+
+@app.get("/api/v1/scientific/core/status")
+def scientific_core_status_v2(user=Depends(get_current_user)):
+    return {"phase":2,"status":"active","components":{
+        "bioinformatics":True,"molecular_analysis":True,"pdb_rcsb":True,
+        "pdb_parsing_gemmi":True,"sequence_structure_bridge":True,
+        "molecular_similarity":True,"molecule_3d":True,
+        "drug_discovery_screening":True,"docking":VINA_AVAILABLE,
+        "virtual_lab":True,"scientific_reports":True,
+        "end_to_end_workflow":True},
+        "workflow":["PDB/sequence","structure parsing","sequence extraction",
+                    "molecular analysis","similarity","screening","docking","report"],
+        "disclaimer":"Computational research workflow; results require scientific validation and are not clinical advice.",
+        "user":user["username"]}
