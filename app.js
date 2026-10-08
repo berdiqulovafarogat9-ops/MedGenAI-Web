@@ -2502,6 +2502,26 @@ async function runDocking() {
   const input = $('dockingInput')?.value?.trim() || '';
   const status = $('dockingStatus');
   const result = $('dockingResult');
+  if (!input) { if(status) status.textContent='Target | ligand SMILES kiriting.'; return; }
+  const parts=input.split('|').map(x=>x.trim());
+  const target=parts[0]||'';
+  const ligand_smiles=parts[1]||'';
+  if(!target||!ligand_smiles){if(status)status.textContent='Format: Target | ligand SMILES';return;}
+  const receptor_pdbqt=window.prompt('Prepared receptor PDBQT contentini kiriting:');
+  const ligand_pdbqt=window.prompt('Prepared ligand PDBQT contentini kiriting:');
+  if(!receptor_pdbqt||!ligand_pdbqt){if(status)status.textContent='Docking uchun prepared receptor va ligand PDBQT kerak.';return;}
+  if(status)status.textContent='AutoDock Vina ishga tushmoqda...';
+  try{
+    const data=await api('/docking/run',{method:'POST',body:JSON.stringify({
+      target,ligand_smiles,receptor_pdbqt,ligand_pdbqt,
+      center_x:22.0,center_y:0.2,center_z:52.8,
+      size_x:20.0,size_y:20.0,size_z:20.0,
+      exhaustiveness:8,n_poses:3
+    })});
+    renderResult(result,data);
+    if(status)status.textContent='Docking completed.';
+  }catch(error){if(status)status.textContent=error.message;}
+}
 
   if (!input) {
     if (status) status.textContent = 'Enter: EGFR | CCO';
