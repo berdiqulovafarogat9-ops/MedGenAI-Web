@@ -1217,6 +1217,14 @@ async function openProfile() {
     $('profileStudyLanguage') && ($('profileStudyLanguage').value = academicProfile.study_language || 'en');
     $('profileAcademicDegree') && ($('profileAcademicDegree').value = academicProfile.academic_degree || 'MD/MBBS');
 
+    try {
+      if(window.medgenLoadAcademyCatalogForProfile) await window.medgenLoadAcademyCatalogForProfile(academicProfile.country_code||'',academicProfile.university||'');
+      if($('profileAcademicCountry'))$('profileAcademicCountry').value=academicProfile.country_code||$('profileAcademicCountry').value;
+      if($('profileRegion'))$('profileRegion').value=academicProfile.region||p.region||'';
+      $('profileRegion')?.dispatchEvent(new Event('change'));
+      if($('profileDistrict'))$('profileDistrict').value=academicProfile.district||p.district||'';
+    }catch(_){}
+
     const profileSaveButton = $('profileSave');
     $('openSecurityFromProfile')?.addEventListener('click', () => {
       closeProfile();
@@ -4459,8 +4467,11 @@ async function detectProfileLocation(fromSecurity=false){
     });
     document.getElementById('educationPreferencePanel')?.classList.add('role-education-hidden');
     document.getElementById('systemPanel')?.classList.add('role-system-hidden');
+    document.getElementById('adminDashboard')?.classList.add('hidden');
+    document.getElementById('securityCenter')?.classList.add('hidden');
+    document.getElementById('userDirectoryDashboard')?.classList.add('hidden');
+    document.getElementById('workspace')?.classList.add('hidden');
     document.getElementById('roleDashboard')?.classList.remove('hidden');
-    if(key==='admin') loadAdminDashboard();
     renderRoleMenu();
   }
 
@@ -4544,14 +4555,23 @@ async function detectProfileLocation(fromSecurity=false){
     if(!list) return;
     const role=currentRole();
     const myModules=(MEDGEN_ROLES[role]?.modules||[]);
+    const home='<button class="nav-item" data-home-nav="1"><span>🏠</span><b>Mening dashboardim</b></button>';
     const header='<div class="nav-section-title">MENING ISH MAYDONIM</div>';
     const mine=myModules.map(m=>'<button class="nav-item" data-my-module="'+escapeHtml(m)+'"><span>•</span><b>'+escapeHtml(m)+'</b></button>').join('');
     let users='';
     if(admin()){
-      users='<div class="nav-section-title">FOYDALANUVCHILAR</div>'+
+      users='<div class="nav-section-title">ADMIN / OWNER</div><button class="nav-item" data-admin-dashboard="1"><span>👑</span><b>Super Admin Dashboard</b></button><div class="nav-section-title">FOYDALANUVCHILAR</div>'+
         Object.entries(ROLE_CARDS).map(([key,v])=>'<button class="nav-item" data-user-role="'+key+'"><span>'+v.icon+'</span><b>'+v.title+'</b></button>').join('');
     }
-    list.innerHTML=header+mine+users;
+    list.innerHTML=home+header+mine+users;
+    list.querySelector('[data-home-nav]')?.addEventListener('click',()=>{
+      document.getElementById('navDrawerClose')?.click();
+      $('securityCenter')?.classList.add('hidden');$('userDirectoryDashboard')?.classList.add('hidden');$('adminDashboard')?.classList.add('hidden');$('workspace')?.classList.add('hidden');$('educationPreferencePanel')?.classList.add('hidden');$('roleDashboard')?.classList.remove('hidden');loadPersonalDashboard();
+    });
+    list.querySelector('[data-admin-dashboard]')?.addEventListener('click',()=>{
+      document.getElementById('navDrawerClose')?.click();
+      $('roleDashboard')?.classList.add('hidden');$('securityCenter')?.classList.add('hidden');$('userDirectoryDashboard')?.classList.add('hidden');$('workspace')?.classList.add('hidden');$('educationPreferencePanel')?.classList.add('hidden');$('adminDashboard')?.classList.remove('hidden');loadAdminDashboard();
+    });
     list.querySelectorAll('[data-my-module]').forEach(b=>b.addEventListener('click',()=>{
       document.getElementById('navDrawerClose')?.click();
       openModule(b.dataset.myModule);
@@ -4614,7 +4634,7 @@ async function detectProfileLocation(fromSecurity=false){
       '</div>';
   }
 
-  async function loadAcademyCatalogForProfile() {
+  async function loadAcademyCatalogForProfile(preferredCountry='', preferredUniversity='') {
     const countrySelect=$('profileAcademicCountry'), list=$('profileUniversityList');
     if(!countrySelect) return;
     try {
@@ -4633,7 +4653,7 @@ async function detectProfileLocation(fromSecurity=false){
         if(lang.endsWith('-en-gb')) return 'GB';
         return 'UZ';
       })();
-      const existing=countrySelect.dataset.value||countrySelect.value;
+      const existing=preferredCountry||countrySelect.dataset.value||countrySelect.value;
       countrySelect.value=(countries.some(x=>x.code===existing)?existing:guessed);
       const renderUniversities=()=>{
         const vals=data.universities?.[countrySelect.value]||['Other / enter manually'];
@@ -4641,8 +4661,19 @@ async function detectProfileLocation(fromSecurity=false){
       };
       countrySelect.addEventListener('change',renderUniversities);
       renderUniversities();
+      renderUzRegions();
+      function renderUzRegions(){
+        const region=$('profileRegion'),district=$('profileDistrict');if(!region)return;
+        const uz={"Toshkent shahri":[],"Toshkent viloyati":["Bekobod","Bo‘ka","Bo‘stonliq","Chinoz","Ohangaron","Oqqo‘rg‘on","Parkent","Piskent","Quyi Chirchiq","Toshkent tumani","Yangiyo‘l","Yuqori Chirchiq","Zangiota"],"Andijon viloyati":["Andijon shahri","Asaka","Baliqchi","Bo‘z","Buloqboshi","Izboskan","Jalaquduq","Marhamat","Paxtaobod","Shahrixon","Ulug‘nor","Xo‘jaobod"],"Buxoro viloyati":["Buxoro shahri","G‘ijduvon","Jondor","Kogon","Olot","Peshku","Qorako‘l","Romitan","Shofirkon","Vobkent"],"Jizzax viloyati":["Jizzax shahri","Arnasoy","Baxmal","Do‘stlik","Forish","G‘allaorol","Mirzacho‘l","Paxtakor","Sharof Rashidov","Yangiobod","Zarbdor","Zafarobod"],"Qashqadaryo viloyati":["Qarshi shahri","Chiroqchi","Dehqonobod","Kasbi","Kitob","Koson","Mirishkor","Muborak","Nishon","Qamashi","Shahrisabz","Yakkabog‘"],"Navoiy viloyati":["Navoiy shahri","Konimex","Karmana","Navbahor","Nurota","Qiziltepa","Tomdi","Uchquduq","Xatirchi"],"Namangan viloyati":["Namangan shahri","Chortoq","Chust","Kosonsoy","Mingbuloq","Norin","Pop","To‘raqo‘rg‘on","Uchqo‘rg‘on","Uychi","Yangiqo‘rg‘on"],"Samarqand viloyati":["Samarqand shahri","Bulung‘ur","Ishtixon","Jomboy","Kattaqo‘rg‘on","Narpay","Nurobod","Oqdaryo","Paxtachi","Pastdarg‘om","Payariq","Qo‘shrabot","Toyloq","Urgut"],"Surxondaryo viloyati":["Termiz shahri","Angor","Bandixon","Boysun","Denov","Jarqo‘rg‘on","Muzrabot","Oltinsoy","Qiziriq","Qumqo‘rg‘on","Sariosiyo","Sherobod","Sho‘rchi","Uzun"],"Sirdaryo viloyati":["Guliston shahri","Boyovut","Guliston tumani","Mirzaobod","Oqoltin","Sayxunobod","Sardoba","Shirin shahri","Xovos"],"Farg‘ona viloyati":["Farg‘ona shahri","Oltiariq","Bag‘dod","Beshariq","Buvayda","Dang‘ara","Furqat","Qo‘qon shahri","Qo‘shtepa","Quva","Rishton","So‘x","Toshloq","Uchko‘prik","Yozyovon","Marg‘ilon shahri"],"Xorazm viloyati":["Urganch shahri","Bog‘ot","Gurlan","Hazorasp","Xiva shahri","Qo‘shko‘pir","Shovot","Tuproqqal’a","Yangiariq","Yangibozor"],"Qoraqalpog‘iston Respublikasi":["Nukus shahri","Amudaryo","Beruniy","Chimboy","Ellikqal’a","Kegeyli","Mo‘ynoq","Qo‘ng‘irot","Qanliko‘l","Shumanay","Taxtako‘pir","To‘rtko‘l","Xo‘jayli"]};
+        const old=region.value;
+        region.innerHTML='<option value="">Tanlang</option>'+Object.keys(uz).map(x=>'<option value="'+escapeHtml(x)+'">'+escapeHtml(x)+'</option>').join('')+'<option value="OTHER">Boshqa / qo‘lda kiritish</option>';
+        if(old)region.value=old;
+        const fill=()=>{const prev=district?.value||'',arr=uz[region.value]||[];if(district)district.innerHTML='<option value="">Tanlang</option>'+arr.map(x=>'<option value="'+escapeHtml(x)+'">'+escapeHtml(x)+'</option>').join('')+(arr.length?'<option value="OTHER">Boshqa / qo‘lda kiritish</option>':'<option value="OTHER">Qo‘lda kiritish</option>');if(district&&prev&&arr.includes(prev))district.value=prev;};
+        region.onchange=fill;fill();
+      }
     } catch(_) {}
   }
+  window.medgenLoadAcademyCatalogForProfile=loadAcademyCatalogForProfile;
 
   function boot() {
     const panel=$('userDirectoryDashboard');
