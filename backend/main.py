@@ -2215,6 +2215,92 @@ def dashboard_summary(user=Depends(get_current_user)):
     return result
 
 
+
+# =========================================================
+# PHASE 6–7 — SAFE CLINICAL / PROCEDURE SIMULATION FOUNDATION
+# Educational simulation only; never represents real patient care.
+# =========================================================
+CLINICAL_SIM_CASES = {
+    "basic-triage": {
+        "title": "Basic Triage Simulation",
+        "level": "student",
+        "disclaimer": "Educational simulation. Not medical advice or a real clinical decision.",
+        "steps": [
+            {"id": "s1", "prompt": "Review the simulated vital signs and identify the first safety priority.", "options": ["Airway/breathing/circulation safety check", "Prescribe medication immediately", "Discharge immediately"]},
+            {"id": "s2", "prompt": "Choose the next educational action.", "options": ["Gather focused history and repeat observations", "Skip assessment", "Make a definitive diagnosis from one finding"]},
+        ],
+    },
+    "osce-general": {
+        "title": "General OSCE Simulation",
+        "level": "student",
+        "disclaimer": "Educational OSCE practice. No real patient data.",
+        "steps": [
+            {"id": "s1", "prompt": "Begin the simulated station.", "options": ["Introduce yourself, confirm identity and explain the procedure", "Start without explanation", "Skip consent discussion"]},
+            {"id": "s2", "prompt": "Close the station safely.", "options": ["Summarize findings, safety-net and document", "Invent missing findings", "Hide uncertainty"]},
+        ],
+    },
+}
+
+class ClinicalSimulationStartRequest(BaseModel):
+    case_id: str = "basic-triage"
+
+class ClinicalSimulationSubmitRequest(BaseModel):
+    case_id: str
+    answers: dict[str, str] = {}
+
+@app.get("/api/v1/clinical/simulations")
+def clinical_simulations(user=Depends(get_current_user)):
+    return {
+        "status": "ok",
+        "educational_only": True,
+        "cases": [{"id": k, "title": v["title"], "level": v["level"], "disclaimer": v["disclaimer"]} for k, v in CLINICAL_SIM_CASES.items()],
+    }
+
+@app.post("/api/v1/clinical/simulations/start")
+def clinical_simulation_start(data: ClinicalSimulationStartRequest, user=Depends(get_current_user)):
+    case = CLINICAL_SIM_CASES.get(data.case_id)
+    if not case:
+        raise HTTPException(status_code=404, detail="Simulation case not found.")
+    return {"status": "started", "case_id": data.case_id, "title": case["title"], "educational_only": True, "disclaimer": case["disclaimer"], "steps": case["steps"]}
+
+@app.post("/api/v1/clinical/simulations/submit")
+def clinical_simulation_submit(data: ClinicalSimulationSubmitRequest, user=Depends(get_current_user)):
+    case = CLINICAL_SIM_CASES.get(data.case_id)
+    if not case:
+        raise HTTPException(status_code=404, detail="Simulation case not found.")
+    # This foundation evaluates only completion/structure, not clinical correctness.
+    completed = sum(1 for step in case["steps"] if data.answers.get(step["id"]))
+    score = round(completed * 100 / len(case["steps"])) if case["steps"] else 0
+    activity_log.insert(0, {"type": "clinical_simulation", "username": user["username"], "case_id": data.case_id, "score": score, "at": datetime.now(timezone.utc).isoformat()})
+    _db_save()
+    return {"status": "completed", "case_id": data.case_id, "score": score, "educational_only": True, "disclaimer": case["disclaimer"]}
+
+# =========================================================
+# PHASE 8–10 — GLOBAL PHASE REGISTRY / READINESS
+# =========================================================
+@app.get("/api/v1/platform/phase-status")
+def platform_phase_status(user=Depends(get_current_user)):
+    role = str(user.get("role", "")).upper()
+    if role != "SUPER_ADMIN":
+        raise HTTPException(status_code=403, detail="SUPER_ADMIN required.")
+    return {
+        "status": "ok",
+        "principle": "BUILD -> INTEGRATE -> TEST -> SECURITY -> UI -> REGRESSION -> FINALIZE",
+        "phases": [
+            {"phase": 1, "name": "Medical Education Foundation", "state": "finalized_foundation"},
+            {"phase": 2, "name": "Bioinformatics & Molecular Analysis", "state": "implemented"},
+            {"phase": 3, "name": "Virtual Laboratory", "state": "implemented_foundation"},
+            {"phase": 4, "name": "Drug Discovery", "state": "implemented_foundation"},
+            {"phase": 5, "name": "Research / AI Scientist", "state": "implemented_foundation"},
+            {"phase": 6, "name": "Clinical Workspace + Digital Patient", "state": "safe_simulation_foundation"},
+            {"phase": 7, "name": "Virtual Clinical & Surgery Simulation", "state": "safe_simulation_foundation"},
+            {"phase": 8, "name": "Global Platform / Organization / Admin", "state": "implemented_foundation"},
+            {"phase": 9, "name": "Security, Identity Verification & Compliance", "state": "implemented_foundation"},
+            {"phase": 10, "name": "Global Launch + Monetization + Web/API/Mobile", "state": "foundation_ready"},
+        ],
+        "note": "A phase is not called production-complete merely because its foundation exists.",
+    }
+
 @app.get("/api/v1/academy/catalog")
 def academy_catalog(user=Depends(get_current_user)):
     # Curated starter catalog. The UI also supports manual entry for institutions
