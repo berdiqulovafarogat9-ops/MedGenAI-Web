@@ -109,6 +109,7 @@ LOGIN_MAX_ATTEMPTS = int(os.getenv("MEDGEN_LOGIN_MAX_ATTEMPTS", "8"))
 user_profiles = {}
 user_accounts = {}
 user_consents = {}
+role_requests_store = []
 activity_log = []
 jobs_store = []
 docking_jobs_store = {}
@@ -145,7 +146,7 @@ def _db_load():
         _db_init()
         with psycopg.connect(DATABASE_URL) as conn:
             rows = conn.execute("SELECT state_key, state_value FROM medgen_state").fetchall()
-        stores={"user_accounts":user_accounts,"user_profiles":user_profiles,"user_consents":user_consents,"experiments_store":experiments_store,"reports_store":reports_store,"activity_log":activity_log,"knowledge_entities_store":knowledge_entities_store,"knowledge_relations_store":knowledge_relations_store,"organizations_store":organizations_store,"memberships_store":memberships_store,"workspaces_store":workspaces_store,"projects_store":projects_store,"api_keys_store":api_keys_store,"platform_audit_log":platform_audit_log,"usage_store":usage_store,"webhooks_store":webhooks_store}
+        stores={"user_accounts":user_accounts,"user_profiles":user_profiles,"user_consents":user_consents,"role_requests_store":role_requests_store,"experiments_store":experiments_store,"reports_store":reports_store,"activity_log":activity_log,"knowledge_entities_store":knowledge_entities_store,"knowledge_relations_store":knowledge_relations_store,"organizations_store":organizations_store,"memberships_store":memberships_store,"workspaces_store":workspaces_store,"projects_store":projects_store,"api_keys_store":api_keys_store,"platform_audit_log":platform_audit_log,"usage_store":usage_store,"webhooks_store":webhooks_store}
         for key,value in rows:
             if key in stores and isinstance(value,(dict,list)):
                 stores[key].clear()
@@ -208,6 +209,9 @@ class PasswordChangeRequest(BaseModel):
 
 class AdminRoleUpdateRequest(BaseModel):
     username: str
+    role: str
+
+class RoleRequest(BaseModel):
     role: str
 
 class AdminSessionRevokeRequest(BaseModel):
@@ -317,6 +321,17 @@ def validate_password(password: str):
             detail="Password must be at least 8 characters and contain letters and numbers.",
         )
 
+def is_required_profile_complete(profile: dict) -> bool:
+    if not profile: return False
+    required = ["full_name","email","country","region","district","city"]
+    if not all(str(profile.get(k) or "").strip() for k in required): return False
+    if not all(profile.get(k) is not None for k in ("birth_year","birth_month","birth_day")): return False
+    role = normalize_role(profile.get("role") or "student")
+    if role in {"student","school_student","researcher","professor"}:
+        ap = profile.get("academic_profile") or {}
+        if not all(str(ap.get(k) or "").strip() for k in ("university","faculty","major","group","student_id")): return False
+    return True
+
 def normalize_role(value: str) -> str:
     role = str(value or "student").strip().lower()
     return "SUPER_ADMIN" if role.upper() == "SUPER_ADMIN" else role
@@ -402,11 +417,14 @@ def get_current_user(
         raise HTTPException(status_code=403, detail="Account is disabled")
 
     stored_role = normalize_role(profile.get("role") or "student")
+    approved_roles = [normalize_role(x) for x in (profile.get("approved_roles") or [stored_role])]
+    if stored_role not in approved_roles: approved_roles.insert(0, stored_role)
     if str(username).strip().casefold() == str(ADMIN_USERNAME).strip().casefold():
         stored_role = "SUPER_ADMIN"
     return {
         "username": username,
         "role": stored_role,
+        "roles": approved_roles,
     }
 
 
@@ -496,6 +514,7 @@ def register(data: RegisterRequest):
         "birth_year": None, "birth_month": None, "birth_day": None,
         "research_interests": "", "bio": "", "avatar": "",
         "role": role,
+        "approved_roles": [role],
         "role_status": "active",
         "academic_profile": {
             "country_code": str(data.country_code or "").upper()[:2],
@@ -530,7 +549,7 @@ def me(
         **user,
         "profile": profile,
         "consent": consent,
-        "profile_complete": bool(profile.get("full_name")),
+        "profile_complete": is_required_profile_complete(profile),
         "consent_complete": all([
             consent.get("terms_accepted", False),
             consent.get("privacy_accepted", False),
@@ -701,6 +720,8 @@ def update_profile(
         raise HTTPException(status_code=400, detail="To‘g‘ri email manzili majburiy.")
     if not data.country.strip():
         raise HTTPException(status_code=400, detail="Mamlakat majburiy.")
+    if not data.region.strip() or not data.district.strip() or not data.city.strip():
+        raise HTTPException(status_code=400, detail="Viloyat, tuman va shahar majburiy.")
     if data.birth_year is None or data.birth_month is None or data.birth_day is None:
         raise HTTPException(status_code=400, detail="Tug‘ilgan yil, oy va kun majburiy.")
     if data.birth_month is not None and not 1 <= data.birth_month <= 12:
@@ -2427,6 +2448,35 @@ def require_super_admin(user):
         raise HTTPException(status_code=403, detail="Super Admin access required")
 
 
+@app.post("/api/v1/roles/request")
+def request_role(data: RoleRequest, user=Depends(get_current_user)):
+    role = normalize_role(data.role)
+    if role not in ALLOWED_USER_ROLES: raise HTTPException(status_code=400, detail="Unsupported role.")
+    profile=user_profiles.setdefault(user["username"], {})
+    approved=[normalize_role(x) for x in (profile.get("approved_roles") or [profile.get("role","student")])]
+    if role in approved: return {"status":"already_approved","roles":approved}
+    if any(x.get("username")==user["username"] and x.get("role")==role and x.get("status")=="PENDING" for x in role_requests_store):
+        return {"status":"pending","roles":approved}
+    req={"id":secrets.token_hex(12),"username":user["username"],"role":role,"status":"PENDING","requested_at":datetime.now(timezone.utc).isoformat()}
+    role_requests_store.append(req); _db_save(); return {"status":"pending","request":req,"roles":approved}
+
+@app.get("/api/v1/admin/role-requests")
+def admin_role_requests(user=Depends(get_current_user)):
+    require_super_admin(user); return {"requests":[x for x in role_requests_store if x.get("status")=="PENDING"]}
+
+@app.patch("/api/v1/admin/role-requests/{request_id}")
+def admin_approve_role(request_id: str, approve: bool=True, user=Depends(get_current_user)):
+    require_super_admin(user)
+    req=next((x for x in role_requests_store if x.get("id")==request_id),None)
+    if not req: raise HTTPException(status_code=404, detail="Role request not found.")
+    if req.get("status")!="PENDING": return {"status":req.get("status")}
+    req["status"]="APPROVED" if approve else "REJECTED"; req["reviewed_at"]=datetime.now(timezone.utc).isoformat(); req["reviewed_by"]=user["username"]
+    if approve:
+        p=user_profiles.setdefault(req["username"],{}); roles=[normalize_role(x) for x in (p.get("approved_roles") or [p.get("role","student")])]
+        if req["role"] not in roles: roles.append(req["role"])
+        p["approved_roles"]=roles
+    _db_save(); return {"status":req["status"],"username":req["username"],"roles":user_profiles.get(req["username"],{}).get("approved_roles",[])}
+
 @app.get("/api/v1/admin/overview")
 def admin_overview(user=Depends(get_current_user)):
     require_super_admin(user)
@@ -2462,6 +2512,7 @@ def admin_users(user=Depends(get_current_user)):
         "users": [
             {
                 "username": u,
+                "roles": user_profiles.get(u, {}).get("approved_roles", [user_profiles.get(u, {}).get("role", "student")]),
                 "role": (
                     "SUPER_ADMIN"
                     if str(u).strip().casefold() == str(ADMIN_USERNAME).strip().casefold()
