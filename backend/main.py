@@ -3424,3 +3424,97 @@ def academy_eligibility(course: int, user=Depends(get_current_user)):
         "requirements": requirements,
         "rule": "Promotion requires completion of theory, practice, case, quiz and exam for every subject; no three-question shortcut exists."
     }
+
+
+# =========================================================
+# SUPPORT / AI ASSISTANT / ROLE COMMUNITY
+# =========================================================
+
+class SupportTicketRequest(BaseModel):
+    subject: str
+    message: str
+    category: str = "GENERAL"
+    priority: str = "NORMAL"
+
+class CommunityMessageRequest(BaseModel):
+    message: str
+
+class AssistantMessageRequest(BaseModel):
+    message: str
+
+_SUPPORT_CATEGORIES = {"GENERAL", "LOGIN", "ACADEMY", "BIOINFORMATICS", "DRUG_DISCOVERY", "RESEARCH", "SECURITY", "BILLING"}
+_SUPPORT_PRIORITIES = {"LOW", "NORMAL", "HIGH", "URGENT"}
+
+def _safe_role(user):
+    return str(user.get("role") or user.get("user_role") or "student")
+
+def _community_store():
+    return app_state.setdefault("community_messages", {}) if isinstance(app_state, dict) else {}
+
+@app.get("/api/v1/support/tickets")
+def support_list_tickets(user=Depends(get_current_user)):
+    tickets = user_profiles.setdefault(user["username"], {}).setdefault("support_tickets", [])
+    return {"status":"ok","tickets":tickets[:100]}
+
+@app.post("/api/v1/support/tickets")
+def support_create_ticket(data: SupportTicketRequest, user=Depends(get_current_user)):
+    subject=str(data.subject or "").strip()[:160]
+    message=str(data.message or "").strip()[:4000]
+    category=str(data.category or "GENERAL").upper()
+    priority=str(data.priority or "NORMAL").upper()
+    if not subject or not message:
+        raise HTTPException(status_code=400, detail="Subject and message are required.")
+    if category not in _SUPPORT_CATEGORIES:
+        category="GENERAL"
+    if priority not in _SUPPORT_PRIORITIES:
+        priority="NORMAL"
+    ticket={
+        "id":f"SUP-{int(datetime.now(timezone.utc).timestamp()*1000)}",
+        "subject":subject,"message":message,"category":category,"priority":priority,
+        "status":"OPEN","username":user["username"],
+        "created_at":datetime.now(timezone.utc).isoformat(),
+    }
+    user_profiles.setdefault(user["username"], {}).setdefault("support_tickets", []).insert(0,ticket)
+    activity_log.insert(0,{"type":"support_ticket_created","username":user["username"],"ticket_id":ticket["id"],"at":ticket["created_at"]})
+    _db_save()
+    return {"status":"created","ticket":ticket}
+
+@app.get("/api/v1/community")
+def community_feed(user=Depends(get_current_user)):
+    role=_safe_role(user)
+    messages=app_state.setdefault("community_messages", {}) if isinstance(app_state,dict) else {}
+    return {"status":"ok","role":role,"room":role,"messages":messages.get(role,[])[:100]}
+
+@app.post("/api/v1/community/messages")
+def community_post(data: CommunityMessageRequest, user=Depends(get_current_user)):
+    message=str(data.message or "").strip()[:2000]
+    if not message:
+        raise HTTPException(status_code=400, detail="Message is required.")
+    role=_safe_role(user)
+    messages=app_state.setdefault("community_messages", {}) if isinstance(app_state,dict) else {}
+    item={"id":f"MSG-{int(datetime.now(timezone.utc).timestamp()*1000)}","username":user["username"],"role":role,"message":message,"created_at":datetime.now(timezone.utc).isoformat()}
+    messages.setdefault(role,[]).insert(0,item)
+    messages[role]=messages[role][:200]
+    activity_log.insert(0,{"type":"community_message","username":user["username"],"role":role,"at":item["created_at"]})
+    _db_save()
+    return {"status":"sent","message":item}
+
+@app.post("/api/v1/assistant/chat")
+def assistant_chat(data: AssistantMessageRequest, user=Depends(get_current_user)):
+    q=str(data.message or "").strip()
+    if not q:
+        raise HTTPException(status_code=400, detail="Message is required.")
+    ql=q.lower()
+    if any(x in ql for x in ["login","parol","password","kirm"]):
+        answer="Login muammosi bo‘lsa, username va parolni tekshiring. Parolni hech kimga yubormang. Muammo davom etsa Yordam markazidan ticket oching."
+    elif any(x in ql for x in ["bioinformat","sequence","fasta","dna","rna","protein"]):
+        answer="Bioinformatics modulida FASTA/sequence tahlili, ketma-ketlik turi, uzunlik, tarkib va asosiy tahlillarni bajarishingiz mumkin. Natijalarni ilmiy xulosa sifatida tekshirib foydalaning."
+    elif any(x in ql for x in ["dori","drug","molecule","molekula","docking"]):
+        answer="Drug Discovery modulida molekula va target workflowlari mavjud. Virtual screening/docking natijalari eksperimental tasdiq o‘rnini bosmaydi."
+    elif any(x in ql for x in ["research","pubmed","maqola","ilmiy"]):
+        answer="Research Assistant ilmiy savolni PubMed dalillari bilan tekshirish va manbalarni tartiblashga yordam beradi."
+    elif any(x in ql for x in ["support","yordam","muammo","xato"]):
+        answer="Muammoingizni Yordam markazida kategoriya va ustuvorlik bilan ticket qilib yuboring. Support tarixingiz ham shu yerda saqlanadi."
+    else:
+        answer="Men MedGen AI platformasi bo‘yicha yordamchi sifatida ishlayman. Bioinformatics, Molecular Analysis, Drug Discovery, Research, Academy, login yoki platforma funksiyasi haqida savol bering."
+    return {"status":"ok","answer":answer,"role":_safe_role(user),"disclaimer":"AI javobi ilmiy yoki klinik qarorning yagona manbai emas."}
