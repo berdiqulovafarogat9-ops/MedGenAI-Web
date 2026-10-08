@@ -3893,3 +3893,99 @@ def scientific_pipeline(data: ScientificPipelineRequest, user=Depends(get_curren
     experiments_store.insert(0, experiment)
     activity_log.insert(0, {"type":"scientific_pipeline_created","username":user["username"],"experiment_id":experiment["id"],"target":target,"at":now})
     return {"status":"ready","module":"Scientific Core","pipeline_id":experiment["id"],"target":target,"steps":steps,"user":user["username"]}
+
+
+# =========================================================
+# PHASE 2 — REPRODUCIBLE VIRTUAL LAB + SCIENTIFIC REPORT
+# =========================================================
+
+class LabPipelineRequest(BaseModel):
+    name: str = "MedGen Virtual Lab Experiment"
+    target: str
+    sequence: str = ""
+    pdb_id: str = ""
+    ligand_smiles: str = ""
+    steps: list[str] = []
+    parameters: dict[str, Any] = {}
+
+class ScientificReportRequest(BaseModel):
+    experiment_id: str
+    title: str = ""
+    include_inputs: bool = True
+    include_results: bool = True
+
+@app.post("/api/v1/lab/pipeline")
+def create_lab_pipeline(data: LabPipelineRequest, user=Depends(get_current_user)):
+    target=data.target.strip()
+    if not target:
+        raise HTTPException(status_code=400, detail="Target is required")
+    allowed={"sequence_analysis","structure_lookup","molecular_analysis","virtual_screening","docking","report"}
+    steps=data.steps[:] if data.steps else ["sequence_analysis","structure_lookup","molecular_analysis","virtual_screening","report"]
+    invalid=[x for x in steps if x not in allowed]
+    if invalid:
+        raise HTTPException(status_code=400, detail=f"Unsupported workflow steps: {invalid}")
+    if data.pdb_id and not re.fullmatch(r"[0-9A-Z]{4}", data.pdb_id.strip().upper()):
+        raise HTTPException(status_code=400, detail="PDB ID must contain 4 alphanumeric characters")
+    if data.ligand_smiles:
+        try: molecular=_molecule_descriptors(data.ligand_smiles)
+        except ValueError as exc: raise HTTPException(status_code=400, detail=str(exc))
+    else: molecular=None
+    now=datetime.now(timezone.utc).isoformat()
+    step_results=[]
+    for step in steps:
+        item={"step":step,"status":"ready"}
+        if step=="sequence_analysis" and data.sequence:
+            item["result"]=bioinformatics_analyze(SequenceRequest(sequence=data.sequence),user)
+            item["status"]="completed"
+        elif step=="structure_lookup" and data.pdb_id:
+            item["status"]="ready"
+            item["pdb_id"]=data.pdb_id.strip().upper()
+            item["endpoint"]=f"/api/v1/pdb/structures/{item['pdb_id']}"
+        elif step=="molecular_analysis" and molecular:
+            item["result"]=molecular; item["status"]="completed"
+        elif step=="virtual_screening":
+            item["status"]="ready"; item["endpoint"]="/api/v1/discovery/screen"
+        elif step=="docking":
+            item["status"]="requires_prepared_inputs"; item["endpoint"]="/api/v1/docking/run"
+        elif step=="report":
+            item["status"]="available_after_completion"
+    experiment={
+        "id":secrets.token_hex(10),"name":data.name.strip() or "MedGen Virtual Lab Experiment",
+        "workflow_type":"virtual_lab","target":target,"status":"ready",
+        "input":{"sequence":data.sequence,"pdb_id":data.pdb_id,"ligand_smiles":data.ligand_smiles},
+        "parameters":data.parameters,"results":{"steps":step_results},
+        "user":user["username"],"created_at":now,"updated_at":now
+    }
+    experiments_store.insert(0,experiment)
+    activity_log.insert(0,{"type":"lab_pipeline_created","username":user["username"],"experiment_id":experiment["id"],"target":target,"at":now})
+    return {"status":"ready","module":"Virtual Laboratory","experiment":experiment}
+
+@app.post("/api/v1/scientific/reports")
+def create_scientific_report(data: ScientificReportRequest,user=Depends(get_current_user)):
+    experiment=next((e for e in experiments_store if e["id"]==data.experiment_id),None)
+    if not experiment: raise HTTPException(status_code=404,detail="Experiment not found")
+    if experiment.get("user")!=user["username"] and user.get("role")!="SUPER_ADMIN":
+        raise HTTPException(status_code=403,detail="Access denied")
+    report={
+        "id":secrets.token_hex(10),
+        "title":data.title.strip() or experiment.get("name") or "Scientific Report",
+        "experiment_id":experiment["id"],
+        "target":experiment.get("target",""),
+        "created_at":datetime.now(timezone.utc).isoformat(),
+        "inputs":experiment.get("input",{}) if data.include_inputs else {},
+        "results":experiment.get("results",{}) if data.include_results else {},
+        "methodology":{"workflow_type":experiment.get("workflow_type"),"parameters":experiment.get("parameters",{})},
+        "disclaimer":"Computational research output. It is not a clinical diagnosis, treatment recommendation, or experimentally validated efficacy/safety result."
+    }
+    reports_store.insert(0,report)
+    activity_log.insert(0,{"type":"scientific_report_created","username":user["username"],"report_id":report["id"],"experiment_id":experiment["id"],"at":report["created_at"]})
+    return {"status":"completed","module":"Scientific Research","report":report}
+
+@app.get("/api/v1/scientific/reports/{report_id}")
+def get_scientific_report(report_id:str,user=Depends(get_current_user)):
+    report=next((r for r in reports_store if r["id"]==report_id),None)
+    if not report: raise HTTPException(status_code=404,detail="Report not found")
+    experiment=next((e for e in experiments_store if e["id"]==report.get("experiment_id")),None)
+    if experiment and experiment.get("user")!=user["username"] and user.get("role")!="SUPER_ADMIN":
+        raise HTTPException(status_code=403,detail="Access denied")
+    return report
