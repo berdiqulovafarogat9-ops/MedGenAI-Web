@@ -3768,3 +3768,128 @@ def scientific_core_status(user=Depends(get_current_user)):
             "Property-based screening is not experimental efficacy or safety evidence.",
         ],
     }
+
+
+# =========================================================
+# PHASE 2 — REAL DOCKING + REPRODUCIBLE SCIENTIFIC PIPELINE
+# =========================================================
+
+class PreparedDockingRequest(BaseModel):
+    target: str
+    ligand_smiles: str = ""
+    receptor_pdbqt: str
+    ligand_pdbqt: str
+    center_x: float
+    center_y: float
+    center_z: float
+    size_x: float = 20.0
+    size_y: float = 20.0
+    size_z: float = 20.0
+    exhaustiveness: int = 8
+    n_poses: int = 3
+
+class ScientificPipelineRequest(BaseModel):
+    name: str = "MedGen Scientific Pipeline"
+    target: str
+    sequence: str = ""
+    pdb_id: str = ""
+    ligand_smiles: str = ""
+    workflow_type: str = "sequence_structure_screening"
+
+@app.post("/api/v1/docking/run")
+def run_prepared_docking(data: PreparedDockingRequest, user=Depends(get_current_user)):
+    if not VINA_AVAILABLE:
+        raise HTTPException(status_code=503, detail="AutoDock Vina engine is not installed on this deployment.")
+    if not data.receptor_pdbqt.strip() or not data.ligand_pdbqt.strip():
+        raise HTTPException(status_code=400, detail="Prepared receptor and ligand PDBQT content are required.")
+    if not all(0.0 < x <= 100.0 for x in [data.size_x, data.size_y, data.size_z]):
+        raise HTTPException(status_code=400, detail="Docking box dimensions must be >0 and <=100 Å.")
+    if not 1 <= data.exhaustiveness <= 64 or not 1 <= data.n_poses <= 20:
+        raise HTTPException(status_code=400, detail="Invalid docking limits.")
+
+    import tempfile
+    receptor_file = ligand_file = None
+    try:
+        receptor_file = tempfile.NamedTemporaryFile("w", suffix=".pdbqt", delete=False)
+        ligand_file = tempfile.NamedTemporaryFile("w", suffix=".pdbqt", delete=False)
+        receptor_file.write(data.receptor_pdbqt)
+        ligand_file.write(data.ligand_pdbqt)
+        receptor_file.close()
+        ligand_file.close()
+
+        engine = Vina(sf_name="vina", verbosity=0)
+        engine.set_receptor(receptor_file.name)
+        engine.set_ligand_from_file(ligand_file.name)
+        engine.compute_vina_maps(
+            center=[data.center_x, data.center_y, data.center_z],
+            box_size=[data.size_x, data.size_y, data.size_z],
+        )
+        engine.dock(exhaustiveness=int(data.exhaustiveness), n_poses=int(data.n_poses))
+        energies = engine.energies(n_poses=int(data.n_poses))
+        poses = []
+        for row in energies:
+            values = [float(x) for x in row]
+            poses.append({"affinity_kcal_mol": values[0], "inter_rmsd_lb": values[1] if len(values)>1 else None, "inter_rmsd_ub": values[2] if len(values)>2 else None})
+        now = datetime.now(timezone.utc).isoformat()
+        result = {
+            "status": "completed", "module": "Drug Discovery", "workflow": "molecular_docking",
+            "target": data.target, "ligand_smiles": data.ligand_smiles,
+            "engine": "AutoDock Vina", "poses": poses,
+            "box": {"center": [data.center_x,data.center_y,data.center_z], "size": [data.size_x,data.size_y,data.size_z]},
+            "parameters": {"exhaustiveness": data.exhaustiveness, "n_poses": data.n_poses},
+            "user": user["username"], "completed_at": now,
+            "warning": "Docking score is computational evidence, not experimentally validated binding affinity or clinical efficacy."
+        }
+        job_id = secrets.token_hex(10)
+        docking_jobs_store[job_id] = {"id": job_id, **result, "created_at": now}
+        activity_log.insert(0, {"type":"docking_completed","username":user["username"],"job_id":job_id,"target":data.target,"at":now})
+        return {"job_id": job_id, "result": result}
+    except HTTPException:
+        raise
+    except Exception as exc:
+        raise HTTPException(status_code=422, detail=f"Docking execution failed: {exc}")
+    finally:
+        for f in (receptor_file, ligand_file):
+            try:
+                if f is not None:
+                    os.unlink(f.name)
+            except Exception:
+                pass
+
+@app.get("/api/v1/docking/status/{job_id}")
+def get_docking_job(job_id: str, user=Depends(get_current_user)):
+    job = docking_jobs_store.get(job_id)
+    if not job:
+        raise HTTPException(status_code=404, detail="Docking job not found")
+    if job.get("user") != user["username"] and user.get("role") != "SUPER_ADMIN":
+        raise HTTPException(status_code=403, detail="Access denied")
+    return job
+
+@app.post("/api/v1/scientific/pipeline")
+def scientific_pipeline(data: ScientificPipelineRequest, user=Depends(get_current_user)):
+    target = data.target.strip()
+    if not target:
+        raise HTTPException(status_code=400, detail="Target is required")
+    steps = []
+    if data.sequence.strip():
+        steps.append({"step":"sequence_analysis","status":"ready","endpoint":"/api/v1/bioinformatics/analyze"})
+    if data.pdb_id.strip():
+        pdb_id=data.pdb_id.strip().upper()
+        if not re.fullmatch(r"[0-9A-Z]{4}", pdb_id):
+            raise HTTPException(status_code=400, detail="PDB ID must contain 4 alphanumeric characters")
+        steps.append({"step":"structure_lookup","status":"ready","pdb_id":pdb_id,"endpoint":f"/api/v1/pdb/structures/{pdb_id}"})
+    if data.ligand_smiles.strip():
+        desc=_molecule_descriptors(data.ligand_smiles)
+        steps.append({"step":"molecular_analysis","status":"completed","descriptors":desc})
+        steps.append({"step":"virtual_screening","status":"ready","endpoint":"/api/v1/discovery/screen"})
+    steps.append({"step":"experiment_record","status":"ready","endpoint":"/api/v1/experiments"})
+    now=datetime.now(timezone.utc).isoformat()
+    experiment={
+        "id":secrets.token_hex(10),"name":data.name.strip() or "MedGen Scientific Pipeline",
+        "workflow_type":data.workflow_type,"target":target,"status":"ready",
+        "input":{"sequence":data.sequence,"pdb_id":data.pdb_id,"ligand_smiles":data.ligand_smiles},
+        "parameters":{},"results":{"steps":steps},"user":user["username"],"created_at":now,"updated_at":now,
+    }
+    experiments_store.insert(0, experiment)
+    activity_log.insert(0, {"type":"scientific_pipeline_created","username":user["username"],"experiment_id":experiment["id"],"target":target,"at":now})
+    return {"status":"ready","module":"Scientific Core","pipeline_id":experiment["id"],"target":target,"steps":steps,"user":user["username"]}
