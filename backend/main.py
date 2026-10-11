@@ -53,12 +53,25 @@ app = FastAPI(
 # CORS
 # =========================================================
 
-ALLOWED_CORS_ORIGINS = [
-    origin.strip() for origin in os.getenv(
-        "MEDGEN_CORS_ORIGINS",
-        "https://medgen-web.onrender.com,https://medgenai-web-1.onrender.com,https://medgenai-web.onrender.com,http://localhost:3000,http://localhost:5173"
-    ).split(",") if origin.strip()
-]
+REQUIRED_CORS_ORIGINS = {
+    "https://medgen-web.onrender.com",
+    "https://medgenai-web-1.onrender.com",
+    "https://medgenai-web.onrender.com",
+}
+
+
+def _build_allowed_cors_origins(configured: str | None) -> list[str]:
+    # Always keep the known production frontend origins, even when Render has
+    # a custom MEDGEN_CORS_ORIGINS value. Custom origins extend this set.
+    extra_origins = (
+        {"http://localhost:3000", "http://localhost:5173"}
+        if configured is None
+        else {origin.strip() for origin in configured.split(",") if origin.strip()}
+    )
+    return sorted(REQUIRED_CORS_ORIGINS | extra_origins)
+
+
+ALLOWED_CORS_ORIGINS = _build_allowed_cors_origins(os.getenv("MEDGEN_CORS_ORIGINS"))
 
 app.add_middleware(
     CORSMiddleware,

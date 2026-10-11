@@ -116,3 +116,11 @@ def test_incomplete_profile_middleware_returns_json_not_server_error(client):
     # The guard should return the documented readiness response, not NameError.
     assert response.status_code == 403
     assert response.json()["detail"] == "PROFILE_INCOMPLETE"
+
+
+def test_required_frontend_origins_survive_custom_cors_setting():
+    origins = api._build_allowed_cors_origins("https://custom.example.org")
+    assert "https://medgen-web.onrender.com" in origins
+    assert "https://medgenai-web-1.onrender.com" in origins
+    assert "https://custom.example.org" in origins
+    assert "http://localhost:3000" not in origins
