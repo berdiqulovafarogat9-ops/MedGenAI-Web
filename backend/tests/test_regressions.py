@@ -37,6 +37,8 @@ def _register_and_login(client, username="regression_student"):
     response = client.post("/api/v1/auth/register", json={
         "username": username,
         "password": "Long-Test-Password-123!",
+        "full_name": "Regression Student",
+        "email": f"{username}@example.org",
         "role": "student",
     })
     # Some deployments may intentionally disable public registration.
