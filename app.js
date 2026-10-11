@@ -1442,37 +1442,50 @@ async function saveProfile() {
       body: JSON.stringify(payload)
     });
 
-    const accountData = await api('/account', {
-      method: 'PATCH',
-      body: JSON.stringify({
-        username: $('profileUsername')?.value?.trim() || undefined,
-        phone: payload.phone,
-        email: payload.email
-      })
-    });
+    // The core profile is saved above. Keep optional account/academy updates
+    // independent so one secondary endpoint cannot make a successful profile
+    // save appear to fail or prevent the saved profile from being cached.
+    const saveWarnings = [];
 
-    await api('/academy/profile', {
-      method: 'PUT',
-      body: JSON.stringify({
-        education_mode: $('profileEducationMode')?.value || 'GLOBAL',
-        country_code: ($('profileAcademicCountry')?.value || '').trim().toUpperCase(),
-        region: $('profileRegion')?.value?.trim() || '',
-        district: $('profileDistrict')?.value?.trim() || '',
-        city: $('profileCity')?.value?.trim() || '',
-        location_label: $('profileLocationLabel')?.value?.trim() || '',
-        location_lat: Number($('detectLocationBtn')?.dataset?.lat || '') || null,
-        location_lon: Number($('detectLocationBtn')?.dataset?.lon || '') || null,
-        location_source: $('detectLocationBtn')?.dataset?.source || '',
-        university: $('profileUniversity')?.value?.trim() || '',
-        faculty: $('profileFaculty')?.value?.trim() || '',
-        major: $('profileMajor')?.value?.trim() || '',
-        year: Number($('profileAcademicYear')?.value || 1),
-        group: $('profileGroup')?.value?.trim() || '',
-        student_id: $('profileStudentId')?.value?.trim() || '',
-        study_language: $('profileStudyLanguage')?.value || 'en',
-        academic_degree: $('profileAcademicDegree')?.value?.trim() || 'MD/MBBS'
-      })
-    });
+    try {
+      await api('/account', {
+        method: 'PATCH',
+        body: JSON.stringify({
+          username: $('profileUsername')?.value?.trim() || undefined,
+          phone: payload.phone,
+          email: payload.email
+        })
+      });
+    } catch (e) {
+      saveWarnings.push('Telefon/akkaunt ma’lumotlari serverga to‘liq yozilmadi: ' + e.message);
+    }
+
+    try {
+      await api('/academy/profile', {
+        method: 'PUT',
+        body: JSON.stringify({
+          education_mode: $('profileEducationMode')?.value || 'GLOBAL',
+          country_code: ($('profileAcademicCountry')?.value || '').trim().toUpperCase(),
+          region: payload.region,
+          district: payload.district,
+          city: payload.city,
+          location_label: payload.location_label,
+          location_lat: payload.location_lat,
+          location_lon: payload.location_lon,
+          location_source: payload.location_source,
+          university: $('profileUniversity')?.value?.trim() || '',
+          faculty: $('profileFaculty')?.value?.trim() || '',
+          major: $('profileMajor')?.value?.trim() || '',
+          year: Number($('profileAcademicYear')?.value || 1),
+          group: $('profileGroup')?.value?.trim() || '',
+          student_id: $('profileStudentId')?.value?.trim() || '',
+          study_language: $('profileStudyLanguage')?.value || 'en',
+          academic_degree: $('profileAcademicDegree')?.value?.trim() || 'MD/MBBS'
+        })
+      });
+    } catch (e) {
+      saveWarnings.push('Ta’lim profili alohida saqlanmadi: ' + e.message);
+    }
 
     if (state.user) {
       state.user.profile = data.profile;
@@ -1489,7 +1502,9 @@ async function saveProfile() {
 
     state.profileEditMode = false;
     document.querySelectorAll('#profileModal input, #profileModal textarea, #profileModal select').forEach(el => el.disabled = true);
-    if (status) status.textContent = '✅ Profil muvaffaqiyatli saqlandi.';
+    if (status) status.textContent = saveWarnings.length
+      ? '⚠️ Asosiy profil saqlandi. ' + saveWarnings.join(' ')
+      : '✅ Profil muvaffaqiyatli saqlandi.';
     if (button) {
       button.style.display = 'none';
       button.disabled = false;
