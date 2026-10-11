@@ -19,6 +19,9 @@ jobs:
       - name: Checkout repository
         uses: actions/checkout@v4
 
+      - name: Validate frontend JavaScript syntax
+        run: node --check app.js
+
       - name: Validate Docker Compose
         run: docker compose config
 
