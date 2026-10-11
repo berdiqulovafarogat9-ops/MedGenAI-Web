@@ -4655,17 +4655,57 @@ async function detectProfileLocation(fromSecurity=false){
         const vals=data.universities?.[countrySelect.value]||['Other / enter manually'];
         if(list) list.innerHTML=vals.map(x=>'<option value="'+escapeHtml(x)+'"></option>').join('');
       };
-      countrySelect.addEventListener('change',renderUniversities);
+      countrySelect.addEventListener('change',()=>{renderUniversities();renderUzRegions();});
       renderUniversities();
       renderUzRegions();
-      function renderUzRegions(){
-        const region=$('profileRegion'),district=$('profileDistrict');if(!region)return;
-        const uz={"Toshkent shahri":[],"Toshkent viloyati":["Bekobod","Bo‘ka","Bo‘stonliq","Chinoz","Ohangaron","Oqqo‘rg‘on","Parkent","Piskent","Quyi Chirchiq","Toshkent tumani","Yangiyo‘l","Yuqori Chirchiq","Zangiota"],"Andijon viloyati":["Andijon shahri","Asaka","Baliqchi","Bo‘z","Buloqboshi","Izboskan","Jalaquduq","Marhamat","Paxtaobod","Shahrixon","Ulug‘nor","Xo‘jaobod"],"Buxoro viloyati":["Buxoro shahri","G‘ijduvon","Jondor","Kogon","Olot","Peshku","Qorako‘l","Romitan","Shofirkon","Vobkent"],"Jizzax viloyati":["Jizzax shahri","Arnasoy","Baxmal","Do‘stlik","Forish","G‘allaorol","Mirzacho‘l","Paxtakor","Sharof Rashidov","Yangiobod","Zarbdor","Zafarobod"],"Qashqadaryo viloyati":["Qarshi shahri","Chiroqchi","Dehqonobod","Kasbi","Kitob","Koson","Mirishkor","Muborak","Nishon","Qamashi","Shahrisabz","Yakkabog‘"],"Navoiy viloyati":["Navoiy shahri","Konimex","Karmana","Navbahor","Nurota","Qiziltepa","Tomdi","Uchquduq","Xatirchi"],"Namangan viloyati":["Namangan shahri","Chortoq","Chust","Kosonsoy","Mingbuloq","Norin","Pop","To‘raqo‘rg‘on","Uchqo‘rg‘on","Uychi","Yangiqo‘rg‘on"],"Samarqand viloyati":["Samarqand shahri","Bulung‘ur","Ishtixon","Jomboy","Kattaqo‘rg‘on","Narpay","Nurobod","Oqdaryo","Paxtachi","Pastdarg‘om","Payariq","Qo‘shrabot","Toyloq","Urgut"],"Surxondaryo viloyati":["Termiz shahri","Angor","Bandixon","Boysun","Denov","Jarqo‘rg‘on","Muzrabot","Oltinsoy","Qiziriq","Qumqo‘rg‘on","Sariosiyo","Sherobod","Sho‘rchi","Uzun"],"Sirdaryo viloyati":["Guliston shahri","Boyovut","Guliston tumani","Mirzaobod","Oqoltin","Sayxunobod","Sardoba","Shirin shahri","Xovos"],"Farg‘ona viloyati":["Farg‘ona shahri","Oltiariq","Bag‘dod","Beshariq","Buvayda","Dang‘ara","Furqat","Qo‘qon shahri","Qo‘shtepa","Quva","Rishton","So‘x","Toshloq","Uchko‘prik","Yozyovon","Marg‘ilon shahri"],"Xorazm viloyati":["Urganch shahri","Bog‘ot","Gurlan","Hazorasp","Xiva shahri","Qo‘shko‘pir","Shovot","Tuproqqal’a","Yangiariq","Yangibozor"],"Qoraqalpog‘iston Respublikasi":["Nukus shahri","Amudaryo","Beruniy","Chimboy","Ellikqal’a","Kegeyli","Mo‘ynoq","Qo‘ng‘irot","Qanliko‘l","Shumanay","Taxtako‘pir","To‘rtko‘l","Xo‘jayli"]};
-        const old=region.value;
-        region.innerHTML='<option value="">Tanlang</option>'+Object.keys(uz).map(x=>'<option value="'+escapeHtml(x)+'">'+escapeHtml(x)+'</option>').join('')+'<option value="OTHER">Boshqa / qo‘lda kiritish</option>';
-        if(old)region.value=old;
-        const fill=()=>{const prev=district?.value||'',arr=uz[region.value]||[];if(district)district.innerHTML='<option value="">Tanlang</option>'+arr.map(x=>'<option value="'+escapeHtml(x)+'">'+escapeHtml(x)+'</option>').join('')+(arr.length?'<option value="OTHER">Boshqa / qo‘lda kiritish</option>':'<option value="OTHER">Qo‘lda kiritish</option>');if(district&&prev&&arr.includes(prev))district.value=prev;};
-        region.onchange=fill;fill();
+      const profileCountryInput=$('profileCountry');
+      if(profileCountryInput&&!profileCountryInput.dataset.globalRegionBound){profileCountryInput.addEventListener('change',()=>{const r=$('profileRegion'),d=$('profileDistrict');if(r)r.dataset.selected='';if(d)d.dataset.selected='';renderUzRegions()});profileCountryInput.dataset.globalRegionBound='1';}
+      async function renderUzRegions(){
+        const countryInput=$('profileCountry'), region=$('profileRegion'), district=$('profileDistrict');
+        if(!region||!district)return;
+        const countriesList=$('profileCountryOptions');
+        if(countriesList&&!countriesList.dataset.ready){
+          const display=new Intl.DisplayNames([getLanguage()||'en'],{type:'region'});
+          const names=[];
+          for(let n=0;n<26;n++)for(let m=0;m<26;m++){const code=String.fromCharCode(65+n,65+m);try{const name=display.of(code);if(name&&name!==code&&!/unknown region/i.test(name))names.push(name)}catch(_){}}
+          [...new Set(names)].sort((a,b)=>a.localeCompare(b)).forEach(name=>{const o=document.createElement('option');o.value=name;countriesList.appendChild(o)});
+          countriesList.dataset.ready='1';
+        }
+        const countryName=()=>{
+          const raw=(countryInput?.value||'').trim();if(!raw)return '';
+          if(/^[A-Z]{2}$/.test(raw)){try{return new Intl.DisplayNames(['en'],{type:'region'}).of(raw)||raw}catch(_){return raw}}
+          return raw;
+        };
+        const fillSelect=(el,values,placeholder,selected)=>{
+          const clean=[...new Set((values||[]).filter(Boolean))];
+          if(selected&&!clean.includes(selected))clean.unshift(selected);
+          el.innerHTML='<option value="">'+placeholder+'</option>'+clean.map(v=>'<option value="'+escapeHtml(v)+'">'+escapeHtml(v)+'</option>').join('')+'<option value="OTHER">Boshqa / qo‘lda kiritish</option>';
+          if(selected)el.value=selected;
+        };
+        const country=countryName();
+        fillSelect(region,[],country?'Hudud yuklanmoqda...':'Avval mamlakatni tanlang',region.value);
+        fillSelect(district,[], 'Avval viloyatni tanlang', district.value);
+        if(!country){region.innerHTML='<option value="">Avval mamlakatni tanlang</option><option value="OTHER">Boshqa / qo‘lda kiritish</option>';return}
+        try{
+          const res=await fetch('https://countriesnow.space/api/v0.1/countries/states',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({country})});
+          const data=await res.json();
+          const states=(data?.data?.states||[]).map(x=>typeof x==='string'?x:x.name).filter(Boolean);
+          fillSelect(region,states,'Viloyat / hududni tanlang',region.dataset.selected||region.value);
+        }catch(_){
+          region.innerHTML='<option value="">Hududni tanlang yoki qo‘lda kiriting</option><option value="OTHER">Boshqa / qo‘lda kiritish</option>';
+        }
+        const loadDistricts=async()=>{
+          const selectedRegion=region.value;
+          fillSelect(district,[],selectedRegion?'Tuman/shaharlar yuklanmoqda...':'Avval viloyatni tanlang',district.dataset.selected||district.value);
+          if(!selectedRegion||selectedRegion==='OTHER')return;
+          try{
+            const res=await fetch('https://countriesnow.space/api/v0.1/countries/state/cities',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({country,state:selectedRegion})});
+            const data=await res.json();
+            fillSelect(district,data?.data||[],'Tuman / shaharni tanlang',district.dataset.selected||district.value);
+          }catch(_){district.innerHTML='<option value="">Tuman/shaharni qo‘lda kiriting</option><option value="OTHER">Boshqa / qo‘lda kiritish</option>'}
+        };
+        if(!region.dataset.globalBound){region.addEventListener('change',()=>{district.dataset.selected='';loadDistricts()});region.dataset.globalBound='1'}
+        await loadDistricts();
       }
     } catch(_) {}
   }
