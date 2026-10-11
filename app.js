@@ -1076,6 +1076,9 @@ async function login() {
   }
 }
 
+// Publish the login handler immediately, before optional startup initializers run.
+// This keeps the inline sign-in fallback usable even if a later initializer fails.
+window.login = login;
 
 /* =========================================================
    CURRENT USER
