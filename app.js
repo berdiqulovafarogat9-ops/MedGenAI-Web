@@ -1055,7 +1055,8 @@ async function login() {
     if (window.medgenFinalBoot) window.medgenFinalBoot(state.user);
     // Legal consent and complete profile are mandatory after first login.
     await ensureLegalConsent();
-    if (state.user && !isProfileComplete(state.user.profile || {})) {
+    // Never cover the mandatory consent dialog with the profile editor.
+    if (state.user?.consent_complete && !isProfileComplete(state.user.profile || {})) {
       openProfileEditor();
     }
 
@@ -1243,6 +1244,19 @@ async function openProfile() {
       if($('profileDistrict'))$('profileDistrict').value=academicProfile.district||p.district||'';
     }catch(_){}
 
+    const regionManual = $('profileRegionManual');
+    const districtManual = $('profileDistrictManual');
+    $('profileRegion')?.addEventListener('change', () => {
+      if ($('profileRegion')?.value !== 'OTHER' && regionManual) regionManual.value = '';
+      if ($('profileRegion')?.value === 'OTHER' && regionManual) regionManual.focus();
+    });
+    $('profileDistrict')?.addEventListener('change', () => {
+      if ($('profileDistrict')?.value !== 'OTHER' && districtManual) districtManual.value = '';
+      if ($('profileDistrict')?.value === 'OTHER' && districtManual) districtManual.focus();
+    });
+    regionManual?.addEventListener('input', () => { if (regionManual.value && $('profileRegion')) $('profileRegion').value = 'OTHER'; });
+    districtManual?.addEventListener('input', () => { if (districtManual.value && $('profileDistrict')) $('profileDistrict').value = 'OTHER'; });
+
     const profileSaveButton = $('profileSave');
     $('openSecurityFromProfile')?.addEventListener('click', () => {
       closeProfile();
@@ -1374,8 +1388,8 @@ async function saveProfile() {
       phone: $('profilePhone')?.value?.trim() || '',
       organization: $('profileOrganization')?.value?.trim() || '',
       country: $('profileCountry')?.value?.trim() || '',
-      region: $('profileRegion')?.value?.trim() || '',
-      district: $('profileDistrict')?.value?.trim() || '',
+      region: $('profileRegionManual')?.value?.trim() || (($('profileRegion')?.value === 'OTHER') ? '' : ($('profileRegion')?.value?.trim() || '')),
+      district: $('profileDistrictManual')?.value?.trim() || (($('profileDistrict')?.value === 'OTHER') ? '' : ($('profileDistrict')?.value?.trim() || '')),
       city: $('profileCity')?.value?.trim() || '',
       location_label: $('profileLocationLabel')?.value?.trim() || '',
       location_lat: Number($('detectLocationBtn')?.dataset?.lat || '') || null,
@@ -1499,6 +1513,14 @@ async function ensureLegalConsent() {
   if (!state.user || state.user.consent_complete) return;
   const modal = $('legalModal');
   if (!modal) return;
+  modal.style.zIndex = '100200';
+  const requiredChecks = ['consentTerms','consentPrivacy','consentData','consentResearch'].map(id => $(id)).filter(Boolean);
+  const acceptButton = $('legalAccept');
+  const updateConsentButton = () => {
+    if (acceptButton) acceptButton.disabled = !requiredChecks.length || !requiredChecks.every(el => el.checked);
+  };
+  requiredChecks.forEach(el => el.addEventListener('change', updateConsentButton));
+  updateConsentButton();
   modal.classList.remove('hidden');
   try {
     const docs = await api('/legal/documents');
@@ -1514,6 +1536,13 @@ async function ensureLegalConsent() {
 
 async function acceptLegalConsent() {
   const status = $('legalStatus');
+  const required = ['consentTerms','consentPrivacy','consentData','consentResearch'];
+  if (!required.every(id => $(id)?.checked)) {
+    if (status) status.textContent = 'Davom etish uchun barcha hujjatlarni o‘qib, har bir rozilik katagini o‘zingiz belgilang.';
+    return;
+  }
+  const button = $('legalAccept');
+  if (button) button.disabled = true;
   try {
     const data = await api('/legal/consent', {
       method: 'POST',
@@ -1529,9 +1558,10 @@ async function acceptLegalConsent() {
       state.user.consent_complete = true;
     }
     $('legalModal')?.classList.add('hidden');
-    if (!state.user?.profile_complete) openProfile();
+    if (!state.user?.profile_complete) openProfileEditor();
   } catch (e) {
     if (status) status.textContent = e.message;
+    if (button) button.disabled = false;
   }
 }
 
@@ -4452,14 +4482,23 @@ async function detectProfileLocation(fromSecurity=false){
   if(!navigator.geolocation){if(status)status.textContent='❌ Bu qurilmada geolocation mavjud emas.';return;}
   if(status)status.textContent='📍 Qurilma joylashuviga ruxsat so‘ralmoqda...';
   navigator.geolocation.getCurrentPosition(async pos=>{
-    if(fromSecurity) await openProfile();
+    if(fromSecurity) await openProfileEditor();
     const lat=Number(pos.coords.latitude),lon=Number(pos.coords.longitude),btn=$('detectLocationBtn');
     if(btn){btn.dataset.lat=String(lat);btn.dataset.lon=String(lon);btn.dataset.source='DEVICE_GEOLOCATION';}
     try{
       const url='https://nominatim.openstreetmap.org/reverse?format=jsonv2&lat='+encodeURIComponent(lat)+'&lon='+encodeURIComponent(lon)+'&accept-language='+encodeURIComponent(getLanguage());
       const res=await fetch(url,{headers:{'Accept':'application/json','Accept-Language':getLanguage()}});
       const geo=await res.json(),a=geo?.address||{},code=String(a.country_code||'').toUpperCase();
-      if($('profileCountry')&&code)$('profileCountry').value=code;if($('profileAcademicCountry')&&code)$('profileAcademicCountry').value=code;if($('profileRegion'))$('profileRegion').value=a.state||a.region||'';if($('profileDistrict'))$('profileDistrict').value=a.county||a.city_district||a.district||'';if($('profileCity'))$('profileCity').value=a.city||a.town||a.village||a.municipality||'';if($('profileLocationLabel'))$('profileLocationLabel').value=a.suburb||a.neighbourhood||a.quarter||'';if(btn)btn.dataset.source='DEVICE_GEOLOCATION_REVERSE';
+      const regionName=a.state||a.region||'', districtName=a.county||a.city_district||a.district||'';
+      if($('profileCountry')&&code)$('profileCountry').value=code;
+      if($('profileAcademicCountry')&&code)$('profileAcademicCountry').value=code;
+      if($('profileRegion')){$('profileRegion').value=regionName;if(!$('profileRegion').value)$('profileRegion').value='OTHER';}
+      if($('profileDistrict')){$('profileDistrict').value=districtName;if(!$('profileDistrict').value)$('profileDistrict').value='OTHER';}
+      if($('profileRegionManual'))$('profileRegionManual').value=regionName;
+      if($('profileDistrictManual'))$('profileDistrictManual').value=districtName;
+      if($('profileCity'))$('profileCity').value=a.city||a.town||a.village||a.municipality||'';
+      if($('profileLocationLabel'))$('profileLocationLabel').value=a.suburb||a.neighbourhood||a.quarter||'';
+      if(btn)btn.dataset.source='DEVICE_GEOLOCATION_REVERSE';
       if(status)status.textContent='✅ Joylashuv aniqlandi. Saqlash uchun Profilni saqlang.';
     }catch(_){if(status)status.textContent='✅ Koordinata aniqlandi, lekin hudud nomini avtomatik olish imkoni bo‘lmadi. Mamlakat/viloyat/tumanni tekshiring.';}
     if(fromSecurity){$('securityCenter')?.classList.add('hidden');}
