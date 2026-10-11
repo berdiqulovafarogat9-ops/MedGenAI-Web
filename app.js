@@ -1208,6 +1208,7 @@ async function openProfile() {
     $('profileDistrict').dataset.selected = p.district || '';
     $('profileCity').value = p.city || '';
     $('profileLocationLabel').value = p.location_label || '';
+    initProfileLocationSelectors();
     const locationButton = $('detectLocationBtn');
     if (locationButton) {
       locationButton.dataset.lat = p.location_lat ?? '';
