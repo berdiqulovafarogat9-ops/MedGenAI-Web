@@ -1,0 +1,13 @@
+name: Frontend JavaScript Syntax
+on:
+  pull_request:
+    branches:
+      - main
+  workflow_dispatch:
+jobs:
+  syntax:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Check app.js syntax
+        run: node --check app.js
