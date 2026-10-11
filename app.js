@@ -1912,6 +1912,8 @@ function openWorkspace(title) {
 
 function closeWorkspace() {
 
+  $('moleculeVisualPanel')?.classList.add('hidden');
+
   const workspace =
     $('workspace');
 
@@ -1992,6 +1994,8 @@ function openModule(moduleName) {
     'Global Platform':
       'platformTool'
   };
+
+  $('moleculeVisualPanel')?.classList.toggle('hidden', moduleName !== 'PDB & Structure');
 
   const toolId =
     map[moduleName];
