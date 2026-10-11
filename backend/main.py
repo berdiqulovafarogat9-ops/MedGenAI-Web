@@ -472,6 +472,11 @@ async def account_readiness_guard(request: Request, call_next):
         "/api/v1/roles/request",
         "/api/v1/security/overview",
         "/api/v1/security/summary",
+        # Dashboard summary and roadmap are read-only navigation surfaces.
+        # Keep them available during onboarding; scientific/data operations
+        # remain gated by profile completion and explicit legal consent.
+        "/api/v1/dashboard/summary",
+        "/api/v1/platform/phase-status",
     }
     if path in allowed or path.startswith("/api/v1/admin/"):
         return await call_next(request)
