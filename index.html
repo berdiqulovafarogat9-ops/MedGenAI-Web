@@ -295,8 +295,10 @@ frame-ancestors 'none'">
       </label>
 
       <button
+        id="loginSubmitBtn"
         class="primary"
         type="submit"
+        onclick="event.preventDefault(); if (window.login) window.login();"
         data-i18n="signIn">
         Sign in
       </button>
@@ -333,7 +335,7 @@ frame-ancestors 'none'">
       <button id="hideRegister" type="button" class="ghost">Kirishga qaytish</button>
     </form>
 
-    <div id="loginStatus" class="status"></div>
+    <div id="loginStatus" class="status" role="status" aria-live="polite"></div>
 
   </div>
 
@@ -1188,7 +1190,7 @@ frame-ancestors 'none'">
      Keep app.js unchanged.
 -->
 
-<script src="app.js?v=20261008-14"></script>
+<script src="app.js?v=20261011-15"></script>
 
 
 
