@@ -4667,7 +4667,7 @@ async function detectProfileLocation(fromSecurity=false){
         if(!region||!district)return;
         const countriesList=$('profileCountryOptions');
         if(countriesList&&!countriesList.dataset.ready){
-          const display=new Intl.DisplayNames([getLanguage()||'en'],{type:'region'});
+          const display=new Intl.DisplayNames(['en'],{type:'region'});
           const names=[];
           for(let n=0;n<26;n++)for(let m=0;m<26;m++){const code=String.fromCharCode(65+n,65+m);try{const name=display.of(code);if(name&&name!==code&&!/unknown region/i.test(name))names.push(name)}catch(_){}}
           [...new Set(names)].sort((a,b)=>a.localeCompare(b)).forEach(name=>{const o=document.createElement('option');o.value=name;countriesList.appendChild(o)});
