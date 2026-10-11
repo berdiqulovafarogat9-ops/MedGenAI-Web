@@ -124,3 +124,47 @@ def test_required_frontend_origins_survive_custom_cors_setting():
     assert "https://medgenai-web-1.onrender.com" in origins
     assert "https://custom.example.org" in origins
     assert "http://localhost:3000" not in origins
+
+
+def test_login_accepts_username_with_different_case(client):
+    username, _ = _register_and_login(client, username="CaseStudent")
+    response = client.post("/api/v1/auth/login", json={
+        "username": username.lower(),
+        "password": "Long-Test-Password-123!",
+    })
+    assert response.status_code == 200, response.text
+    assert response.json().get("access_token")
+
+
+def test_registration_invalid_academic_year_does_not_create_partial_account(client):
+    response = client.post("/api/v1/auth/register", json={
+        "username": "partial_student",
+        "password": "Long-Test-Password-123!",
+        "full_name": "Partial Student",
+        "email": "partial@example.org",
+        "role": "student",
+        "academic_year": 7,
+    })
+    assert response.status_code == 400
+    assert "partial_student" not in api.user_accounts
+    assert "partial_student" not in api.user_profiles
+
+
+def test_registration_rejects_username_case_collision(client):
+    first = client.post("/api/v1/auth/register", json={
+        "username": "UniqueStudent",
+        "password": "Long-Test-Password-123!",
+        "full_name": "Unique Student",
+        "email": "unique@example.org",
+        "role": "student",
+    })
+    if first.status_code not in (200, 201):
+        pytest.skip(f"Registration unavailable in this configuration: {first.status_code}")
+    second = client.post("/api/v1/auth/register", json={
+        "username": "uniquestudent",
+        "password": "Long-Test-Password-123!",
+        "full_name": "Duplicate Student",
+        "email": "duplicate@example.org",
+        "role": "student",
+    })
+    assert second.status_code == 409
