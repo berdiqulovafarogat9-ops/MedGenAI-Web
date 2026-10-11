@@ -1156,6 +1156,7 @@ async function openProfile() {
   const modal = $('profileModal');
   if (!modal) return;
   modal.classList.remove('hidden');
+  initProfileLocationSelectors();
   const card = modal.querySelector('.modal-card');
   if (card && !card.querySelector('.profile-edit-icon')) {
     const edit = document.createElement('button');
@@ -4364,11 +4365,71 @@ if (document.readyState === "loading") {
 /* =========================================================
    SECURITY CENTER + LOCATION PERMISSIONS
 ========================================================= */
+function initProfileLocationSelectors(){
+  const country=$('profileCountry'),region=$('profileRegion'),district=$('profileDistrict');
+  if(!country||!region||!district)return;
+  const list=$('profileCountryOptions');
+  if(list&&!list.dataset.ready){
+    const display=new Intl.DisplayNames(['en'],{type:'region'}),names=[];
+    for(let a=65;a<=90;a++)for(let b=65;b<=90;b++){const code=String.fromCharCode(a,b);try{const name=display.of(code);if(name&&name!==code&&!/unknown region/i.test(name))names.push(name)}catch(_){}}
+    [...new Set(names)].sort((a,b)=>a.localeCompare(b)).forEach(name=>{const o=document.createElement('option');o.value=name;list.appendChild(o)});
+    list.dataset.ready='1';
+  }
+  const normalize=()=>{let v=(country.value||'').trim();if(/^[A-Z]{2}$/.test(v)){try{v=new Intl.DisplayNames(['en'],{type:'region'}).of(v)||v}catch(_){}}return v};
+  const fill=(el,items,placeholder,selected='')=>{
+    const vals=[...new Set((items||[]).filter(Boolean))];
+    if(selected&&!vals.includes(selected))vals.unshift(selected);
+    el.innerHTML='<option value="">'+placeholder+'</option>'+vals.map(v=>'<option value="'+escapeHtml(v)+'">'+escapeHtml(v)+'</option>').join('')+'<option value="OTHER">Boshqa / qo‘lda kiritish</option>';
+    if(selected)el.value=selected;
+  };
+  const load=async()=>{
+    const c=normalize(),savedRegion=region.dataset.selected||region.value,savedDistrict=district.dataset.selected||district.value;
+    if(!c){fill(region,[],'Avval mamlakatni tanlang');fill(district,[],'Avval viloyatni tanlang');return}
+    fill(region,savedRegion?[savedRegion]:[],'Hududlar yuklanmoqda...',savedRegion);
+    fill(district,savedDistrict?[savedDistrict]:[],'Avval viloyatni tanlang',savedDistrict);
+    try{
+      const response=await fetch('https://countriesnow.space/api/v0.1/countries/states',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({country:c})});
+      if(!response.ok)throw new Error('region lookup failed');
+      const payload=await response.json(),items=(payload.data?.states||[]).map(x=>typeof x==='string'?x:x.name).filter(Boolean);
+      fill(region,items,'Viloyat / hududni tanlang',savedRegion);
+      await loadCities();
+    }catch(_){fill(region,savedRegion?[savedRegion]:[],'Hududni tanlang yoki yozib kiriting',savedRegion);fill(district,savedDistrict?[savedDistrict]:[],'Tumanni tanlang yoki yozib kiriting',savedDistrict)}
+  };
+  const loadCities=async()=>{
+    const c=normalize(),s=region.value;
+    if(!c||!s||s==='OTHER'){fill(district,[],'Tuman / shaharni qo‘lda kiriting');return}
+    const saved=district.dataset.selected||district.value;
+    try{
+      const response=await fetch('https://countriesnow.space/api/v0.1/countries/state/cities',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({country:c,state:s})});
+      if(!response.ok)throw new Error('city lookup failed');
+      const payload=await response.json();fill(district,payload.data||[],'Tuman / shaharni tanlang',saved);
+    }catch(_){fill(district,saved?[saved]:[],'Tuman / shaharni tanlang yoki qo‘lda kiriting',saved)}
+  };
+  if(!country.dataset.locationBound){country.addEventListener('change',()=>{region.dataset.selected='';district.dataset.selected='';region.value='';district.value='';load()});country.dataset.locationBound='1'}
+  if(!region.dataset.locationBound){region.addEventListener('change',()=>{district.dataset.selected='';loadCities()});region.dataset.locationBound='1'}
+  if(!country.value&&country.dataset.value)country.value=country.dataset.value;
+  if(country.value)load();else{fill(region,[],'Avval mamlakatni tanlang');fill(district,[],'Avval viloyatni tanlang')}
+}
 async function loadSecurityCenter() {
   const grid=$('securityGrid'); if(!grid)return;
-  grid.innerHTML='<div class="status">Yuklanmoqda...</div>';
+  const renderCards=(d={})=>{
+    const consent=d.consent_complete?'✅ Tasdiqlangan':'⚠️ Tasdiqlash kerak';
+    const identity=d.identity?.status==='PENDING_PROVIDER'?'🟡 Provayder kutilyapti':'⚪ Tasdiqlanmagan';
+    const loc=d.location?.label||[d.location?.country,d.location?.region,d.location?.district,d.location?.city].filter(Boolean).join(' · ')||'Kiritilmagan';
+    grid.innerHTML='<div class="security-card"><span>📜</span><strong>Roziliklar</strong><div>'+escapeHtml(consent)+'</div><small>Terms, Privacy, Data Processing va Research Disclaimer.</small><p><a href="/legal.html#terms" target="_blank" rel="noopener">Foydalanish shartlari</a></p><p><a href="/legal.html#privacy" target="_blank" rel="noopener">Maxfiylik siyosati</a></p><p><a href="/legal.html#data" target="_blank" rel="noopener">Ma’lumotlarni qayta ishlash</a></p><p><a href="/legal.html#medical" target="_blank" rel="noopener">Ilmiy/tibbiy ogohlantirish</a></p></div>'+
+      '<div class="security-card"><span>🪪</span><strong>Identifikatsiya</strong><div>'+escapeHtml(identity)+'</div><small>Shaxsni tasdiqlash sozlamalari.</small><button id="identityStart" class="ghost small" type="button">Identifikatsiyani boshlash</button></div>'+
+      '<div class="security-card"><span>🔐</span><strong>Hisob xavfsizligi</strong><div>'+Number(d.active_sessions||0)+' faol sessiya</div><small>Profil bo‘limida parolni boshqaring.</small></div>'+
+      '<div class="security-card"><span>📍</span><strong>Joylashuv</strong><div>'+escapeHtml(loc)+'</div><small>Joylashuv faqat foydalanuvchi ruxsati bilan aniqlanadi.</small><button id="securityLocation" class="ghost small" type="button">Joylashuv ruxsatini tekshirish</button></div>'+
+      '<div class="security-card"><span>🛡️</span><strong>Maxfiylik</strong><div>Maxfiylik va ma’lumotlar</div><p><a href="/legal.html#privacy" target="_blank" rel="noopener">Maxfiylik siyosatini ochish</a></p></div>'+
+      '<div class="security-card"><span>🔑</span><strong>Parol va sessiyalar</strong><div>Hisobni himoyalash</div><small>Kuchli parol ishlating va begona qurilmalarda tizimdan chiqing.</small></div>';
+    $('identityStart')?.addEventListener('click',async()=>{try{const x=await api('/security/identity/request',{method:'POST',body:JSON.stringify({method:'DOCUMENT_PROVIDER'})});$('securityStatus').textContent='🟡 '+(x.identity?.note||'Identifikatsiya so‘rovi yuborildi.');}catch(e){$('securityStatus').textContent='❌ '+e.message;}});
+    $('securityLocation')?.addEventListener('click',()=>detectProfileLocation(true));
+  };
+  grid.innerHTML='<div class="status">Xavfsizlik sozlamalari yuklanmoqda...</div>';
+  renderCards();
   try {
     const d=await api('/security/summary');
+    renderCards(d);
     const consent=d.consent_complete?'✅ Tasdiqlangan':'⚠️ Tasdiqlash kerak';
     const identity=d.identity?.status==='PENDING_PROVIDER'?'🟡 Provayder kutilyapti':'⚪ Tasdiqlanmagan';
     const loc=d.location?.label||[d.location?.country,d.location?.region,d.location?.district,d.location?.city].filter(Boolean).join(' · ')||'Kiritilmagan';
@@ -4380,7 +4441,7 @@ async function loadSecurityCenter() {
       '<div class="security-card"><span>🔑</span><strong>Parol</strong><div>Account password</div><small>Kuchli parol va sessiya nazorati talab qilinadi.</small></div>'+'<div class="security-card"><span>📄</span><strong>Huquqiy hujjatlar</strong><p><a href="/legal.html#terms" target="_blank" rel="noopener">Foydalanish shartlari</a></p><p><a href="/legal.html#data" target="_blank" rel="noopener">Ma’lumotlarni qayta ishlashga rozilik</a></p><p><a href="/legal.html#medical" target="_blank" rel="noopener">Ilmiy va tibbiy ogohlantirish</a></p></div>';
     $('identityStart')?.addEventListener('click',async()=>{try{const x=await api('/security/identity/request',{method:'POST',body:JSON.stringify({method:'DOCUMENT_PROVIDER'})});$('securityStatus').textContent='🟡 '+(x.identity?.note||'Identifikatsiya so‘rovi yuborildi.');await loadSecurityCenter();}catch(e){$('securityStatus').textContent='❌ '+e.message;}});
     $('securityLocation')?.addEventListener('click',()=>detectProfileLocation(true));
-  } catch(e) { grid.innerHTML='<div class="status">❌ '+escapeHtml(e.message)+'</div>'; }
+  } catch(e) { const status=$('securityStatus'); if(status)status.textContent='Serverdagi holat hozircha yuklanmadi; hujjatlar va xavfsizlik havolalari mavjud.'; }
 }
 function openSecurityCenter(){
   $('roleDashboard')?.classList.add('hidden');$('userDirectoryDashboard')?.classList.add('hidden');$('moduleDirectory')?.classList.add('hidden');$('educationPreferencePanel')?.classList.add('hidden');$('workspace')?.classList.add('hidden');$('adminDashboard')?.classList.add('hidden');$('securityCenter')?.classList.remove('hidden');loadSecurityCenter();
@@ -4720,6 +4781,7 @@ async function detectProfileLocation(fromSecurity=false){
     buildRoleDirectory();
     loadPersonalDashboard();
     loadAcademyCatalogForProfile();
+    initProfileLocationSelectors();
 
     document.getElementById('userDirectoryBack')?.addEventListener('click',()=>{
       panel.classList.add('hidden');
