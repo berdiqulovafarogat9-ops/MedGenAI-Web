@@ -20,6 +20,7 @@ from urllib.request import Request as URLRequest, urlopen
 from urllib.error import HTTPError, URLError
 
 from fastapi import BackgroundTasks, Depends, FastAPI, HTTPException, Request
+from fastapi.responses import JSONResponse
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.security import HTTPAuthorizationCredentials, HTTPBearer
 try:
@@ -55,7 +56,7 @@ app = FastAPI(
 ALLOWED_CORS_ORIGINS = [
     origin.strip() for origin in os.getenv(
         "MEDGEN_CORS_ORIGINS",
-        "https://medgenai-web-1.onrender.com,https://medgenai-web.onrender.com,http://localhost:3000,http://localhost:5173"
+        "https://medgen-web.onrender.com,https://medgenai-web-1.onrender.com,https://medgenai-web.onrender.com,http://localhost:3000,http://localhost:5173"
     ).split(",") if origin.strip()
 ]
 
@@ -790,7 +791,10 @@ def update_profile(
             detail="Tug‘ilgan yil noto‘g‘ri.",
         )
 
-    profile = data.model_dump()
+    # Merge editable profile fields into the existing record. Replacing the whole
+    # record here would silently erase role/approval state, academic profile,
+    # education preferences, and other server-managed fields.
+    profile = {**user_profiles.get(user["username"], {}), **data.model_dump()}
     # Normalize optional location fields; exact coordinates are only stored when
     # the user explicitly grants browser location permission.
     profile["country"] = str(profile.get("country") or "").strip()[:120]
@@ -906,6 +910,7 @@ def save_consent(data: ConsentRequest, user=Depends(get_current_user)):
     consent = {**data.model_dump(), "version": "1.0", "accepted_at": datetime.now(timezone.utc).isoformat()}
     user_consents[user["username"]] = consent
     activity_log.insert(0, {"type": "consent", "username": user["username"], "at": consent["accepted_at"]})
+    _db_save()
     return {"status": "accepted", "consent": consent}
 
 
