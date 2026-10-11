@@ -176,6 +176,15 @@ frame-ancestors 'none'">
   position: relative;
 }
 </style>
+
+<style id="medgen-dashboard-visibility-fix">
+/* Keep inactive scientific panels hidden; role workspaces must not leak into every dashboard. */
+#scientificWorkflowPanel.hidden,
+#moleculeVisualPanel.hidden,
+.panel.hidden,
+.final-panel.hidden { display: none !important; }
+</style>
+
 </head>
 
 <body>
@@ -2159,7 +2168,7 @@ document.addEventListener("DOMContentLoaded", function () {
     SUPER_ADMIN:{icon:'👑',name:'Super Admin / Owner',desc:'Butun platforma, foydalanuvchilar, tashkilotlar, xavfsizlik va audit nazorati',mods:['Global Platform','Medical Academy','Bioinformatics','Molecular Analysis','PDB & Structure','Drug Discovery','Scientific Jobs','Research Assistant','Virtual Laboratory','Reports & History']}
   };
   const icons={'Medical Academy':'🎓','Bioinformatics':'🧬','Molecular Analysis':'⚗️','PDB & Structure':'🧫','Drug Discovery':'💊','Scientific Jobs':'⚙️','Research Assistant':'📚','Virtual Laboratory':'🧪','Reports & History':'📊','Global Platform':'🌐'};
-  const roleKey=()=>String(window.__MEDGEN_USER?.role||'student').toUpperCase()==='SUPER_ADMIN'?'SUPER_ADMIN':String(window.__MEDGEN_USER?.role||'student').toLowerCase();
+  const roleKey=()=>{const u=window.__MEDGEN_USER||{};const raw=u.role||u.profile?.role||u.account?.role||u.user?.role||'student';const k=String(raw).trim();return k.toUpperCase()==='SUPER_ADMIN'?'SUPER_ADMIN':(ROLES[k.toLowerCase()]?k.toLowerCase():'student')};
   const ALL_MODULES=['Medical Academy','Bioinformatics','Molecular Analysis','PDB & Structure','Drug Discovery','Scientific Jobs','Research Assistant','Virtual Laboratory','Reports & History','Global Platform'];
   const ROLE_MODULES={
     SUPER_ADMIN:ALL_MODULES,
