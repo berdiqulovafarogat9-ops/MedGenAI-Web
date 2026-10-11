@@ -890,7 +890,7 @@ def security_summary(user=Depends(get_current_user)):
     }
     return {
         "status": "ok",
-        "consent_complete": all([
+        "consent_complete": consent.get("version") == LEGAL_CONSENT_VERSION and all([
             consent.get("terms_accepted", False),
             consent.get("privacy_accepted", False),
             consent.get("data_processing_accepted", False),
