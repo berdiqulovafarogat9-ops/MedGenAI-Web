@@ -986,9 +986,11 @@ async function login() {
     return;
   }
 
+  const submitButton = $('loginSubmitBtn');
+  if (submitButton) submitButton.disabled = true;
+
   if (status) {
-    status.textContent =
-      t('signingIn');
+    status.textContent = 'Kirish so‘rovi yuborilmoqda…';
   }
 
   try {
@@ -1065,11 +1067,12 @@ async function login() {
     );
 
     if (status) {
-
       status.textContent =
         t('loginFailed') +
         error.message;
     }
+  } finally {
+    if (submitButton) submitButton.disabled = false;
   }
 }
 
