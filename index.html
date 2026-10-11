@@ -298,7 +298,7 @@ frame-ancestors 'none'">
         id="loginSubmitBtn"
         class="primary"
         type="submit"
-        onclick="event.preventDefault(); if (window.login) window.login();"
+        onclick="event.preventDefault(); const s=document.getElementById('loginStatus'); if (typeof window.login === 'function') { window.login(); } else if (s) { s.textContent='Frontend xatosi: login moduli yuklanmagan. Sahifani yangilang yoki keyinroq qayta urinib ko‘ring.'; }"
         data-i18n="signIn">
         Sign in
       </button>
@@ -1186,11 +1186,20 @@ frame-ancestors 'none'">
 </section>
 
 
+<!-- Capture frontend startup errors so a failed app.js cannot leave login silently unresponsive. -->
+<script>
+window.addEventListener("error", function (event) {
+  if (!event || !event.filename || !/app\.js(?:\?|$)/.test(event.filename)) return;
+  const status = document.getElementById("loginStatus");
+  if (status) status.textContent = "Frontend JavaScript xatosi: " + (event.message || "app.js yuklanmadi") + ". Sahifani yangilang; muammo davom etsa, xabarni qo‘llab-quvvatlashga yuboring.";
+});
+</script>
+
 <!-- IMPORTANT:
      Keep app.js unchanged.
 -->
 
-<script src="app.js?v=20261011-15"></script>
+<script src="app.js?v=20261011-16"></script>
 
 
 
