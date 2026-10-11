@@ -333,6 +333,7 @@ frame-ancestors 'none'">
 </div>
       <button class="primary" type="submit">Ro‘yxatdan o‘tish</button>
       <button id="hideRegister" type="button" class="ghost">Kirishga qaytish</button>
+      <p class="muted legal-entry">Davom etishdan oldin hujjatlar bilan tanishing: <a href="/legal.html#terms" target="_blank" rel="noopener">Foydalanish shartlari</a> · <a href="/legal.html#privacy" target="_blank" rel="noopener">Maxfiylik siyosati</a> · <a href="/legal.html#data" target="_blank" rel="noopener">Ma’lumotlarni qayta ishlash</a> · <a href="/legal.html#medical" target="_blank" rel="noopener">Tibbiy ogohlantirish</a></p>
     </form>
 
     <div id="loginStatus" class="status" role="status" aria-live="polite"></div>
@@ -2068,7 +2069,7 @@ window.addEventListener("error", function (event) {
     <label><span>Telefon raqami</span><input id="profilePhone" type="tel" autocomplete="tel"></label>
     <label><span data-i18n="emailLabel">Email</span><input id="profileEmail" type="text" inputmode="email" autocomplete="email" placeholder="email@example.com"></label>
     <label><span data-i18n="organization">Tashkilot / universitet</span><input id="profileOrganization" data-i18n-placeholder="organizationPlaceholder" placeholder="Universitet yoki tashkilot"></label>
-    <label><span data-i18n="country">Mamlakat</span><input id="profileCountry" data-i18n-placeholder="countryPlaceholder" placeholder="O‘zbekiston"></label>
+    <label><span data-i18n="country">Mamlakat</span><input id="profileCountry" list="profileCountryOptions" autocomplete="country" data-i18n-placeholder="countryPlaceholder" placeholder="Mamlakatni qidiring yoki yozing"></label><datalist id="profileCountryOptions"></datalist>
     <div class="profile-section-title"><h3>📍 Joylashuv va hudud</h3><p class="profile-auto-note">Mamlakat avtomatik tavsiya qilinishi mumkin. Viloyat/tuman aniq bo‘lishi uchun siz tanlaysiz yoki qurilma joylashuviga ruxsat berasiz. Aniq koordinatalar faqat ruxsat bilan saqlanadi.</p></div>
     <div class="location-grid">
       <label>Viloyat / Region<select id="profileRegion"><option value="">Tanlang</option></select></label>
