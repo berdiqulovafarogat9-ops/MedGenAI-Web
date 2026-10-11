@@ -4661,3 +4661,10 @@ except ImportError:
     except ModuleNotFoundError:
         # Optional extension: keep the core API bootable if deployment has not received the file yet.
         phase1_academy_ext = None
+
+
+# Restore persisted application state after every Render process start.
+# Keep this at module end so all in-memory stores are defined before loading.
+@app.on_event("startup")
+def load_persisted_state():
+    _db_load()
