@@ -2215,6 +2215,8 @@ document.addEventListener("DOMContentLoaded", function () {
     document.getElementById('finalAdminOpen')?.addEventListener('click',()=>{hideAll();document.getElementById('adminDashboard')?.classList.remove('hidden');if(typeof loadAdminDashboard==='function')loadAdminDashboard()});
   }
   function openService(kind){
+    /* Use the full security controller instead of replacing the same securityCenter element with the older lightweight panel. */
+    if(kind==='security'&&typeof window.openSecurityCenter==='function'){window.openSecurityCenter();return;}
     hideAll();let id={support:'supportCenter',ai:'aiCenter',community:'communityCenter',security:'securityCenter'}[kind];
     let el=document.getElementById(id);if(!el){el=document.createElement('section');el.id=id;el.className='final-panel';document.querySelector('#dashboardView .container')?.prepend(el);}
     const back='<button class="ghost final-back">'+ft('back')+'</button>';
