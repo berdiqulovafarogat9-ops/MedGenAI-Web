@@ -2545,64 +2545,6 @@ async function runDocking() {
   }catch(error){if(status)status.textContent=error.message;}
 }
 
-  if (!input) {
-    if (status) status.textContent = 'Enter: EGFR | CCO';
-    return;
-  }
-
-  const parts = input.split('|').map(item => item.trim());
-  const target = parts[0] || 'EGFR';
-  const ligand_smiles = parts[1] || 'CCO';
-
-  if (status) status.textContent = 'Queuing AutoDock Vina...';
-
-  try {
-    const queued = await api('/docking/run', {
-      method: 'POST',
-      body: JSON.stringify({
-        target,
-        ligand_smiles,
-        pdb_id: '1M17',
-        center_x: 22.0,
-        center_y: 0.2,
-        center_z: 52.8,
-        size_x: 20.0,
-        size_y: 20.0,
-        size_z: 20.0,
-        exhaustiveness: 8,
-        n_poses: 3
-      })
-    });
-
-    const jobId = queued?.job_id;
-    if (!jobId) throw new Error('Docking job ID was not returned.');
-
-    if (status) status.textContent = 'Running AutoDock Vina...';
-
-    for (let attempt = 0; attempt < 120; attempt++) {
-      await new Promise(resolve => setTimeout(resolve, 2000));
-      const job = await api('/docking/status/' + encodeURIComponent(jobId));
-
-      if (job?.status === 'completed') {
-        renderResult(result, job.result);
-        if (status) status.textContent = 'Docking completed.';
-        return;
-      }
-
-      if (job?.status === 'failed') {
-        throw new Error(job.error || 'Docking job failed.');
-      }
-
-      if (status) status.textContent = 'Running AutoDock Vina...';
-    }
-
-    throw new Error('Docking is still running. Check the job status or Render logs.');
-  } catch (error) {
-    console.error('DOCKING ERROR:', error);
-    if (status) status.textContent = error.message;
-  }
-}
-
 
 /* =========================================================
    JOB STATUS
