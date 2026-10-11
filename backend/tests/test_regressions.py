@@ -65,7 +65,7 @@ def test_profile_update_preserves_server_managed_fields(client):
     api.user_profiles[username].update({
         "role": "student",
         "approved_roles": ["student"],
-        "role_status": "approved",
+        "role_status": "active",
         "academic_profile": {"university": "Test University", "year": 2},
         "education_preferences": {"mode": "GLOBAL", "country_code": "INTL"},
     })
@@ -89,7 +89,7 @@ def test_profile_update_preserves_server_managed_fields(client):
     profile = response.json()["profile"]
     assert profile["role"] == "student"
     assert profile["approved_roles"] == ["student"]
-    assert profile["role_status"] == "approved"
+    assert profile["role_status"] == "active"
     assert profile["academic_profile"]["university"] == "Test University"
     assert profile["education_preferences"]["country_code"] == "INTL"
 
