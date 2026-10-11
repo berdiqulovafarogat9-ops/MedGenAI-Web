@@ -520,8 +520,16 @@ def login(data: LoginRequest):
     if len(attempts) >= LOGIN_MAX_ATTEMPTS:
         raise HTTPException(status_code=429, detail="Too many login attempts. Try again later.")
 
-    registered = user_accounts.get(data.username)
-    valid_registered = registered and verify_password(data.password, registered["password_hash"])
+    # Resolve usernames case-insensitively so the casing used at login
+    # does not make a valid account appear to have the wrong password.
+    canonical_username = next(
+        (name for name in user_accounts if name.casefold() == data.username.strip().casefold()),
+        None,
+    )
+    registered = user_accounts.get(canonical_username) if canonical_username else None
+    valid_registered = bool(
+        registered and verify_password(data.password, registered["password_hash"])
+    )
     valid_admin = (
         data.username.strip().casefold() == str(ADMIN_USERNAME).strip().casefold()
         and data.password == ADMIN_PASSWORD
@@ -532,8 +540,9 @@ def login(data: LoginRequest):
         raise HTTPException(status_code=401, detail="Invalid username or password")
 
     login_attempts.pop(key, None)
-    token = make_token(data.username)
-    tokens[token] = data.username
+    authenticated_username = canonical_username if valid_registered else str(ADMIN_USERNAME).strip()
+    token = make_token(authenticated_username)
+    tokens[token] = authenticated_username
     token_created_at[token] = now.isoformat()
     activity_log.insert(0, {
         "type": "login",
@@ -553,21 +562,30 @@ def register(data: RegisterRequest):
     username = data.username.strip()
     validate_username(username)
     validate_password(data.password)
-    if username.lower() == ADMIN_USERNAME.lower() or username in user_accounts:
+    if (
+        username.casefold() == ADMIN_USERNAME.casefold()
+        or any(existing.casefold() == username.casefold() for existing in user_accounts)
+    ):
         raise HTTPException(status_code=409, detail="Username already exists.")
     email = data.email.strip().lower()
     if "@" not in email:
         raise HTTPException(status_code=400, detail="Valid email is required.")
+    try:
+        academic_year = int(data.academic_year)
+    except (TypeError, ValueError):
+        raise HTTPException(status_code=400, detail="Academic year must be between 1 and 6.")
+    if not 1 <= academic_year <= 6:
+        raise HTTPException(status_code=400, detail="Academic year must be between 1 and 6.")
+
+    # Validate every field that can reject the request before mutating state.
+    role = normalize_role(data.role)
+    if role not in ALLOWED_USER_ROLES:
+        role = "student"
     user_accounts[username] = {
         "username": username,
         "password_hash": make_password_hash(data.password),
         "created_at": datetime.now(timezone.utc).isoformat(),
     }
-    role = normalize_role(data.role)
-    if role not in ALLOWED_USER_ROLES:
-        role = "student"
-    if not 1 <= int(data.academic_year) <= 6:
-        raise HTTPException(status_code=400, detail="Academic year must be between 1 and 6.")
     user_profiles[username] = {
         "full_name": data.full_name.strip(), "email": email, "phone": data.phone.strip(),
         "country": data.country.strip(), "region": "", "district": "", "city": "",
@@ -584,7 +602,7 @@ def register(data: RegisterRequest):
             "university": str(data.university or "").strip()[:200],
             "faculty": str(data.faculty or "").strip()[:200],
             "major": str(data.major or "").strip()[:200],
-            "year": int(data.academic_year),
+            "year": academic_year,
             "group": str(data.group or "").strip()[:100],
             "student_id": str(data.student_id or "").strip()[:100],
             "study_language": "en",
