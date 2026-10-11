@@ -429,7 +429,10 @@ def get_current_user(
         raise HTTPException(status_code=401, detail="Token expired")
 
     profile = user_profiles.get(username, {})
-    if str(profile.get("role_status", "active")).lower() != "active":
+    # The configured platform owner account must not be locked out by a stale
+    # persisted role_status value. Other accounts still respect admin disablement.
+    is_primary_admin = str(username).strip().casefold() == str(ADMIN_USERNAME).strip().casefold()
+    if not is_primary_admin and str(profile.get("role_status", "active")).lower() != "active":
         raise HTTPException(status_code=403, detail="Account is disabled")
 
     stored_role = normalize_role(profile.get("role") or "student")
