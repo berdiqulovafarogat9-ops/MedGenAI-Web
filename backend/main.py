@@ -235,6 +235,7 @@ class AdminSessionRevokeRequest(BaseModel):
 class ProfileRequest(BaseModel):
     full_name: str = ""
     email: str = ""
+    phone: str = ""
     organization: str = ""
     country: str = ""
     region: str = ""
