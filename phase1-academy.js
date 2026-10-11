@@ -19,12 +19,12 @@ let dashboard=null;
 async function render(){
  const root=ensureShell();if(!root)return;
  try{
-  dashboard=await api('/academy/v2/dashboard');
+  dashboard=await api('/academy/dashboard');
   const profile=dashboard.academic_profile||{};
   $('academySummary').innerHTML='<div class="academy-stat"><b>'+esc(dashboard.course_title)+'</b><br>Progress: <strong>'+esc(dashboard.overall_progress)+'%</strong><br><small>'+esc(profile.university||'University not set')+' • '+esc(profile.major||'Major not set')+' • '+esc(profile.group||'Group not set')+'</small></div>';
   const host=$('academySubjects');
   host.className='academy-subjects';
-  host.innerHTML=dashboard.subjects.map(s=>'<button class="academy-subject" data-sub="'+esc(s.id)+'"><b>'+esc(s.name)+'</b><small>'+esc(s.completed_assessments.length)+' / '+esc(dashboard.required_components.length)+' components passed</small><small>'+esc(s.objective)+'</small></button>').join('');
+  host.innerHTML=dashboard.subjects.map(s=>'<button class="academy-subject" data-sub="'+esc(s.id)+'"><b>'+esc(s.name)+'</b><small>'+esc(s.completed_assessments.length)+' / 5 assessments passed'</small><small>'+esc(s.objective)+'</small></button>').join('');
   host.querySelectorAll('[data-sub]').forEach(b=>b.onclick=()=>openSubject(b.dataset.sub));
  }catch(e){$('academySummary').innerHTML='<div class="academy-stat">Academy yuklanmadi: '+esc(e.message)+'</div>'}
 }
@@ -32,43 +32,40 @@ async function openSubject(id){
  const p=$('academyPanel');if(!p)return;p.classList.remove('hidden');p.className='academy-panel';
  const course=dashboard.course;
  try{
-  const d=await api('/academy/v2/subject/'+course+'/'+encodeURIComponent(id));
+  const d=await api('/academy/subject/'+course+'/'+encodeURIComponent(id));
   const s=d.subject, m=d.modules;
-  p.innerHTML='<button id="academyBack">← Fanlar</button><h4>📘 '+esc(s.name)+'</h4><p class="muted">'+esc(s.objective)+'</p><div class="academy-actions">'+['theory','practice','quiz','case','skills','osce','exam'].map(x=>'<button class="academy-act" data-type="'+x+'">'+x.toUpperCase()+'</button>').join('')+'</div><div id="academyLessonList"></div><div id="academyAssessment"></div>';
+  p.innerHTML='<button id="academyBack">← Fanlar</button><h4>📘 '+esc(s.name)+'</h4><p class="muted">'+esc(s.objective)+'</p><div class="academy-actions">'+['theory','practice','quiz','case','exam'].map(x=>'<button class="academy-act" data-type="'+x+'">'+x.toUpperCase()+'</button>').join('')+'</div><div id="academyLessonList"></div><div id="academyAssessment"></div>';
   $('academyBack').onclick=()=>{p.classList.add('hidden');window.scrollTo({top:0,behavior:'smooth'})};
   const lessons=[...(m.theory||[]),...(m.practice||[])];
-  $('academyLessonList').innerHTML='<h5>Lessons</h5>'+lessons.map(x=>'<label><input type="checkbox" data-lesson="'+esc(x.id)+'"> '+esc(x.title||x.task||x.objective||x.id)+'</label>').join('');
-  $('academyLessonList').querySelectorAll('[data-lesson]').forEach(ch=>ch.onchange=async()=>{try{await api('/academy/lesson/complete',{method:'POST',body:JSON.stringify({course,subject_id:id,lesson_id:ch.dataset.lesson,completed:ch.checked})})}catch(e){ch.checked=!ch.checked;alert(e.message)}});
+  $('academyLessonList').innerHTML='<h5>O‘quv materiallari</h5>'+lessons.map(x=>'<div class="academy-stat"><b>'+esc(x.title||x.task||x.objective||x.id)+'</b><p>'+esc(x.task||x.objective||'Mavzuni o‘rganing va tegishli baholashni bajaring.')+'</p></div>').join('');
   p.querySelectorAll('.academy-act').forEach(b=>b.onclick=()=>startAssessment(course,id,b.dataset.type));
  }catch(e){p.innerHTML='<div>Fan yuklanmadi: '+esc(e.message)+'</div>'}
 }
 async function startAssessment(course,id,type){
  const box=$('academyAssessment');if(!box)return;
  try{
-  const d= type==='quiz'||type==='case'||type==='exam'||type==='skills'||type==='osce'
-   ? await api('/academy/v2/subject/'+course+'/'+encodeURIComponent(id))
-   : await api('/academy/v2/subject/'+course+'/'+encodeURIComponent(id));
-  const mod=d.modules[type]; if(!mod){box.innerHTML='<p>Modul topilmadi.</p>';return}
-  const items=mod.items||[];
+  if(!['theory','practice','quiz','case','exam'].includes(type)){box.innerHTML='<p>Bu baholash turi hozircha mavjud emas.</p>';return}
+  const d=await api('/academy/assessment/start',{method:'POST',body:JSON.stringify({course,subject_id:id,assessment_type:type})});
+  const items=d.items||[];
   box.innerHTML='<h5>'+esc(type.toUpperCase())+'</h5><form id="academyForm"></form>';
   const form=$('academyForm');
   if(type==='theory'||type==='practice'){
-   form.innerHTML='<p>Activity: '+esc(d.subject.objective)+'</p><label><input type="checkbox" name="completion" value="1"> Men bu faoliyatni bajardim va natijani tekshirdim.</label>';
-  }else if(type==='skills'){
-   form.innerHTML=items.map(q=>'<div class="q"><b>'+esc(q.title)+'</b><p>'+esc(q.instruction)+'</p><label><input type="checkbox" name="'+esc(q.id)+'" value="1"> Bajarildi</label></div>').join('');
-  }else if(type==='osce'){
-   form.innerHTML=items.map(q=>'<div class="q"><b>'+esc(q.station)+'</b><p>'+esc(q.prompt)+'</p><ul>'+q.checklist.map(x=>'<li>'+esc(x)+'</li>').join('')+'</ul><label><input type="checkbox" name="'+esc(q.id)+'" value="1"> Station completed</label></div>').join('');
+   form.innerHTML='<p>'+esc(items[0]?.instruction||'O‘quv faoliyatini bajaring.')+'</p><label><input type="checkbox" name="completion" value="1" required> Men bu faoliyatni bajardim va natijani tekshirdim.</label>';
   }else{
-   form.innerHTML=items.map((q,i)=>'<div class="q"><b>'+esc((i+1)+'. '+(q.question||q.prompt))+'</b>'+(q.scenario?'<p>'+esc(q.scenario)+'</p>':'')+q.options.map((o,j)=>'<label><input required type="radio" name="'+esc(q.id)+'" value="'+j+'"> '+esc(o)+'</label>').join('')+'</div>').join('');
+   form.innerHTML=items.map((q,i)=>'<div class="q"><b>'+esc((i+1)+'. '+(q.question||q.prompt||''))+'</b>'+(q.scenario?'<p>'+esc(q.scenario)+'</p>':'')+(q.options||[]).map((o,j)=>'<label><input required type="radio" name="'+esc(q.id)+'" value="'+j+'"> '+esc(o)+'</label>').join('')+'</div>').join('');
   }
-  const btn=document.createElement('button');btn.type='submit';btn.className='primary';btn.textContent='Submit assessment';form.appendChild(btn);
+  const btn=document.createElement('button');btn.type='submit';btn.className='primary';btn.textContent='Natijani saqlash';form.appendChild(btn);
   form.onsubmit=async e=>{
    e.preventDefault();const answers={};
    if(type==='theory'||type==='practice') answers.completion=form.querySelector('[name=completion]')?.checked?1:0;
    else form.querySelectorAll('input:checked').forEach(x=>answers[x.name]=Number(x.value));
-   try{const r=await api('/academy/v2/assessment/submit',{method:'POST',body:JSON.stringify({course,subject_id:id,assessment_type:type,answers})});box.insertAdjacentHTML('afterbegin','<div class="academy-stat">Natija: <strong>'+esc(r.score)+'%</strong> — '+(r.passed?'PASSED':'NOT PASSED')+'</div>');await render();}catch(e){alert(e.message)}
+   try{
+    const r=await api('/academy/assessment/submit',{method:'POST',body:JSON.stringify({course,subject_id:id,assessment_type:type,answers})});
+    box.insertAdjacentHTML('afterbegin','<div class="academy-stat">Natija: <strong>'+esc(r.score)+'%</strong> — '+(r.passed?'O‘TDI':'QAYTA URINING')+'</div>');
+    await render();
+   }catch(e){alert(e.message)}
   };
- }catch(e){box.innerHTML='<div>Assessment xatosi: '+esc(e.message)+'</div>'}
+ }catch(e){box.innerHTML='<div>Baholash xatosi: '+esc(e.message)+'</div>'}
 }
 function observe(){
  const target=$('medicalAcademyTool');if(!target)return;
