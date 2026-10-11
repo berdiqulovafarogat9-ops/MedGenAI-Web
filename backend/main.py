@@ -145,6 +145,7 @@ platform_audit_log = []
 usage_store = {}
 
 DATABASE_URL = os.getenv("DATABASE_URL", "").strip()
+LEGAL_CONSENT_VERSION = "1.1"
 PERSISTENCE_ENABLED = bool(DATABASE_URL and psycopg)
 password_hasher = PasswordHash.recommended() if PasswordHash else None
 
@@ -631,7 +632,7 @@ def me(
         "profile": profile,
         "consent": consent,
         "profile_complete": is_required_profile_complete(profile),
-        "consent_complete": all([
+        "consent_complete": consent.get("version") == LEGAL_CONSENT_VERSION and all([
             consent.get("terms_accepted", False),
             consent.get("privacy_accepted", False),
             consent.get("data_processing_accepted", False),
@@ -857,7 +858,7 @@ def update_profile(
 @app.get("/api/v1/legal/documents")
 def legal_documents():
     return {
-        "version": "1.0",
+        "version": LEGAL_CONSENT_VERSION,
         "terms": {
             "title": "MedGen AI Ommaviy Oferta va Foydalanish Shartlari",
             "text": "MedGen AI ilmiy tadqiqot va hisoblash platformasi. Platformadagi natijalar tadqiqot va ishlab chiqish maqsadida taqdim etiladi. Ular mustaqil ilmiy ekspertiza, klinik tashxis yoki davolash bo‘yicha ko‘rsatma o‘rnini bosmaydi."
@@ -939,7 +940,7 @@ def save_consent(data: ConsentRequest, user=Depends(get_current_user)):
         data.research_disclaimer_accepted,
     ]):
         raise HTTPException(status_code=400, detail="All required agreements must be accepted.")
-    consent = {**data.model_dump(), "version": "1.0", "accepted_at": datetime.now(timezone.utc).isoformat()}
+    consent = {**data.model_dump(), "version": LEGAL_CONSENT_VERSION, "accepted_at": datetime.now(timezone.utc).isoformat()}
     user_consents[user["username"]] = consent
     activity_log.insert(0, {"type": "consent", "username": user["username"], "at": consent["accepted_at"]})
     _db_save()
