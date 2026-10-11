@@ -915,6 +915,35 @@ def security_summary(user=Depends(get_current_user)):
     }
 
 
+@app.post("/api/v1/security/location")
+async def save_security_location(request: Request, user=Depends(get_current_user)):
+    """Save precise coordinates only after the signed-in user grants browser permission."""
+    try:
+        data = await request.json()
+        lat = float(data.get("location_lat"))
+        lon = float(data.get("location_lon"))
+    except (TypeError, ValueError, AttributeError):
+        raise HTTPException(status_code=400, detail="Valid latitude and longitude are required.")
+    if not (-90 <= lat <= 90 and -180 <= lon <= 180):
+        raise HTTPException(status_code=400, detail="Coordinates are outside valid ranges.")
+    username = user["username"]
+    profile = dict(user_profiles.get(username, {}))
+    profile.update({
+        "location_lat": lat,
+        "location_lon": lon,
+        "location_source": "browser_permission",
+        "location_label": str(data.get("location_label") or profile.get("location_label") or "Qurilma GPS")[:240],
+    })
+    user_profiles[username] = profile
+    activity_log.insert(0, {
+        "type": "location_updated",
+        "username": username,
+        "at": datetime.now(timezone.utc).isoformat(),
+    })
+    _db_save()
+    return {"status": "saved", "has_coordinates": True}
+
+
 @app.post("/api/v1/security/identity/request")
 def request_identity_verification(data: IdentityVerificationRequest, user=Depends(get_current_user)):
     method = str(data.method or "DOCUMENT_PROVIDER").strip().upper()
