@@ -467,6 +467,7 @@ async def account_readiness_guard(request: Request, call_next):
         "/api/v1/legal/documents",
         "/api/v1/legal/consent",
         "/api/v1/academy/profile",
+        "/api/v1/academy/catalog",
         "/api/v1/education/preferences",
         "/api/v1/roles/request",
         "/api/v1/security/overview",
