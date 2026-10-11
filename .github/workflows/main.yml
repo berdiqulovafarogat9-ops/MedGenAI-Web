@@ -9,6 +9,11 @@ on:
 jobs:
   build:
     runs-on: ubuntu-latest
+    # CI-only values satisfy Compose interpolation; they are never deployed.
+    env:
+      MEDGEN_ADMIN_PASSWORD: ci-only-not-a-production-password
+      MEDGEN_SECRET_KEY: ci-only-not-a-production-secret
+      POSTGRES_PASSWORD: ci-only-not-a-production-db-password
 
     steps:
       - name: Checkout repository
