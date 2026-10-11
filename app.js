@@ -1203,6 +1203,8 @@ async function openProfile() {
     $('profileCountry').value = p.country || '';
     $('profileRegion').value = p.region || '';
     $('profileDistrict').value = p.district || '';
+    $('profileRegion').dataset.selected = p.region || '';
+    $('profileDistrict').dataset.selected = p.district || '';
     $('profileCity').value = p.city || '';
     $('profileLocationLabel').value = p.location_label || '';
     const locationButton = $('detectLocationBtn');
