@@ -1516,6 +1516,7 @@ def create_experiment(
         "target": target,
         "at": now,
     })
+    _db_save()
     return experiment
 
 
