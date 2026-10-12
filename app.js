@@ -4333,11 +4333,49 @@ if (document.readyState === "loading") {
         const body=document.getElementById('p1AssessmentBody');
         body.innerHTML=d.items.map((q,i)=>{
           if(type==='theory'||type==='practice') return `<div class="p1-question"><b>${i+1}. ${esc(q.title||q.prompt)}</b><p>${esc(q.prompt||'')}</p>${q.content?`<p>${esc(q.content)}</p>`:''}<p>${esc(q.instruction||'')}</p><label><input type="checkbox" data-q="${esc(q.id)}" class="p1-complete"> Bajarildi</label></div>`;
-          if(type==='puzzle') return `<div class="p1-question brain-puzzle"><b>🧩 ${esc(q.title||'Puzzle')}</b><p>${esc(q.instruction||'')}</p><div class="brain-pieces" style="display:flex;flex-wrap:wrap;gap:8px;margin:12px 0">${(q.parts||[]).map(part=>`<button type="button" draggable="true" class="brain-piece ghost small" data-brain-piece="${esc(part.id)}" style="cursor:grab">${esc(part.label)}</button>`).join('')}</div><div class="brain-board" style="display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:10px">${(q.slots||[]).map(slot=>`<div class="brain-slot" data-slot-value="${slot.value}" style="min-height:72px;border:2px dashed #8aa4bd;border-radius:12px;padding:10px;background:#f6faff"><b>${esc(slot.label)}</b><div class="brain-dropzone" style="margin-top:8px;min-height:22px">Bu yerga olib keling yoki bosing</div></div>`).join('')}</div>${(q.parts||[]).map(part=>`<input type="hidden" data-puzzle-part="${esc(part.id)}" value="">`).join('')||'<p>Bu fan uchun puzzle xaritasi hali tayyor emas.</p>'}</div>`;
+          if(type==='puzzle') return `<div class="p1-question brain-puzzle"><b>🧩 ${esc(q.title||'Puzzle')}</b><p>${esc(q.instruction||'')}</p><div id="brain3dViewer" role="img" aria-label="Bosh miyaning 3D sxematik modeli" style="height:280px;width:100%;max-width:720px;margin:12px auto;border-radius:14px;overflow:hidden;background:#101b2b;position:relative"><span style="position:absolute;left:10px;bottom:8px;color:#fff;font-size:12px;z-index:2">Sxematik 3D • aylantirish: sudrang • yaqinlashtirish: g‘ildirak</span></div><div class="brain-pieces" style="display:flex;flex-wrap:wrap;gap:8px;margin:12px 0">${(q.parts||[]).map(part=>`<button type="button" draggable="true" class="brain-piece ghost small" data-brain-piece="${esc(part.id)}" style="cursor:grab">${esc(part.label)}</button>`).join('')}</div><div class="brain-board" style="display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:10px">${(q.slots||[]).map(slot=>`<div class="brain-slot" data-slot-value="${slot.value}" style="min-height:72px;border:2px dashed #8aa4bd;border-radius:12px;padding:10px;background:#f6faff"><b>${esc(slot.label)}</b><div class="brain-dropzone" style="margin-top:8px;min-height:22px">Bu yerga olib keling yoki bosing</div></div>`).join('')}</div>${(q.parts||[]).map(part=>`<input type="hidden" data-puzzle-part="${esc(part.id)}" value="">`).join('')||'<p>Bu fan uchun puzzle xaritasi hali tayyor emas.</p>'}</div>`;
           if(type==='skills'||type==='osce'||type==='practical_exam') return '<div class="p1-question"><b>'+(i+1)+'. '+esc(q.question||q.prompt)+'</b><p>'+esc(q.prompt||'')+'</p><div>'+(q.checklist||[]).map((item,j)=>'<label class="p1-option"><input type="checkbox" data-q="'+esc(q.id+':'+j)+'" value="1"> '+esc(item)+'</label>').join('')+'</div></div>';
           return `<div class="p1-question"><b>${i+1}. ${esc(q.question||q.prompt)}</b>${q.scenario?`<p><i>${esc(q.scenario)}</i></p>`:''}<div>${(q.options||[]).map((o,j)=>`<label class="p1-option"><input type="radio" name="q_${esc(q.id)}" value="${j}" data-q="${esc(q.id)}"> ${esc(o)}</label>`).join('')}</div></div>`;
         }).join('');
         if(type==='puzzle'){
+          const viewerEl=document.getElementById('brain3dViewer');
+          const loadThree=()=>new Promise((resolve,reject)=>{
+            if(window.THREE){resolve(window.THREE);return;}
+            const script=document.createElement('script');
+            script.src='https://cdn.jsdelivr.net/npm/three@0.160.0/build/three.min.js';
+            script.onload=()=>window.THREE?resolve(window.THREE):reject(new Error('3D kutubxonasi topilmadi'));
+            script.onerror=()=>reject(new Error('3D kutubxonasi yuklanmadi'));
+            document.head.appendChild(script);
+          });
+          loadThree().then(THREE=>{
+            if(!viewerEl||!viewerEl.isConnected)return;
+            const scene=new THREE.Scene();scene.background=new THREE.Color(0x101b2b);
+            const camera=new THREE.PerspectiveCamera(38,viewerEl.clientWidth/280,0.1,100);camera.position.set(0,0,8);
+            const renderer=new THREE.WebGLRenderer({antialias:true,alpha:false});renderer.setPixelRatio(Math.min(window.devicePixelRatio||1,2));renderer.setSize(viewerEl.clientWidth,280);viewerEl.appendChild(renderer.domElement);
+            scene.add(new THREE.HemisphereLight(0xffffff,0x536078,2));
+            const light=new THREE.DirectionalLight(0xffffff,2.2);light.position.set(4,5,7);scene.add(light);
+            const brain=new THREE.Group();scene.add(brain);
+            const addLobe=(color,x,y,z,sx,sy,sz,rx=0,ry=0,rz=0)=>{
+              const mesh=new THREE.Mesh(new THREE.SphereGeometry(1,32,24),new THREE.MeshStandardMaterial({color,roughness:.72,metalness:0}));
+              mesh.position.set(x,y,z);mesh.scale.set(sx,sy,sz);mesh.rotation.set(rx,ry,rz);brain.add(mesh);
+            };
+            // Educational schematic, not a clinical/anatomical surface model.
+            addLobe(0xe58d91,-.48,.55,0,1.0,1.05,.75,0,0,-.2);
+            addLobe(0xe9b36d,.48,.55,0,1.0,1.05,.75,0,0,.2);
+            addLobe(0x8dc6a7,-.5,-.25,.05,.88,.75,.72,0,0,.18);
+            addLobe(0x83b9e8,.5,-.25,.05,.88,.75,.72,0,0,-.18);
+            addLobe(0x8f9ee8,0,-1.0,-.05,.62,.52,.58);
+            addLobe(0xe9d08a,0,-1.45,.08,.25,.72,.28,-.25,0,0);
+            const grid=new THREE.GridHelper(7,14,0x40516a,0x26364a);grid.position.y=-2;scene.add(grid);
+            let dragging=false,px=0,py=0;
+            renderer.domElement.addEventListener('pointerdown',e=>{dragging=true;px=e.clientX;py=e.clientY;renderer.domElement.setPointerCapture(e.pointerId);});
+            renderer.domElement.addEventListener('pointermove',e=>{if(!dragging)return;brain.rotation.y+=(e.clientX-px)*.009;brain.rotation.x+=(e.clientY-py)*.009;px=e.clientX;py=e.clientY;});
+            renderer.domElement.addEventListener('pointerup',()=>dragging=false);renderer.domElement.addEventListener('pointercancel',()=>dragging=false);
+            renderer.domElement.addEventListener('wheel',e=>{e.preventDefault();camera.position.z=Math.max(5,Math.min(12,camera.position.z+e.deltaY*.008));},{passive:false});
+            const resize=()=>{if(!viewerEl.isConnected)return;const w=viewerEl.clientWidth||320;camera.aspect=w/280;camera.updateProjectionMatrix();renderer.setSize(w,280);};
+            const ro=new ResizeObserver(resize);ro.observe(viewerEl);
+            const animate=()=>{if(!viewerEl.isConnected){ro.disconnect();renderer.dispose();return;}renderer.render(scene,camera);requestAnimationFrame(animate);};animate();
+          }).catch(err=>{if(viewerEl&&viewerEl.isConnected)viewerEl.innerHTML='<div style="color:white;padding:24px">3D ko‘rinishni yuklab bo‘lmadi. Puzzle qismlarini pastda ishlatishda davom eting.</div>';});
           let selectedPiece='';
           const pieces=[...body.querySelectorAll('[data-brain-piece]')];
           const slots=[...body.querySelectorAll('[data-slot-value]')];
