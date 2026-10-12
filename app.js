@@ -1246,16 +1246,32 @@ async function openProfile() {
 
     const regionManual = $('profileRegionManual');
     const districtManual = $('profileDistrictManual');
-    $('profileRegion')?.addEventListener('change', () => {
-      if ($('profileRegion')?.value !== 'OTHER' && regionManual) regionManual.value = '';
-      if ($('profileRegion')?.value === 'OTHER' && regionManual) regionManual.focus();
-    });
-    $('profileDistrict')?.addEventListener('change', () => {
-      if ($('profileDistrict')?.value !== 'OTHER' && districtManual) districtManual.value = '';
-      if ($('profileDistrict')?.value === 'OTHER' && districtManual) districtManual.focus();
-    });
-    regionManual?.addEventListener('input', () => { if (regionManual.value && $('profileRegion')) $('profileRegion').value = 'OTHER'; });
-    districtManual?.addEventListener('input', () => { if (districtManual.value && $('profileDistrict')) $('profileDistrict').value = 'OTHER'; });
+    const regionSelect = $('profileRegion');
+    const districtSelect = $('profileDistrict');
+
+    // Assign handlers instead of stacking listeners every time the profile opens.
+    // An empty select value can happen while region options are still loading; do
+    // not erase the user's manually entered/saved value in that state.
+    if (regionSelect) regionSelect.onchange = () => {
+      if (regionSelect.value === 'OTHER') {
+        regionManual?.focus();
+      } else if (regionSelect.value && regionManual) {
+        regionManual.value = '';
+      }
+    };
+    if (districtSelect) districtSelect.onchange = () => {
+      if (districtSelect.value === 'OTHER') {
+        districtManual?.focus();
+      } else if (districtSelect.value && districtManual) {
+        districtManual.value = '';
+      }
+    };
+    if (regionManual) regionManual.oninput = () => {
+      if (regionManual.value && regionSelect) regionSelect.value = 'OTHER';
+    };
+    if (districtManual) districtManual.oninput = () => {
+      if (districtManual.value && districtSelect) districtSelect.value = 'OTHER';
+    };
 
     const profileSaveButton = $('profileSave');
     $('openSecurityFromProfile')?.addEventListener('click', () => {
