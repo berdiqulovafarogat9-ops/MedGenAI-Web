@@ -129,6 +129,7 @@ jobs_store = []
 docking_jobs_store = {}
 workflows_store = []
 reports_store = []
+academy_syllabi_store = {}
 experiments_store = []
 knowledge_entities_store = []
 knowledge_relations_store = []
@@ -4173,8 +4174,6 @@ class AcademySyllabusImportRequest(BaseModel):
     source_filename: str = ""
     source_note: str = ""
     subjects: list[AcademySyllabusSubject]
-
-academy_syllabi_store = {}
 
 @app.post("/api/v1/admin/academy/syllabi")
 def admin_import_academy_syllabus(data: AcademySyllabusImportRequest, user=Depends(get_current_user)):
