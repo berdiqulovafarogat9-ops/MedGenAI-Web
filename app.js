@@ -1350,8 +1350,15 @@ function isProfileComplete(p) {
 }
 
 function enforceProfileCompletion() {
-  // Profile completion is mandatory. The dashboard may render, but scientific modules remain locked until completion.
+  // Never let a module silently fail with API 403: guide the user through
+  // explicit legal consent and required profile fields before opening it.
+  if (state.user && state.user.consent_complete !== true) {
+    void ensureLegalConsent();
+    return false;
+  }
+
   if (isSuperAdmin()) return true;
+
   if (!state.user || isProfileComplete(state.user.profile || {})) {
     document.querySelectorAll('.module, #workspace, #adminDashboard').forEach(el => {
       if (el) el.classList.remove('profile-locked');
@@ -1365,14 +1372,10 @@ function enforceProfileCompletion() {
 
   const status = $('profileStatus');
   if (status) {
-    status.textContent = '⚠️ Profil hali to‘liq emas. Dashboard ochildi; ayrim funksiyalar profil tasdiqlangach ochiladi.';
+    status.textContent = '⚠️ Modulni ochish uchun profilingizni to‘liq to‘ldiring.';
   }
-  const roleStatus = $('roleDashboardDesc');
-  if (roleStatus && !roleStatus.dataset.profileNoticeShown) {
-    roleStatus.textContent += '  |  ⚠️ Profilni to‘ldirish talab qilinadi.';
-    roleStatus.dataset.profileNoticeShown = '1';
-  }
-  return true;
+  openProfileEditor();
+  return false;
 }
 
 function closeProfile() {
