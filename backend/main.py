@@ -631,7 +631,7 @@ def register(data: RegisterRequest):
             "year": academic_year,
             "group": str(data.group or "").strip()[:100],
             "student_id": str(data.student_id or "").strip()[:100],
-            "study_language": "en",
+            "study_language": "uz",
             "academic_degree": "MD/MBBS",
         },
     }
@@ -3566,6 +3566,129 @@ ACADEMY_COURSES = {
     ]},
 }
 
+
+ACADEMY_UZ_TRANSLATIONS = {
+    "Which structure connects skeletal muscle to bone?": "Skelet mushagini suyak bilan qaysi tuzilma bog‘laydi?",
+    "Tendon": "Pay", "Ligament": "Boylam", "Articular cartilage": "Bo‘g‘im tog‘ayi", "Synovial membrane": "Sinovial parda",
+    "Tendons transmit force from muscle to bone.": "Paylar mushak kuchini suyakka uzatadi.",
+    "Which chamber pumps oxygenated blood into the systemic circulation?": "Qaysi yurak bo‘lmachasi kislorodga boy qonni katta qon aylanish doirasiga haydaydi?",
+    "Right atrium": "O‘ng bo‘lmacha", "Right ventricle": "O‘ng qorincha", "Left atrium": "Chap bo‘lmacha", "Left ventricle": "Chap qorincha",
+    "The left ventricle ejects blood into the aorta.": "Chap qorincha qonni aortaga chiqaradi.",
+    "Which plane divides the body into left and right portions?": "Qaysi tekislik tanani chap va o‘ng qismlarga ajratadi?",
+    "Transverse": "Ko‘ndalang", "Sagittal": "Sagittal", "Coronal": "Frontal", "Oblique": "Qiyshiq",
+    "A sagittal plane divides left and right portions.": "Sagittal tekislik tanani chap va o‘ng qismlarga ajratadi.",
+    "Which type of joint normally permits the greatest range of movement?": "Qaysi bo‘g‘im turi odatda eng katta harakat diapazonini ta’minlaydi?",
+    "Fibrous suture": "Tolali chok", "Cartilaginous symphysis": "Tog‘ayli simfiz", "Synovial joint": "Sinovial bo‘g‘im", "Synchondrosis": "Sinxondroz",
+    "Synovial joints are designed for substantial movement.": "Sinovial bo‘g‘imlar keng harakatlanish uchun moslashgan.",
+    "Which statement best describes {topic}?": "{topic}ni qaysi fikr eng to‘g‘ri ta’riflaydi?",
+    "It is a core concept of {topic}.": "Bu {topic}ning asosiy tushunchasidir.",
+    "It is unrelated to biomedical science.": "Bu biotibbiyot fanlariga aloqador emas.",
+    "It is only an administrative process.": "Bu faqat ma’muriy jarayondir.",
+    "It has no measurable scientific basis.": "Buning o‘lchanadigan ilmiy asosi yo‘q.",
+    "What is the safest learning approach when studying {topic}?": "{topic}ni o‘rganishda eng xavfsiz yondashuv qaysi?",
+    "Learn the mechanism, practice it, then verify with assessment.": "Mexanizmni o‘rganing, mashq qiling, so‘ng bilimni baholash orqali tekshiring.",
+    "Skip theory and memorize a final answer.": "Nazariyani tashlab, yakuniy javobni yodlang.",
+    "Treat every simulation as real-patient care.": "Har bir simulyatsiyani haqiqiy bemorga yordam ko‘rsatish deb qabul qiling.",
+    "Use an unverified source as the only authority.": "Tekshirilmagan manbani yagona ishonchli manba deb oling.",
+    "Medical Academy separates theory, practice, assessment and supervised simulation.": "Tibbiyot akademiyasida nazariya, amaliyot, baholash va nazorat ostidagi simulyatsiya alohida bosqichlardir.",
+    "Why is {topic} important in medical education?": "{topic} tibbiy ta’limda nima uchun muhim?",
+    "It supports structured scientific and clinical reasoning.": "U ilmiy va klinik fikrlashni tizimli rivojlantiradi.",
+    "It replaces all laboratory and clinical evidence.": "U barcha laboratoriya va klinik dalillarning o‘rnini bosadi.",
+    "It guarantees a diagnosis without examination.": "U ko‘riksiz tashxisni kafolatlaydi.",
+    "It removes the need for qualified supervision.": "U malakali mutaxassis nazoratiga ehtiyojni yo‘q qiladi.",
+    "Educational knowledge supports reasoning but does not replace real clinical validation.": "O‘quv bilimlari fikrlashni qo‘llab-quvvatlaydi, ammo haqiqiy klinik tekshiruv o‘rnini bosmaydi.",
+    "Which action improves mastery of {topic}?": "{topic}ni puxta o‘zlashtirishga qaysi harakat yordam beradi?",
+    "Recall, apply, explain and review errors.": "Eslab aytish, qo‘llash, tushuntirish va xatolarni tahlil qilish.",
+    "Only reread the same paragraph.": "Faqat bir xil paragrafni qayta o‘qish.",
+    "Ignore incorrect answers.": "Noto‘g‘ri javoblarni e’tiborsiz qoldirish.",
+    "Avoid practice until the final exam.": "Yakuniy imtihongacha mashq qilmaslik.",
+    "Active recall, application and error review are appropriate learning methods.": "Faol eslab qolish, qo‘llash va xatolarni ko‘rib chiqish samarali o‘rganish usullaridir.",
+    "When should a student revisit {topic}?": "Talaba {topic}ni qachon qayta ko‘rib chiqishi kerak?",
+    "After practice or an assessment exposes a knowledge gap.": "Mashq yoki baholash bilimdagi bo‘shliqni ko‘rsatgandan keyin.",
+    "Never after passing one question.": "Bitta savolga to‘g‘ri javob bergach, hech qachon qaytmaslik.",
+    "Only after graduation.": "Faqat o‘qishni tugatgandan keyin.",
+    "Only when a patient is waiting.": "Faqat bemor kutib turganda.",
+    "Assessment results should drive targeted review.": "Baholash natijalari maqsadli takrorlashga yo‘naltirishi kerak.",
+    "What is a correct interpretation of a MedGen AI {topic} simulation?": "MedGen AI tizimidagi {topic} simulyatsiyasini qanday to‘g‘ri talqin qilish kerak?",
+    "An educational exercise, not an independent clinical authorization.": "Bu o‘quv mashqi, mustaqil klinik faoliyatga ruxsat emas.",
+    "A legally binding clinical order.": "Yuridik kuchga ega klinik buyruq.",
+    "A guaranteed treatment recommendation.": "Kafolatlangan davolash tavsiyasi.",
+    "A substitute for a licensed clinician.": "Litsenziyaga ega shifokorning o‘rnini bosuvchi vosita.",
+    "The Academy is educational; clinical decisions require qualified professionals and validated evidence.": "Akademiya ta’lim uchun mo‘ljallangan; klinik qarorlar malakali mutaxassis va tekshirilgan dalillarni talab qiladi.",
+    "Which evidence hierarchy principle applies while learning {topic}?": "{topic}ni o‘rganishda dalillar ierarxiyasining qaysi tamoyili qo‘llanadi?",
+    "Use reliable, current sources and critically evaluate evidence.": "Ishonchli va dolzarb manbalardan foydalaning, dalillarni tanqidiy baholang.",
+    "Accept every generated answer as fact.": "Yaratilgan har qanday javobni haqiqat deb qabul qiling.",
+    "Prefer anonymous claims over validated evidence.": "Tasdiqlangan dalillardan ko‘ra anonim da’volarni afzal ko‘ring.",
+    "Ignore uncertainty.": "Noaniqlikni e’tiborsiz qoldiring.",
+    "Scientific learning requires source criticism and explicit uncertainty.": "Ilmiy o‘rganish manbalarni tanqidiy baholash va noaniqlikni ochiq ko‘rsatishni talab qiladi.",
+    "What should be recorded after a {topic} practice session?": "{topic} bo‘yicha mashqdan keyin nimalar qayd etilishi kerak?",
+    "Performance, errors, feedback and next learning objective.": "Bajarilish, xatolar, fikr-mulohaza va keyingi o‘quv maqsadi.",
+    "Only the final score.": "Faqat yakuniy ball.",
+    "Nothing if the attempt was difficult.": "Urinish qiyin bo‘lgan bo‘lsa, hech narsa.",
+    "Only a screenshot.": "Faqat ekran tasviri.",
+    "A useful academic record captures progress and remediation needs.": "Foydali akademik qayd rivojlanish va qo‘shimcha mashq zaruratini ko‘rsatadi.",
+    "How does {topic} connect to other medical subjects?": "{topic} boshqa tibbiy fanlar bilan qanday bog‘lanadi?",
+    "Biomedical subjects are integrated through mechanisms and clinical reasoning.": "Biotibbiyot fanlari mexanizmlar va klinik fikrlash orqali o‘zaro bog‘lanadi.",
+    "Each subject is completely isolated.": "Har bir fan boshqalaridan butunlay ajralgan.",
+    "Integration is never needed.": "Fanlararo bog‘lanish hech qachon kerak emas.",
+    "Only one subject can be scientifically valid.": "Faqat bitta fan ilmiy jihatdan to‘g‘ri bo‘lishi mumkin.",
+    "Medical education progressively integrates foundational and clinical knowledge.": "Tibbiy ta’lim asosiy va klinik bilimlarni bosqichma-bosqich birlashtiradi.",
+    "What should happen after a weak result in {topic}?": "{topic} bo‘yicha natija past bo‘lsa, nima qilish kerak?",
+    "Review the gap, repeat targeted practice and reassess.": "Bilimdagi bo‘shliqni ko‘rib chiqing, maqsadli mashqni takrorlang va qayta baholang.",
+    "Automatically promote the student.": "Talabani avtomatik ravishda keyingi bosqichga o‘tkazing.",
+    "Delete the academic record.": "Akademik qaydni o‘chirib tashlang.",
+    "Treat the score as a clinical diagnosis.": "Ballni klinik tashxis deb qabul qiling.",
+    "Remediation and reassessment are more meaningful than a one-question promotion rule.": "Bilimni to‘ldirish va qayta baholash bitta savolga asoslangan o‘tkazish qoidasidan mazmunliroq.",
+    "What is the best next step?": "Keyingi eng to‘g‘ri qadam qaysi?",
+    "Identify the error, review the relevant concept and repeat practice.": "Xatoni aniqlang, tegishli tushunchani takrorlang va mashqni qayta bajaring.",
+    "Ignore it.": "Buni e’tiborsiz qoldiring.",
+    "Use the result as a patient diagnosis.": "Natijani bemorga qo‘yilgan tashxis sifatida ishlating.",
+    "Skip all future assessments.": "Keyingi barcha baholashlardan voz keching.",
+    "What should the student do?": "Talaba nima qilishi kerak?",
+    "Check reliable sources and mark uncertainty before accepting it.": "Qabul qilishdan oldin ishonchli manbalarni tekshiring va noaniqlikni belgilang.",
+    "Accept it because it sounds confident.": "Ishonchli eshitilgani uchun qabul qiling.",
+    "Publish it as clinical guidance.": "Uni klinik ko‘rsatma sifatida e’lon qiling.",
+    "Remove the uncertainty.": "Noaniqlikni olib tashlang.",
+    "Which educational response is appropriate?": "Qaysi ta’limiy yondashuv to‘g‘ri?",
+    "Target the weak objectives, practice again and reassess.": "Zaif o‘zlashtirilgan maqsadlarni tanlang, qayta mashq qiling va qayta baholang.",
+    "Promote immediately.": "Darhol keyingi bosqichga o‘tkazing.",
+    "Hide the result.": "Natijani yashiring.",
+    "Stop studying the subject.": "Fanni o‘rganishni to‘xtating.",
+    "Preparation": "Tayyorgarlik", "Correct sequence": "To‘g‘ri ketma-ketlik",
+    "Scientific rationale": "Ilmiy asos", "Safety check": "Xavfsizlik tekshiruvi",
+    "Reflection": "Tahlil", "Structured execution": "Tizimli bajarish",
+    "Communication": "Muloqot", "Documentation": "Hujjatlashtirish",
+    "Interpretation": "Talqin", "Skill performance": "Ko‘nikmani bajarish",
+    "Reasoning": "Fikrlash", "Feedback": "Fikr-mulohaza",
+    "Perform the structured educational skill, explain the rationale, and identify safety checks.": "Tuzilgan o‘quv ko‘nikmasini bajaring, ilmiy asosini tushuntiring va xavfsizlik tekshiruvlarini aniqlang.",
+    "Complete the station in a structured sequence and communicate key safety checks.": "Stansiyani belgilangan ketma-ketlikda bajaring va asosiy xavfsizlik tekshiruvlarini ayting.",
+    "Interpret the educational scenario, demonstrate the skill, and explain the decision.": "O‘quv vaziyatini talqin qiling, ko‘nikmani ko‘rsating va qaroringizni tushuntiring.",
+}
+def _academy_translate_value(value):
+    if not isinstance(value, str):
+        return value
+    translated = ACADEMY_UZ_TRANSLATIONS.get(value)
+    if translated:
+        return translated
+    # Translate generated question templates while preserving the subject topic.
+    templates = (
+        ("Which statement best describes ", "Qaysi fikr quyidagini eng to‘g‘ri ta’riflaydi: "),
+        ("What is the safest learning approach when studying ", "Quyidagini o‘rganishda eng xavfsiz yondashuv qaysi: "),
+        ("Why is ", "Nima uchun "),
+        (" important in medical education?", " tibbiy ta’limda muhim?"),
+    )
+    for source, target in templates:
+        if value.startswith(source):
+            return value.replace(source, target, 1)
+    return value
+
+def _academy_translate_payload(value):
+    if isinstance(value, list):
+        return [_academy_translate_payload(item) for item in value]
+    if isinstance(value, dict):
+        return {key: _academy_translate_payload(item) for key, item in value.items()}
+    return _academy_translate_value(value)
+
 ACADEMY_ASSESSMENT_TYPES = ("theory", "practice", "quiz", "case", "skills", "osce", "exam")
 
 def _academy_subject(course: int, subject_id: str):
@@ -4015,6 +4138,10 @@ def academy_start_assessment(data: AcademyAssessmentStartRequest, user=Depends(g
     else:
         pool = bank["exam"] if data.assessment_type == "exam" else bank["quiz"]
         items = [{"id": q["id"], "question": q["question"], "options": q["options"]} for q in pool]
+    ap = _academy_profile(user["username"])
+    study_language = str(ap.get("study_language") or "uz").lower().split("-")[0]
+    if study_language in {"uz", "uzbek", "uzb"}:
+        items = _academy_translate_payload(items)
     return {"status": "started", "course": data.course, "subject_id": data.subject_id, "assessment_type": data.assessment_type, "items": items, "time_limit_minutes": 45 if data.assessment_type == "exam" else None}
 
 @app.post("/api/v1/academy/assessment/submit")
