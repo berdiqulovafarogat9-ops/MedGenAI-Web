@@ -944,9 +944,28 @@ async function api(path, options = {}) {
 
   if (!response.ok) {
 
+    const code = String(data?.detail || '');
+    if (response.status === 403 && state.user) {
+      if (code === 'LEGAL_CONSENT_REQUIRED') {
+        state.user.consent_complete = false;
+        const modal = $('legalModal');
+        if (modal) {
+          modal.classList.remove('hidden');
+          modal.style.zIndex = '100200';
+          const status = $('legalStatus');
+          if (status) status.textContent = 'Ilmiy modullardan foydalanish uchun amaldagi roziliklarni o‘zingiz tasdiqlang.';
+        }
+      } else if (code === 'PROFILE_INCOMPLETE') {
+        state.user.profile_complete = false;
+        const status = $('profileStatus');
+        if (status) status.textContent = 'Ilmiy modullardan foydalanishdan oldin profilingizdagi majburiy maydonlarni to‘ldiring.';
+        if (typeof openProfileEditor === 'function') openProfileEditor();
+      }
+    }
+
     const rawMessage =
-      data?.detail ??
       data?.message ??
+      data?.detail ??
       `HTTP ${response.status}`;
 
     const message =
