@@ -2997,12 +2997,13 @@ async function searchResearch() {
 
     const data =
       await api(
-        '/research/search',
+        '/research/agent',
         {
           method: 'POST',
 
           body: JSON.stringify({
-            query
+            query,
+            limit: 8
           })
         }
       );
