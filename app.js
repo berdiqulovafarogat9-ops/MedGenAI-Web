@@ -4240,8 +4240,13 @@ if (document.readyState === "loading") {
         </div>
       </div>
 
+      <div class="card-grid">
+        <div class="card"><h3>📈 O‘rtacha natija</h3><p id="p1AverageScore" class="status">Hali natija yo‘q</p></div>
+        <div class="card"><h3>🎯 E’tibor talab qiladigan fanlar</h3><div id="p1WeakTopics" class="status">Yuklanmoqda...</div></div>
+        <div class="card"><h3>💡 Tavsiya etilgan keyingi qadamlar</h3><div id="p1Recommendations" class="status">Yuklanmoqda...</div></div>
+      </div>
       <div class="card">
-        <h3>📚 Fanlar</h3>
+        <h3>📚 Fanlar va fan bo‘yicha progress</h3>
         <div id="p1Subjects"></div>
       </div>
       <div id="p1Assessment" class="card hidden">
@@ -4294,6 +4299,11 @@ if (document.readyState === "loading") {
         current=d.course;
         set('p1Overall', d.overall_progress+'%');
         set('p1CourseTitle', esc(d.course_title));
+        const scores=d.subjects.flatMap(s=>Object.values(s.record||{}).map(r=>Number(r.score)).filter(Number.isFinite));
+        set('p1AverageScore',scores.length?Math.round(scores.reduce((sum,n)=>sum+n,0)/scores.length)+'%':'Hali natija yo‘q');
+        const weak=d.subjects.filter(s=>!s.complete).sort((x,y)=>x.completed_assessments.length-y.completed_assessments.length).slice(0,5);
+        set('p1WeakTopics',weak.length?weak.map(s=>'<div>'+esc(s.name)+' — '+s.completed_assessments.length+'/7 bosqich</div>').join(''):'Barcha fanlar yakunlangan ✅');
+        set('p1Recommendations',weak.length?weak.map(s=>{const rec=s.record||{};const failed=Object.entries(rec).find(([type,r])=>Number(r.score)<70);const next=['theory','practice','quiz','case','skills','osce','exam'].find(type=>!rec[type]?.passed);return '<div><b>'+esc(s.name)+':</b> '+(failed?'Natijasi past bo‘lgan '+esc(failed[0])+' bosqichini takrorlang.':next?'Keyingi bosqich: '+esc(next)+'.':'Natijalarni ko‘rib chiqing.')+'</div>';}).join(''):'Yangi mavzu tanlang yoki bilimni takrorlang.');
         renderSubjects(d.subjects);
       } catch(e) {
         set('p1ProfileStatus','❌ '+esc(e.message));
