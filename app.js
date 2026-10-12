@@ -3652,13 +3652,19 @@ function getLocalRole(){
   try{return JSON.parse(localStorage.getItem('medgen_role_'+u)||'null');}catch(_){return null;}
 }
 function roleKey(){
-  const badgeRole=String($('roleBadge')?.textContent||'').trim().toLowerCase().replace(/[\s-]+/g, '_');
   const raw=String(
     state.user?.role ||
     state.user?.user_role ||
     state.user?.type ||
     ''
   ).trim().toLowerCase().replace(/[\s-]+/g, '_');
+  const badgeRole=String($('roleBadge')?.textContent||'').trim().toLowerCase().replace(/[\s-]+/g, '_');
+  // Admins may preview another role's dashboard from the role menu; this only
+  // changes the displayed workspace, never the server-side permissions.
+  if ((raw==='super_admin' || raw==='admin' || ['super_admin','superadmin','founder','ceo','owner','admin'].includes(badgeRole)) &&
+      window.medgenPreviewRole && MEDGEN_ROLES[window.medgenPreviewRole] && window.medgenPreviewRole!=='admin') {
+    return window.medgenPreviewRole;
+  }
   const profileRaw=String(
     state.user?.profile?.role ||
     state.user?.metadata?.role ||
@@ -4830,17 +4836,19 @@ async function detectProfileLocation(fromSecurity=false){
       drawer.classList.add('hidden');
       document.getElementById('navDrawerBackdrop')?.classList.add('hidden');
       if(btn.dataset.roleNav==='admin' && isAdmin) {
+        window.medgenPreviewRole = null;
+        applyRoleDashboard();
+        if (typeof loadPersonalDashboard === 'function') loadPersonalDashboard();
         document.getElementById('adminDashboard')?.scrollIntoView({behavior:'smooth',block:'start'});
         loadAdminDashboard();
       } else {
         const role=MEDGEN_ROLES[btn.dataset.roleNav];
         if(role) {
+          if(isAdmin) window.medgenPreviewRole = btn.dataset.roleNav;
+          applyRoleDashboard();
+          if (typeof loadPersonalDashboard === 'function') loadPersonalDashboard();
           const rd=document.getElementById('roleDashboard');
-          if(rd){
-            document.getElementById('roleDashboardTitle').textContent=role.icon+' '+role.title;
-            document.getElementById('roleDashboardDesc').textContent=role.desc;
-            rd.scrollIntoView({behavior:'smooth',block:'start'});
-          }
+          if(rd) rd.scrollIntoView({behavior:'smooth',block:'start'});
         }
       }
     }));
