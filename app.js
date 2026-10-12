@@ -954,6 +954,7 @@ async function api(path, options = {}) {
           modal.style.zIndex = '100200';
           const status = $('legalStatus');
           if (status) status.textContent = 'Ilmiy modullardan foydalanish uchun amaldagi roziliklarni o‘zingiz tasdiqlang.';
+          if (typeof ensureLegalConsent === 'function') void ensureLegalConsent();
         }
       } else if (code === 'PROFILE_INCOMPLETE') {
         state.user.profile_complete = false;
