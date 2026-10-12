@@ -5486,3 +5486,103 @@ async function renderPdb3D(){
     if(home) setTimeout(renderRoleHome, 0);
   });
 })(); 
+
+
+/* =========================================================
+   FINAL ROLE DASHBOARD ISOLATION
+   Resolve legacy accounts' locally selected role and enforce
+   one role-specific home screen after all older startup hooks.
+========================================================= */
+(function medgenFinalRoleDashboardIsolation(){
+  const priorRoleKey = roleKey;
+  function resolveWorkspaceRole(){
+    const serverRole = String(state.user?.role || state.user?.user_role || state.user?.type || '')
+      .trim().toLowerCase().replace(/[\\s-]+/g, '_');
+    const privileged = ['admin','super_admin','superadmin','founder','ceo','owner'];
+    if (privileged.includes(serverRole)) return priorRoleKey.call(this);
+
+    // Support older accounts where the API still reports generic "student"
+    // but registration stored the selected professional role in localStorage.
+    const username = String(state.user?.username || '').trim();
+    let saved = getLocalRole()?.key;
+    if (!saved && username) {
+      try {
+        for (let i=0; i<localStorage.length; i++) {
+          const k = localStorage.key(i);
+          if (k && k.toLowerCase() === ('medgen_role_' + username).toLowerCase()) {
+            saved = JSON.parse(localStorage.getItem(k) || 'null')?.key;
+            break;
+          }
+        }
+      } catch (_) {}
+    }
+    if (serverRole === 'student' && saved && MEDGEN_ROLES[saved] && saved !== 'admin') return saved;
+    return priorRoleKey.call(this);
+  }
+  roleKey = resolveWorkspaceRole;
+
+  const originalShowDashboard = showDashboard;
+  function enforceRoleHome(){
+    if (!state.user) return;
+    const key = roleKey();
+    const role = MEDGEN_ROLES[key] || MEDGEN_ROLES.student;
+    const root = $('dashboardView');
+    const home = $('roleDashboard');
+    if (!root || root.classList.contains('hidden') || !home) return;
+
+    // Apply module permissions and render the selected role's own module set.
+    document.querySelectorAll('#moduleDirectory .module').forEach(btn => {
+      const allowed = key === 'admin' || role.modules.includes(btn.dataset.module);
+      btn.classList.toggle('role-hidden', !allowed);
+    });
+    $('moduleDirectory')?.classList.toggle('hidden', key !== 'admin');
+    ['userDirectoryDashboard','adminDashboard','securityCenter','workspace','educationPreferencePanel']
+      .forEach(id => $(id)?.classList.add('hidden'));
+
+    $('roleDashboardTitle').textContent = (role.icon || '🧬') + ' ' + role.title;
+    $('roleDashboardDesc').textContent = role.desc;
+    $('roleDashboardBadge').textContent = key === 'admin' ? 'OWNER / ADMIN' : 'PERSONAL WORKSPACE';
+
+    const grid = $('roleQuickGrid');
+    if (grid) {
+      const labels = {
+        'Medical Academy':['🎓','Tibbiyot akademiyasi','Kurslar, anatomiya, klinik fikrlash va OSCE'],
+        'Virtual Laboratory':['🧪','Virtual laboratoriya','O‘quv simulyatsiyalari va tajriba protokollari'],
+        'Research Assistant':['🔬','Ilmiy tadqiqot','Adabiyotlar, gipotezalar va tadqiqot ishlari'],
+        'Reports & History':['📊','Hisobotlar va tarix','Saqlangan natijalar va faoliyat'],
+        'Bioinformatics':['🧬','Bioinformatika','DNK, RNK, oqsil va omics tahlili'],
+        'Molecular Analysis':['⚗️','Molekulyar tahlil','Molekulalar va kimyoviy xususiyatlar'],
+        'PDB & Structure':['🧫','PDB va strukturalar','Oqsil strukturalari va 3D ko‘rish'],
+        'Drug Discovery':['💊','Drug Discovery','Nishonlar va virtual skrining'],
+        'Scientific Jobs':['⚙️','Ilmiy vazifalar','Hisoblash vazifalari holati'],
+        'Global Platform':['🌐','Global platforma','Tashkilotlar, loyihalar va platforma boshqaruvi']
+      };
+      grid.innerHTML = (role.modules || []).map(name => {
+        const item = labels[name] || ['🔹',name,'Ish maydonini ochish'];
+        return '<button class="role-quick" type="button" data-role-module="'+escapeHtml(name)+'"><b>'+item[0]+' '+escapeHtml(item[1])+'</b><span>'+escapeHtml(item[2])+' · Ochish →</span></button>';
+      }).join('');
+      grid.querySelectorAll('[data-role-module]').forEach(btn => {
+        btn.addEventListener('click', () => openModule(btn.dataset.roleModule));
+      });
+    }
+    home.classList.remove('hidden');
+    window.medgenRefreshRoleNavigation?.();
+  }
+
+  showDashboard = function(){
+    originalShowDashboard.apply(this, arguments);
+    enforceRoleHome();
+    setTimeout(enforceRoleHome, 100);
+    setTimeout(enforceRoleHome, 500);
+    setTimeout(enforceRoleHome, 1200);
+  };
+  window.medgenRenderRoleHome = enforceRoleHome;
+  document.addEventListener('click', event => {
+    if (event.target.closest('[data-nav="home"]')) setTimeout(enforceRoleHome, 0);
+  });
+  if (document.readyState === 'loading') {
+    document.addEventListener('DOMContentLoaded', () => setTimeout(enforceRoleHome, 0), {once:true});
+  } else {
+    setTimeout(enforceRoleHome, 0);
+  }
+})();
