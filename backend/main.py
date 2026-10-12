@@ -1361,7 +1361,7 @@ def create_job(
     if job_type == "MOLECULAR":
         smiles = str(job_input.get("smiles") or job_input.get("ligand_smiles") or "").strip()
         if not smiles:
-            raise HTTPException(status_code=400, detail="MOLECULAR job input JSON must include \"smiles\", e.g. {\\"smiles\\":\\"CCO\\"}.")
+            raise HTTPException(status_code=400, detail="MOLECULAR job input JSON must include the smiles field, for example a SMILES value of CCO.")
         result = {
             "engine": "RDKit molecular property screening",
             "analysis": calculate_molecule_score(smiles),
