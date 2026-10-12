@@ -383,6 +383,7 @@ frame-ancestors 'none'">
       type="button"
       onclick="try{sessionStorage.removeItem('medgen_access_token');}catch(e){};try{if(typeof window.logout==='function'){window.logout();}else{var d=document.getElementById('dashboardView');var l=document.getElementById('loginView');if(d)d.classList.add('hidden');if(l)l.classList.remove('hidden');var p=document.getElementById('loginPassword');if(p)p.value='';}}catch(e){var d=document.getElementById('dashboardView');var l=document.getElementById('loginView');if(d)d.classList.add('hidden');if(l)l.classList.remove('hidden');}return false;"
       class="ghost"
+      style="position:relative;z-index:2147483647;pointer-events:auto;touch-action:manipulation;"
       data-i18n="logout">
       Logout
     </button>
