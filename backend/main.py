@@ -4546,7 +4546,7 @@ def execute_lab_experiment(experiment_id: str, user=Depends(get_current_user)):
     if experiment.get("user")!=user["username"] and user.get("role")!="SUPER_ADMIN": raise HTTPException(status_code=403,detail="Access denied")
     results=experiment.setdefault("results",{}).setdefault("steps",[])
     for item in results:
-        if item.get("status")=="ready":
+        if item.get("status") in ("ready", "available_after_completion"):
             if item.get("step")=="virtual_screening":
                 smiles = str(experiment.get("input", {}).get("ligand_smiles", "") or "").strip()
                 if smiles:
