@@ -3800,24 +3800,13 @@ def _academy_question_bank(course: int, subject: dict):
         question["options"] = question["options"][shift:] + question["options"][:shift]
         question["answer"] = (original_answer - shift) % len(question["options"])
 
-    # Build a separate exam set with unique identifiers and alternate application stems.
+    # Keep exam items conceptually distinct: do not inflate the exam by duplicating
+    # the same questions with cosmetic wording changes.
     exam = []
-    exam_stems = [
-        "Choose the most defensible answer:",
-        "In a formal assessment, which response is best supported?",
-        "Select the most appropriate interpretation:",
-        "Which option best reflects safe scientific reasoning?",
-    ]
     for index, question in enumerate(base):
         exam_question = dict(question)
         exam_question["id"] = f"{course}-{sid}-exam{index + 1}"
-        exam_question["question"] = f"{exam_stems[index % len(exam_stems)]} {question['question']}"
         exam.append(exam_question)
-    exam.extend(
-        {**question, "id": f"{course}-{sid}-exam{index + len(base) + 1}",
-         "question": f"Review and apply the concept: {question['question']}"}
-        for index, question in enumerate(base)
-    )
 
     cases = [
         {
