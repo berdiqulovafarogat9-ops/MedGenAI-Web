@@ -4257,7 +4257,7 @@ if (document.readyState === "loading") {
     `;
     // Replace the legacy local-only student UI to prevent duplicate dashboards and the old three-question promotion flow.
     studentTool.innerHTML = '';
-    studentTool.insertAdjacentElement('afterend', panel);
+    studentTool.appendChild(panel);
 
     const esc = s => String(s ?? '').replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
     const apiCall = async (path, opts={}) => {
