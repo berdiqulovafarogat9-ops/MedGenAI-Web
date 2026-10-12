@@ -489,11 +489,26 @@ async def account_readiness_guard(request: Request, call_next):
         return await call_next(request)
 
     profile = user_profiles.get(username, {})
-    if not is_required_profile_complete(profile):
+    # Medical Academy learning activities use their own academic profile flow.
+    # Keep legal consent mandatory, but don't block learning solely because
+    # unrelated platform profile fields (e.g. location/date fields) are absent.
+    academy_learning_path = path in {
+        "/api/v1/academy/assessment/start",
+        "/api/v1/academy/assessment/submit",
+    }
+    if not academy_learning_path and not is_required_profile_complete(profile):
         return JSONResponse(
             status_code=403,
             content={"detail":"PROFILE_INCOMPLETE","message":"Profilni to‘liq to‘ldiring."},
         )
+
+    if academy_learning_path:
+        ap = profile.get("academic_profile") or {}
+        if not all(str(ap.get(k) or "").strip() for k in ("university", "faculty", "major", "group")):
+            return JSONResponse(
+                status_code=403,
+                content={"detail":"ACADEMIC_PROFILE_INCOMPLETE","message":"Talaba profili: universitet, fakultet, yo‘nalish va guruhni to‘ldiring."},
+            )
 
     consent = user_consents.get(username, {})
     if consent.get("version") != LEGAL_CONSENT_VERSION or not all(
