@@ -1639,8 +1639,11 @@ async function loadAdminDashboard() {
 
   try {
     const d = await api('/admin/overview');
+    let academicApprovals = { pending: [], reviewed: [] };
+    try { academicApprovals = await api('/admin/academic-approvals'); } catch (_) {}
 
     const cards = [
+      ['Academic approvals', (academicApprovals.pending || []).length, 'academic-approvals'],
       ['Users', d.users, 'users'],
       ['Active tokens', d.active_tokens, 'tokens'],
       ['Jobs', d.jobs, 'jobs'],
@@ -1678,6 +1681,58 @@ async function loadAdminDashboard() {
 async function loadAdminDetails(kind) {
   const out = $('adminDetails');
   if (!out) return;
+
+  if (kind === 'academic-approvals') {
+    out.innerHTML = '<div class="status">Akademik tasdiqlar yuklanmoqda...</div>';
+    try {
+      const data = await api('/admin/academic-approvals');
+      const pending = Array.isArray(data.pending) ? data.pending : [];
+      const reviewed = Array.isArray(data.reviewed) ? data.reviewed : [];
+      const renderStudent = (student, isPending) => {
+        const ap = student.academic_profile || {};
+        const fields = [
+          ['Universitet', ap.university], ['Fakultet', ap.faculty],
+          ['Yo‘nalish', ap.major], ['Kurs', ap.year],
+          ['Guruh', ap.group], ['Talaba ID', ap.student_id]
+        ].map(([label, value]) => '<div><strong>' + escapeHtml(label) + ':</strong> ' + escapeHtml(value == null ? '' : String(value)) + '</div>').join('');
+        return '<article style="border:1px solid rgba(255,255,255,.16);border-radius:12px;padding:14px;margin:10px 0">' +
+          '<h4 style="margin:0 0 8px">' + escapeHtml(student.full_name || student.username) + ' (' + escapeHtml(student.username) + ')</h4>' +
+          '<div>' + escapeHtml(student.email || '') + '</div><div style="display:grid;gap:5px;margin:10px 0">' + fields + '</div>' +
+          (isPending
+            ? '<button type="button" data-academic-review="approve" data-username="' + escapeHtml(student.username) + '">Tasdiqlash</button> ' +
+              '<button type="button" data-academic-review="reject" data-username="' + escapeHtml(student.username) + '">Rad etish</button>'
+            : '<div class="status">Holat: ' + escapeHtml(student.academic_status || '') + ' — ' + escapeHtml((student.academic_review || {}).note || '') + '</div>') +
+          '</article>';
+      };
+      out.innerHTML = '<h3>Akademik ma’lumotlarni tasdiqlash</h3>' +
+        '<p>Talaba kurslari va fanlariga kirish faqat tasdiqlangandan keyin ochiladi.</p>' +
+        '<h4>Kutilmoqda (' + pending.length + ')</h4>' +
+        (pending.length ? pending.map(x => renderStudent(x, true)).join('') : '<p class="muted">Tasdiqlash kutilayotgan talabalar yo‘q.</p>') +
+        '<h4>Ko‘rib chiqilgan (' + reviewed.length + ')</h4>' +
+        reviewed.map(x => renderStudent(x, false)).join('');
+      out.querySelectorAll('[data-academic-review]').forEach(button => {
+        button.addEventListener('click', async () => {
+          const username = button.dataset.username;
+          const approve = button.dataset.academicReview === 'approve';
+          const note = approve ? '' : (window.prompt('Rad etish sababini kiriting:') || '');
+          if (!approve && !note.trim()) return;
+          button.disabled = true;
+          try {
+            await api('/admin/academic-approvals/' + encodeURIComponent(username) +
+              '?approve=' + String(approve) + '&note=' + encodeURIComponent(note), { method: 'PATCH' });
+            await loadAdminDetails('academic-approvals');
+            await loadAdminDashboard();
+          } catch (error) {
+            alert('Tasdiqlashda xatolik: ' + error.message);
+            button.disabled = false;
+          }
+        });
+      });
+    } catch (error) {
+      out.innerHTML = '<div class="status">❌ ' + escapeHtml(error.message) + '</div>';
+    }
+    return;
+  }
 
   const titles = {
     users: t('users'),
