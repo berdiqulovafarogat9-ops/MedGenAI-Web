@@ -5106,7 +5106,7 @@ function runScientificWorkflow(){
   };
   if(!body.target){ status.textContent='Target is required'; return; }
   status.textContent='Running scientific workflow...'; out.textContent='';
-  fetch(API_BASE+'/scientific/workflow',{method:'POST',headers:{'Content-Type':'application/json',...authHeaders()},body:JSON.stringify(body)})
+  fetch(API_BASE+'/scientific/workflow',{method:'POST',headers:{'Content-Type':'application/json',...(state.token?{Authorization:'Bearer '+state.token}:{})},body:JSON.stringify(body)})
     .then(async r=>{const j=await r.json(); if(!r.ok) throw new Error(j.detail||'Workflow failed'); return j;})
     .then(j=>{status.textContent='Workflow completed'; out.textContent=JSON.stringify(j,null,2);})
     .catch(e=>{status.textContent='Workflow error'; out.textContent=e.message;});
