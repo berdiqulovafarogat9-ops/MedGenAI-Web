@@ -1648,6 +1648,7 @@ async function loadAdminDashboard() {
 
     const cards = [
       ['Academic approvals', (academicApprovals.pending || []).length, 'academic-approvals'],
+      ['Rasmiy fan dasturlari', 0, 'syllabi'],
       ['Users', d.users, 'users'],
       ['Active tokens', d.active_tokens, 'tokens'],
       ['Jobs', d.jobs, 'jobs'],
@@ -1685,6 +1686,75 @@ async function loadAdminDashboard() {
 async function loadAdminDetails(kind) {
   const out = $('adminDetails');
   if (!out) return;
+
+  if (kind === 'syllabi') {
+    out.innerHTML = '<h3>Rasmiy fan dasturini kiritish</h3>' +
+      '<p>Universitet tasdiqlagan hujjatdagi ma’lumotlarni kiriting. Yuborilgan dastur administrator tekshiruvidan o‘tmaguncha talabalarga ko‘rsatilmaydi.</p>' +
+      '<div class="grid" style="gap:10px">' +
+      '<label>Universitet<input id="syllabusUniversity" required></label>' +
+      '<label>Fakultet<input id="syllabusFaculty"></label>' +
+      '<label>Yo‘nalish<input id="syllabusMajor" required></label>' +
+      '<label>Kurs (1–6)<input id="syllabusYear" type="number" min="1" max="6" value="1"></label>' +
+      '<label>Semestr<input id="syllabusSemester" type="number" min="1" max="12" value="1"></label>' +
+      '<label>O‘quv yili<input id="syllabusAcademicYear" placeholder="2026–2027"></label>' +
+      '<label>Manba fayl nomi<input id="syllabusSource" placeholder="fan_dasturi.pdf"></label>' +
+      '<label>Fanlar va mavzular — JSON<textarea id="syllabusSubjects" rows="10" placeholder=\'[{"subject":"Anatomiya","topics":["Suyaklar","Mushaklar"],"practicals":["Suyaklarni aniqlash"],"teacher":"F.I.Sh."}]\'></textarea></label>' +
+      '</div><button type="button" id="syllabusImportBtn">Tekshiruvga yuborish</button> <span id="syllabusImportStatus" class="status"></span>' +
+      '<hr><h3>Kiritilgan fan dasturlari</h3><div id="syllabusQueue" class="status">Yuklanmoqda...</div>';
+    const reload = async () => {
+      const queue = $('syllabusQueue');
+      try {
+        const data = await api('/admin/academy/syllabi');
+        const list = Array.isArray(data.syllabi) ? data.syllabi : [];
+        queue.innerHTML = list.length ? list.map(item =>
+          '<article style="border:1px solid rgba(255,255,255,.16);border-radius:12px;padding:12px;margin:10px 0">' +
+          '<strong>' + escapeHtml(item.university) + ' — ' + escapeHtml(item.major) + '</strong>' +
+          '<div>Fakultet: ' + escapeHtml(item.faculty || '—') + ' | Kurs: ' + item.year + ' | Semestr: ' + item.semester + '</div>' +
+          '<div>Fanlar: ' + (item.subjects || []).length + ' | Holat: ' + escapeHtml(item.status) + '</div>' +
+          '<details><summary>Mavzularni ko‘rish</summary><pre style="white-space:pre-wrap">' + escapeHtml(JSON.stringify(item.subjects || [], null, 2)) + '</pre></details>' +
+          (item.status === 'pending_review' ? '<button data-syllabus-action="publish" data-syllabus-id="' + escapeHtml(item.id) + '">Nashr qilish</button> <button data-syllabus-action="reject" data-syllabus-id="' + escapeHtml(item.id) + '">Rad etish</button>' : '') +
+          '</article>'
+        ).join('') : 'Hozircha fan dasturlari kiritilmagan.';
+        queue.querySelectorAll('[data-syllabus-action]').forEach(btn => btn.addEventListener('click', async () => {
+          const publish = btn.dataset.syllabusAction === 'publish';
+          const note = publish ? '' : (prompt('Rad etish sababi:') || '');
+          if (!publish && !note.trim()) return;
+          btn.disabled = true;
+          try {
+            await api('/admin/academy/syllabi/' + encodeURIComponent(btn.dataset.syllabusId) + '?publish=' + publish + '&note=' + encodeURIComponent(note), {method:'PATCH'});
+            await reload();
+          } catch (e) { alert('Xatolik: ' + e.message); btn.disabled = false; }
+        }));
+      } catch (e) { queue.textContent = 'Yuklash xatosi: ' + e.message; }
+    };
+    $('syllabusImportBtn')?.addEventListener('click', async () => {
+      const status = $('syllabusImportStatus');
+      let subjects;
+      try { subjects = JSON.parse($('syllabusSubjects').value || '[]'); }
+      catch (_) { status.textContent = 'JSON formati noto‘g‘ri.'; return; }
+      const payload = {
+        university: $('syllabusUniversity').value.trim(),
+        faculty: $('syllabusFaculty').value.trim(),
+        major: $('syllabusMajor').value.trim(),
+        year: Number($('syllabusYear').value),
+        semester: Number($('syllabusSemester').value),
+        academic_year: $('syllabusAcademicYear').value.trim(),
+        source_filename: $('syllabusSource').value.trim(),
+        subjects
+      };
+      if (!payload.university || !payload.major || !Array.isArray(subjects) || !subjects.length) {
+        status.textContent = 'Universitet, yo‘nalish va kamida bitta fan kerak.'; return;
+      }
+      status.textContent = 'Yuborilmoqda...';
+      try {
+        await api('/admin/academy/syllabi', {method:'POST', body:JSON.stringify(payload)});
+        status.textContent = 'Tekshiruvga yuborildi. Nashr qilingandan keyin mos talabalar ko‘radi.';
+        await reload();
+      } catch (e) { status.textContent = 'Xatolik: ' + e.message; }
+    });
+    reload();
+    return;
+  }
 
   if (kind === 'academic-approvals') {
     out.innerHTML = '<div class="status">Akademik tasdiqlar yuklanmoqda...</div>';
