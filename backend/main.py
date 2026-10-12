@@ -4087,11 +4087,18 @@ def academy_subject(course: int, subject_id: str, user=Depends(get_current_user)
         "course": course,
         "subject": subject,
         "modules": {
-            "theory": [
-                {"id": f"{course}-{subject_id}-theory-1", "title": "Core concepts", "objective": subject["objective"]},
-                {"id": f"{course}-{subject_id}-theory-2", "title": "Mechanisms and integration", "objective": "Explain, compare and connect the major concepts."},
-                {"id": f"{course}-{subject_id}-theory-3", "title": "Evidence and safety", "objective": "Recognize uncertainty and use reliable sources."},
-            ],
+            "theory": (
+                [
+                    {"id": f"{course}-{subject_id}-brain-1", "title": "Bosh miya: umumiy tuzilishi", "objective": "Katta yarimsharlar, miyacha va miya ustunini farqlash.", "content": "Katta yarimsharlar ongli sezgi, ixtiyoriy harakat, til, xotira va fikrlashda qatnashadi. Miyacha harakat aniqligi va muvozanatni muvofiqlashtiradi. Miya ustuni o‘rta miya, ko‘prik va uzunchoq miyadan iborat."},
+                    {"id": f"{course}-{subject_id}-brain-2", "title": "Miya bo‘laklari", "objective": "Peshona, tepa, chakka va ensa bo‘laklari vazifalarini bog‘lash.", "content": "Peshona bo‘lagi ixtiyoriy harakat va rejalashtirishda; tepa bo‘lagi somatosensor axborot va fazoviy diqqatda; chakka bo‘lagi eshitish, xotira va tilni tushunishda; ensa bo‘lagi esa ko‘rish axborotini qayta ishlashda muhim."},
+                    {"id": f"{course}-{subject_id}-brain-3", "title": "Miyacha va miya ustuni", "objective": "Tuzilmalarning fazoviy joylashuvini tushuntirish.", "content": "Miyacha katta yarimsharlarning orqa-pastki qismida, miya ustunining orqasida joylashadi. Miya ustuni orqa miya bilan davomiylik hosil qiladi."},
+                    {"id": f"{course}-{subject_id}-brain-4", "title": "Klinik-anatomik bog‘lanish", "objective": "Tuzilish va funksiya o‘rtasidagi aloqani tushuntirish.", "content": "Ensa korteksi shikastlanishi ko‘rish buzilishlariga, miyacha zararlanishi esa koordinatsiya va muvozanat buzilishlariga olib kelishi mumkin. Bu o‘quv misollari klinik tashxis o‘rnini bosmaydi."}
+                ] if course == 1 and subject_id == "Anatomy" else [
+                    {"id": f"{course}-{subject_id}-theory-1", "title": "Asosiy tushunchalar", "objective": subject["objective"]},
+                    {"id": f"{course}-{subject_id}-theory-2", "title": "Mexanizmlar va fanlararo bog‘lanish", "objective": "Asosiy tushunchalarni izohlash va bog‘lash."},
+                    {"id": f"{course}-{subject_id}-theory-3", "title": "Dalillar va xavfsizlik", "objective": "Ishonchli manbalardan foydalanish."}
+                ]
+            ),
             "practice": [
                 {"id": f"{course}-{subject_id}-practice-1", "title": "Guided practice", "task": f"Explain the main mechanism of {subject['objective']} in your own words."},
                 {"id": f"{course}-{subject_id}-practice-2", "title": "Application exercise", "task": "Apply the concept to a structured educational example and record errors."},
