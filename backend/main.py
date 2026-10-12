@@ -3672,15 +3672,15 @@ def _academy_translate_value(value):
         return translated
     # Translate dynamically generated generic question-bank text.
     patterns = (
-        (r"^Which statement best describes (.+)\\?$", r"Qaysi fikr \\1ni eng to‘g‘ri ta’riflaydi?"),
-        (r"^What is the safest learning approach when studying (.+)\\?$", r"\\1ni o‘rganishda eng xavfsiz yondashuv qaysi?"),
-        (r"^Why is (.+) important in medical education\\?$", r"\\1 tibbiy ta’limda nima uchun muhim?"),
-        (r"^Which action improves mastery of (.+)\\?$", r"\\1ni puxta o‘zlashtirishga qaysi harakat yordam beradi?"),
-        (r"^When should a student revisit (.+)\\?$", r"Talaba \\1ni qachon qayta ko‘rib chiqishi kerak?"),
-        (r"^What should be recorded after a (.+) practice session\\?$", r"\\1 bo‘yicha mashqdan keyin nimalar qayd etilishi kerak?"),
-        (r"^How does (.+) connect to other medical subjects\\?$", r"\\1 boshqa tibbiy fanlar bilan qanday bog‘lanadi?"),
-        (r"^What should happen after a weak result in (.+)\\?$", r"\\1 bo‘yicha natija past bo‘lsa, nima qilish kerak?"),
-        (r"^It is a core concept of (.+)\\.$", r"Bu \\1ning asosiy tushunchasidir."),
+        (r"^Which statement best describes (.+)\?$", r"Qaysi fikr \1ni eng to‘g‘ri ta’riflaydi?"),
+        (r"^What is the safest learning approach when studying (.+)\?$", r"\1ni o‘rganishda eng xavfsiz yondashuv qaysi?"),
+        (r"^Why is (.+) important in medical education\?$", r"\1 tibbiy ta’limda nima uchun muhim?"),
+        (r"^Which action improves mastery of (.+)\?$", r"\1ni puxta o‘zlashtirishga qaysi harakat yordam beradi?"),
+        (r"^When should a student revisit (.+)\?$", r"Talaba \1ni qachon qayta ko‘rib chiqishi kerak?"),
+        (r"^What should be recorded after a (.+) practice session\?$", r"\1 bo‘yicha mashqdan keyin nimalar qayd etilishi kerak?"),
+        (r"^How does (.+) connect to other medical subjects\?$", r"\1 boshqa tibbiy fanlar bilan qanday bog‘lanadi?"),
+        (r"^What should happen after a weak result in (.+)\?$", r"\1 bo‘yicha natija past bo‘lsa, nima qilish kerak?"),
+        (r"^It is a core concept of (.+)\.$", r"Bu \1ning asosiy tushunchasidir."),
     )
     import re as _re
     for pattern, replacement in patterns:
