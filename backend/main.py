@@ -1339,12 +1339,12 @@ def jobs_status(user=Depends(get_current_user)):
     active = sum(counts.get(status, 0) for status in ("submitted", "queued", "running"))
     return {
         "status": "available",
-        "worker": "api-only",
-        "queue": "in-memory",
+        "worker": "inline-api",
+        "queue": "not-required-for-inline-jobs",
         "active": active,
         "total": len(items),
         "counts": counts,
-        "note": "Fon worker ulanmagan; yuborilgan vazifalar avtomatik bajarilmaydi.",
+        "note": "Molekulyar tahlil API ichida bajariladi; docking uchun AutoDock Vina va tayyor PDBQT fayllari talab qilinadi. Structure prediction engine ulanmagan.",
         "user": user["username"],
     }
 
@@ -1354,14 +1354,58 @@ def create_job(
     data: JobRequest,
     user=Depends(get_current_user),
 ):
+    job_type = str(data.job_type or "").strip().upper()
+    job_input = data.input or {}
+    result = None
+
+    if job_type == "MOLECULAR":
+        smiles = str(job_input.get("smiles") or job_input.get("ligand_smiles") or "").strip()
+        if not smiles:
+            raise HTTPException(status_code=400, detail="MOLECULAR job input JSON must include \"smiles\", e.g. {\\"smiles\\":\\"CCO\\"}.")
+        result = {
+            "engine": "RDKit molecular property screening",
+            "analysis": calculate_molecule_score(smiles),
+            "disclaimer": "Property-based screening only; not docking, binding affinity, ADMET, or clinical evidence."
+        }
+        status = "completed"
+    elif job_type == "DOCKING":
+        required = ("target", "receptor_pdbqt", "ligand_pdbqt")
+        missing = [key for key in required if not str(job_input.get(key) or "").strip()]
+        if missing:
+            raise HTTPException(status_code=400, detail="DOCKING job input is missing: " + ", ".join(missing))
+        docking_request = PreparedDockingRequest(
+            target=str(job_input["target"]),
+            ligand_smiles=str(job_input.get("ligand_smiles") or ""),
+            receptor_pdbqt=str(job_input["receptor_pdbqt"]),
+            ligand_pdbqt=str(job_input["ligand_pdbqt"]),
+            center_x=float(job_input.get("center_x", 0)),
+            center_y=float(job_input.get("center_y", 0)),
+            center_z=float(job_input.get("center_z", 0)),
+            size_x=float(job_input.get("size_x", 20)),
+            size_y=float(job_input.get("size_y", 20)),
+            size_z=float(job_input.get("size_z", 20)),
+            exhaustiveness=int(job_input.get("exhaustiveness", 8)),
+            n_poses=int(job_input.get("n_poses", 3)),
+        )
+        result = run_prepared_docking(docking_request, user)
+        status = "completed"
+    elif job_type == "STRUCTURE_PREDICTION":
+        raise HTTPException(
+            status_code=501,
+            detail="Structure prediction engine is not connected on this deployment. No fake job was created."
+        )
+    else:
+        raise HTTPException(status_code=400, detail="Unsupported job_type. Choose MOLECULAR, DOCKING, or STRUCTURE_PREDICTION.")
 
     job = {
         "id": secrets.token_hex(8),
-        "status": "submitted",
-        "job_type": data.job_type,
-        "input": data.input,
+        "status": status,
+        "job_type": job_type,
+        "input": job_input,
+        "result": result,
         "user": user["username"],
         "created_at": datetime.now(timezone.utc).isoformat(),
+        "completed_at": datetime.now(timezone.utc).isoformat(),
     }
     jobs_store.insert(0, job)
     _db_save()
@@ -4525,6 +4569,18 @@ def execute_lab_experiment(experiment_id: str, user=Depends(get_current_user)):
                         "status": "skipped",
                         "reason": "No ligand SMILES supplied"
                     }
+            elif item.get("step")=="structure_lookup":
+                pdb_id = str(experiment.get("input", {}).get("pdb_id", "") or "").strip().upper()
+                if pdb_id:
+                    try:
+                        item["result"] = pdb_structure(pdb_id, user)
+                        item["status"] = "completed"
+                    except HTTPException as exc:
+                        item["status"] = "failed"
+                        item["result"] = {"error": exc.detail}
+                else:
+                    item["status"] = "completed"
+                    item["result"] = {"status": "skipped", "reason": "No PDB ID supplied"}
             elif item.get("step")=="report": item["status"]="completed"
     experiment["status"]="completed"
     experiment["updated_at"]=datetime.now(timezone.utc).isoformat()
