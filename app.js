@@ -1333,7 +1333,7 @@ function isProfileComplete(p) {
   const role = String(p.role || state.user?.role || state.user?.user_role || '').trim().toLowerCase().replace(/[\s-]+/g, '_');
   if (['student', 'school_student', 'researcher', 'professor'].includes(role)) {
     const ap = p.academic_profile || {};
-    return ['university', 'faculty', 'major', 'group', 'student_id'].every(key => String(ap[key] || '').trim());
+    return ['university', 'faculty', 'major', 'group'].every(key => String(ap[key] || '').trim());
   }
   return true;
 }
