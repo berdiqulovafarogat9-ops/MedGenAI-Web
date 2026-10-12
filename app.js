@@ -4333,10 +4333,33 @@ if (document.readyState === "loading") {
         const body=document.getElementById('p1AssessmentBody');
         body.innerHTML=d.items.map((q,i)=>{
           if(type==='theory'||type==='practice') return `<div class="p1-question"><b>${i+1}. ${esc(q.title||q.prompt)}</b><p>${esc(q.prompt||'')}</p>${q.content?`<p>${esc(q.content)}</p>`:''}<p>${esc(q.instruction||'')}</p><label><input type="checkbox" data-q="${esc(q.id)}" class="p1-complete"> Bajarildi</label></div>`;
-          if(type==='puzzle') return `<div class="p1-question brain-puzzle"><b>🧩 ${esc(q.title||'Puzzle')}</b><p>${esc(q.instruction||'')}</p>${(q.parts||[]).map(part=>`<label class="p1-option">${esc(part.label)} <select data-puzzle-part="${esc(part.id)}" aria-label="${esc(part.label)}"><option value="">Joyini tanlang</option>${(q.slots||[]).map(slot=>`<option value="${slot.value}">${esc(slot.label)}</option>`).join('')}</select></label>`).join('')||'<p>Bu fan uchun puzzle xaritasi hali tayyor emas.</p>'}</div>`;
+          if(type==='puzzle') return `<div class="p1-question brain-puzzle"><b>🧩 ${esc(q.title||'Puzzle')}</b><p>${esc(q.instruction||'')}</p><div class="brain-pieces" style="display:flex;flex-wrap:wrap;gap:8px;margin:12px 0">${(q.parts||[]).map(part=>`<button type="button" draggable="true" class="brain-piece ghost small" data-brain-piece="${esc(part.id)}" style="cursor:grab">${esc(part.label)}</button>`).join('')}</div><div class="brain-board" style="display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:10px">${(q.slots||[]).map(slot=>`<div class="brain-slot" data-slot-value="${slot.value}" style="min-height:72px;border:2px dashed #8aa4bd;border-radius:12px;padding:10px;background:#f6faff"><b>${esc(slot.label)}</b><div class="brain-dropzone" style="margin-top:8px;min-height:22px">Bu yerga olib keling yoki bosing</div></div>`).join('')}</div>${(q.parts||[]).map(part=>`<input type="hidden" data-puzzle-part="${esc(part.id)}" value="">`).join('')||'<p>Bu fan uchun puzzle xaritasi hali tayyor emas.</p>'}</div>`;
           if(type==='skills'||type==='osce'||type==='practical_exam') return '<div class="p1-question"><b>'+(i+1)+'. '+esc(q.question||q.prompt)+'</b><p>'+esc(q.prompt||'')+'</p><div>'+(q.checklist||[]).map((item,j)=>'<label class="p1-option"><input type="checkbox" data-q="'+esc(q.id+':'+j)+'" value="1"> '+esc(item)+'</label>').join('')+'</div></div>';
           return `<div class="p1-question"><b>${i+1}. ${esc(q.question||q.prompt)}</b>${q.scenario?`<p><i>${esc(q.scenario)}</i></p>`:''}<div>${(q.options||[]).map((o,j)=>`<label class="p1-option"><input type="radio" name="q_${esc(q.id)}" value="${j}" data-q="${esc(q.id)}"> ${esc(o)}</label>`).join('')}</div></div>`;
         }).join('');
+        if(type==='puzzle'){
+          let selectedPiece='';
+          const pieces=[...body.querySelectorAll('[data-brain-piece]')];
+          const slots=[...body.querySelectorAll('[data-slot-value]')];
+          const assign=(piece,slot)=>{
+            if(!piece||!slot)return;
+            const pid=piece.dataset.brainPiece;
+            body.querySelectorAll('[data-puzzle-part="'+pid+'"]').forEach(input=>input.value=slot.dataset.slotValue);
+            const zone=slot.querySelector('.brain-dropzone');
+            zone.textContent=''; zone.appendChild(piece);
+            piece.style.width='100%'; piece.style.whiteSpace='normal';
+            selectedPiece=''; pieces.forEach(p=>p.style.outline='');
+          };
+          pieces.forEach(piece=>{
+            piece.addEventListener('dragstart',e=>{selectedPiece=piece.dataset.brainPiece;e.dataTransfer.setData('text/plain',selectedPiece);});
+            piece.addEventListener('click',()=>{selectedPiece=piece.dataset.brainPiece;pieces.forEach(p=>p.style.outline=p===piece?'3px solid #3978b8':'');});
+          });
+          slots.forEach(slot=>{
+            slot.addEventListener('dragover',e=>e.preventDefault());
+            slot.addEventListener('drop',e=>{e.preventDefault();const pid=e.dataTransfer.getData('text/plain')||selectedPiece;assign(pieces.find(p=>p.dataset.brainPiece===pid),slot);});
+            slot.addEventListener('click',()=>{if(selectedPiece)assign(pieces.find(p=>p.dataset.brainPiece===selectedPiece),slot);});
+          });
+        }
         document.getElementById('p1Assessment').classList.remove('hidden');
         document.getElementById('p1Assessment').scrollIntoView({behavior:'smooth',block:'start'});
         set('p1AssessmentStatus','');
@@ -4350,7 +4373,7 @@ if (document.readyState === "loading") {
         const theoryChecks=[...document.querySelectorAll('.p1-complete')];
         answers.completion=theoryChecks.length&&theoryChecks.every(x=>x.checked)?1:0;
       } else if(currentAssessment.assessment_type==='puzzle'){
-        document.querySelectorAll('#p1AssessmentBody select[data-puzzle-part]').forEach(x=>{if(x.value!=='') answers[x.dataset.puzzlePart]=Number(x.value);});
+        document.querySelectorAll('#p1AssessmentBody input[data-puzzle-part]').forEach(x=>{if(x.value!=='') answers[x.dataset.puzzlePart]=Number(x.value);});
       } else {
         document.querySelectorAll('#p1AssessmentBody input[data-q]:checked').forEach(x=>answers[x.dataset.q]=Number(x.value));
       }
