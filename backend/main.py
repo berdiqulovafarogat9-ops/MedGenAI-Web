@@ -3985,8 +3985,32 @@ def academy_start_assessment(data: AcademyAssessmentStartRequest, user=Depends(g
         raise HTTPException(status_code=400, detail="Invalid assessment type.")
     subject = _academy_subject(data.course, data.subject_id)
     bank = _academy_question_bank(data.course, subject)
-    if data.assessment_type in {"theory", "practice"}:
-        items = [{"id": f"{data.course}-{data.subject_id}-{data.assessment_type}-1", "prompt": f"Complete the {data.assessment_type} learning activity for {subject['objective']}.", "instruction": "Submit completion only after you have actually performed the activity."}]
+    if data.assessment_type == "theory":
+        items = [
+            {
+                "id": f"{data.course}-{data.subject_id}-theory-1",
+                "title": "Asosiy tushuncha",
+                "prompt": f"{subject['name']}: {subject['objective']}",
+                "content": f"{subject['name']} fanining asosiy maqsadi — {subject['objective']}ni ilmiy dalillar asosida tushunish. Avval asosiy atamalarni aniqlang, keyin normal tuzilish yoki mexanizmni izohlang va uni tegishli tibbiy fanlar bilan bog‘lang.",
+                "instruction": "O‘qib chiqing, asosiy atamalarni o‘z so‘zingiz bilan tushuntiring va keyin bajarildi deb belgilang."
+            },
+            {
+                "id": f"{data.course}-{data.subject_id}-theory-2",
+                "title": "Mexanizm va fanlararo bog‘lanish",
+                "prompt": f"{subject['name']} bo‘yicha mexanizmni tushuntirish",
+                "content": f"Bilimni yodlash bilan cheklanmang: sabab → mexanizm → kuzatiladigan natija zanjirini tuzing. {subject['objective']}ni anatomiya, fiziologiya, biokimyo yoki klinik fanlar bilan bog‘lang. Dalil yetarli bo‘lmagan joyda noaniqlikni alohida belgilang.",
+                "instruction": "Ushbu zanjirni daftarga yozib, kamida bitta fanlararo bog‘lanishni ko‘rsating."
+            },
+            {
+                "id": f"{data.course}-{data.subject_id}-theory-3",
+                "title": "Takrorlash va xavfsizlik",
+                "prompt": "Bilimni tekshirish va xatolarni tuzatish",
+                "content": f"{subject['name']} bo‘yicha asosiy tushunchalarni qayta eslang, ishonchli manba bilan tekshiring va tushunmagan joylaringizni yozib oling. O‘quv simulyatsiyasi real bemorga tashxis qo‘yish yoki davolash vakolatini bermaydi.",
+                "instruction": "Uchta asosiy fikrni qayd eting va keyin bajarildi deb belgilang."
+            }
+        ]
+    elif data.assessment_type == "practice":
+        items = [{"id": f"{data.course}-{data.subject_id}-practice-1", "prompt": f"{subject['name']} bo‘yicha amaliy mashq: {subject['objective']}.", "instruction": "Asosiy mexanizmni o‘z so‘zingiz bilan izohlang, bitta misol keltiring va xatolaringizni qayd eting."}]
     elif data.assessment_type == "skills":
         items = [{"id": q["id"], "question": q["title"], "prompt": q["instruction"], "checklist": q["checklist"]} for q in bank["skills"]]
     elif data.assessment_type == "osce":
