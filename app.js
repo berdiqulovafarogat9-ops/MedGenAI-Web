@@ -961,6 +961,10 @@ async function api(path, options = {}) {
         const status = $('profileStatus');
         if (status) status.textContent = 'Ilmiy modullardan foydalanishdan oldin profilingizdagi majburiy maydonlarni to‘ldiring.';
         if (typeof openProfileEditor === 'function') openProfileEditor();
+      } else if (code === 'ACADEMIC_APPROVAL_REQUIRED') {
+        state.user.academic_status = data?.academic_status || 'pending';
+        const status = $('profileStatus');
+        if (status) status.textContent = data?.message || 'Akademik ma’lumotlaringiz administrator tasdig‘ini kutmoqda. Tasdiqlanmaguncha fanlar ochilmaydi.';
       }
     }
 
