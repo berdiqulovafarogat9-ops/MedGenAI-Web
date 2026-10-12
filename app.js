@@ -1329,24 +1329,13 @@ async function openProfile() {
 }
 
 function isProfileComplete(p) {
-  return Boolean(
-    p &&
-    String(p.full_name || '').trim() &&
-    String(p.email || '').trim() &&
-    String(p.country || '').trim() &&
-    String(p.region || '').trim() &&
-    String(p.city || '').trim() &&
-    String(p.district || '').trim() &&
-    Number.isInteger(Number(p.birth_year)) &&
-    Number(p.birth_year) >= 1900 &&
-    Number(p.birth_year) <= 2100 &&
-    Number.isInteger(Number(p.birth_month)) &&
-    Number(p.birth_month) >= 1 &&
-    Number(p.birth_month) <= 12 &&
-    Number.isInteger(Number(p.birth_day)) &&
-    Number(p.birth_day) >= 1 &&
-    Number(p.birth_day) <= 31
-  );
+  if (!(p && String(p.full_name || '').trim() && String(p.email || '').trim() && String(p.country || '').trim() && String(p.region || '').trim() && String(p.city || '').trim() && String(p.district || '').trim() && Number.isInteger(Number(p.birth_year)) && Number(p.birth_year) >= 1900 && Number(p.birth_year) <= 2100 && Number.isInteger(Number(p.birth_month)) && Number(p.birth_month) >= 1 && Number(p.birth_month) <= 12 && Number.isInteger(Number(p.birth_day)) && Number(p.birth_day) >= 1 && Number(p.birth_day) <= 31)) return false;
+  const role = String(p.role || state.user?.role || state.user?.user_role || '').trim().toLowerCase().replace(/[\\s-]+/g, '_');
+  if (['student', 'school_student', 'researcher', 'professor'].includes(role)) {
+    const ap = p.academic_profile || {};
+    return ['university', 'faculty', 'major', 'group', 'student_id'].every(key => String(ap[key] || '').trim());
+  }
+  return true;
 }
 
 function enforceProfileCompletion() {
@@ -1485,6 +1474,7 @@ async function saveProfile() {
     // independent so one secondary endpoint cannot make a successful profile
     // save appear to fail or prevent the saved profile from being cached.
     const saveWarnings = [];
+    let savedAcademicProfile = null;
 
     try {
       await api('/account', {
@@ -1500,7 +1490,7 @@ async function saveProfile() {
     }
 
     try {
-      await api('/academy/profile', {
+      savedAcademicProfile = await api('/academy/profile', {
         method: 'PUT',
         body: JSON.stringify({
           education_mode: $('profileEducationMode')?.value || 'GLOBAL',
@@ -1527,12 +1517,12 @@ async function saveProfile() {
     }
 
     if (state.user) {
-      state.user.profile = data.profile;
-      state.user.profile_complete = isProfileComplete(data.profile);
+      state.user.profile = { ...(data.profile || {}), ...(savedAcademicProfile?.profile ? { academic_profile: savedAcademicProfile.profile } : {}) };
+      state.user.profile_complete = isProfileComplete(state.user.profile);
       try {
         localStorage.setItem(
           'medgen_profile_' + state.user.username,
-          JSON.stringify(data.profile)
+          JSON.stringify(state.user.profile)
         );
       } catch (_) {}
     }
