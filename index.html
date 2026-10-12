@@ -2166,7 +2166,7 @@ document.addEventListener("DOMContentLoaded", function () {
     SUPER_ADMIN:{icon:'👑',name:'Super Admin / Owner',desc:'Butun platforma, foydalanuvchilar, tashkilotlar, xavfsizlik va audit nazorati',mods:['Global Platform','Medical Academy','Bioinformatics','Molecular Analysis','PDB & Structure','Drug Discovery','Scientific Jobs','Research Assistant','Virtual Laboratory','Reports & History']}
   };
   const icons={'Medical Academy':'🎓','Bioinformatics':'🧬','Molecular Analysis':'⚗️','PDB & Structure':'🧫','Drug Discovery':'💊','Scientific Jobs':'⚙️','Research Assistant':'📚','Virtual Laboratory':'🧪','Reports & History':'📊','Global Platform':'🌐'};
-  const roleKey=()=>{const u=window.__MEDGEN_USER||{};const raw=u.role||u.profile?.role||u.account?.role||u.user?.role||'student';const k=String(raw).trim();return k.toUpperCase()==='SUPER_ADMIN'?'SUPER_ADMIN':(ROLES[k.toLowerCase()]?k.toLowerCase():'student')};
+  const roleKey=()=>{const u=window.__MEDGEN_USER||{};const norm=v=>String(v||'').trim().toLowerCase().replace(/[\s-]+/g,'_');const raw=norm(u.role||u.user_role||u.account?.role||u.user?.role||'student');const profile=norm(u.profile?.role||u.metadata?.role||'');if(['super_admin','superadmin','founder','ceo','owner','admin'].includes(raw))return 'SUPER_ADMIN';if(ROLES[raw]&&raw!=='student')return raw;if(raw==='student'&&ROLES[profile]&&profile!=='student')return profile;return ROLES[raw]?raw:'student'};
   const ALL_MODULES=['Medical Academy','Bioinformatics','Molecular Analysis','PDB & Structure','Drug Discovery','Scientific Jobs','Research Assistant','Virtual Laboratory','Reports & History','Global Platform'];
   const ROLE_MODULES={
     SUPER_ADMIN:ALL_MODULES,
