@@ -2798,50 +2798,33 @@ async function loadJobs() {
 ========================================================= */
 
 async function createJob() {
-
-  const jobType =
-    $('jobType')?.value ||
-    'MOLECULAR';
-
-  const status =
-    $('jobCreateStatus');
-
-  const result =
-    $('jobCreateResult');
-
+  const jobType = $('jobType')?.value || 'MOLECULAR';
+  const status = $('jobCreateStatus');
+  const result = $('jobCreateResult');
+  let input = {};
+  const raw = $('jobInput')?.value?.trim() || '{}';
   try {
-
-    const data =
-      await api(
-        '/jobs',
-        {
-          method: 'POST',
-
-          body: JSON.stringify({
-            job_type: jobType,
-            input: {}
-          })
-        }
-      );
-
-    if (status) {
-      status.textContent =
-        t('jobCreated');
+    input = JSON.parse(raw);
+    if (!input || typeof input !== 'object' || Array.isArray(input)) {
+      throw new Error('Input JSON obyekt bo‘lishi kerak.');
     }
-
-    renderResult(
-      result,
-      data
-    );
-
-    loadJobs();
-
   } catch (error) {
-
-    if (status) {
-      status.textContent =
-        error.message;
-    }
+    if (status) status.textContent = 'Input JSON noto‘g‘ri: ' + error.message;
+    return;
+  }
+  if (status) status.textContent = 'Ilmiy vazifa bajarilmoqda...';
+  try {
+    const data = await api('/jobs', {
+      method: 'POST',
+      body: JSON.stringify({ job_type: jobType, input })
+    });
+    renderResult(result, data);
+    if (status) status.textContent = data?.status === 'completed'
+      ? 'Vazifa bajarildi va natija saqlandi.'
+      : 'Vazifa holati: ' + (data?.status || 'noma’lum');
+    await loadJobs();
+  } catch (error) {
+    if (status) status.textContent = error.message;
   }
 }
 
