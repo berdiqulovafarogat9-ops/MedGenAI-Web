@@ -4349,7 +4349,6 @@ if (document.readyState === "loading") {
       if(currentAssessment.assessment_type==='theory'||currentAssessment.assessment_type==='practice'){
         const theoryChecks=[...document.querySelectorAll('.p1-complete')];
         answers.completion=theoryChecks.length&&theoryChecks.every(x=>x.checked)?1:0;
-      } else {
       } else if(currentAssessment.assessment_type==='puzzle'){
         document.querySelectorAll('#p1AssessmentBody select[data-puzzle-part]').forEach(x=>{if(x.value!=='') answers[x.dataset.puzzlePart]=Number(x.value);});
       } else {
