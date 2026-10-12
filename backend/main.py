@@ -3670,16 +3670,23 @@ def _academy_translate_value(value):
     translated = ACADEMY_UZ_TRANSLATIONS.get(value)
     if translated:
         return translated
-    # Translate generated question templates while preserving the subject topic.
-    templates = (
-        ("Which statement best describes ", "Qaysi fikr quyidagini eng to‘g‘ri ta’riflaydi: "),
-        ("What is the safest learning approach when studying ", "Quyidagini o‘rganishda eng xavfsiz yondashuv qaysi: "),
-        ("Why is ", "Nima uchun "),
-        (" important in medical education?", " tibbiy ta’limda muhim?"),
+    # Translate dynamically generated generic question-bank text.
+    patterns = (
+        (r"^Which statement best describes (.+)\\?$", r"Qaysi fikr \\1ni eng to‘g‘ri ta’riflaydi?"),
+        (r"^What is the safest learning approach when studying (.+)\\?$", r"\\1ni o‘rganishda eng xavfsiz yondashuv qaysi?"),
+        (r"^Why is (.+) important in medical education\\?$", r"\\1 tibbiy ta’limda nima uchun muhim?"),
+        (r"^Which action improves mastery of (.+)\\?$", r"\\1ni puxta o‘zlashtirishga qaysi harakat yordam beradi?"),
+        (r"^When should a student revisit (.+)\\?$", r"Talaba \\1ni qachon qayta ko‘rib chiqishi kerak?"),
+        (r"^What should be recorded after a (.+) practice session\\?$", r"\\1 bo‘yicha mashqdan keyin nimalar qayd etilishi kerak?"),
+        (r"^How does (.+) connect to other medical subjects\\?$", r"\\1 boshqa tibbiy fanlar bilan qanday bog‘lanadi?"),
+        (r"^What should happen after a weak result in (.+)\\?$", r"\\1 bo‘yicha natija past bo‘lsa, nima qilish kerak?"),
+        (r"^It is a core concept of (.+)\\.$", r"Bu \\1ning asosiy tushunchasidir."),
+        (r"^What is the correct learning approach for (.+)\\?$", r"\\1ni o‘rganishning to‘g‘ri yondashuvi qaysi?"),
     )
-    for source, target in templates:
-        if value.startswith(source):
-            return value.replace(source, target, 1)
+    import re as _re
+    for pattern, replacement in patterns:
+        if _re.match(pattern, value):
+            return _re.sub(pattern, replacement, value)
     return value
 
 def _academy_translate_payload(value):
