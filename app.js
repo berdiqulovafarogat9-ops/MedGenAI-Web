@@ -2632,14 +2632,71 @@ async function createLabWorkflow() {
     if (status) status.textContent = 'Input JSON noto‘g‘ri.';
     return;
   }
-  if (status) status.textContent = 'Workflow yaratilmoqda...';
+
+  if (status) status.textContent = 'Workflow ma’lumotlari tekshirilmoqda...';
   try {
+    if (String(input.target || '').trim()) {
+      const sequence = String(input.sequence || '').trim();
+      const pdb_id = String(input.pdb_id || '').trim().toUpperCase();
+      const ligand_smiles = String(input.ligand_smiles || '').trim();
+      if (!sequence && !pdb_id && !ligand_smiles) {
+        throw new Error('Target bilan birga sequence, pdb_id yoki ligand_smiles dan kamida bittasini kiriting.');
+      }
+      const steps = Array.isArray(input.steps) && input.steps.length
+        ? input.steps
+        : [
+            ...(sequence ? ['sequence_analysis'] : []),
+            ...(pdb_id ? ['structure_lookup'] : []),
+            ...(ligand_smiles ? ['molecular_analysis', 'virtual_screening'] : []),
+            'report'
+          ];
+      if (status) status.textContent = 'Ilmiy pipeline bajarilmoqda...';
+      const created = await api('/lab/pipeline', {
+        method: 'POST',
+        body: JSON.stringify({
+          name,
+          target: String(input.target).trim(),
+          sequence,
+          pdb_id,
+          ligand_smiles,
+          steps,
+          parameters: input.parameters && typeof input.parameters === 'object' ? input.parameters : {}
+        })
+      });
+      const experimentId = created?.experiment?.id;
+      if (!experimentId) throw new Error('Pipeline yaratildi, lekin experiment ID qaytmadi.');
+      const executed = await api('/lab/experiments/' + encodeURIComponent(experimentId) + '/execute', {
+        method: 'POST'
+      });
+      let report = null;
+      try {
+        const reportResponse = await api('/scientific/reports', {
+          method: 'POST',
+          body: JSON.stringify({
+            experiment_id: experimentId,
+            title: name,
+            include_inputs: true,
+            include_results: true
+          })
+        });
+        report = reportResponse?.report || null;
+      } catch (reportError) {
+        console.warn('Scientific report creation failed:', reportError);
+      }
+      renderResult(result, { experiment: executed?.experiment || created.experiment, report });
+      if (status) status.textContent = report
+        ? 'Ilmiy tajriba bajarildi; natija va hisobot saqlandi.'
+        : 'Ilmiy tajriba bajarildi; hisobot yaratilmadi.';
+      return;
+    }
+
+    if (status) status.textContent = 'Workflow yaratilmoqda...';
     const data = await api('/workflows', {
       method: 'POST',
       body: JSON.stringify({ workflow_type, input: { name, ...input } })
     });
     renderResult(result, data);
-    if (status) status.textContent = 'Virtual Laboratory workflow yaratildi.';
+    if (status) status.textContent = 'Umumiy workflow yaratildi.';
     await loadWorkflows();
   } catch (error) {
     if (status) status.textContent = error.message;
@@ -2794,52 +2851,29 @@ async function createJob() {
 ========================================================= */
 
 async function loadReports() {
-
-  const status =
-    $('reportsStatus');
-
-  const result =
-    $('reportsResult');
-
-  if (status) {
-    status.textContent =
-      t('reportLoading');
-  }
-
+  const status = $('reportsStatus');
+  const result = $('reportsResult');
+  if (status) status.textContent = t('reportLoading');
   try {
-
-    const data =
-      await api('/reports');
-
-    const reports =
-      data?.reports || [];
-
-    if (!reports.length) {
-
-      if (result) {
-        result.textContent =
-          t('noReports');
-      }
-
+    const [reportData, experimentData] = await Promise.all([
+      api('/reports'),
+      api('/experiments')
+    ]);
+    const reports = reportData?.reports || [];
+    const experiments = experimentData?.experiments || [];
+    if (!reports.length && !experiments.length) {
+      if (result) result.textContent = t('noReports');
     } else {
-
-      renderResult(
-        result,
-        data
-      );
+      renderResult(result, {
+        reports,
+        experiments,
+        counts: { reports: reports.length, experiments: experiments.length }
+      });
     }
-
-    if (status) {
-      status.textContent =
-        t('loaded');
-    }
-
+    if (status) status.textContent =
+      'Hisobotlar: ' + reports.length + ' | Ilmiy tajribalar: ' + experiments.length;
   } catch (error) {
-
-    if (status) {
-      status.textContent =
-        error.message;
-    }
+    if (status) status.textContent = error.message;
   }
 }
 
