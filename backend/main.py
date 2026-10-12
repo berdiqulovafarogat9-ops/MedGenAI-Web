@@ -161,7 +161,7 @@ def _db_load():
         _db_init()
         with psycopg.connect(DATABASE_URL) as conn:
             rows = conn.execute("SELECT state_key, state_value FROM medgen_state").fetchall()
-        stores={"user_accounts":user_accounts,"user_profiles":user_profiles,"user_consents":user_consents,"role_requests_store":role_requests_store,"experiments_store":experiments_store,"reports_store":reports_store,"activity_log":activity_log,"jobs_store":jobs_store,"workflows_store":workflows_store,"docking_jobs_store":docking_jobs_store,"knowledge_entities_store":knowledge_entities_store,"knowledge_relations_store":knowledge_relations_store,"organizations_store":organizations_store,"memberships_store":memberships_store,"workspaces_store":workspaces_store,"projects_store":projects_store,"api_keys_store":api_keys_store,"platform_audit_log":platform_audit_log,"usage_store":usage_store,"webhooks_store":webhooks_store}
+        stores={"user_accounts":user_accounts,"user_profiles":user_profiles,"user_consents":user_consents,"role_requests_store":role_requests_store,"experiments_store":experiments_store,"reports_store":reports_store,"academy_syllabi_store":academy_syllabi_store,"activity_log":activity_log,"jobs_store":jobs_store,"workflows_store":workflows_store,"docking_jobs_store":docking_jobs_store,"knowledge_entities_store":knowledge_entities_store,"knowledge_relations_store":knowledge_relations_store,"organizations_store":organizations_store,"memberships_store":memberships_store,"workspaces_store":workspaces_store,"projects_store":projects_store,"api_keys_store":api_keys_store,"platform_audit_log":platform_audit_log,"usage_store":usage_store,"webhooks_store":webhooks_store}
         for key,value in rows:
             if key in stores and isinstance(value,(dict,list)):
                 stores[key].clear()
@@ -4157,6 +4157,85 @@ def academy_update_profile(data: AcademyProfileRequest, user=Depends(get_current
     _db_save()
     return {"status": "saved", "profile": profile}
 
+class AcademySyllabusSubject(BaseModel):
+    subject: str
+    topics: list[str] = []
+    practicals: list[str] = []
+    teacher: str = ""
+
+class AcademySyllabusImportRequest(BaseModel):
+    university: str
+    faculty: str = ""
+    major: str
+    year: int
+    semester: int
+    academic_year: str = ""
+    source_filename: str = ""
+    source_note: str = ""
+    subjects: list[AcademySyllabusSubject]
+
+academy_syllabi_store = {}
+
+@app.post("/api/v1/admin/academy/syllabi")
+def admin_import_academy_syllabus(data: AcademySyllabusImportRequest, user=Depends(get_current_user)):
+    require_super_admin(user)
+    university = data.university.strip()
+    major = data.major.strip()
+    if not university or not major:
+        raise HTTPException(status_code=400, detail="University and major are required.")
+    if not 1 <= data.year <= 6 or not 1 <= data.semester <= 12:
+        raise HTTPException(status_code=400, detail="Course must be 1-6 and semester 1-12.")
+    if not data.subjects:
+        raise HTTPException(status_code=400, detail="At least one subject is required.")
+    if len(data.subjects) > 100:
+        raise HTTPException(status_code=400, detail="Maximum 100 subjects per import.")
+    clean_subjects = []
+    for item in data.subjects:
+        subject = item.subject.strip()[:200]
+        if not subject:
+            raise HTTPException(status_code=400, detail="Subject names cannot be empty.")
+        clean_subjects.append({
+            "subject": subject,
+            "topics": [str(x).strip()[:500] for x in item.topics if str(x).strip()][:200],
+            "practicals": [str(x).strip()[:500] for x in item.practicals if str(x).strip()][:100],
+            "teacher": item.teacher.strip()[:200],
+        })
+    syllabus_id = secrets.token_hex(12)
+    record = {
+        "id": syllabus_id, "status": "pending_review",
+        "university": university[:200], "faculty": data.faculty.strip()[:200],
+        "major": major[:200], "year": data.year, "semester": data.semester,
+        "academic_year": data.academic_year.strip()[:30],
+        "source_filename": data.source_filename.strip()[:200],
+        "source_note": data.source_note.strip()[:1000],
+        "subjects": clean_subjects, "created_by": user["username"],
+        "created_at": datetime.now(timezone.utc).isoformat(),
+        "reviewed_by": None, "reviewed_at": None,
+    }
+    academy_syllabi_store[syllabus_id] = record
+    activity_log.insert(0, {"type":"academy_syllabus_imported","username":user["username"],"syllabus_id":syllabus_id,"at":record["created_at"]})
+    _db_save()
+    return {"status":"pending_review","syllabus":record}
+
+@app.get("/api/v1/admin/academy/syllabi")
+def admin_list_academy_syllabi(user=Depends(get_current_user)):
+    require_super_admin(user)
+    return {"syllabi": sorted(academy_syllabi_store.values(), key=lambda x:x.get("created_at",""), reverse=True)}
+
+@app.patch("/api/v1/admin/academy/syllabi/{syllabus_id}")
+def admin_review_academy_syllabus(syllabus_id: str, publish: bool = True, note: str = "", user=Depends(get_current_user)):
+    require_super_admin(user)
+    record = academy_syllabi_store.get(syllabus_id)
+    if not record:
+        raise HTTPException(status_code=404, detail="Syllabus not found.")
+    record["status"] = "published" if publish else "rejected"
+    record["reviewed_by"] = user["username"]
+    record["reviewed_at"] = datetime.now(timezone.utc).isoformat()
+    record["review_note"] = note.strip()[:1000]
+    activity_log.insert(0, {"type":"academy_syllabus_reviewed","username":user["username"],"syllabus_id":syllabus_id,"status":record["status"],"at":record["reviewed_at"]})
+    _db_save()
+    return {"status":record["status"],"syllabus":record}
+
 @app.get("/api/v1/academy/curriculum")
 def academy_curriculum(user=Depends(get_current_user)):
     ap = _academy_profile(user["username"])
@@ -4171,7 +4250,20 @@ def academy_curriculum(user=Depends(get_current_user)):
                 "subjects": [{"id": s[0], "name": s[1], "objective": s[2]} for s in v["subjects"]],
             } for k, v in ACADEMY_COURSES.items()
         },
-        "note": "Curriculum is an educational framework; official university promotion remains the responsibility of the institution."
+        "official_syllabi": [
+            {
+                "id": item["id"], "university": item["university"], "faculty": item["faculty"],
+                "major": item["major"], "year": item["year"], "semester": item["semester"],
+                "academic_year": item["academic_year"], "subjects": item["subjects"]
+            }
+            for item in academy_syllabi_store.values()
+            if item.get("status") == "published"
+            and item.get("university", "").casefold() == str(ap.get("university", "")).casefold()
+            and item.get("major", "").casefold() == str(ap.get("major", "")).casefold()
+            and item.get("year") == ap.get("year")
+            and (not item.get("faculty") or item.get("faculty", "").casefold() == str(ap.get("faculty", "")).casefold())
+        ],
+        "note": "Official university syllabi appear only after an administrator reviews and publishes the institution-provided data. General curriculum is an educational framework, not an official university schedule."
     }
 
 @app.get("/api/v1/academy/subject/{course}/{subject_id:path}")
