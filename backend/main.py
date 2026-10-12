@@ -502,13 +502,8 @@ async def account_readiness_guard(request: Request, call_next):
             content={"detail":"PROFILE_INCOMPLETE","message":"Profilni to‘liq to‘ldiring."},
         )
 
-    if academy_learning_path:
-        ap = profile.get("academic_profile") or {}
-        if not all(str(ap.get(k) or "").strip() for k in ("university", "faculty", "major", "group")):
-            return JSONResponse(
-                status_code=403,
-                content={"detail":"ACADEMIC_PROFILE_INCOMPLETE","message":"Talaba profili: universitet, fakultet, yo‘nalish va guruhni to‘ldiring."},
-            )
+    # Academy lessons and assessments must remain reachable while students
+    # are completing their academic details. Legal consent below is still required.
 
     consent = user_consents.get(username, {})
     if consent.get("version") != LEGAL_CONSENT_VERSION or not all(
