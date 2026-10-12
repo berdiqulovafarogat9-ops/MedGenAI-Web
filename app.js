@@ -2023,7 +2023,7 @@ function closeWorkspace() {
 
 function openModule(moduleName) {
 
-  if (!enforceProfileCompletion()) return;
+  if (!enforceProfileCompletion() && !(moduleName === 'Medical Academy' && state.user?.consent_complete === true)) return;
 
   $('roleDashboard')?.classList.add('hidden');
   $('userDirectoryDashboard')?.classList.add('hidden');
@@ -4255,6 +4255,8 @@ if (document.readyState === "loading") {
       </div>
       <p class="muted" style="margin-top:12px">⚠️ Academy simulyatsiyalari ta’limiy maqsadda. Ular real bemor, klinik tashxis, davolash yoki universitetning rasmiy akademik qarorini almashtirmaydi.</p>
     `;
+    // Replace the legacy local-only student UI to prevent duplicate dashboards and the old three-question promotion flow.
+    studentTool.innerHTML = '';
     studentTool.insertAdjacentElement('afterend', panel);
 
     const esc = s => String(s ?? '').replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
