@@ -5092,3 +5092,16 @@ async function renderPdb3D(){
   }
   if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',bind,{once:true});else bind();
 })();
+
+
+/* Reliable logout click fallback: handle taps even if another UI layer
+   prevents the original button listener from running. */
+document.addEventListener('click', function (event) {
+  const button = event.target && event.target.closest
+    ? event.target.closest('#logoutBtn')
+    : null;
+  if (!button) return;
+  event.preventDefault();
+  event.stopPropagation();
+  if (typeof window.logout === 'function') window.logout();
+}, true);
