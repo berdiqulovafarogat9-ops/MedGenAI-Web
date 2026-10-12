@@ -502,8 +502,30 @@ async def account_readiness_guard(request: Request, call_next):
             content={"detail":"PROFILE_INCOMPLETE","message":"Profilni to‘liq to‘ldiring."},
         )
 
-    # Academy lessons and assessments must remain reachable while students
-    # are completing their academic details. Legal consent below is still required.
+    # Academic content is locked until a platform administrator verifies
+    # the student's university/major/year/group. Keep onboarding surfaces open.
+    academic_learning_paths = (
+        path == "/api/v1/academy/curriculum"
+        or path.startswith("/api/v1/academy/subject/")
+        or path in {
+            "/api/v1/academy/assessment/start",
+            "/api/v1/academy/assessment/submit",
+        }
+        or path.startswith("/api/v1/academy/eligibility/")
+    )
+    if academic_learning_paths:
+        is_primary_admin = str(username).strip().casefold() == str(ADMIN_USERNAME).strip().casefold()
+        profile_for_academic_gate = user_profiles.get(username, {})
+        academic_status = str(profile_for_academic_gate.get("academic_status", "pending")).lower()
+        if not is_primary_admin and academic_status != "approved":
+            return JSONResponse(
+                status_code=403,
+                content={
+                    "detail": "ACADEMIC_APPROVAL_REQUIRED",
+                    "message": "Akademik ma’lumotlaringiz administrator tomonidan tasdiqlanishi kutilmoqda.",
+                    "academic_status": academic_status,
+                },
+            )
 
     consent = user_consents.get(username, {})
     if consent.get("version") != LEGAL_CONSENT_VERSION or not all(
@@ -622,6 +644,15 @@ def register(data: RegisterRequest):
         "role": role,
         "approved_roles": [role],
         "role_status": "active",
+        # Enrollment claims are untrusted until reviewed by a platform admin.
+        "academic_status": "pending",
+        "academic_review": {
+            "status": "pending",
+            "submitted_at": datetime.now(timezone.utc).isoformat(),
+            "reviewed_at": None,
+            "reviewed_by": None,
+            "note": "",
+        },
         "academic_profile": {
             "country_code": str(data.country_code or "").upper()[:2],
             "education_mode": str(data.education_mode or "GLOBAL").upper(),
@@ -656,6 +687,8 @@ def me(
         "profile": profile,
         "consent": consent,
         "profile_complete": is_required_profile_complete(profile),
+        "academic_status": profile.get("academic_status", "pending"),
+        "academic_review": profile.get("academic_review", {"status": profile.get("academic_status", "pending")}),
         "consent_complete": consent.get("version") == LEGAL_CONSENT_VERSION and all([
             consent.get("terms_accepted", False),
             consent.get("privacy_accepted", False),
@@ -2741,6 +2774,69 @@ def admin_users(user=Depends(get_current_user)):
             }
             for u in usernames
         ]
+    }
+
+
+@app.get("/api/v1/admin/academic-approvals")
+def admin_academic_approvals(user=Depends(get_current_user)):
+    """List accounts awaiting academic verification."""
+    require_super_admin(user)
+    pending = []
+    reviewed = []
+    for username, profile in user_profiles.items():
+        if str(profile.get("role", "student")).lower() not in {"student", "school_student"}:
+            continue
+        review = profile.get("academic_review") or {}
+        status = str(profile.get("academic_status", "pending")).lower()
+        item = {
+            "username": username,
+            "full_name": profile.get("full_name", ""),
+            "email": profile.get("email", ""),
+            "academic_profile": profile.get("academic_profile", {}),
+            "academic_status": status,
+            "academic_review": review,
+        }
+        (pending if status == "pending" else reviewed).append(item)
+    return {"pending": pending, "reviewed": reviewed}
+
+
+@app.patch("/api/v1/admin/academic-approvals/{username}")
+def admin_review_academic_approval(
+    username: str,
+    approve: bool = True,
+    note: str = "",
+    user=Depends(get_current_user),
+):
+    """Approve/reject a student's claimed academic enrollment."""
+    require_super_admin(user)
+    target = next((name for name in user_profiles if name.casefold() == username.strip().casefold()), None)
+    if not target:
+        raise HTTPException(status_code=404, detail="Student account not found.")
+    profile = user_profiles[target]
+    if str(profile.get("role", "student")).lower() not in {"student", "school_student"}:
+        raise HTTPException(status_code=400, detail="Only student accounts can receive academic approval.")
+    now = datetime.now(timezone.utc).isoformat()
+    status = "approved" if approve else "rejected"
+    profile["academic_status"] = status
+    profile["academic_review"] = {
+        "status": status,
+        "submitted_at": (profile.get("academic_review") or {}).get("submitted_at"),
+        "reviewed_at": now,
+        "reviewed_by": user["username"],
+        "note": str(note or "").strip()[:1000],
+    }
+    activity_log.insert(0, {
+        "type": "academic_approval_" + status,
+        "username": target,
+        "reviewed_by": user["username"],
+        "at": now,
+    })
+    _db_save()
+    return {
+        "status": status,
+        "username": target,
+        "academic_status": status,
+        "message": "Akademik ruxsat berildi." if approve else "Akademik tasdiq rad etildi.",
     }
 
 
