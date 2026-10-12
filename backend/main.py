@@ -495,10 +495,13 @@ async def account_readiness_guard(request: Request, call_next):
         )
 
     consent = user_consents.get(username, {})
-    if not all(bool(consent.get(k)) for k in ("terms_accepted","privacy_accepted","data_processing_accepted","research_disclaimer_accepted")):
+    if consent.get("version") != LEGAL_CONSENT_VERSION or not all(
+        bool(consent.get(k))
+        for k in ("terms_accepted", "privacy_accepted", "data_processing_accepted", "research_disclaimer_accepted")
+    ):
         return JSONResponse(
             status_code=403,
-            content={"detail":"LEGAL_CONSENT_REQUIRED","message":"Avval majburiy roziliklarni tasdiqlang."},
+            content={"detail":"LEGAL_CONSENT_REQUIRED","message":"Amaldagi majburiy roziliklarni tasdiqlang."},
         )
     return await call_next(request)
 
