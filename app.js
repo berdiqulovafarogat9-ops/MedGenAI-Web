@@ -4904,40 +4904,57 @@ async function detectProfileLocation(fromSecurity=false){
     const box=$('roleQuickGrid');
     const desc=$('roleDashboardDesc');
     if(!box) return;
-    try {
-      const d=await api('/dashboard/summary');
-      const role=String(d.role||currentRole());
-      const p=d.personal||{};
-      const g=d.global;
-      const cards=[];
-      if(g){
-        cards.push(
-          ['👥', 'Jami foydalanuvchilar', g.total_users],
-          ['🎓', 'Talabalar', g.role_counts?.student||0],
-          ['📘', 'O‘quvchilar', g.role_counts?.school_student||0],
-          ['🔬', 'Tadqiqotchilar', g.role_counts?.researcher||0],
-          ['🩺', 'Shifokorlar', g.role_counts?.doctor||0],
-          ['👨‍🏫', 'Professorlar', g.role_counts?.professor||0],
-          ['🧪', 'Laboratoriyalar', g.role_counts?.lab||0],
-          ['🏢', 'Kompaniyalar', g.role_counts?.company||0]
-        );
-        if(desc) desc.textContent='Owner/Super Admin: butun platforma bo‘yicha umumiy nazorat.';
-      } else {
-        cards.push(
-          ['📚','Mening fanlarim / workspace','Ochish →'],
-          ['🧪','Mening workflowlarim',p.workflows||0],
-          ['🔬','Mening tajribalarim',p.experiments||0],
-          ['📊','Mening hisobotlarim',p.reports||0]
-        );
-        if(desc) desc.textContent=(MEDGEN_ROLES[role]?.desc||'Shaxsiy ish maydoni.');
+    const roleKeyNow = (typeof roleKey === 'function' ? roleKey() : currentRole());
+    const role = MEDGEN_ROLES[roleKeyNow] || MEDGEN_ROLES.student;
+    const moduleDescriptions = {
+      'Medical Academy':['🎓','Ta’lim akademiyasi','Anatomiya, fanlar, klinik fikrlash va OSCE'],
+      'Virtual Laboratory':['🧪','Virtual laboratoriya','Tajriba protokollari va xavfsiz simulyatsiya'],
+      'Research Assistant':['🔬','Ilmiy tadqiqot yordamchisi','Adabiyotlar, savollar va tadqiqot ish jarayoni'],
+      'Reports & History':['📊','Hisobotlar va tarix','Saqlangan natijalar, hisobotlar va faoliyat tarixi'],
+      'Bioinformatics':['🧬','Bioinformatika','Ketma-ketliklar va genomik ma’lumotlar tahlili'],
+      'Molecular Analysis':['⚗️','Molekulyar tahlil','Molekulalar va biologik xususiyatlarni o‘rganish'],
+      'PDB & Structure':['🧫','PDB va strukturalar','Oqsil strukturalari va strukturaviy ma’lumotlar'],
+      'Drug Discovery':['💊','Drug Discovery','Nishonlar va virtual skrining ish jarayoni'],
+      'Scientific Jobs':['🧠','Ilmiy vazifalar','Hisoblash va ilmiy ishlarni kuzatish'],
+      'Global Platform':['🌐','Global platforma','Tashkilotlar, loyihalar va platforma boshqaruvi']
+    };
+    if(roleKeyNow === 'admin' || admin()) {
+      try {
+        const d=await api('/dashboard/summary');
+        const g=d.global||{};
+        const cards=[
+          ['👥',String(g.total_users??'—'),'Jami foydalanuvchilar'],
+          ['🎓',String(g.role_counts?.student||0),'Talabalar'],
+          ['🔬',String(g.role_counts?.researcher||0),'Tadqiqotchilar'],
+          ['🩺',String(g.role_counts?.doctor||0),'Shifokorlar'],
+          ['👨‍🏫',String(g.role_counts?.professor||0),'Professorlar'],
+          ['🧬',String(g.role_counts?.biotech||0),'Biotexnologlar']
+        ];
+        box.innerHTML=cards.map(x=>'<div class="personal-stat-card"><span class="stat-icon">'+x[0]+'</span><strong>'+escapeHtml(x[1])+'</strong><small>'+escapeHtml(x[2])+'</small></div>').join('');
+        if(desc) desc.textContent='Founder / Super Admin: platforma statistikasi va barcha modullar ustidan nazorat.';
+      } catch(e) {
+        box.innerHTML=role.modules.map(m=>{const x=moduleDescriptions[m]||['🔹',m,'Ish maydonini ochish'];return '<button class="role-quick" data-role-module="'+escapeHtml(m)+'"><b>'+x[0]+' '+escapeHtml(x[1])+'</b><span>'+escapeHtml(x[2])+' · Ochish →</span></button>';}).join('');
+        box.querySelectorAll('[data-role-module]').forEach(b=>b.addEventListener('click',()=>openModule(b.dataset.roleModule)));
       }
-      box.innerHTML=cards.map((x,i)=>{
-        const val=typeof x[2]==='number'?String(x[2]):String(x[2]);
-        return '<div class="personal-stat-card"><span class="stat-icon">'+x[0]+'</span><strong>'+escapeHtml(val)+'</strong><small>'+escapeHtml(x[1])+'</small></div>';
-      }).join('');
-    } catch(e) {
-      if(desc) desc.textContent='Dashboard ma’lumotlarini yuklab bo‘lmadi: '+e.message;
+      return;
     }
+    if(desc) desc.textContent=role.desc;
+    const cards=role.modules.map(m=>{
+      const x=moduleDescriptions[m]||['🔹',m,'Ish maydonini ochish'];
+      return '<button class="role-quick" data-role-module="'+escapeHtml(m)+'"><b>'+x[0]+' '+escapeHtml(x[1])+'</b><span>'+escapeHtml(x[2])+' · Ochish →</span></button>';
+    });
+    if(roleKeyNow==='student') {
+      cards.unshift('<button class="role-quick" data-student-home="1"><b>📚 Mening o‘qishim</b><span>Kurs, fanlar, progress va akademik natijalar · Ochish →</span></button>');
+    } else if(roleKeyNow==='professor') {
+      cards.unshift('<button class="role-quick" data-professor-home="1"><b>👨‍🏫 O‘qituvchi ish maydoni</b><span>Kurslar, talabalar natijalari va baholash · Ochish →</span></button>');
+    } else if(roleKeyNow==='doctor') {
+      cards.unshift('<button class="role-quick" data-clinical-home="1"><b>🩺 Klinik ish maydoni</b><span>Klinik case va differensial tashxis bo‘yicha o‘quv/tadqiqot vositalari · Ochish →</span></button>');
+    }
+    box.innerHTML=cards.join('');
+    box.querySelectorAll('[data-role-module]').forEach(b=>b.addEventListener('click',()=>openModule(b.dataset.roleModule)));
+    box.querySelector('[data-student-home]')?.addEventListener('click',()=>openModule('Medical Academy'));
+    box.querySelector('[data-professor-home]')?.addEventListener('click',()=>openModule('Medical Academy'));
+    box.querySelector('[data-clinical-home]')?.addEventListener('click',()=>openModule('Research Assistant'));
   }
 
   function buildRoleDirectory() {
