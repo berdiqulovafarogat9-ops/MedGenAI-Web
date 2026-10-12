@@ -3718,12 +3718,87 @@ def _academy_question_bank(course: int, subject: dict):
             "explanation": "Remediation and reassessment are more meaningful than a one-question promotion rule.",
         },
     ]
-    # Rotate answer positions so assessments do not reward guessing the first option.
-    # This is deterministic per subject and keeps the answer key aligned with each option list.
+    # Curated foundational medical questions. These are educational checks, not clinical advice.
+    curated = {
+        "Anatomy": [
+            ("Which structure connects skeletal muscle to bone?", ["Tendon", "Ligament", "Articular cartilage", "Synovial membrane"], 0, "Tendons transmit force from muscle to bone."),
+            ("Which chamber pumps oxygenated blood into the systemic circulation?", ["Right atrium", "Right ventricle", "Left atrium", "Left ventricle"], 3, "The left ventricle ejects blood into the aorta."),
+            ("Which plane divides the body into left and right portions?", ["Transverse", "Sagittal", "Coronal", "Oblique"], 1, "A sagittal plane divides left and right portions."),
+            ("Which type of joint normally permits the greatest range of movement?", ["Fibrous suture", "Cartilaginous symphysis", "Synovial joint", "Synchondrosis"], 2, "Synovial joints are designed for substantial movement."),
+        ],
+        "Histology": [
+            ("Which epithelium is specialized for rapid diffusion in pulmonary alveoli?", ["Simple squamous", "Stratified squamous", "Transitional", "Pseudostratified columnar"], 0, "Thin simple squamous cells minimize diffusion distance."),
+            ("Which cell produces most of the collagen in ordinary connective tissue?", ["Neutrophil", "Fibroblast", "Erythrocyte", "Neuron"], 1, "Fibroblasts synthesize extracellular matrix including collagen."),
+            ("Which organelle is especially abundant in cells producing secreted proteins?", ["Smooth endoplasmic reticulum only", "Lysosome", "Rough endoplasmic reticulum", "Centriole"], 2, "Rough ER supports synthesis of proteins destined for secretion or membranes."),
+            ("Which blood element is primarily responsible for oxygen transport?", ["Platelet", "Lymphocyte", "Monocyte", "Erythrocyte"], 3, "Erythrocytes carry hemoglobin."),
+        ],
+        "Physiology": [
+            ("Which change usually increases heart rate through the autonomic nervous system?", ["Increased sympathetic activity", "Increased vagal activity", "Complete beta-1 blockade", "Reduced catecholamine release"], 0, "Sympathetic stimulation generally increases heart rate."),
+            ("Where is the main respiratory rhythm-generating network located?", ["Cerebellar cortex", "Medulla oblongata", "Occipital lobe", "Spinal lumbar enlargement"], 1, "Medullary networks are central to respiratory rhythm generation."),
+            ("What is the principal immediate stimulus for ventilation in most healthy adults?", ["Arterial oxygen rising", "Plasma sodium falling slightly", "Rising arterial carbon dioxide", "Blood glucose after a meal"], 2, "Carbon dioxide-related changes in pH are a major ventilatory drive."),
+            ("Which hormone increases water reabsorption in the renal collecting ducts?", ["Insulin", "Thyroxine", "Glucagon", "Antidiuretic hormone"], 3, "ADH increases collecting-duct water permeability."),
+        ],
+        "Biochemistry": [
+            ("Which molecule is the principal immediate energy currency used by cells?", ["ATP", "DNA", "Cholesterol", "Urea"], 0, "ATP couples energy-releasing and energy-requiring reactions."),
+            ("Which enzyme begins starch digestion in the mouth?", ["Pepsin", "Salivary amylase", "Trypsin", "Lactase"], 1, "Salivary amylase hydrolyzes starch."),
+            ("Which vitamin-derived cofactor is required for many carboxylation reactions?", ["Thiamine pyrophosphate", "FAD only", "Biotin", "Pyridoxal phosphate"], 2, "Biotin is a cofactor for carboxylases."),
+            ("Which process produces most ATP from complete aerobic oxidation of glucose?", ["Glycogenolysis alone", "Fermentation", "Glycolysis alone", "Oxidative phosphorylation"], 3, "The electron transport chain and oxidative phosphorylation generate most ATP aerobically."),
+        ],
+        "Genetics": [
+            ("Which molecule carries the usual heritable genetic information in human cells?", ["DNA", "Triglyceride", "Glycogen", "Collagen"], 0, "Nuclear and mitochondrial genomes are DNA."),
+            ("A change in one nucleotide is commonly called what?", ["Translocation only", "Point mutation", "Polyploidy", "Crossing over"], 1, "A single-nucleotide change is a point mutation."),
+            ("Which chromosome pattern is typically associated with Turner syndrome?", ["47,XXY", "Trisomy 21", "45,X", "47,XXX"], 2, "Turner syndrome classically involves complete or partial monosomy X."),
+            ("What does genetic counseling primarily help people do?", ["Guarantee a healthy outcome", "Replace diagnostic testing", "Choose treatment without consent", "Understand genetic risks and available options"], 3, "Counseling supports informed, non-directive decisions about genetic risk."),
+        ],
+        "Microbiology": [
+            ("Which structure is present in bacteria but absent from human cells?", ["Peptidoglycan cell wall", "Plasma membrane", "Ribosomes", "DNA"], 0, "Most bacteria have peptidoglycan cell walls; human cells do not."),
+            ("Which method reliably sterilizes suitable heat-stable instruments using pressurized steam?", ["Refrigeration", "Autoclaving", "Brief rinsing", "Ultraviolet room lighting alone"], 1, "Validated autoclave cycles use saturated steam under pressure."),
+            ("Which laboratory method detects bacterial growth inhibition around an antimicrobial disk?", ["Gram stain alone", "ELISA", "Disk diffusion susceptibility test", "Complete blood count"], 2, "Disk diffusion assesses inhibition zones under standardized conditions."),
+            ("Viruses require which resource to replicate?", ["A nutrient agar plate alone", "Independent ribosomes", "A bacterial cell wall", "Host-cell machinery"], 3, "Viruses depend on host cells for replication."),
+        ],
+        "Immunology": [
+            ("Which cells can differentiate into antibody-secreting plasma cells?", ["B lymphocytes", "Erythrocytes", "Platelets", "Neutrophils only"], 0, "Activated B cells can differentiate into plasma cells."),
+            ("Which immunoglobulin class commonly predominates in a secondary systemic response?", ["IgE", "IgG", "IgD", "IgM only"], 1, "IgG is commonly prominent after class switching and memory responses."),
+            ("Which cells are central to antigen-specific cellular immunity?", ["Erythrocytes", "Fibroblasts", "T lymphocytes", "Osteocytes"], 2, "T cells mediate key adaptive cellular immune responses."),
+            ("What is the main purpose of vaccination?", ["Cause the target disease in everyone", "Remove all innate immunity", "Replace every future treatment", "Establish immune memory against a target"], 3, "Vaccination trains immune responses and memory while aiming to reduce disease risk."),
+        ],
+        "Pathology": [
+            ("Which term describes reversible cellular swelling after mild injury?", ["Cellular adaptation", "Hydropic change", "Metastasis", "Dysplasia"], 1, "Hydropic change is a common reversible injury pattern."),
+            ("Which feature best distinguishes apoptosis from uncontrolled necrosis?", ["Regulated cell death with membrane integrity initially maintained", "Always causes widespread inflammation", "Only occurs after bacterial infection", "Always affects an entire organ"], 0, "Apoptosis is regulated and typically limits inflammation."),
+            ("Which process describes spread of malignant cells to distant sites?", ["Hypertrophy", "Metaplasia", "Metastasis", "Atrophy"], 2, "Metastasis is the dissemination of malignant cells to distant locations."),
+            ("Which inflammatory cell is often prominent early in acute bacterial inflammation?", ["Plasma cell", "Eosinophil only", "Mature erythrocyte", "Neutrophil"], 3, "Neutrophils are commonly early responders in acute bacterial inflammation."),
+        ],
+        "Medical terminology": [
+            ("In medical terminology, the prefix 'brady-' generally means what?", ["Slow", "Fast", "Around", "Within"], 0, "Brady- indicates slowness, as in bradycardia."),
+            ("The suffix '-itis' usually indicates what?", ["Surgical removal", "Inflammation", "Visual examination", "Blood condition"], 1, "-itis denotes inflammation."),
+            ("The prefix 'hypo-' most commonly means what?", ["Above normal", "Around", "Below or deficient", "Between"], 2, "Hypo- indicates below, low, or deficient."),
+            ("What does 'bilateral' mean?", ["Only on the left", "Only on the right", "Inside an organ", "Affecting both sides"], 3, "Bilateral means involving both sides."),
+        ],
+        "Public health": [
+            ("Incidence measures which quantity in a population over a specified period?", ["New cases", "All existing cases at one point", "Deaths from every cause only", "Hospital beds"], 0, "Incidence counts new cases in a defined population and time."),
+            ("Which is an example of primary prevention?", ["Rehabilitation after stroke", "Immunization before infection", "Screening for established disease", "Palliative care"], 1, "Primary prevention aims to prevent disease before it occurs."),
+            ("A screening test with high sensitivity is especially useful for what purpose?", ["Confirming every positive result without follow-up", "Eliminating the need for prevalence data", "Reducing missed cases", "Proving causality"], 2, "High sensitivity reduces false negatives and helps rule out disease when negative in suitable contexts."),
+            ("Which factor is essential when interpreting a population health statistic?", ["Anecdote alone", "Ignoring the denominator", "Assuming association proves causation", "The population and time period measured"], 3, "Rates require clear denominators, population definitions and time windows."),
+        ],
+    }
+    if sid in curated:
+        specific = []
+        for index, (question_text, options, answer, explanation) in enumerate(curated[sid], start=1):
+            specific.append({
+                "id": f"{course}-{sid}-specific{index}",
+                "question": question_text,
+                "options": list(options),
+                "answer": answer,
+                "explanation": explanation,
+            })
+        base = specific + base[len(specific):]
+
+    # Rotate answer positions while preserving the correct answer key.
     for index, question in enumerate(base):
         shift = (index + course + len(sid)) % len(question["options"])
+        original_answer = int(question["answer"])
         question["options"] = question["options"][shift:] + question["options"][:shift]
-        question["answer"] = (0 - shift) % len(question["options"])
+        question["answer"] = (original_answer - shift) % len(question["options"])
 
     # Build a separate exam set with unique identifiers and alternate application stems.
     exam = []
