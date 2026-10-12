@@ -3681,7 +3681,6 @@ def _academy_translate_value(value):
         (r"^How does (.+) connect to other medical subjects\\?$", r"\\1 boshqa tibbiy fanlar bilan qanday bog‘lanadi?"),
         (r"^What should happen after a weak result in (.+)\\?$", r"\\1 bo‘yicha natija past bo‘lsa, nima qilish kerak?"),
         (r"^It is a core concept of (.+)\\.$", r"Bu \\1ning asosiy tushunchasidir."),
-        (r"^What is the correct learning approach for (.+)\\?$", r"\\1ni o‘rganishning to‘g‘ri yondashuvi qaysi?"),
     )
     import re as _re
     for pattern, replacement in patterns:
