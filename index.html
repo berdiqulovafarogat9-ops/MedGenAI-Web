@@ -381,6 +381,7 @@ frame-ancestors 'none'">
     <button
       id="logoutBtn"
       type="button"
+      onclick="window.logout && window.logout(); return false;"
       class="ghost"
       data-i18n="logout">
       Logout
@@ -1210,7 +1211,7 @@ window.addEventListener("error", function (event) {
      Keep app.js unchanged.
 -->
 
-<script src="app.js?v=20261011-17"></script>
+<script src="app.js?v=20261012-logout-fix"></script>
 
 
 
