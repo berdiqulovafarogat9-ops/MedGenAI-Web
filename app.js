@@ -5093,7 +5093,9 @@ async function runMolecule3D() {
 
 
 function runScientificWorkflow(){
-  const status=document.getElementById('workflowStatus'), out=document.getElementById('workflowResult');
+  const panel=document.getElementById('scientificWorkflowPanel');
+  const status=panel?.querySelector('#workflowStatus'), out=panel?.querySelector('#workflowResult');
+  if(!status || !out) return;
   const body={
     name:document.getElementById('workflowName')?.value || 'MedGen Scientific Workflow',
     target:document.getElementById('workflowTarget')?.value || '',
@@ -5111,6 +5113,24 @@ function runScientificWorkflow(){
     .then(j=>{status.textContent='Workflow completed'; out.textContent=JSON.stringify(j,null,2);})
     .catch(e=>{status.textContent='Workflow error'; out.textContent=e.message;});
 }
+function bindScientificWorkflowPanelButton(){
+  const button=document.getElementById('openScientificWorkflow');
+  if(!button || button.dataset.bound==='1') return;
+  button.dataset.bound='1';
+  button.addEventListener('click',()=>{
+    const panel=document.getElementById('scientificWorkflowPanel');
+    if(!panel) return;
+    panel.classList.remove('hidden');
+    panel.setAttribute('aria-hidden','false');
+    panel.scrollIntoView({behavior:'smooth',block:'start'});
+  });
+}
+if(document.readyState==='loading'){
+  document.addEventListener('DOMContentLoaded',bindScientificWorkflowPanelButton,{once:true});
+}else{
+  bindScientificWorkflowPanelButton();
+}
+
 function bindScientificWorkflowButton(){
   const button=document.getElementById('workflowRun');
   if(!button || button.dataset.workflowBound==='1') return;
