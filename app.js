@@ -3537,15 +3537,26 @@ function roleKey(){
     state.user?.role ||
     state.user?.user_role ||
     state.user?.type ||
+    ''
+  ).trim().toLowerCase().replace(/[\s-]+/g, '_');
+  const profileRaw=String(
     state.user?.profile?.role ||
     state.user?.metadata?.role ||
     ''
   ).trim().toLowerCase().replace(/[\s-]+/g, '_');
   const aliases={super_admin:'admin',superadmin:'admin',founder:'admin',ceo:'admin',owner:'admin'};
-  if(aliases[raw]) return aliases[raw];
-  if(MEDGEN_ROLES[raw]) return raw;
+  // Privileged dashboards must always be determined by the server-authenticated role.
+  if(aliases[raw] || raw==='admin') return 'admin';
+  if(MEDGEN_ROLES[raw] && raw!=='student') return raw;
+
+  // Older accounts sometimes have a generic "student" auth role while their
+  // selected professional role is stored in the profile or registration record.
+  // Use those non-privileged role hints to restore the correct dashboard.
+  if(MEDGEN_ROLES[profileRaw] && profileRaw!=='student') return profileRaw;
   const local=getLocalRole()?.key;
-  return MEDGEN_ROLES[local] ? local : 'student';
+  if(MEDGEN_ROLES[local] && local!=='admin') return local;
+  if(MEDGEN_ROLES[raw]) return raw;
+  return 'student';
 }
 function applyRoleDashboard(){
   const key=roleKey(), role=MEDGEN_ROLES[key]||MEDGEN_ROLES.student;
