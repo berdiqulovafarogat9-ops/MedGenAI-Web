@@ -4995,38 +4995,37 @@ async function detectProfileLocation(fromSecurity=false){
   }
 
   async function openUserRoleDashboard(roleKey) {
-    if(!admin()) return;
-    const panel=$('userDirectoryDashboard');
-    const detail=$('userDirectoryDetail');
-    const cards=$('userDirectoryCards');
-    const title=$('userDirectoryTitle');
-    if(!panel||!cards) return;
-    $('roleDashboard')?.classList.add('hidden');
-    $('educationPreferencePanel')?.classList.add('hidden');
-    $('moduleDirectory')?.classList.add('hidden');
+    // Role menu entries are dashboard previews, not user-directory pages.
+    // Keep the authenticated admin permissions intact; only change the workspace being previewed.
+    if (!admin()) return;
+    const normalized = String(roleKey || 'student').trim().toLowerCase();
+    const preview = normalized === 'super_admin' || normalized === 'admin'
+      ? 'admin'
+      : (MEDGEN_ROLES[normalized] ? normalized : 'student');
+    window.medgenPreviewRole = preview === 'admin' ? null : preview;
+    $('userDirectoryDashboard')?.classList.add('hidden');
+    $('userDirectoryDetail')?.classList.add('hidden');
+    $('adminDashboard')?.classList.add('hidden');
+    $('securityCenter')?.classList.add('hidden');
     $('workspace')?.classList.add('hidden');
-    panel.classList.remove('hidden');
-    title.textContent=(ROLE_CARDS[roleKey]?.icon||'👥')+' '+(ROLE_CARDS[roleKey]?.title||roleKey);
-    detail?.classList.add('hidden');
-    cards.innerHTML='<div class="status">Yuklanmoqda...</div>';
+    $('moduleDirectory')?.classList.add('hidden');
+    $('educationPreferencePanel')?.classList.add('hidden');
+    $('roleDashboard')?.classList.remove('hidden');
     try {
-      const d=await api('/admin/users');
-      const users=(d.users||[]).filter(u=>{
-        const r=String(u.role||'student');
-        return roleKey==='SUPER_ADMIN' ? r.toUpperCase()==='SUPER_ADMIN' : r.toLowerCase()===roleKey.toLowerCase();
-      });
-      cards.innerHTML=
-        '<div class="role-summary-main"><span>'+ (ROLE_CARDS[roleKey]?.icon||'👥') +'</span><strong>'+users.length+'</strong><small>'+escapeHtml(ROLE_CARDS[roleKey]?.title||roleKey)+'</small></div>'+
-        '<div class="role-user-list">'+(users.length?users.map(u=>{
-          const p=u.profile||{};
-          const ap=p.academic_profile||{};
-          return '<button class="role-user-row" data-role-user="'+escapeHtml(u.username)+'"><b>'+escapeHtml(p.full_name||u.username)+'</b><span>'+escapeHtml(u.username)+'</span><small>'+escapeHtml(ap.university||p.organization||'')+'</small></button>';
-        }).join(''):'<div class="muted">Hozircha foydalanuvchi yo‘q.</div>')+'</div>';
-      cards.querySelectorAll('[data-role-user]').forEach(row=>row.addEventListener('click',()=>{
-        const user=users.find(x=>x.username===row.dataset.roleUser);
-        showAdminUserDetail(user);
-      }));
-    } catch(e) { cards.innerHTML='<div class="status">❌ '+escapeHtml(e.message)+'</div>'; }
+      if (typeof applyRoleDashboard === 'function') applyRoleDashboard();
+      if (typeof window.medgenRenderRoleHome === 'function') window.medgenRenderRoleHome();
+    } catch (error) {
+      console.error('ROLE PREVIEW ERROR:', error);
+    }
+    // Re-apply after older asynchronous dashboard hooks have completed.
+    setTimeout(() => {
+      $('userDirectoryDashboard')?.classList.add('hidden');
+      $('roleDashboard')?.classList.remove('hidden');
+      try {
+        if (typeof applyRoleDashboard === 'function') applyRoleDashboard();
+        if (typeof window.medgenRenderRoleHome === 'function') window.medgenRenderRoleHome();
+      } catch (_) {}
+    }, 250);
   }
 
   function showAdminUserDetail(user) {
