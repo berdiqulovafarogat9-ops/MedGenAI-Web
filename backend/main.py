@@ -345,7 +345,7 @@ def is_required_profile_complete(profile: dict) -> bool:
     role = normalize_role(profile.get("role") or "student")
     if role in {"student","school_student","researcher","professor"}:
         ap = profile.get("academic_profile") or {}
-        if not all(str(ap.get(k) or "").strip() for k in ("university","faculty","major","group","student_id")): return False
+        if not all(str(ap.get(k) or "").strip() for k in ("university","faculty","major","group")): return False
     return True
 
 def normalize_role(value: str) -> str:
@@ -3555,7 +3555,7 @@ ACADEMY_COURSES = {
     ]},
 }
 
-ACADEMY_ASSESSMENT_TYPES = ("theory", "practice", "quiz", "case", "exam")
+ACADEMY_ASSESSMENT_TYPES = ("theory", "practice", "quiz", "case", "skills", "osce", "exam")
 
 def _academy_subject(course: int, subject_id: str):
     course_data = ACADEMY_COURSES.get(course)
@@ -3740,7 +3740,7 @@ def _academy_question_bank(course: int, subject: dict):
             "answer": 0,
         },
     ]
-    skills = [{"id": f"{course}-{sid}-skill{i}", "title": f"Practical skill {i}: {topic}", "instruction": "Perform the structured educational skill, explain the rationale, and identify safety checks."} for i in range(1, 4)]
+    skills = [{"id": f"{course}-{sid}-skill{i}", "title": f"Practical skill {i}: {topic}", "instruction": "Perform the structured educational skill, explain the rationale, and identify safety checks.", "checklist": ["Preparation", "Correct sequence", "Scientific rationale", "Safety check", "Reflection"]} for i in range(1, 4)]
     osce = [
         {"id": f"{course}-{sid}-osce1", "station": f"OSCE Station 1 — {topic}", "prompt": "Complete the station in a structured sequence and communicate key safety checks.", "checklist": ["Preparation", "Structured execution", "Communication", "Safety check", "Documentation"]},
         {"id": f"{course}-{sid}-osce2", "station": f"OSCE Station 2 — {topic}", "prompt": "Interpret the educational scenario, demonstrate the skill, and explain the decision.", "checklist": ["Interpretation", "Skill performance", "Reasoning", "Safety", "Feedback"]},
@@ -3876,13 +3876,15 @@ def academy_start_assessment(data: AcademyAssessmentStartRequest, user=Depends(g
     bank = _academy_question_bank(data.course, subject)
     if data.assessment_type in {"theory", "practice"}:
         items = [{"id": f"{data.course}-{data.subject_id}-{data.assessment_type}-1", "prompt": f"Complete the {data.assessment_type} learning activity for {subject['objective']}.", "instruction": "Submit completion only after you have actually performed the activity."}]
+    elif data.assessment_type == "skills":
+        items = [{"id": q["id"], "question": q["title"], "prompt": q["instruction"], "checklist": q["checklist"]} for q in bank["skills"]]
+    elif data.assessment_type == "osce":
+        items = [{"id": q["id"], "question": q["station"], "prompt": q["prompt"], "checklist": q["checklist"]} for q in bank["osce"]]
     elif data.assessment_type == "case":
         items = [{"id": q["id"], "scenario": q["scenario"], "prompt": q["prompt"], "options": q["options"]} for q in bank["case"]]
     else:
-        pool = bank["quiz"]
+        pool = bank["exam"] if data.assessment_type == "exam" else bank["quiz"]
         items = [{"id": q["id"], "question": q["question"], "options": q["options"]} for q in pool]
-        if data.assessment_type == "exam":
-            items = [{"id": q["id"], "question": q["question"], "options": q["options"]} for q in bank["exam"]]
     return {"status": "started", "course": data.course, "subject_id": data.subject_id, "assessment_type": data.assessment_type, "items": items, "time_limit_minutes": 45 if data.assessment_type == "exam" else None}
 
 @app.post("/api/v1/academy/assessment/submit")
@@ -3894,6 +3896,11 @@ def academy_submit_assessment(data: AcademyAssessmentSubmitRequest, user=Depends
     if data.assessment_type in {"theory", "practice"}:
         score = 100 if data.answers.get("completion") == 1 else 0
         total = 1
+    elif data.assessment_type in {"skills", "osce"}:
+        items = bank[data.assessment_type]
+        total = sum(len(item["checklist"]) for item in items)
+        completed = sum(1 for item in items for index in range(len(item["checklist"])) if data.answers.get(f"{item['id']}:{index}") == 1)
+        score = round(completed * 100 / total) if total else 0
     else:
         questions = bank["case"] if data.assessment_type == "case" else (bank["exam"] if data.assessment_type == "exam" else bank["quiz"])
         correct = sum(1 for q in questions if data.answers.get(q["id"]) == q["answer"])
