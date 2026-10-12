@@ -1607,6 +1607,7 @@ def update_experiment(
         "status": experiment["status"],
         "at": experiment["updated_at"],
     })
+    _db_save()
     return experiment
 
 
