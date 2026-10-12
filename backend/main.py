@@ -3695,7 +3695,7 @@ def _academy_translate_payload(value):
         return {key: _academy_translate_payload(item) for key, item in value.items()}
     return _academy_translate_value(value)
 
-ACADEMY_ASSESSMENT_TYPES = ("theory", "practice", "quiz", "case", "skills", "osce", "exam")
+ACADEMY_ASSESSMENT_TYPES = ("theory", "practice", "puzzle", "quiz", "test", "case", "skills", "osce", "theory_exam", "practical_exam", "exam")
 
 def _academy_subject(course: int, subject_id: str):
     course_data = ACADEMY_COURSES.get(course)
@@ -3718,7 +3718,7 @@ def _academy_profile(username: str):
         "year": 1,
         "group": "",
         "student_id": "",
-        "study_language": "en",
+        "study_language": "uz",
         "academic_degree": "MD/MBBS",
     }
     for k, v in defaults.items():
@@ -3998,7 +3998,7 @@ class AcademyProfileRequest(BaseModel):
     year: int = 1
     group: str = ""
     student_id: str = ""
-    study_language: str = "en"
+    study_language: str = "uz"
     academic_degree: str = "MD/MBBS"
 
 class AcademyAssessmentStartRequest(BaseModel):
@@ -4053,7 +4053,7 @@ def academy_update_profile(data: AcademyProfileRequest, user=Depends(get_current
         "year": int(data.year),
         "group": str(data.group).strip()[:100],
         "student_id": str(data.student_id or "").strip()[:100],
-        "study_language": str(data.study_language or "en").lower()[:10],
+        "study_language": str(data.study_language or "uz").lower()[:10],
         "academic_degree": str(data.academic_degree or "MD/MBBS").strip()[:100],
         "updated_at": datetime.now(timezone.utc).isoformat(),
     })
@@ -4109,7 +4109,18 @@ def academy_start_assessment(data: AcademyAssessmentStartRequest, user=Depends(g
         raise HTTPException(status_code=400, detail="Invalid assessment type.")
     subject = _academy_subject(data.course, data.subject_id)
     bank = _academy_question_bank(data.course, subject)
-    if data.assessment_type == "theory":
+    if data.assessment_type == "puzzle":
+        if data.course == 1 and data.subject_id == "Anatomy":
+            items = [{
+                "id": "brain-assembly-v1",
+                "title": "Bosh miya qismlarini joylashtiring",
+                "instruction": "Har bir tuzilmani mos anatomik joyiga qo‘ying. Bu boshlang‘ich joylashtirish mashqi; to‘liq interaktiv 3D model hali ulanmagan.",
+                "parts": [{"id":"frontal","label":"Peshona bo‘lagi"},{"id":"parietal","label":"Tepa bo‘lagi"},{"id":"temporal","label":"Chakka bo‘lagi"},{"id":"occipital","label":"Ensa bo‘lagi"},{"id":"cerebellum","label":"Miyacha"},{"id":"brainstem","label":"Miya ustuni"}],
+                "slots": [{"value":0,"label":"Oldingi-yuqori"},{"value":1,"label":"Markaziy-yuqori"},{"value":2,"label":"Yon-pastki"},{"value":3,"label":"Orqa-yuqori"},{"value":4,"label":"Orqa-pastki"},{"value":5,"label":"Pastki markaz"}]
+            }]
+        else:
+            items = [{"id":"puzzle-unavailable","title":"Bu fan uchun puzzle tayyorlanmoqda","instruction":"Hozircha maxsus puzzle xaritasi mavjud emas.","parts":[],"slots":[]}]
+    elif data.assessment_type == "theory":
         items = [
             {
                 "id": f"{data.course}-{data.subject_id}-theory-1",
@@ -4135,20 +4146,26 @@ def academy_start_assessment(data: AcademyAssessmentStartRequest, user=Depends(g
         ]
     elif data.assessment_type == "practice":
         items = [{"id": f"{data.course}-{data.subject_id}-practice-1", "prompt": f"{subject['name']} bo‘yicha amaliy mashq: {subject['objective']}.", "instruction": "Asosiy mexanizmni o‘z so‘zingiz bilan izohlang, bitta misol keltiring va xatolaringizni qayd eting."}]
-    elif data.assessment_type == "skills":
+    elif data.assessment_type in {"skills", "practical_exam"}:
         items = [{"id": q["id"], "question": q["title"], "prompt": q["instruction"], "checklist": q["checklist"]} for q in bank["skills"]]
+        if data.assessment_type == "practical_exam":
+            items += [{"id": q["id"], "question": q["station"], "prompt": q["prompt"], "checklist": q["checklist"]} for q in bank["osce"]]
     elif data.assessment_type == "osce":
         items = [{"id": q["id"], "question": q["station"], "prompt": q["prompt"], "checklist": q["checklist"]} for q in bank["osce"]]
     elif data.assessment_type == "case":
         items = [{"id": q["id"], "scenario": q["scenario"], "prompt": q["prompt"], "options": q["options"]} for q in bank["case"]]
+    elif data.assessment_type == "theory_exam":
+        items = [{"id": q["id"], "question": q["question"], "options": q["options"]} for q in bank["exam"]]
     else:
-        pool = bank["exam"] if data.assessment_type == "exam" else bank["quiz"]
+        pool = bank["exam"] if data.assessment_type in {"exam", "test"} else bank["quiz"]
+        if data.assessment_type == "quiz":
+            pool = bank["quiz"][:5]
         items = [{"id": q["id"], "question": q["question"], "options": q["options"]} for q in pool]
     ap = _academy_profile(user["username"])
     study_language = str(ap.get("study_language") or "uz").lower().split("-")[0]
     if study_language in {"uz", "uzbek", "uzb"}:
         items = _academy_translate_payload(items)
-    return {"status": "started", "course": data.course, "subject_id": data.subject_id, "assessment_type": data.assessment_type, "items": items, "time_limit_minutes": 45 if data.assessment_type == "exam" else None}
+    return {"status": "started", "course": data.course, "subject_id": data.subject_id, "assessment_type": data.assessment_type, "items": items, "time_limit_minutes": 60 if data.assessment_type in {"theory_exam", "exam"} else (45 if data.assessment_type == "practical_exam" else None)}
 
 @app.post("/api/v1/academy/assessment/submit")
 def academy_submit_assessment(data: AcademyAssessmentSubmitRequest, user=Depends(get_current_user)):
