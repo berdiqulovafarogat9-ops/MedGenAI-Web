@@ -4874,12 +4874,9 @@ async function detectProfileLocation(fromSecurity=false){
   }
 
   function start(){
+    // Apply the role home once at startup. Repeating this every 500ms hid
+    // module workspaces after users opened them.
     enforceHome();
-    let n=0;
-    const timer=setInterval(()=>{
-      enforceHome();
-      if(++n>30) clearInterval(timer);
-    },500);
   }
   if(document.readyState==='loading') document.addEventListener('DOMContentLoaded',start,{once:true}); else start();
 })();
@@ -5194,7 +5191,10 @@ async function detectProfileLocation(fromSecurity=false){
     try{
       const d=await api('/dashboard/summary');
       const q=$('roleQuickGrid'); if(!q) return;
-      if(d.global){
+      // Global platform statistics belong only to the authenticated admin.
+      // For all other roles, preserve the role-specific workspace cards.
+      const roleNow = typeof roleKey === 'function' ? roleKey() : String(state.user?.role||'student').toLowerCase();
+      if(d.global && (roleNow==='admin' || (typeof isSuperAdmin==='function' && isSuperAdmin()))){
         const g=d.global;
         q.innerHTML=[
           ['👥','Jami foydalanuvchilar',g.total_users],
@@ -5424,3 +5424,65 @@ async function renderPdb3D(){
   if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',bind,{once:true});else bind();
 })();
 
+
+
+/* =========================================================
+   ROLE DASHBOARD FIX — SINGLE SOURCE OF TRUTH
+   Keep each authenticated role on its own workspace.
+========================================================= */
+(function medgenRoleDashboardFix(){
+  const originalShowDashboard = showDashboard;
+  function renderRoleHome(){
+    if(!state.user) return;
+    const key = typeof roleKey === 'function' ? roleKey() : 'student';
+    const role = MEDGEN_ROLES[key] || MEDGEN_ROLES.student;
+    const title = document.getElementById('roleDashboardTitle');
+    const desc = document.getElementById('roleDashboardDesc');
+    const badge = document.getElementById('roleDashboardBadge');
+    const grid = document.getElementById('roleQuickGrid');
+    if(title) title.textContent = (role.icon || '🧬') + ' ' + role.title;
+    if(desc) desc.textContent = role.desc;
+    if(badge) badge.textContent = key === 'admin' ? 'OWNER / ADMIN' : 'PRIMARY ROLE';
+    if(grid){
+      const labels = {
+        'Medical Academy':['🎓','Tibbiyot akademiyasi','Kurslar, fanlar va ta’lim vositalari'],
+        'Virtual Laboratory':['🧪','Virtual laboratoriya','Xavfsiz simulyatsiya va tajriba protokollari'],
+        'Research Assistant':['🔬','Ilmiy tadqiqot','Adabiyotlar, gipotezalar va tadqiqot jarayoni'],
+        'Reports & History':['📊','Hisobotlar va tarix','Saqlangan natijalar va faoliyat'],
+        'Bioinformatics':['🧬','Bioinformatika','Genomika va biologik ketma-ketliklar tahlili'],
+        'Molecular Analysis':['⚗️','Molekulyar tahlil','Molekula va biologik xususiyatlar'],
+        'PDB & Structure':['🧫','PDB va strukturalar','Oqsil strukturalari va strukturaviy ma’lumotlar'],
+        'Drug Discovery':['💊','Drug Discovery','Dori nishonlari va virtual skrining'],
+        'Scientific Jobs':['🧠','Ilmiy vazifalar','Hisoblash ishlarini kuzatish'],
+        'Global Platform':['🌐','Global platforma','Tashkilotlar, loyihalar va platforma boshqaruvi']
+      };
+      grid.innerHTML = (role.modules || []).map(name => {
+        const item = labels[name] || ['🔹',name,'Ish maydonini ochish'];
+        return '<button class="role-quick" data-role-module="'+escapeHtml(name)+'"><b>'+item[0]+' '+escapeHtml(item[1])+'</b><span>'+escapeHtml(item[2])+' · Ochish →</span></button>';
+      }).join('');
+      grid.querySelectorAll('[data-role-module]').forEach(btn=>{
+        btn.addEventListener('click',()=>openModule(btn.dataset.roleModule));
+      });
+    }
+    // Hide every other dashboard panel so role home is visually distinct.
+    ['userDirectoryDashboard','adminDashboard','securityCenter','workspace','moduleDirectory','educationPreferencePanel'].forEach(id=>{
+      document.getElementById(id)?.classList.add('hidden');
+    });
+    document.getElementById('roleDashboard')?.classList.remove('hidden');
+    if(typeof window.medgenRefreshRoleNavigation === 'function') window.medgenRefreshRoleNavigation();
+  }
+  showDashboard = function(){
+    originalShowDashboard.apply(this, arguments);
+    renderRoleHome();
+    // Older async dashboard loaders may finish after showDashboard; re-apply
+    // the authenticated role cards after their first paint.
+    setTimeout(renderRoleHome, 150);
+    setTimeout(renderRoleHome, 700);
+  };
+  window.medgenRenderRoleHome = renderRoleHome;
+  // A "home" navigation action must also restore the correct role workspace.
+  document.addEventListener('click', event=>{
+    const home = event.target.closest('[data-nav="home"]');
+    if(home) setTimeout(renderRoleHome, 0);
+  });
+})(); 
