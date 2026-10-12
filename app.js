@@ -1252,7 +1252,7 @@ async function openProfile() {
     $('profileAcademicYear') && ($('profileAcademicYear').value = String(academicProfile.year || 1));
     $('profileGroup') && ($('profileGroup').value = academicProfile.group || '');
     $('profileStudentId') && ($('profileStudentId').value = academicProfile.student_id || '');
-    $('profileStudyLanguage') && ($('profileStudyLanguage').value = academicProfile.study_language || 'en');
+    $('profileStudyLanguage') && ($('profileStudyLanguage').value = academicProfile.study_language || 'uz');
     $('profileAcademicDegree') && ($('profileAcademicDegree').value = academicProfile.academic_degree || 'MD/MBBS');
 
     try {
@@ -1508,7 +1508,7 @@ async function saveProfile() {
           year: Number($('profileAcademicYear')?.value || 1),
           group: $('profileGroup')?.value?.trim() || '',
           student_id: $('profileStudentId')?.value?.trim() || '',
-          study_language: $('profileStudyLanguage')?.value || 'en',
+          study_language: $('profileStudyLanguage')?.value || 'uz',
           academic_degree: $('profileAcademicDegree')?.value?.trim() || 'MD/MBBS'
         })
       });
@@ -4225,7 +4225,7 @@ if (document.readyState === "loading") {
             <label>Kurs<select id="p1Year"><option>1</option><option>2</option><option>3</option><option>4</option><option>5</option><option>6</option></select></label>
             <label>Guruh<input id="p1Group" placeholder="Group"></label>
             <label>Student ID <span class="muted">(ixtiyoriy)</span><input id="p1StudentId"></label>
-            <label>O‘qish tili<input id="p1Language" value="en" placeholder="en"></label>
+            <label>O‘qish tili<select id="p1Language"><option value="uz">O‘zbekcha</option><option value="en">English</option><option value="ru">Русский</option></select></label>
             <label>Akademik daraja<input id="p1Degree" value="MD/MBBS"></label>
           </div>
           <button id="p1SaveProfile" class="primary small" type="button">💾 Akademik profilni saqlash</button>
@@ -4294,7 +4294,7 @@ if (document.readyState === "loading") {
         document.getElementById('p1Year').value=String(ap.year||1);
         document.getElementById('p1Group').value=ap.group||'';
         document.getElementById('p1StudentId').value=ap.student_id||'';
-        document.getElementById('p1Language').value=ap.study_language||'en';
+        document.getElementById('p1Language').value=ap.study_language||'uz';
         document.getElementById('p1Degree').value=ap.academic_degree||'MD/MBBS';
         current=d.course;
         set('p1Overall', d.overall_progress+'%');
@@ -4360,7 +4360,7 @@ if (document.readyState === "loading") {
 
     document.getElementById('p1SaveProfile').addEventListener('click',async()=>{
       const mode=val('p1Mode');
-      const payload={country_code:val('p1Country').toUpperCase(),education_mode:mode,university:val('p1University'),faculty:val('p1Faculty'),major:val('p1Major'),year:Number(val('p1Year')),group:val('p1Group'),student_id:val('p1StudentId'),study_language:val('p1Language'),academic_degree:val('p1Degree')};
+      const payload={country_code:val('p1Country').toUpperCase(),education_mode:mode,university:val('p1University'),faculty:val('p1Faculty'),major:val('p1Major'),year:Number(val('p1Year')),group:val('p1Group'),student_id:val('p1StudentId'),study_language:val('p1Language')||'uz',academic_degree:val('p1Degree')};
       try{await apiCall('/academy/profile',{method:'PUT',body:JSON.stringify(payload)});set('p1ProfileStatus','✅ Akademik profil saqlandi.');await load();}catch(e){set('p1ProfileStatus','❌ '+esc(e.message));}
     });
     document.getElementById('p1EligibilityBtn').addEventListener('click',async()=>{
@@ -4474,7 +4474,7 @@ if (document.readyState === "loading") {
           <label>Kurs<select id="profileAcademicYear"><option value="1">1-kurs</option><option value="2">2-kurs</option><option value="3">3-kurs</option><option value="4">4-kurs</option><option value="5">5-kurs</option><option value="6">6-kurs</option></select></label>
           <label>Guruh<input id="profileGroup" placeholder="Guruh"></label>
           <label>Student ID <span class="muted">(ixtiyoriy)</span><input id="profileStudentId"></label>
-          <label>O‘qish tili<input id="profileStudyLanguage" value="en" placeholder="en"></label>
+          <label>O‘qish tili<select id="profileStudyLanguage"><option value="uz">O‘zbekcha</option><option value="en">English</option><option value="ru">Русский</option></select></label>
           <label>Akademik daraja<input id="profileAcademicDegree" value="MD/MBBS"></label>
         </div>
       `;
