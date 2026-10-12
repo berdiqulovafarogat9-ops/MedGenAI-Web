@@ -4144,6 +4144,13 @@ def academy_start_assessment(data: AcademyAssessmentStartRequest, user=Depends(g
                 "instruction": "Uchta asosiy fikrni qayd eting va keyin bajarildi deb belgilang."
             }
         ]
+        if data.course == 1 and data.subject_id == "Anatomy":
+            items = [
+                {"id":"brain-theory-1","title":"Bosh miya: umumiy tuzilishi","prompt":"Bosh miyaning asosiy qismlari va vazifalari","content":"Bosh miya markaziy asab tizimining bosh suyagi ichida joylashgan qismidir. Katta yarimsharlar ongli sezgi, ixtiyoriy harakat, til, xotira va murakkab fikrlashda qatnashadi. Miyacha harakat aniqligi, muvozanat va motor o‘rganishni muvofiqlashtiradi. Miya ustuni o‘rta miya, ko‘prik va uzunchoq miyadan iborat; u bosh miya va orqa miya yo‘llarini bog‘laydi hamda nafas olish va yurak-qon tomir funksiyalariga aloqador markazlarni o‘z ichiga oladi.","instruction":"Har bir qismning vazifasini o‘z so‘zingiz bilan tushuntiring."},
+                {"id":"brain-theory-2","title":"Katta yarimshar bo‘laklari","prompt":"Peshona, tepa, chakka va ensa bo‘laklari","content":"Peshona bo‘lagi ixtiyoriy harakat, rejalashtirish va ijro funksiyalarida qatnashadi. Tepa bo‘lagi somatosensor axborot va fazoviy diqqat uchun muhim. Chakka bo‘lagi eshitish, xotira va tilni tushunish tarmoqlarida qatnashadi. Ensa bo‘lagi ko‘rish axborotini qayta ishlashning asosiy kortikal hududlarini saqlaydi. Funksiyalar ko‘pincha bir nechta soha va tarmoq hamkorligida bajariladi.","instruction":"To‘rtta bo‘lakni ularning asosiy funksiyalari bilan bog‘lang."},
+                {"id":"brain-theory-3","title":"Miyacha va miya ustuni","prompt":"Orqa-pastki tuzilmalar va ularning anatomik joylashuvi","content":"Miyacha katta yarimsharlarning orqa-pastki qismida va miya ustunining orqasida joylashadi. U harakatlarni muvofiqlashtirish va muvozanatga hissa qo‘shadi. Miya ustuni o‘rta miya, ko‘prik va uzunchoq miyadan tuzilgan hamda orqa miya bilan davomiylik hosil qiladi.","instruction":"Miyacha va miya ustunining joylashuvini farqlang."},
+                {"id":"brain-theory-4","title":"Klinik-anatomik bog‘lanish","prompt":"Tuzilish va funksiya o‘rtasidagi aloqa","content":"Ensa korteksi shikastlanishi ko‘rish bilan bog‘liq buzilishlarga, miyacha zararlanishi esa muvozanat va harakat koordinatsiyasi buzilishlariga olib kelishi mumkin. Belgilar shikastlanish joyi va hajmiga qarab farq qiladi; bu o‘quv misollari klinik tashxis o‘rnini bosmaydi.","instruction":"Tuzilma, vazifa va ehtimoliy belgi o‘rtasida ehtiyotkor bog‘lanish tuzing."}
+            ]
     elif data.assessment_type == "practice":
         items = [{"id": f"{data.course}-{data.subject_id}-practice-1", "prompt": f"{subject['name']} bo‘yicha amaliy mashq: {subject['objective']}.", "instruction": "Asosiy mexanizmni o‘z so‘zingiz bilan izohlang, bitta misol keltiring va xatolaringizni qayd eting."}]
     elif data.assessment_type in {"skills", "practical_exam"}:
@@ -4176,13 +4183,20 @@ def academy_submit_assessment(data: AcademyAssessmentSubmitRequest, user=Depends
     if data.assessment_type in {"theory", "practice"}:
         score = 100 if data.answers.get("completion") == 1 else 0
         total = 1
-    elif data.assessment_type in {"skills", "osce"}:
-        items = bank[data.assessment_type]
+    elif data.assessment_type == "puzzle":
+        expected = {"frontal": 0, "parietal": 1, "temporal": 2, "occipital": 3, "cerebellum": 4, "brainstem": 5} if data.course == 1 and data.subject_id == "Anatomy" else {}
+        total = len(expected)
+        correct = sum(1 for part, slot in expected.items() if data.answers.get(part) == slot)
+        score = round(correct * 100 / total) if total else 0
+    elif data.assessment_type in {"skills", "osce", "practical_exam"}:
+        items = bank["skills"] if data.assessment_type == "skills" else (bank["skills"] + bank["osce"] if data.assessment_type == "practical_exam" else bank["osce"])
         total = sum(len(item["checklist"]) for item in items)
         completed = sum(1 for item in items for index in range(len(item["checklist"])) if data.answers.get(f"{item['id']}:{index}") == 1)
         score = round(completed * 100 / total) if total else 0
     else:
-        questions = bank["case"] if data.assessment_type == "case" else (bank["exam"] if data.assessment_type == "exam" else bank["quiz"])
+        questions = bank["case"] if data.assessment_type == "case" else (bank["exam"] if data.assessment_type in {"exam", "theory_exam", "test"} else bank["quiz"])
+        if data.assessment_type == "quiz":
+            questions = questions[:5]
         correct = sum(1 for q in questions if data.answers.get(q["id"]) == q["answer"])
         total = len(questions)
         score = round(correct * 100 / total) if total else 0
