@@ -1635,7 +1635,7 @@ function isSuperAdmin() {
     state.user?.type ||
     state.user?.profile?.role ||
     ''
-  ).trim().toLowerCase().replace(/[\\s-]+/g, '_');
+  ).trim().toLowerCase().replace(/[\s-]+/g, '_');
   return ['super_admin', 'superadmin', 'admin', 'founder', 'ceo', 'owner'].includes(role);
 }
 
@@ -3537,7 +3537,7 @@ function roleKey(){
     state.user?.profile?.role ||
     state.user?.metadata?.role ||
     ''
-  ).trim().toLowerCase().replace(/[\\s-]+/g, '_');
+  ).trim().toLowerCase().replace(/[\s-]+/g, '_');
   const aliases={super_admin:'admin',superadmin:'admin',founder:'admin',ceo:'admin',owner:'admin'};
   if(aliases[raw]) return aliases[raw];
   if(MEDGEN_ROLES[raw]) return raw;
