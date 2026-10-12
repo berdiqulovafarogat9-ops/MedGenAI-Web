@@ -145,7 +145,7 @@ platform_audit_log = []
 usage_store = {}
 
 DATABASE_URL = os.getenv("DATABASE_URL", "").strip()
-LEGAL_CONSENT_VERSION = "1.1"
+LEGAL_CONSENT_VERSION = "1.2"
 PERSISTENCE_ENABLED = bool(DATABASE_URL and psycopg)
 password_hasher = PasswordHash.recommended() if PasswordHash else None
 
