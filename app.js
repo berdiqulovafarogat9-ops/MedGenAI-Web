@@ -3652,6 +3652,7 @@ function getLocalRole(){
   try{return JSON.parse(localStorage.getItem('medgen_role_'+u)||'null');}catch(_){return null;}
 }
 function roleKey(){
+  const badgeRole=String($('roleBadge')?.textContent||'').trim().toLowerCase().replace(/[\s-]+/g, '_');
   const raw=String(
     state.user?.role ||
     state.user?.user_role ||
@@ -3664,6 +3665,7 @@ function roleKey(){
     ''
   ).trim().toLowerCase().replace(/[\s-]+/g, '_');
   const aliases={super_admin:'admin',superadmin:'admin',founder:'admin',ceo:'admin',owner:'admin'};
+  if(['super_admin','superadmin','founder','ceo','owner','admin'].includes(badgeRole)) return 'admin';
   // Privileged dashboards must always be determined by the server-authenticated role.
   if(aliases[raw] || raw==='admin') return 'admin';
   if(MEDGEN_ROLES[raw] && raw!=='student') return raw;
@@ -3690,6 +3692,8 @@ function applyRoleDashboard(){
     const allowed=role.modules.includes(btn.dataset.module) || key==='admin';
     btn.classList.toggle('role-hidden',!allowed);
   });
+  const directory=$('moduleDirectory');
+  if(directory) directory.classList.toggle('role-hidden', key!=='admin');
   const rd=$('roleDashboard'); if(rd) rd.classList.remove('hidden');
   updateUserUI();
   window.medgenRefreshRoleNavigation?.();
