@@ -1329,6 +1329,26 @@ def list_jobs(user=Depends(get_current_user)):
     return {"jobs": items, "count": len(items), "user": user["username"]}
 
 
+@app.get("/api/v1/jobs/status")
+def jobs_status(user=Depends(get_current_user)):
+    items = [j for j in jobs_store if j.get("user") == user["username"]]
+    counts = {}
+    for item in items:
+        status = str(item.get("status") or "unknown")
+        counts[status] = counts.get(status, 0) + 1
+    active = sum(counts.get(status, 0) for status in ("submitted", "queued", "running"))
+    return {
+        "status": "available",
+        "worker": "api-only",
+        "queue": "in-memory",
+        "active": active,
+        "total": len(items),
+        "counts": counts,
+        "note": "Fon worker ulanmagan; yuborilgan vazifalar avtomatik bajarilmaydi.",
+        "user": user["username"],
+    }
+
+
 @app.post("/api/v1/jobs")
 def create_job(
     data: JobRequest,
@@ -1344,6 +1364,7 @@ def create_job(
         "created_at": datetime.now(timezone.utc).isoformat(),
     }
     jobs_store.insert(0, job)
+    _db_save()
     return job
 
 
@@ -1377,6 +1398,7 @@ def create_workflow(
         "created_at": datetime.now(timezone.utc).isoformat(),
     }
     workflows_store.insert(0, workflow)
+    _db_save()
     return workflow
 
 
