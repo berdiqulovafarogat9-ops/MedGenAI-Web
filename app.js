@@ -1633,9 +1633,10 @@ function isSuperAdmin() {
     state.user?.role ||
     state.user?.user_role ||
     state.user?.type ||
+    state.user?.profile?.role ||
     ''
-  ).trim().toUpperCase();
-  return role === 'SUPER_ADMIN' || role === 'ADMIN';
+  ).trim().toLowerCase().replace(/[\\s-]+/g, '_');
+  return ['super_admin', 'superadmin', 'admin', 'founder', 'ceo', 'owner'].includes(role);
 }
 
 async function loadAdminDashboard() {
@@ -3529,7 +3530,14 @@ function getLocalRole(){
   try{return JSON.parse(localStorage.getItem('medgen_role_'+u)||'null');}catch(_){return null;}
 }
 function roleKey(){
-  const raw=String(state.user?.role||state.user?.user_role||state.user?.type||'').toLowerCase();
+  const raw=String(
+    state.user?.role ||
+    state.user?.user_role ||
+    state.user?.type ||
+    state.user?.profile?.role ||
+    state.user?.metadata?.role ||
+    ''
+  ).trim().toLowerCase().replace(/[\\s-]+/g, '_');
   const aliases={super_admin:'admin',superadmin:'admin',founder:'admin',ceo:'admin',owner:'admin'};
   if(aliases[raw]) return aliases[raw];
   if(MEDGEN_ROLES[raw]) return raw;
