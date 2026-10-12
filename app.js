@@ -4317,7 +4317,7 @@ if (document.readyState === "loading") {
           <div class="p1-subject">
             <div><b>${esc(s.name)}</b><small>${esc(s.objective)} • ${done}</small></div>
             <div class="p1-actions">
-              ${['theory','practice','quiz','case','skills','osce','exam'].map(t => `<button class="ghost small p1-assess" data-sub="${esc(s.id)}" data-type="${t}">${t==='theory'?'📖 Nazariya':t==='practice'?'🧪 Mashq':t==='quiz'?'📝 Quiz':t==='case'?'🩺 Case':t==='skills'?'🖐 Ko‘nikma':t==='osce'?'📋 OSCE':'🎯 Imtihon'}</button>`).join('')}
+              ${['theory','puzzle','practice','quiz','test','case','skills','osce','theory_exam','practical_exam'].map(t => `<button class="ghost small p1-assess" data-sub="${esc(s.id)}" data-type="${t}">${t==='theory'?'📖 Nazariya':t==='puzzle'?'🧩 Puzzle':t==='practice'?'🧪 Mashq':t==='quiz'?'⚡ Quiz':t==='test'?'📝 Test':t==='case'?'🩺 Case':t==='skills'?'🖐 Ko‘nikma':t==='osce'?'📋 OSCE':t==='theory_exam'?'🎓 Nazariy imtihon':'🧠 Amaliy imtihon'}</button>`).join('')}
             </div>
           </div>`;
       }).join(''));
@@ -4329,11 +4329,12 @@ if (document.readyState === "loading") {
         currentAssessment={course:current, subject_id:subject, assessment_type:type};
         const d=await apiCall('/academy/assessment/start',{method:'POST',body:JSON.stringify(currentAssessment)});
         set('p1AssessmentTitle', esc(subject)+' — '+esc(type));
-        set('p1AssessmentMeta', type==='exam'?'45 daqiqa':type==='theory'?'Nazariy modul':type==='skills'?'Amaliy ko‘nikmalar checklisti':type==='osce'?'OSCE stansiya checklisti':'Baholash');
+        set('p1AssessmentMeta', ['theory_exam','exam'].includes(type)?'60 daqiqa • Nazariy imtihon':type==='practical_exam'?'45 daqiqa • Amaliy simulyatsiya':type==='theory'?'Nazariy dars':type==='puzzle'?'Joylashtirish o‘yini':type==='quiz'?'5 savolli tezkor quiz':type==='test'?'Test sinovi':type==='skills'?'Amaliy ko‘nikmalar checklisti':type==='osce'?'OSCE stansiya checklisti':'Baholash');
         const body=document.getElementById('p1AssessmentBody');
         body.innerHTML=d.items.map((q,i)=>{
           if(type==='theory'||type==='practice') return `<div class="p1-question"><b>${i+1}. ${esc(q.title||q.prompt)}</b><p>${esc(q.prompt||'')}</p>${q.content?`<p>${esc(q.content)}</p>`:''}<p>${esc(q.instruction||'')}</p><label><input type="checkbox" data-q="${esc(q.id)}" class="p1-complete"> Bajarildi</label></div>`;
-          if(type==='skills'||type==='osce') return '<div class="p1-question"><b>'+(i+1)+'. '+esc(q.question||q.prompt)+'</b><p>'+esc(q.prompt||'')+'</p><div>'+(q.checklist||[]).map((item,j)=>'<label class="p1-option"><input type="checkbox" data-q="'+esc(q.id+':'+j)+'" value="1"> '+esc(item)+'</label>').join('')+'</div></div>';
+          if(type==='puzzle') return `<div class="p1-question brain-puzzle"><b>🧩 ${esc(q.title||'Puzzle')}</b><p>${esc(q.instruction||'')}</p>${(q.parts||[]).map(part=>`<label class="p1-option">${esc(part.label)} <select data-puzzle-part="${esc(part.id)}" aria-label="${esc(part.label)}"><option value="">Joyini tanlang</option>${(q.slots||[]).map(slot=>`<option value="${slot.value}">${esc(slot.label)}</option>`).join('')}</select></label>`).join('')||'<p>Bu fan uchun puzzle xaritasi hali tayyor emas.</p>'}</div>`;
+          if(type==='skills'||type==='osce'||type==='practical_exam') return '<div class="p1-question"><b>'+(i+1)+'. '+esc(q.question||q.prompt)+'</b><p>'+esc(q.prompt||'')+'</p><div>'+(q.checklist||[]).map((item,j)=>'<label class="p1-option"><input type="checkbox" data-q="'+esc(q.id+':'+j)+'" value="1"> '+esc(item)+'</label>').join('')+'</div></div>';
           return `<div class="p1-question"><b>${i+1}. ${esc(q.question||q.prompt)}</b>${q.scenario?`<p><i>${esc(q.scenario)}</i></p>`:''}<div>${(q.options||[]).map((o,j)=>`<label class="p1-option"><input type="radio" name="q_${esc(q.id)}" value="${j}" data-q="${esc(q.id)}"> ${esc(o)}</label>`).join('')}</div></div>`;
         }).join('');
         document.getElementById('p1Assessment').classList.remove('hidden');
@@ -4348,6 +4349,9 @@ if (document.readyState === "loading") {
       if(currentAssessment.assessment_type==='theory'||currentAssessment.assessment_type==='practice'){
         const theoryChecks=[...document.querySelectorAll('.p1-complete')];
         answers.completion=theoryChecks.length&&theoryChecks.every(x=>x.checked)?1:0;
+      } else {
+      } else if(currentAssessment.assessment_type==='puzzle'){
+        document.querySelectorAll('#p1AssessmentBody select[data-puzzle-part]').forEach(x=>{if(x.value!=='') answers[x.dataset.puzzlePart]=Number(x.value);});
       } else {
         document.querySelectorAll('#p1AssessmentBody input[data-q]:checked').forEach(x=>answers[x.dataset.q]=Number(x.value));
       }
@@ -4371,7 +4375,6 @@ if (document.readyState === "loading") {
 
     if (sessionStorage.getItem('medgen_access_token')) {
       load();
-    } else {
       const waitForLogin = setInterval(() => {
         if (sessionStorage.getItem('medgen_access_token')) {
           clearInterval(waitForLogin);
