@@ -1330,7 +1330,7 @@ async function openProfile() {
 
 function isProfileComplete(p) {
   if (!(p && String(p.full_name || '').trim() && String(p.email || '').trim() && String(p.country || '').trim() && String(p.region || '').trim() && String(p.city || '').trim() && String(p.district || '').trim() && Number.isInteger(Number(p.birth_year)) && Number(p.birth_year) >= 1900 && Number(p.birth_year) <= 2100 && Number.isInteger(Number(p.birth_month)) && Number(p.birth_month) >= 1 && Number(p.birth_month) <= 12 && Number.isInteger(Number(p.birth_day)) && Number(p.birth_day) >= 1 && Number(p.birth_day) <= 31)) return false;
-  const role = String(p.role || state.user?.role || state.user?.user_role || '').trim().toLowerCase().replace(/[\\s-]+/g, '_');
+  const role = String(p.role || state.user?.role || state.user?.user_role || '').trim().toLowerCase().replace(/[\s-]+/g, '_');
   if (['student', 'school_student', 'researcher', 'professor'].includes(role)) {
     const ap = p.academic_profile || {};
     return ['university', 'faculty', 'major', 'group', 'student_id'].every(key => String(ap[key] || '').trim());
