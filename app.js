@@ -5111,7 +5111,17 @@ function runScientificWorkflow(){
     .then(j=>{status.textContent='Workflow completed'; out.textContent=JSON.stringify(j,null,2);})
     .catch(e=>{status.textContent='Workflow error'; out.textContent=e.message;});
 }
-document.addEventListener('DOMContentLoaded',()=>document.getElementById('workflowRun')?.addEventListener('click',runScientificWorkflow));
+function bindScientificWorkflowButton(){
+  const button=document.getElementById('workflowRun');
+  if(!button || button.dataset.workflowBound==='1') return;
+  button.dataset.workflowBound='1';
+  button.addEventListener('click',runScientificWorkflow);
+}
+if(document.readyState==='loading'){
+  document.addEventListener('DOMContentLoaded',bindScientificWorkflowButton,{once:true});
+}else{
+  bindScientificWorkflowButton();
+}
 
 /* =========================================================
    PHASE 2 VISUAL LAB — 2D RDKit + 3Dmol.js
