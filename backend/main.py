@@ -3718,6 +3718,32 @@ def _academy_question_bank(course: int, subject: dict):
             "explanation": "Remediation and reassessment are more meaningful than a one-question promotion rule.",
         },
     ]
+    # Rotate answer positions so assessments do not reward guessing the first option.
+    # This is deterministic per subject and keeps the answer key aligned with each option list.
+    for index, question in enumerate(base):
+        shift = (index + course + len(sid)) % len(question["options"])
+        question["options"] = question["options"][shift:] + question["options"][:shift]
+        question["answer"] = (0 - shift) % len(question["options"])
+
+    # Build a separate exam set with unique identifiers and alternate application stems.
+    exam = []
+    exam_stems = [
+        "Choose the most defensible answer:",
+        "In a formal assessment, which response is best supported?",
+        "Select the most appropriate interpretation:",
+        "Which option best reflects safe scientific reasoning?",
+    ]
+    for index, question in enumerate(base):
+        exam_question = dict(question)
+        exam_question["id"] = f"{course}-{sid}-exam{index + 1}"
+        exam_question["question"] = f"{exam_stems[index % len(exam_stems)]} {question['question']}"
+        exam.append(exam_question)
+    exam.extend(
+        {**question, "id": f"{course}-{sid}-exam{index + len(base) + 1}",
+         "question": f"Review and apply the concept: {question['question']}"}
+        for index, question in enumerate(base)
+    )
+
     cases = [
         {
             "id": f"{course}-{sid}-case1",
@@ -3741,12 +3767,17 @@ def _academy_question_bank(course: int, subject: dict):
             "answer": 0,
         },
     ]
+    for index, case in enumerate(cases):
+        shift = (index + course + len(sid) + 1) % len(case["options"])
+        case["options"] = case["options"][shift:] + case["options"][:shift]
+        case["answer"] = (0 - shift) % len(case["options"])
+
     skills = [{"id": f"{course}-{sid}-skill{i}", "title": f"Practical skill {i}: {topic}", "instruction": "Perform the structured educational skill, explain the rationale, and identify safety checks.", "checklist": ["Preparation", "Correct sequence", "Scientific rationale", "Safety check", "Reflection"]} for i in range(1, 4)]
     osce = [
         {"id": f"{course}-{sid}-osce1", "station": f"OSCE Station 1 — {topic}", "prompt": "Complete the station in a structured sequence and communicate key safety checks.", "checklist": ["Preparation", "Structured execution", "Communication", "Safety check", "Documentation"]},
         {"id": f"{course}-{sid}-osce2", "station": f"OSCE Station 2 — {topic}", "prompt": "Interpret the educational scenario, demonstrate the skill, and explain the decision.", "checklist": ["Interpretation", "Skill performance", "Reasoning", "Safety", "Feedback"]},
     ]
-    return {"quiz": base, "exam": base + base, "case": cases, "skills": skills, "osce": osce}
+    return {"quiz": base, "exam": exam, "case": cases, "skills": skills, "osce": osce}
 
 class AcademyProfileRequest(BaseModel):
     country_code: str = ""
