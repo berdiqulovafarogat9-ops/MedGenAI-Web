@@ -4332,7 +4332,7 @@ if (document.readyState === "loading") {
         set('p1AssessmentMeta', type==='exam'?'45 daqiqa':type==='theory'?'Nazariy modul':type==='skills'?'Amaliy ko‘nikmalar checklisti':type==='osce'?'OSCE stansiya checklisti':'Baholash');
         const body=document.getElementById('p1AssessmentBody');
         body.innerHTML=d.items.map((q,i)=>{
-          if(type==='theory'||type==='practice') return `<div class="p1-question"><b>${i+1}. ${esc(q.prompt)}</b><p>${esc(q.instruction)}</p><label><input type="checkbox" data-q="${esc(q.id)}" class="p1-complete"> Bajarildi</label></div>`;
+          if(type==='theory'||type==='practice') return `<div class="p1-question"><b>${i+1}. ${esc(q.title||q.prompt)}</b><p>${esc(q.prompt||'')}</p>${q.content?`<p>${esc(q.content)}</p>`:''}<p>${esc(q.instruction||'')}</p><label><input type="checkbox" data-q="${esc(q.id)}" class="p1-complete"> Bajarildi</label></div>`;
           if(type==='skills'||type==='osce') return '<div class="p1-question"><b>'+(i+1)+'. '+esc(q.question||q.prompt)+'</b><p>'+esc(q.prompt||'')+'</p><div>'+(q.checklist||[]).map((item,j)=>'<label class="p1-option"><input type="checkbox" data-q="'+esc(q.id+':'+j)+'" value="1"> '+esc(item)+'</label>').join('')+'</div></div>';
           return `<div class="p1-question"><b>${i+1}. ${esc(q.question||q.prompt)}</b>${q.scenario?`<p><i>${esc(q.scenario)}</i></p>`:''}<div>${(q.options||[]).map((o,j)=>`<label class="p1-option"><input type="radio" name="q_${esc(q.id)}" value="${j}" data-q="${esc(q.id)}"> ${esc(o)}</label>`).join('')}</div></div>`;
         }).join('');
@@ -4346,7 +4346,8 @@ if (document.readyState === "loading") {
       if(!currentAssessment) return;
       const answers={};
       if(currentAssessment.assessment_type==='theory'||currentAssessment.assessment_type==='practice'){
-        answers.completion=document.querySelector('.p1-complete')?.checked?1:0;
+        const theoryChecks=[...document.querySelectorAll('.p1-complete')];
+        answers.completion=theoryChecks.length&&theoryChecks.every(x=>x.checked)?1:0;
       } else {
         document.querySelectorAll('#p1AssessmentBody input[data-q]:checked').forEach(x=>answers[x.dataset.q]=Number(x.value));
       }
