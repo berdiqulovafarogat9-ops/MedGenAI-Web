@@ -4202,7 +4202,7 @@ if (document.readyState === "loading") {
 
     const panel = document.createElement('section');
     panel.id = 'phase1AcademyPanel';
-    panel.className = 'tool';
+    panel.className = 'student-academy-panel';
     panel.innerHTML = `
       <div class="student-hero">
         <div>
