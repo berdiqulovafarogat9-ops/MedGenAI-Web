@@ -208,3 +208,19 @@ textarea{width:100%;min-height:120px;box-sizing:border-box;padding:14px;border-r
 .clinical-step select{padding:10px;border-radius:8px;background:#091827;color:inherit;border:1px solid rgba(255,255,255,.12)}
 .phase-row{display:flex;justify-content:space-between;gap:15px;padding:13px;border-bottom:1px solid rgba(255,255,255,.08)}
 .phase-row span{font-size:12px;opacity:.7}
+
+
+/* Simplified role dashboard: focus on the user's own modules first. */
+.final-simple-home .final-welcome{padding:18px 20px;border-radius:15px;box-shadow:none}
+.final-simple-home .final-welcome h1{font-size:24px}
+.final-simple-home .final-grid{grid-template-columns:repeat(auto-fit,minmax(155px,1fr));gap:10px;margin-top:12px}
+.final-simple-home .final-module{min-height:88px;padding:14px;border-radius:12px}
+.final-simple-home .final-module b{margin-top:7px}
+.final-simple-home .final-module small{margin-top:4px}
+.final-extra-services{margin-top:18px;border:1px solid rgba(255,255,255,.12);border-radius:12px;padding:0 14px}
+.final-extra-services>summary{cursor:pointer;list-style:none;padding:14px 0;font-weight:600}
+.final-extra-services>summary::-webkit-details-marker{display:none}
+.final-extra-services>summary:after{content:"＋";float:right;opacity:.7}
+.final-extra-services[open]>summary:after{content:"−"}
+.final-extra-services .final-grid{padding-bottom:14px}
+@media(max-width:600px){.final-simple-home .final-welcome{align-items:flex-start;flex-direction:column;padding:16px}.final-simple-home .final-welcome h1{font-size:21px}.final-simple-home .final-grid{grid-template-columns:repeat(2,minmax(0,1fr));gap:8px}.final-simple-home .final-module{min-height:82px;padding:11px}.final-simple-home .final-module b{font-size:13px}}
