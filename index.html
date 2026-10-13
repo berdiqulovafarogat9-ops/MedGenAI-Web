@@ -2258,7 +2258,7 @@ document.addEventListener("DOMContentLoaded", function () {
   function renderHome(){
     const d=dashboard(),key=roleKey(),r=ROLES[key]||ROLES.student;if(!d)return;
     const mods=ROLE_MODULES[key]||ROLE_MODULES.student;
-    d.querySelector('.hero')?.classList.add('final-hide-hero');
+    const globalHero=d.querySelector('.hero');if(globalHero){globalHero.classList.add('final-hide-hero');globalHero.style.setProperty('display','none','important');}
     const old=document.getElementById('finalHome');if(old)old.remove();
     const home=document.createElement('section');home.id='finalHome';home.className='final-home';
     const core=mods.slice(0,Math.min(5,mods.length)),research=mods.slice(Math.min(5,mods.length));
@@ -2266,10 +2266,10 @@ document.addEventListener("DOMContentLoaded", function () {
     const coreTitle=key==='school_student'?'O‘QUV BO‘LIMLARI':key==='school_teacher'?'O‘QITUVCHI VOSITALARI':ft('core');
     home.classList.add('final-simple-home');
     home.innerHTML='<div class="final-welcome"><div><div class="final-kicker">MEDGEN AI</div><h1>'+r.icon+' '+esc(homeTitles[key]||roleLabel(key)+' — '+ft('workspace'))+'</h1><p>'+esc(r.desc||ft('welcome'))+'</p></div><span class="final-role">'+esc(ft('role'))+': '+esc(roleLabel(key))+'</span></div>'+
-      '<div class="final-section-title">Sizning bo‘limlaringiz</div><div class="final-grid">'+mods.map(m=>'<button class="final-module" data-final-module="'+esc(m)+'"><span>'+icons[m]+'</span><b>'+esc(moduleLabel(m))+'</b><small>Ochish →</small></button>').join('')+'</div>'+
+      (key==='SUPER_ADMIN'?'<div class="final-admin-strip"><p>Foydalanuvchilar, tasdiqlar, tashkilotlar va tizim faoliyatini boshqarish.</p><button id="finalAdminOpen" class="primary">👑 Boshqaruv panelini ochish →</button></div><details class="final-extra-services final-science-modules"><summary>🧬 Barcha ilmiy modullar ('+mods.length+')</summary><div class="final-section-title">Ilmiy ish maydonlari</div><div class="final-grid">'+mods.map(m=>'<button class="final-module" data-final-module="'+esc(m)+'"><span>'+icons[m]+'</span><b>'+esc(moduleLabel(m))+'</b><small>Ochish →</small></button>').join('')+'</div></details>':'<div class="final-section-title">Sizning bo‘limlaringiz</div><div class="final-grid">'+mods.map(m=>'<button class="final-module" data-final-module="'+esc(m)+'"><span>'+icons[m]+'</span><b>'+esc(moduleLabel(m))+'</b><small>Ochish →</small></button>').join('')+'</div>')+
       '<details class="final-extra-services"><summary>Yordam va qo‘shimcha xizmatlar</summary><div class="final-grid secondary">'+
       serviceCard('support','🆘',ft('support'),ft('supportDesc'))+serviceCard('ai','🤖',ft('assistant'),ft('aiDesc'))+serviceCard('community','💬',ft('community'),ft('communityDesc'))+serviceCard('security','🔐',ft('security'),ft('securityDesc'))+
-      '</div></details>'+(key==='SUPER_ADMIN'?'<div class="final-admin-strip"><button id="finalAdminOpen" class="primary">👑 Boshqaruv panelini ochish →</button></div>':'');
+      '</div></details>'+'';
     hideAll();
     document.getElementById('functionalService')?.remove();
     d.querySelector('.container')?.prepend(home);
