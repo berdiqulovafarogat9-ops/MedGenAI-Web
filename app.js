@@ -2210,7 +2210,14 @@ function closeWorkspace() {
   $('securityCenter')?.classList.add('hidden');
   $('userDirectoryDashboard')?.classList.add('hidden');
   $('educationPreferencePanel')?.classList.add('hidden');
-  $('roleDashboard')?.classList.remove('hidden');
+  const finalHome = $('finalHome');
+  if (finalHome) {
+    finalHome.style.removeProperty('display');
+    finalHome.classList.remove('hidden');
+    $('roleDashboard')?.classList.add('hidden');
+  } else {
+    $('roleDashboard')?.classList.remove('hidden');
+  }
 }
 
 
