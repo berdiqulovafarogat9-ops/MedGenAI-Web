@@ -5233,7 +5233,7 @@ async function detectProfileLocation(fromSecurity=false){
       'Scientific Jobs':['🧠','Ilmiy vazifalar','Hisoblash va ilmiy ishlarni kuzatish'],
       'Global Platform':['🌐','Global platforma','Tashkilotlar, loyihalar va platforma boshqaruvi']
     };
-    if(roleKeyNow === 'admin' || admin()) {
+    if(roleKeyNow === 'admin' || (admin() && !window.medgenPreviewRole)) {
       try {
         const d=await api('/dashboard/summary');
         const g=d.global||{};
