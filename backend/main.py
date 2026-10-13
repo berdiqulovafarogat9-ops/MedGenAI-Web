@@ -5454,6 +5454,7 @@ def create_scientific_report(data: ScientificReportRequest,user=Depends(get_curr
         "title":data.title.strip() or experiment.get("name") or "Scientific Report",
         "experiment_id":experiment["id"],
         "target":experiment.get("target",""),
+        "user":user["username"],
         "created_at":datetime.now(timezone.utc).isoformat(),
         "inputs":experiment.get("input",{}) if data.include_inputs else {},
         "results":experiment.get("results",{}) if data.include_results else {},
