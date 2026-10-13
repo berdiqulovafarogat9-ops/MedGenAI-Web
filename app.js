@@ -5201,7 +5201,12 @@ async function detectProfileLocation(fromSecurity=false){
     list.innerHTML=home+header+mine+users;
     list.querySelector('[data-home-nav]')?.addEventListener('click',()=>{
       document.getElementById('navDrawerClose')?.click();
-      $('securityCenter')?.classList.add('hidden');$('userDirectoryDashboard')?.classList.add('hidden');$('adminDashboard')?.classList.add('hidden');$('workspace')?.classList.add('hidden');$('educationPreferencePanel')?.classList.add('hidden');$('roleDashboard')?.classList.remove('hidden');loadPersonalDashboard();
+      // Returning home means the authenticated user's own dashboard, not a role preview.
+      if (isSuperAdmin()) window.medgenPreviewRole = null;
+      $('securityCenter')?.classList.add('hidden');$('userDirectoryDashboard')?.classList.add('hidden');$('adminDashboard')?.classList.add('hidden');$('workspace')?.classList.add('hidden');$('educationPreferencePanel')?.classList.add('hidden');$('roleDashboard')?.classList.remove('hidden');
+      applyRoleDashboard();
+      if (typeof window.medgenRenderRoleHome === 'function') window.medgenRenderRoleHome();
+      loadPersonalDashboard();
     });
     list.querySelector('[data-admin-dashboard]')?.addEventListener('click',()=>{
       document.getElementById('navDrawerClose')?.click();
@@ -5452,7 +5457,7 @@ async function detectProfileLocation(fromSecurity=false){
     });
     const drawer=document.getElementById('medgenNavDrawer');
     const list=document.getElementById('navModules');
-    if(drawer && list && !drawer.querySelector('[data-nav="home"]')){
+    if(drawer && list && !drawer.querySelector('[data-nav="home"], [data-home-nav]')){
       const home=document.createElement('button');
       home.className='nav-item';
       home.dataset.nav='home';
