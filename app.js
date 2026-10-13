@@ -5863,6 +5863,10 @@ async function renderPdb3D(){
     const grid = $('roleQuickGrid');
     if (grid) {
       const labels = {
+        'School Learning':['📘','Maktab ta’limi','Fanlar, topshiriqlar va bilim testlari'],
+        'Learning Hub':['🌍','O‘rganish markazi','Ingliz/rus tili, mini-o‘yinlar va imtihon mashqlari'],
+        'School Teaching':['👩‍🏫','O‘qituvchi ish joyi','Sinf, topshiriqlar va o‘quvchilar natijalari'],
+        'AI Teacher Studio':['🧑‍🏫','AI o‘qituvchi studiyasi','Dars va test materiallarini tayyorlash'],
         'Clinical Reference':['🩺','Klinik ma’lumotnoma','Klinik anatomiya va tana tizimlari'],
         'Clinical Simulation':['🩺','Klinik simulyatsiya','O‘quv klinik case va differensial fikrlash'],
         'Medical Academy':['🎓','Tibbiyot akademiyasi','Kurslar, anatomiya, klinik fikrlash va OSCE'],
