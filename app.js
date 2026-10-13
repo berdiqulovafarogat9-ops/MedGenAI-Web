@@ -5195,7 +5195,7 @@ async function detectProfileLocation(fromSecurity=false){
     const mine=myModules.map(m=>'<button class="nav-item" data-my-module="'+escapeHtml(m)+'"><span>•</span><b>'+escapeHtml(m)+'</b></button>').join('');
     let users='';
     if(admin()){
-      users='<div class="nav-section-title">ADMIN / OWNER</div><button class="nav-item" data-admin-dashboard="1"><span>👑</span><b>Super Admin Dashboard</b></button><div class="nav-section-title">FOYDALANUVCHILAR</div>'+
+      users='<div class="nav-section-title">ADMIN / OWNER</div><button class="nav-item" data-admin-dashboard="1"><span>👑</span><b>Super Admin Dashboard</b></button><button class="nav-item" data-school-management-nav="1"><span>🏫</span><b>Maktablar va taklif kodlari</b></button><div class="nav-section-title">FOYDALANUVCHILAR</div>'+
         Object.entries(ROLE_CARDS).map(([key,v])=>'<button class="nav-item" data-user-role="'+key+'"><span>'+v.icon+'</span><b>'+v.title+'</b></button>').join('');
     }
     list.innerHTML=home+header+mine+users;
@@ -5216,6 +5216,19 @@ async function detectProfileLocation(fromSecurity=false){
       document.getElementById('navDrawerClose')?.click();
       openModule(b.dataset.myModule);
     }));
+    list.querySelector('[data-school-management-nav]')?.addEventListener('click',async()=>{
+      document.getElementById('navDrawerClose')?.click();
+      if(!admin()) return;
+      $('roleDashboard')?.classList.add('hidden');
+      $('securityCenter')?.classList.add('hidden');
+      $('userDirectoryDashboard')?.classList.add('hidden');
+      $('workspace')?.classList.add('hidden');
+      $('educationPreferencePanel')?.classList.add('hidden');
+      $('adminDashboard')?.classList.remove('hidden');
+      await loadAdminDashboard();
+      await loadAdminDetails('school-management');
+      $('adminDetails')?.scrollIntoView({behavior:'smooth',block:'start'});
+    });
     list.querySelectorAll('[data-user-role]').forEach(b=>b.addEventListener('click',()=>{
       document.getElementById('navDrawerClose')?.click();
       openUserRoleDashboard(b.dataset.userRole);
