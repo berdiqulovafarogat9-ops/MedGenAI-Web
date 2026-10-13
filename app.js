@@ -1784,13 +1784,15 @@ async function loadAdminDetails(kind) {
         list.innerHTML = '<h4>Maktablar (' + schools.length + ')</h4>' +
           (schools.length ? schools.map(x => '<article class="card"><b>' + escapeHtml(x.name || 'Maktab') + '</b><div>' + escapeHtml(x.region || '') + '</div><small>O‘quvchilar: ' + Number(x.students || 0) + ' · O‘qituvchilar: ' + Number(x.teachers || 0) + '</small></article>').join('') : '<p>Hozircha maktab yo‘q.</p>') +
           '<h4>Tasdiqlash kutilmoqda (' + pending.length + ')</h4>' +
-          (pending.length ? pending.map(x => '<article class="card"><b>' + escapeHtml(x.full_name || x.username) + '</b><div>' + escapeHtml(x.role || '') + ' · ' + escapeHtml(x.school_name || '') + ' · ' + escapeHtml(x.class_name || '') + '</div><button type="button" data-school-review="approve" data-username="' + escapeHtml(x.username) + '">Tasdiqlash</button> <button type="button" data-school-review="reject" data-username="' + escapeHtml(x.username) + '">Rad etish</button></article>').join('') : '<p>Yangi arizalar yo‘q.</p>');
+          (pending.length ? pending.map(x => '<article class="card"><b>' + escapeHtml(x.full_name || x.username) + '</b><div>' + escapeHtml(x.role || '') + ' · ' + escapeHtml(x.school_name || '') + ' · ' + escapeHtml(x.class_name || '') + '</div>' + (x.role === 'school_teacher' ? '<label>Sinfni biriktirish<input data-school-class="' + escapeHtml(x.username) + '" maxlength="40" value="' + escapeHtml(x.class_name || '') + '" placeholder="Masalan, 8-A"></label>' : '') + '<button type="button" data-school-review="approve" data-username="' + escapeHtml(x.username) + '">Tasdiqlash</button> <button type="button" data-school-review="reject" data-username="' + escapeHtml(x.username) + '">Rad etish</button></article>').join('') : '<p>Yangi arizalar yo‘q.</p>');
         list.querySelectorAll('[data-school-review]').forEach(btn => btn.addEventListener('click', async () => {
           const note = btn.dataset.schoolReview === 'reject' ? (prompt('Rad etish sababi:') || '') : '';
           if (btn.dataset.schoolReview === 'reject' && !note.trim()) return;
           btn.disabled = true;
           try {
-            await api('/admin/school-management/' + encodeURIComponent(btn.dataset.username), {method:'PATCH', body:JSON.stringify({approve:btn.dataset.schoolReview === 'approve', note})});
+            const classInput = list.querySelector('[data-school-class="' + btn.dataset.username + '"]');
+            const class_name = classInput ? classInput.value.trim() : '';
+            await api('/admin/school-management/' + encodeURIComponent(btn.dataset.username), {method:'PATCH', body:JSON.stringify({approve:btn.dataset.schoolReview === 'approve', note, class_name})});
             await reloadSchools();
           } catch (e) { alert('Tasdiqlash amalga oshmadi: ' + e.message); btn.disabled = false; }
         }));
