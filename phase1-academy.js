@@ -24,7 +24,7 @@ async function render(){
   $('academySummary').innerHTML='<div class="academy-stat"><b>'+esc(dashboard.course_title)+'</b><br>Progress: <strong>'+esc(dashboard.overall_progress)+'%</strong><br><small>'+esc(profile.university||'University not set')+' • '+esc(profile.major||'Major not set')+' • '+esc(profile.group||'Group not set')+'</small></div>';
   const host=$('academySubjects');
   host.className='academy-subjects';
-  host.innerHTML=dashboard.subjects.map(s=>'<button class="academy-subject" data-sub="'+esc(s.id)+'"><b>'+esc(s.name)+'</b><small>'+esc(s.completed_assessments.length)+' / 5 assessments passed'</small><small>'+esc(s.objective)+'</small></button>').join('');
+  host.innerHTML=dashboard.subjects.map(s=>'<button class="academy-subject" data-sub="'+esc(s.id)+'"><b>'+esc(s.name)+'</b><small>'+esc(s.completed_assessments.length)+' / 5 assessments passed</small><small>'+esc(s.objective)+'</small></button>').join('');
   host.querySelectorAll('[data-sub]').forEach(b=>b.onclick=()=>openSubject(b.dataset.sub));
  }catch(e){$('academySummary').innerHTML='<div class="academy-stat">Academy yuklanmadi: '+esc(e.message)+'</div>'}
 }
