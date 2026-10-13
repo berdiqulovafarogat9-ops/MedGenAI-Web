@@ -138,6 +138,8 @@ knowledge_relations_store = []
 # GLOBAL PLATFORM STATE — ORGANIZATIONS / WORKSPACES / API
 # =========================================================
 organizations_store = {}
+school_directory_store = {}
+school_invitations_store = {}
 memberships_store = []
 workspaces_store = []
 projects_store = []
@@ -162,7 +164,7 @@ def _db_load():
         _db_init()
         with psycopg.connect(DATABASE_URL) as conn:
             rows = conn.execute("SELECT state_key, state_value FROM medgen_state").fetchall()
-        stores={"user_accounts":user_accounts,"user_profiles":user_profiles,"user_consents":user_consents,"role_requests_store":role_requests_store,"experiments_store":experiments_store,"reports_store":reports_store,"academy_syllabi_store":academy_syllabi_store,"activity_log":activity_log,"jobs_store":jobs_store,"workflows_store":workflows_store,"docking_jobs_store":docking_jobs_store,"knowledge_entities_store":knowledge_entities_store,"knowledge_relations_store":knowledge_relations_store,"organizations_store":organizations_store,"memberships_store":memberships_store,"workspaces_store":workspaces_store,"projects_store":projects_store,"api_keys_store":api_keys_store,"platform_audit_log":platform_audit_log,"usage_store":usage_store,"webhooks_store":webhooks_store}
+        stores={"user_accounts":user_accounts,"user_profiles":user_profiles,"user_consents":user_consents,"role_requests_store":role_requests_store,"experiments_store":experiments_store,"reports_store":reports_store,"academy_syllabi_store":academy_syllabi_store,"activity_log":activity_log,"jobs_store":jobs_store,"workflows_store":workflows_store,"docking_jobs_store":docking_jobs_store,"knowledge_entities_store":knowledge_entities_store,"knowledge_relations_store":knowledge_relations_store,"organizations_store":organizations_store,"school_directory_store":school_directory_store,"school_invitations_store":school_invitations_store,"memberships_store":memberships_store,"workspaces_store":workspaces_store,"projects_store":projects_store,"api_keys_store":api_keys_store,"platform_audit_log":platform_audit_log,"usage_store":usage_store,"webhooks_store":webhooks_store}
         for key,value in rows:
             if key in stores and isinstance(value,(dict,list)):
                 stores[key].clear()
@@ -211,6 +213,22 @@ class RegisterRequest(BaseModel):
     academic_year: int = 1
     group: str = ""
     student_id: str = ""
+    school_name: str = ""
+    class_name: str = ""
+    invitation_code: str = ""
+
+
+class SchoolInvitationRequest(BaseModel):
+    school_name: str
+    region: str = ""
+    role: str = "school_student"
+    class_name: str = ""
+    expires_in_days: int = 7
+
+
+class SchoolReviewRequest(BaseModel):
+    approve: bool
+    note: str = ""
 
 
 class AccountUpdateRequest(BaseModel):
@@ -354,7 +372,7 @@ def normalize_role(value: str) -> str:
     return "SUPER_ADMIN" if role.upper() == "SUPER_ADMIN" else role
 
 ALLOWED_USER_ROLES = {
-    "student", "school_student", "doctor", "researcher", "professor",
+    "student", "school_student", "school_teacher", "doctor", "researcher", "professor",
     "lab", "biotech", "pharma", "bioinformatician", "hospital", "company"
 }
 
@@ -626,10 +644,39 @@ def register(data: RegisterRequest):
     if not 1 <= academic_year <= 6:
         raise HTTPException(status_code=400, detail="Academic year must be between 1 and 6.")
 
-    # Validate every field that can reject the request before mutating state.
+    # Validate school enrollment and invitation before mutating account state.
     role = normalize_role(data.role)
     if role not in ALLOWED_USER_ROLES:
         role = "student"
+    school_name = str(data.school_name or "").strip()[:160]
+    class_name = str(data.class_name or "").strip()[:40]
+    invitation_code = re.sub(r"[^A-Za-z0-9-]", "", str(data.invitation_code or "").strip()).upper()
+    school_role = role in {"school_student", "school_teacher"}
+    invitation = None
+    if school_role:
+        if not school_name:
+            raise HTTPException(status_code=400, detail="Maktab nomini kiriting.")
+        if role == "school_student" and not class_name:
+            raise HTTPException(status_code=400, detail="O‘quvchi uchun sinfni kiriting.")
+        if invitation_code:
+            code_hash = hashlib.sha256(invitation_code.encode()).hexdigest()
+            invitation = school_invitations_store.get(code_hash)
+            if not invitation or invitation.get("revoked"):
+                raise HTTPException(status_code=400, detail="Taklif kodi noto‘g‘ri yoki bekor qilingan.")
+            expires_at = datetime.fromisoformat(invitation["expires_at"])
+            if expires_at.tzinfo is None:
+                expires_at = expires_at.replace(tzinfo=timezone.utc)
+            if expires_at <= datetime.now(timezone.utc):
+                raise HTTPException(status_code=400, detail="Taklif kodi muddati tugagan.")
+            if int(invitation.get("used_count", 0)) >= int(invitation.get("max_uses", 100)):
+                raise HTTPException(status_code=400, detail="Taklif kodi ishlatish limiti tugagan.")
+            if invitation.get("role") != role:
+                raise HTTPException(status_code=400, detail="Bu taklif kodi boshqa foydalanuvchi turi uchun.")
+            if str(invitation.get("school_name", "")).casefold() != school_name.casefold():
+                raise HTTPException(status_code=400, detail="Taklif kodi boshqa maktabga tegishli.")
+            invited_class = str(invitation.get("class_name") or "")
+            if invited_class and invited_class.casefold() != class_name.casefold():
+                raise HTTPException(status_code=400, detail="Taklif kodi boshqa sinf uchun.")
     user_accounts[username] = {
         "username": username,
         "password_hash": make_password_hash(data.password),
@@ -644,7 +691,13 @@ def register(data: RegisterRequest):
         "research_interests": "", "bio": "", "avatar": "",
         "role": role,
         "approved_roles": [role],
-        "role_status": "active",
+        "role_status": "pending" if school_role else "active",
+        "school_name": school_name if school_role else "",
+        "school_region": str((invitation or {}).get("region") or "").strip()[:120] if school_role else "",
+        "class_name": class_name if role == "school_student" else "",
+        "school_status": "pending" if school_role else "not_applicable",
+        "invitation_code_used": bool(school_role and invitation),
+        "school_review": {"status": "pending", "submitted_at": datetime.now(timezone.utc).isoformat(), "reviewed_at": None, "reviewed_by": None, "note": ""} if school_role else {},
         # Enrollment claims are untrusted until reviewed by a platform admin.
         "academic_status": "pending",
         "academic_review": {
@@ -667,14 +720,24 @@ def register(data: RegisterRequest):
             "academic_degree": "MD/MBBS",
         },
     }
+    if school_role and invitation:
+        invitation["used_count"] = int(invitation.get("used_count", 0)) + 1
+        invitation["last_used_at"] = datetime.now(timezone.utc).isoformat()
+    if school_role:
+        school_key = school_name.casefold()
+        school_record = school_directory_store.setdefault(school_key, {"name": school_name, "region": str((invitation or {}).get("region") or "").strip()[:120], "created_at": datetime.now(timezone.utc).isoformat()})
+        if not school_record.get("region") and (invitation or {}).get("region"):
+            school_record["region"] = str(invitation.get("region") or "").strip()[:120]
     activity_log.insert(0, {
         "type": "account_registered",
         "username": username,
         "role": role,
+        "school_name": school_name if school_role else "",
+        "school_status": "pending" if school_role else "not_applicable",
         "at": datetime.now(timezone.utc).isoformat(),
     })
     _db_save()
-    return {"status": "registered", "username": username, "role": role}
+    return {"status": "registered", "username": username, "role": role, "school_status": "pending" if school_role else "not_applicable", "message": "Maktab akkauntingiz administrator tasdig‘ini kutmoqda." if school_role else "Ro‘yxatdan o‘tildi."}
 
 
 @app.get("/api/v1/auth/me")
@@ -690,6 +753,10 @@ def me(
         "profile_complete": is_required_profile_complete(profile),
         "academic_status": profile.get("academic_status", "pending"),
         "academic_review": profile.get("academic_review", {"status": profile.get("academic_status", "pending")}),
+        "school_name": profile.get("school_name", ""),
+        "class_name": profile.get("class_name", ""),
+        "school_status": profile.get("school_status", "not_applicable"),
+        "school_review": profile.get("school_review", {}),
         "consent_complete": consent.get("version") == LEGAL_CONSENT_VERSION and all([
             consent.get("terms_accepted", False),
             consent.get("privacy_accepted", False),
@@ -2777,6 +2844,124 @@ def admin_users(user=Depends(get_current_user)):
             for u in usernames
         ]
     }
+
+
+@app.post("/api/v1/admin/school-invitations")
+def admin_create_school_invitation(data: SchoolInvitationRequest, user=Depends(get_current_user)):
+    require_super_admin(user)
+    school_name = str(data.school_name or "").strip()[:160]
+    region = str(data.region or "").strip()[:120]
+    role = normalize_role(data.role)
+    class_name = str(data.class_name or "").strip()[:40]
+    try:
+        expires_in_days = int(data.expires_in_days)
+    except (TypeError, ValueError):
+        raise HTTPException(status_code=400, detail="Taklif muddati noto‘g‘ri.")
+    if not school_name:
+        raise HTTPException(status_code=400, detail="Maktab nomini kiriting.")
+    if role not in {"school_student", "school_teacher"}:
+        raise HTTPException(status_code=400, detail="Taklif faqat o‘quvchi yoki maktab o‘qituvchisi uchun yaratiladi.")
+    if role == "school_student" and not class_name:
+        raise HTTPException(status_code=400, detail="O‘quvchilar kodi uchun sinfni kiriting.")
+    if not 1 <= expires_in_days <= 90:
+        raise HTTPException(status_code=400, detail="Taklif muddati 1–90 kun oralig‘ida bo‘lishi kerak.")
+    raw_code = secrets.token_urlsafe(9).replace("_", "").replace("-", "").upper()[:12]
+    code_hash = hashlib.sha256(raw_code.encode()).hexdigest()
+    now = datetime.now(timezone.utc)
+    invitation = {
+        "id": secrets.token_hex(8), "code_hash": code_hash,
+        "school_name": school_name, "region": region, "role": role, "class_name": class_name,
+        "created_at": now.isoformat(), "created_by": user["username"],
+        "expires_at": (now + __import__("datetime").timedelta(days=expires_in_days)).isoformat(),
+        "max_uses": 100, "used_count": 0, "last_used_at": None, "revoked": False,
+    }
+    school_invitations_store[code_hash] = invitation
+    school_directory_store.setdefault(school_name.casefold(), {"name": school_name, "region": region, "created_at": now.isoformat()})
+    _platform_audit(user, "school.invitation_created", "school", school_name, {"role": role, "class_name": class_name, "expires_in_days": expires_in_days})
+    _db_save()
+    return {"status": "created", "code": raw_code, "school_name": school_name, "region": region, "role": role, "class_name": class_name, "expires_at": invitation["expires_at"], "max_uses": invitation["max_uses"]}
+
+
+@app.get("/api/v1/admin/school-management")
+def admin_school_management(user=Depends(get_current_user)):
+    require_super_admin(user)
+    schools = {}
+    for key, item in school_directory_store.items():
+        schools[key] = {"name": item.get("name", key), "region": item.get("region", ""), "students": 0, "teachers": 0}
+    pending = []
+    for username, profile in user_profiles.items():
+        role = str(profile.get("role", "")).lower()
+        if role not in {"school_student", "school_teacher"}:
+            continue
+        school_name = str(profile.get("school_name") or "").strip()
+        key = school_name.casefold()
+        if school_name:
+            record = schools.setdefault(key, {"name": school_name, "region": profile.get("school_region", ""), "students": 0, "teachers": 0})
+            if role == "school_student":
+                record["students"] += 1
+            else:
+                record["teachers"] += 1
+        status = str(profile.get("school_status", "pending")).lower()
+        if status == "pending":
+            pending.append({
+                "username": username, "full_name": profile.get("full_name", ""), "role": role,
+                "school_name": school_name, "class_name": profile.get("class_name", ""),
+                "school_status": status, "created_at": user_accounts.get(username, {}).get("created_at", ""),
+                "invited": bool(profile.get("invitation_code_used")),
+            })
+    invitations = []
+    for item in school_invitations_store.values():
+        invitations.append({
+            "school_name": item.get("school_name", ""), "role": item.get("role", ""),
+            "class_name": item.get("class_name", ""), "created_at": item.get("created_at", ""),
+            "expires_at": item.get("expires_at", ""), "used_count": int(item.get("used_count", 0)),
+            "max_uses": int(item.get("max_uses", 100)), "revoked": bool(item.get("revoked", False)),
+        })
+    return {"schools": list(schools.values()), "pending": pending, "invitations": invitations}
+
+
+@app.patch("/api/v1/admin/school-management/{username}")
+def admin_review_school_account(username: str, data: SchoolReviewRequest, user=Depends(get_current_user)):
+    require_super_admin(user)
+    target = next((name for name in user_profiles if name.casefold() == username.strip().casefold()), None)
+    if not target:
+        raise HTTPException(status_code=404, detail="Maktab foydalanuvchisi topilmadi.")
+    profile = user_profiles[target]
+    role = str(profile.get("role", "")).lower()
+    if role not in {"school_student", "school_teacher"}:
+        raise HTTPException(status_code=400, detail="Bu akkaunt maktab foydalanuvchisi emas.")
+    now = datetime.now(timezone.utc).isoformat()
+    status = "approved" if data.approve else "rejected"
+    profile["school_status"] = status
+    profile["role_status"] = "active"
+    profile["school_review"] = {
+        "status": status, "submitted_at": (profile.get("school_review") or {}).get("submitted_at"),
+        "reviewed_at": now, "reviewed_by": user["username"], "note": str(data.note or "").strip()[:1000],
+    }
+    if role == "school_student":
+        profile["academic_status"] = status
+        profile["academic_review"] = {
+            "status": status, "submitted_at": (profile.get("academic_review") or {}).get("submitted_at"),
+            "reviewed_at": now, "reviewed_by": user["username"], "note": str(data.note or "").strip()[:1000],
+        }
+    activity_log.insert(0, {"type": "school_account_" + status, "username": target, "role": role, "school_name": profile.get("school_name", ""), "reviewed_by": user["username"], "at": now})
+    _platform_audit(user, "school.account_" + status, "user", target, {"role": role, "school_name": profile.get("school_name", "")})
+    _db_save()
+    return {"status": status, "username": target, "school_status": status, "message": "Maktab akkaunti tasdiqlandi." if data.approve else "Maktab arizasi rad etildi."}
+
+
+@app.post("/api/v1/admin/school-invitations/revoke")
+def admin_revoke_school_invitation(data: dict, user=Depends(get_current_user)):
+    require_super_admin(user)
+    raw_code = str((data or {}).get("code") or "").strip().upper()
+    code_hash = hashlib.sha256(raw_code.encode()).hexdigest()
+    item = school_invitations_store.get(code_hash)
+    if not item:
+        raise HTTPException(status_code=404, detail="Taklif kodi topilmadi.")
+    item["revoked"] = True
+    _db_save()
+    _platform_audit(user, "school.invitation_revoked", "school", item.get("school_name", ""), {})
+    return {"status": "revoked"}
 
 
 @app.get("/api/v1/admin/academic-approvals")
