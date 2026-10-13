@@ -231,6 +231,7 @@ class SchoolInvitationRequest(BaseModel):
 class SchoolReviewRequest(BaseModel):
     approve: bool
     note: str = ""
+    class_name: str = ""
 
 
 class SchoolAssignmentRequest(BaseModel):
@@ -2964,6 +2965,13 @@ def admin_review_school_account(username: str, data: SchoolReviewRequest, user=D
         raise HTTPException(status_code=400, detail="Bu akkaunt maktab foydalanuvchisi emas.")
     now = datetime.now(timezone.utc).isoformat()
     status = "approved" if data.approve else "rejected"
+    assigned_class = str(data.class_name or "").strip()[:40]
+    if assigned_class:
+        if role == "school_teacher" and not assigned_class:
+            raise HTTPException(status_code=400, detail="O‘qituvchi sinfini belgilang.")
+        profile["class_name"] = assigned_class
+    if data.approve and role == "school_teacher" and not str(profile.get("class_name") or "").strip():
+        raise HTTPException(status_code=400, detail="O‘qituvchini tasdiqlashdan oldin unga sinf biriktiring.")
     profile["school_status"] = status
     profile["role_status"] = "active"
     profile["school_review"] = {
