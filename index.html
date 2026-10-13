@@ -2175,10 +2175,20 @@ document.addEventListener("DOMContentLoaded", function () {
   const icons={'School Learning':'📘','Learning Hub':'🌍','School Teaching':'👩‍🏫','AI Teacher Studio':'🧑‍🏫','Clinical Reference':'🩺','Clinical Simulation':'🩺','Medical Academy':'🎓','Bioinformatics':'🧬','Molecular Analysis':'⚗️','PDB & Structure':'🧫','Drug Discovery':'💊','Scientific Jobs':'⚙️','Research Assistant':'📚','Virtual Laboratory':'🧪','Reports & History':'📊','Global Platform':'🌐'};
   const roleKey=()=>{
     const u=window.__MEDGEN_USER||{};
-    const norm=v=>String(v||'').trim().toLowerCase().replace(/[\s-]+/g,'_');
-    const raw=norm(u.role||u.user_role||u.account?.role||u.user?.role||'student');
-    const profile=norm(u.profile?.role||u.metadata?.role||'');
-    const username=String(u.username||u.user?.username||'').trim();
+    const norm=v=>String(v||'').trim().toLowerCase().replace(/[\\s-]+/g,'_');
+    const aliases={
+      super_admin:'SUPER_ADMIN',superadmin:'SUPER_ADMIN',founder:'SUPER_ADMIN',ceo:'SUPER_ADMIN',owner:'SUPER_ADMIN',admin:'SUPER_ADMIN',
+      schoolstudent:'school_student',pupil:'school_student',schoolchild:'school_student',
+      teacher:'school_teacher',schoolteacher:'school_teacher',
+      bioinformatician:'bioinformatician',bioinformatics_specialist:'bioinformatician',
+      pharmaceutical:'pharma',pharmacist:'pharma',biotech_company:'company',hospital_admin:'hospital',
+      lab_specialist:'lab',laboratory_specialist:'lab',scientist:'researcher'
+    };
+    const candidates=[
+      u.role,u.user_role,u.type,u.account?.role,u.user?.role,
+      u.profile?.role,u.metadata?.role
+    ].map(norm).filter(Boolean);
+    const username=String(u.username||u.user?.username||u.account?.username||'').trim();
     let saved='';
     if(username){
       try{
@@ -2194,11 +2204,18 @@ document.addEventListener("DOMContentLoaded", function () {
         }
       }catch(_){}
     }
-    if(['super_admin','superadmin','founder','ceo','owner','admin'].includes(raw))return 'SUPER_ADMIN';
-    if(ROLES[raw]&&raw!=='student')return raw;
-    if(raw==='student'&&ROLES[saved]&&saved!=='student')return saved;
-    if(raw==='student'&&ROLES[profile]&&profile!=='student')return profile;
-    return ROLES[raw]?raw:'student';
+    // Privileged access comes only from the authenticated server role, never local storage.
+    const privileged=['super_admin','superadmin','founder','ceo','owner','admin'];
+    if(privileged.includes(candidates[0]))return 'SUPER_ADMIN';
+    for(const candidate of candidates){
+      const canonical=aliases[candidate]||candidate;
+      if(ROLES[canonical]&&canonical!=='SUPER_ADMIN')return canonical;
+    }
+    // Older accounts may be returned by the API with a generic role; restore only
+    // the non-privileged role explicitly selected during registration.
+    const savedCanonical=aliases[saved]||saved;
+    if(ROLES[savedCanonical]&&savedCanonical!=='SUPER_ADMIN')return savedCanonical;
+    return 'student';
   };
   const ALL_MODULES=['Medical Academy','Bioinformatics','Molecular Analysis','PDB & Structure','Drug Discovery','Scientific Jobs','Research Assistant','Virtual Laboratory','Reports & History','Global Platform'];
   const ROLE_MODULES={
