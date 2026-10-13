@@ -2172,24 +2172,50 @@ document.addEventListener("DOMContentLoaded", function () {
     company:{icon:'🏢',name:'Biotech / Pharma Company',desc:'Enterprise projectlar, research va operations',mods:['Global Platform','Drug Discovery','Research Assistant','Scientific Jobs','Reports & History']},
     SUPER_ADMIN:{icon:'👑',name:'Super Admin / Owner',desc:'Butun platforma, foydalanuvchilar, tashkilotlar, xavfsizlik va audit nazorati',mods:['Global Platform','Medical Academy','Bioinformatics','Molecular Analysis','PDB & Structure','Drug Discovery','Scientific Jobs','Research Assistant','Virtual Laboratory','Reports & History']}
   };
-  const icons={'School Learning':'📘','School Teaching':'👩‍🏫','Medical Academy':'🎓','Bioinformatics':'🧬','Molecular Analysis':'⚗️','PDB & Structure':'🧫','Drug Discovery':'💊','Scientific Jobs':'⚙️','Research Assistant':'📚','Virtual Laboratory':'🧪','Reports & History':'📊','Global Platform':'🌐'};
-  const roleKey=()=>{const u=window.__MEDGEN_USER||{};const norm=v=>String(v||'').trim().toLowerCase().replace(/[\s-]+/g,'_');const raw=norm(u.role||u.user_role||u.account?.role||u.user?.role||'student');const profile=norm(u.profile?.role||u.metadata?.role||'');if(['super_admin','superadmin','founder','ceo','owner','admin'].includes(raw))return 'SUPER_ADMIN';if(ROLES[raw]&&raw!=='student')return raw;if(raw==='student'&&ROLES[profile]&&profile!=='student')return profile;return ROLES[raw]?raw:'student'};
+  const icons={'School Learning':'📘','Learning Hub':'🌍','School Teaching':'👩‍🏫','AI Teacher Studio':'🧑‍🏫','Clinical Reference':'🩺','Clinical Simulation':'🩺','Medical Academy':'🎓','Bioinformatics':'🧬','Molecular Analysis':'⚗️','PDB & Structure':'🧫','Drug Discovery':'💊','Scientific Jobs':'⚙️','Research Assistant':'📚','Virtual Laboratory':'🧪','Reports & History':'📊','Global Platform':'🌐'};
+  const roleKey=()=>{
+    const u=window.__MEDGEN_USER||{};
+    const norm=v=>String(v||'').trim().toLowerCase().replace(/[\s-]+/g,'_');
+    const raw=norm(u.role||u.user_role||u.account?.role||u.user?.role||'student');
+    const profile=norm(u.profile?.role||u.metadata?.role||'');
+    const username=String(u.username||u.user?.username||'').trim();
+    let saved='';
+    if(username){
+      try{
+        saved=norm(JSON.parse(localStorage.getItem('medgen_role_'+username)||'null')?.key||'');
+        if(!saved){
+          for(let i=0;i<localStorage.length;i++){
+            const k=localStorage.key(i);
+            if(k&&k.toLowerCase()===('medgen_role_'+username).toLowerCase()){
+              saved=norm(JSON.parse(localStorage.getItem(k)||'null')?.key||'');
+              break;
+            }
+          }
+        }
+      }catch(_){}
+    }
+    if(['super_admin','superadmin','founder','ceo','owner','admin'].includes(raw))return 'SUPER_ADMIN';
+    if(ROLES[raw]&&raw!=='student')return raw;
+    if(raw==='student'&&ROLES[saved]&&saved!=='student')return saved;
+    if(raw==='student'&&ROLES[profile]&&profile!=='student')return profile;
+    return ROLES[raw]?raw:'student';
+  };
   const ALL_MODULES=['Medical Academy','Bioinformatics','Molecular Analysis','PDB & Structure','Drug Discovery','Scientific Jobs','Research Assistant','Virtual Laboratory','Reports & History','Global Platform'];
   const ROLE_MODULES={
     SUPER_ADMIN:ALL_MODULES,
-    student:['Medical Academy','Bioinformatics','Molecular Analysis','PDB & Structure','Virtual Laboratory','Research Assistant','Reports & History'],
-    school_student:['School Learning'],
-    school_teacher:['School Teaching'],
-    doctor:['Medical Academy','PDB & Structure','Molecular Analysis','Virtual Laboratory','Research Assistant','Reports & History'],
-    researcher:['Bioinformatics','Molecular Analysis','PDB & Structure','Drug Discovery','Scientific Jobs','Research Assistant','Virtual Laboratory','Reports & History'],
-    professor:['Medical Academy','Bioinformatics','Molecular Analysis','PDB & Structure','Research Assistant','Scientific Jobs','Reports & History'],
-    lab:['Molecular Analysis','PDB & Structure','Virtual Laboratory','Reports & History'],
-    biotech:['Bioinformatics','Molecular Analysis','PDB & Structure','Drug Discovery','Virtual Laboratory','Research Assistant','Reports & History'],
-    pharma:['Molecular Analysis','PDB & Structure','Drug Discovery','Virtual Laboratory','Research Assistant','Reports & History'],
-    bioinformatician:['Bioinformatics','Molecular Analysis','PDB & Structure','Research Assistant','Scientific Jobs','Virtual Laboratory','Reports & History'],
-    hospital:['Medical Academy','PDB & Structure','Molecular Analysis','Virtual Laboratory','Research Assistant','Reports & History'],
-    company:['Bioinformatics','Molecular Analysis','PDB & Structure','Drug Discovery','Scientific Jobs','Virtual Laboratory','Reports & History'],
-    admin:ALL_MODULES
+    admin:ALL_MODULES,
+    student:['Medical Academy','Learning Hub','Virtual Laboratory'],
+    school_student:['School Learning','Learning Hub'],
+    school_teacher:['School Teaching','AI Teacher Studio'],
+    doctor:['Clinical Reference','Clinical Simulation','Research Assistant','Reports & History'],
+    researcher:['Research Assistant','Bioinformatics','Virtual Laboratory','Reports & History'],
+    professor:['Medical Academy','Research Assistant','Reports & History'],
+    lab:['Virtual Laboratory','Molecular Analysis','Reports & History'],
+    biotech:['Bioinformatics','Molecular Analysis','PDB & Structure','Virtual Laboratory'],
+    pharma:['Drug Discovery','PDB & Structure','Molecular Analysis','Reports & History'],
+    bioinformatician:['Bioinformatics','Research Assistant','Reports & History'],
+    hospital:['Medical Academy','Reports & History'],
+    company:['Drug Discovery','Research Assistant','Virtual Laboratory','Global Platform','Reports & History']
   };
   const FINAL_I18N={
     en:{menu:'MENU',dashboard:'Dashboard',profile:'My Profile',scientific:'SCIENTIFIC WORKSPACES',support:'Help Center',assistant:'MedGen AI Assistant',community:'Community',security:'Security Center',owner:'OWNER CONTROL',ownerDash:'Super Admin Dashboard',workspace:'Workspace',open:'Open →',core:'CORE SCIENCE',research:'RESEARCH & DISCOVERY',platform:'PLATFORM',welcome:'Personal Scientific Workspace',role:'ROLE',back:'← Dashboard',supportTitle:'Help Center',supportDesc:'Get help with your account, platform or scientific modules.',aiTitle:'AI Assistant',aiDesc:'Biomedical platform and research workflow assistant.',communityTitle:'Community',communityDesc:'Connect with researchers and professionals in your role community.',securityTitle:'Security Center',securityDesc:'Privacy, consent, identity and account security.'},
@@ -2204,7 +2230,7 @@ document.addEventListener("DOMContentLoaded", function () {
   const esc=s=>String(s??'').replace(/[&<>"']/g,m=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[m]));
   const lang=()=>localStorage.getItem('medgen_language')||'uz';
   const ft=(k)=>FINAL_I18N[lang()]?.[k]||FINAL_I18N.en[k]||k;
-  const moduleLabel=(m)=>translations?.[m]?.[lang()]||m;
+  const moduleLabel=(m)=>(typeof translations!=='undefined'&&translations?.[m]?.[lang()])||m;
   const roleLabel=(k)=>ROLE_I18N[lang()]?.[k]||ROLE_I18N.en[k]||k;
   function dashboard(){return document.getElementById('dashboardView')}
   function hideAll(){['roleDashboard','moduleDirectory','workspace','educationPreferencePanel','securityCenter','userDirectoryDashboard','adminDashboard','supportCenter','aiCenter','communityCenter'].forEach(id=>document.getElementById(id)?.classList.add('hidden'))}
