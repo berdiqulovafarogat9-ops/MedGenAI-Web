@@ -4413,6 +4413,9 @@ async function init() {
     if (user) {
 
       showDashboard();
+      // Restore the same role-specific home on refresh as after a fresh login.
+      window.__MEDGEN_USER = state.user;
+      if (window.medgenFinalBoot) window.medgenFinalBoot(state.user);
 
     } else {
 
@@ -5889,6 +5892,12 @@ async function renderPdb3D(){
       });
     }
     home.classList.remove('hidden');
+    // The finalHome renderer is the primary home UI. Keep the legacy role
+    // dashboard hidden when that role-aware home has been rendered.
+    const finalHome = $('finalHome');
+    if (finalHome && !finalHome.classList.contains('hidden') && getComputedStyle(finalHome).display !== 'none') {
+      home.classList.add('hidden');
+    }
     window.medgenRefreshRoleNavigation?.();
   }
 
