@@ -140,6 +140,8 @@ knowledge_relations_store = []
 organizations_store = {}
 school_directory_store = {}
 school_invitations_store = {}
+school_assignments_store = {}
+school_submissions_store = {}
 memberships_store = []
 workspaces_store = []
 projects_store = []
@@ -164,7 +166,7 @@ def _db_load():
         _db_init()
         with psycopg.connect(DATABASE_URL) as conn:
             rows = conn.execute("SELECT state_key, state_value FROM medgen_state").fetchall()
-        stores={"user_accounts":user_accounts,"user_profiles":user_profiles,"user_consents":user_consents,"role_requests_store":role_requests_store,"experiments_store":experiments_store,"reports_store":reports_store,"academy_syllabi_store":academy_syllabi_store,"activity_log":activity_log,"jobs_store":jobs_store,"workflows_store":workflows_store,"docking_jobs_store":docking_jobs_store,"knowledge_entities_store":knowledge_entities_store,"knowledge_relations_store":knowledge_relations_store,"organizations_store":organizations_store,"school_directory_store":school_directory_store,"school_invitations_store":school_invitations_store,"memberships_store":memberships_store,"workspaces_store":workspaces_store,"projects_store":projects_store,"api_keys_store":api_keys_store,"platform_audit_log":platform_audit_log,"usage_store":usage_store,"webhooks_store":webhooks_store}
+        stores={"user_accounts":user_accounts,"user_profiles":user_profiles,"user_consents":user_consents,"role_requests_store":role_requests_store,"experiments_store":experiments_store,"reports_store":reports_store,"academy_syllabi_store":academy_syllabi_store,"activity_log":activity_log,"jobs_store":jobs_store,"workflows_store":workflows_store,"docking_jobs_store":docking_jobs_store,"knowledge_entities_store":knowledge_entities_store,"knowledge_relations_store":knowledge_relations_store,"organizations_store":organizations_store,"school_directory_store":school_directory_store,"school_invitations_store":school_invitations_store,"school_assignments_store":school_assignments_store,"school_submissions_store":school_submissions_store,"memberships_store":memberships_store,"workspaces_store":workspaces_store,"projects_store":projects_store,"api_keys_store":api_keys_store,"platform_audit_log":platform_audit_log,"usage_store":usage_store,"webhooks_store":webhooks_store}
         for key,value in rows:
             if key in stores and isinstance(value,(dict,list)):
                 stores[key].clear()
@@ -174,7 +176,7 @@ def _db_load():
 
 def _db_save():
     if not PERSISTENCE_ENABLED: return
-    stores={"user_accounts":user_accounts,"user_profiles":user_profiles,"user_consents":user_consents,"role_requests_store":role_requests_store,"experiments_store":experiments_store,"reports_store":reports_store,"academy_syllabi_store":academy_syllabi_store,"activity_log":activity_log,"jobs_store":jobs_store,"workflows_store":workflows_store,"docking_jobs_store":docking_jobs_store,"knowledge_entities_store":knowledge_entities_store,"knowledge_relations_store":knowledge_relations_store,"organizations_store":organizations_store,"memberships_store":memberships_store,"workspaces_store":workspaces_store,"projects_store":projects_store,"api_keys_store":api_keys_store,"platform_audit_log":platform_audit_log,"usage_store":usage_store,"webhooks_store":webhooks_store}
+    stores={"user_accounts":user_accounts,"user_profiles":user_profiles,"user_consents":user_consents,"role_requests_store":role_requests_store,"experiments_store":experiments_store,"reports_store":reports_store,"academy_syllabi_store":academy_syllabi_store,"activity_log":activity_log,"jobs_store":jobs_store,"workflows_store":workflows_store,"docking_jobs_store":docking_jobs_store,"knowledge_entities_store":knowledge_entities_store,"knowledge_relations_store":knowledge_relations_store,"organizations_store":organizations_store,"school_directory_store":school_directory_store,"school_invitations_store":school_invitations_store,"school_assignments_store":school_assignments_store,"school_submissions_store":school_submissions_store,"memberships_store":memberships_store,"workspaces_store":workspaces_store,"projects_store":projects_store,"api_keys_store":api_keys_store,"platform_audit_log":platform_audit_log,"usage_store":usage_store,"webhooks_store":webhooks_store}
     try:
         with psycopg.connect(DATABASE_URL) as conn:
             for key,value in stores.items():
@@ -229,6 +231,18 @@ class SchoolInvitationRequest(BaseModel):
 class SchoolReviewRequest(BaseModel):
     approve: bool
     note: str = ""
+
+
+class SchoolAssignmentRequest(BaseModel):
+    title: str
+    subject: str = ""
+    description: str = ""
+    class_name: str
+    due_date: str = ""
+
+
+class SchoolSubmissionRequest(BaseModel):
+    answer: str
 
 
 class AccountUpdateRequest(BaseModel):
@@ -519,6 +533,13 @@ async def account_readiness_guard(request: Request, call_next):
         return await call_next(request)
 
     profile = user_profiles.get(username, {})
+    if path.startswith("/api/v1/school/"):
+        is_primary_admin = str(username).strip().casefold() == str(ADMIN_USERNAME).strip().casefold()
+        role = str(profile.get("role") or "").lower()
+        if not is_primary_admin and role not in {"school_student", "school_teacher"}:
+            return JSONResponse(status_code=403, content={"detail": "SCHOOL_ROLE_REQUIRED", "message": "Bu bo‘lim maktab o‘quvchisi yoki o‘qituvchisi uchun."})
+        if not is_primary_admin and str(profile.get("school_status", "pending")).lower() != "approved":
+            return JSONResponse(status_code=403, content={"detail": "SCHOOL_APPROVAL_REQUIRED", "message": "Maktab akkaunti administrator tasdig‘ini kutmoqda."})
     # Medical Academy learning activities use their own academic profile flow.
     # Keep legal consent mandatory, but don't block learning solely because
     # unrelated platform profile fields (e.g. location/date fields) are absent.
@@ -705,7 +726,7 @@ def register(data: RegisterRequest):
         "role_status": "pending" if school_role else "active",
         "school_name": school_name if school_role else "",
         "school_region": str((invitation or {}).get("region") or "").strip()[:120] if school_role else "",
-        "class_name": class_name if role == "school_student" else "",
+        "class_name": class_name if school_role else "",
         "school_status": "pending" if school_role else "not_applicable",
         "invitation_code_used": bool(school_role and invitation),
         "school_review": {"status": "pending", "submitted_at": datetime.now(timezone.utc).isoformat(), "reviewed_at": None, "reviewed_by": None, "note": ""} if school_role else {},
@@ -2973,6 +2994,107 @@ def admin_revoke_school_invitation(data: dict, user=Depends(get_current_user)):
     _db_save()
     _platform_audit(user, "school.invitation_revoked", "school", item.get("school_name", ""), {})
     return {"status": "revoked"}
+
+
+@app.get("/api/v1/school/assignments")
+def school_list_assignments(user=Depends(get_current_user)):
+    profile = user_profiles.get(user["username"], {})
+    role = str(profile.get("role") or user.get("role") or "").lower()
+    if role not in {"school_student", "school_teacher"}:
+        raise HTTPException(status_code=403, detail="SCHOOL_ROLE_REQUIRED")
+    school_name = str(profile.get("school_name") or "").strip().casefold()
+    class_name = str(profile.get("class_name") or "").strip().casefold()
+    items = []
+    for item in school_assignments_store.values():
+        if str(item.get("school_name") or "").casefold() != school_name:
+            continue
+        if role == "school_student":
+            if str(item.get("class_name") or "").casefold() != class_name:
+                continue
+            submission = school_submissions_store.get(str(item.get("id")) + ":" + user["username"])
+            items.append({**item, "my_submission": submission})
+        elif item.get("teacher_username") == user["username"]:
+            items.append(item)
+    items.sort(key=lambda x: x.get("created_at", ""), reverse=True)
+    return {"assignments": items, "count": len(items)}
+
+
+@app.post("/api/v1/school/assignments")
+def school_create_assignment(data: SchoolAssignmentRequest, user=Depends(get_current_user)):
+    profile = user_profiles.get(user["username"], {})
+    if str(profile.get("role") or user.get("role") or "").lower() != "school_teacher":
+        raise HTTPException(status_code=403, detail="Faqat tasdiqlangan maktab o‘qituvchisi topshiriq yaratishi mumkin.")
+    school_name = str(profile.get("school_name") or "").strip()
+    assigned_class = str(profile.get("class_name") or "").strip()
+    class_name = str(data.class_name or "").strip()[:40]
+    title = str(data.title or "").strip()[:160]
+    subject = str(data.subject or "").strip()[:100]
+    description = str(data.description or "").strip()[:5000]
+    due_date = str(data.due_date or "").strip()[:40]
+    if not school_name or not assigned_class:
+        raise HTTPException(status_code=403, detail="Topshiriq yaratish uchun administrator o‘qituvchiga maktab va sinf biriktirishi kerak.")
+    if class_name.casefold() != assigned_class.casefold():
+        raise HTTPException(status_code=403, detail="Siz faqat o‘zingizga biriktirilgan sinfga topshiriq bera olasiz.")
+    if not title or not description:
+        raise HTTPException(status_code=400, detail="Topshiriq sarlavhasi va tavsifini kiriting.")
+    now = datetime.now(timezone.utc).isoformat()
+    assignment_id = str(uuid.uuid4())
+    item = {
+        "id": assignment_id, "school_name": school_name, "class_name": assigned_class,
+        "teacher_username": user["username"], "teacher_name": profile.get("full_name", ""),
+        "title": title, "subject": subject, "description": description,
+        "due_date": due_date, "created_at": now, "status": "open",
+    }
+    school_assignments_store[assignment_id] = item
+    _platform_audit(user, "school.assignment_created", "school_assignment", assignment_id, {"school_name": school_name, "class_name": assigned_class})
+    _db_save()
+    return {"status": "created", "assignment": item}
+
+
+@app.post("/api/v1/school/assignments/{assignment_id}/submit")
+def school_submit_assignment(assignment_id: str, data: SchoolSubmissionRequest, user=Depends(get_current_user)):
+    profile = user_profiles.get(user["username"], {})
+    if str(profile.get("role") or user.get("role") or "").lower() != "school_student":
+        raise HTTPException(status_code=403, detail="Faqat o‘quvchi topshiriq yuborishi mumkin.")
+    assignment = school_assignments_store.get(assignment_id)
+    if not assignment:
+        raise HTTPException(status_code=404, detail="Topshiriq topilmadi.")
+    if str(assignment.get("school_name") or "").casefold() != str(profile.get("school_name") or "").casefold() or str(assignment.get("class_name") or "").casefold() != str(profile.get("class_name") or "").casefold():
+        raise HTTPException(status_code=403, detail="Bu topshiriq sizning maktabingiz yoki sinfingiz uchun emas.")
+    answer = str(data.answer or "").strip()[:5000]
+    if not answer:
+        raise HTTPException(status_code=400, detail="Javobni kiriting.")
+    now = datetime.now(timezone.utc).isoformat()
+    key = assignment_id + ":" + user["username"]
+    submission = {
+        "assignment_id": assignment_id, "student_username": user["username"],
+        "student_name": profile.get("full_name", ""), "school_name": profile.get("school_name", ""),
+        "class_name": profile.get("class_name", ""), "answer": answer,
+        "submitted_at": now, "status": "submitted",
+    }
+    school_submissions_store[key] = submission
+    _db_save()
+    return {"status": "submitted", "submission": submission}
+
+
+@app.get("/api/v1/school/submissions")
+def school_list_submissions(user=Depends(get_current_user)):
+    profile = user_profiles.get(user["username"], {})
+    role = str(profile.get("role") or user.get("role") or "").lower()
+    school_name = str(profile.get("school_name") or "").casefold()
+    if role not in {"school_student", "school_teacher"}:
+        raise HTTPException(status_code=403, detail="SCHOOL_ROLE_REQUIRED")
+    result = []
+    for submission in school_submissions_store.values():
+        if str(submission.get("school_name") or "").casefold() != school_name:
+            continue
+        assignment = school_assignments_store.get(submission.get("assignment_id"), {})
+        if role == "school_student" and submission.get("student_username") == user["username"]:
+            result.append({**submission, "assignment_title": assignment.get("title", "")})
+        elif role == "school_teacher" and assignment.get("teacher_username") == user["username"]:
+            result.append({**submission, "assignment_title": assignment.get("title", "")})
+    result.sort(key=lambda x: x.get("submitted_at", ""), reverse=True)
+    return {"submissions": result, "count": len(result)}
 
 
 @app.get("/api/v1/admin/academic-approvals")
