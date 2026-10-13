@@ -1563,7 +1563,8 @@ def create_job(
 
 @app.get("/api/v1/reports")
 def reports(user=Depends(get_current_user)):
-    items = [r for r in reports_store if r["user"] == user["username"]]
+    # Older saved reports may predate owner metadata; skip them safely instead of raising KeyError.
+    items = [r for r in reports_store if r.get("user") == user["username"]]
     return {"reports": items, "count": len(items), "user": user["username"]}
 
 
