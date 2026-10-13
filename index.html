@@ -2323,6 +2323,7 @@ document.addEventListener("DOMContentLoaded", function () {
     if(old) old.remove();
     const el=document.createElement('section'); el.id='functionalService'; el.className='final-panel';
     el.innerHTML='<button class="secondary" id="functionalBack">← Dashboard</button><h2>'+title+'</h2><div id="functionalBody">'+body+'</div>';
+    ['finalHome','roleDashboard','workspace','moduleDirectory','educationPreferencePanel','securityCenter','userDirectoryDashboard','adminDashboard'].forEach(id=>document.getElementById(id)?.classList.add('hidden'));
     (document.getElementById('dashboardView')||document.body).appendChild(el);
     document.getElementById('functionalBack').onclick=()=>{el.remove(); if(window.medgenFinalBoot) window.medgenFinalBoot(window.__MEDGEN_USER||{});};
     return el;
