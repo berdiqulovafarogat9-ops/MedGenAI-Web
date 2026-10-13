@@ -242,6 +242,16 @@ class SchoolAssignmentRequest(BaseModel):
     due_date: str = ""
 
 
+class EducationAssessmentRequest(BaseModel):
+    subject: str
+    grade: str
+    topic: str
+    assessment_type: str = "BSB"
+    question_count: int = 5
+    language: str = "uz"
+    difficulty: str = "medium"
+
+
 class SchoolSubmissionRequest(BaseModel):
     answer: str
 
@@ -4855,6 +4865,151 @@ def community_post(data: CommunityMessageRequest, user=Depends(get_current_user)
     activity_log.insert(0,{"type":"community_message","username":user["username"],"role":requested,"at":item["created_at"]})
     _db_save()
     return {"status":"sent","message":item}
+
+def _education_assessment_fallback(data: EducationAssessmentRequest) -> list[dict]:
+    # Honest offline fallback: structured teacher prompts, not fabricated answers.
+    lang = str(data.language or "uz").lower()
+    labels = {
+        "uz": ("Tushuncha", "Taqqoslash", "Sabab-oqibat", "Amaliy qo‘llash", "Xulosa"),
+        "en": ("Concept", "Compare", "Cause and effect", "Application", "Conclusion"),
+        "ru": ("Понятие", "Сравнение", "Причина и следствие", "Применение", "Вывод"),
+    }
+    kinds = labels.get(lang, labels["uz"])
+    questions = []
+    for i in range(max(1, min(int(data.question_count or 5), 15))):
+        kind = kinds[i % len(kinds)]
+        questions.append({
+            "number": i + 1,
+            "type": kind,
+            "question": f"{data.topic}: {kind.lower()} bo‘yicha savol matnini o‘qituvchi aniqlashtiradi." if lang == "uz" else (
+                f"{data.topic}: the teacher should complete a {kind.lower()} question." if lang == "en" else
+                f"{data.topic}: преподаватель должен уточнить вопрос типа «{kind.lower()}»."
+            ),
+            "answer": "",
+            "answer_key_status": "teacher_review_required",
+            "points": 1
+        })
+    return questions
+
+
+def _education_ai_generate(data: EducationAssessmentRequest) -> list[dict] | None:
+    api_key = (os.getenv("MEDGEN_AI_API_KEY") or os.getenv("OPENAI_API_KEY") or "").strip()
+    if not api_key:
+        return None
+    base_url = (os.getenv("MEDGEN_AI_BASE_URL") or "https://api.openai.com/v1").rstrip("/")
+    model = (os.getenv("MEDGEN_AI_MODEL") or "gpt-4o-mini").strip()
+    lang_names = {"uz": "Uzbek", "en": "English", "ru": "Russian"}
+    prompt = (
+        "Create a teacher-reviewed practice assessment, not an official exam. "
+        "Return ONLY valid JSON with key questions, an array of objects with number, type, question, "
+        "options (array of 4 strings for multiple-choice, otherwise []), answer, explanation, points. "
+        "Write in " + lang_names.get(data.language.lower(), "Uzbek") + ". "
+        "Use age-appropriate, factually sound content; if the topic is underspecified, ask clear foundational questions. "
+        "No claims this is an official BSB/CHSB test. "
+        f"Subject: {data.subject}; grade: {data.grade}; topic: {data.topic}; "
+        f"assessment type: {data.assessment_type}; count: {data.question_count}; difficulty: {data.difficulty}."
+    )
+    payload = {
+        "model": model,
+        "temperature": 0.2,
+        "response_format": {"type": "json_object"},
+        "messages": [
+            {"role": "system", "content": "You create educational practice drafts for teachers. Accuracy and teacher review are mandatory."},
+            {"role": "user", "content": prompt}
+        ]
+    }
+    req = URLRequest(
+        base_url + "/chat/completions",
+        data=json.dumps(payload, ensure_ascii=False).encode("utf-8"),
+        headers={"Authorization": "Bearer " + api_key, "Content-Type": "application/json"},
+        method="POST"
+    )
+    try:
+        with urlopen(req, timeout=25) as response:
+            result = json.loads(response.read().decode("utf-8"))
+        content = result["choices"][0]["message"]["content"]
+        parsed = json.loads(content)
+        items = parsed.get("questions")
+        if not isinstance(items, list) or not items:
+            return None
+        clean = []
+        for i, item in enumerate(items[:data.question_count]):
+            if not isinstance(item, dict) or not str(item.get("question") or "").strip():
+                continue
+            options = item.get("options", [])
+            clean.append({
+                "number": i + 1,
+                "type": str(item.get("type") or "practice")[:80],
+                "question": str(item.get("question") or "")[:2000],
+                "options": [str(x)[:500] for x in options[:6]] if isinstance(options, list) else [],
+                "answer": str(item.get("answer") or "")[:1500],
+                "explanation": str(item.get("explanation") or "")[:1500],
+                "points": max(1, min(int(item.get("points") or 1), 10)),
+                "answer_key_status": "ai_draft_teacher_review_required"
+            })
+        return clean or None
+    except Exception as exc:
+        print("Education AI provider unavailable; using honest fallback:", type(exc).__name__)
+        return None
+
+
+@app.post("/api/v1/education/generate-assessment")
+def education_generate_assessment(data: EducationAssessmentRequest, user=Depends(get_current_user)):
+    profile = user_profiles.get(user["username"], {})
+    role = str(profile.get("role") or user.get("role") or "").strip().lower()
+    if role not in {"school_teacher", "SUPER_ADMIN".lower()} and user.get("role") != "SUPER_ADMIN":
+        raise HTTPException(status_code=403, detail="Bu vosita maktab o‘qituvchisi uchun.")
+    subject = str(data.subject or "").strip()[:100]
+    grade = str(data.grade or "").strip()[:40]
+    topic = str(data.topic or "").strip()[:180]
+    assessment_type = str(data.assessment_type or "BSB").upper()
+    language = str(data.language or "uz").lower()
+    difficulty = str(data.difficulty or "medium").lower()
+    if not subject or not grade or not topic:
+        raise HTTPException(status_code=400, detail="Fan, sinf va mavzuni to‘ldiring.")
+    if assessment_type not in {"BSB", "CHSB", "PRACTICE"}:
+        assessment_type = "BSB"
+    if language not in {"uz", "en", "ru"}:
+        language = "uz"
+    if difficulty not in {"easy", "medium", "hard"}:
+        difficulty = "medium"
+    clean = EducationAssessmentRequest(
+        subject=subject, grade=grade, topic=topic, assessment_type=assessment_type,
+        question_count=max(1, min(int(data.question_count or 5), 15)),
+        language=language, difficulty=difficulty
+    )
+    questions = _education_ai_generate(clean)
+    mode = "configured_ai_draft" if questions else "template_assisted"
+    if not questions:
+        questions = _education_assessment_fallback(clean)
+    draft = {
+        "id": str(uuid.uuid4()),
+        "subject": subject, "grade": grade, "topic": topic,
+        "assessment_type": assessment_type, "language": language,
+        "difficulty": difficulty, "questions": questions,
+        "generation_mode": mode, "teacher_review_required": True,
+        "created_at": datetime.now(timezone.utc).isoformat(),
+        "created_by": user["username"]
+    }
+    drafts = user_profiles.setdefault(user["username"], {}).setdefault("education_assessment_drafts", [])
+    drafts.insert(0, draft)
+    del drafts[30:]
+    _db_save()
+    return {
+        "status": "ok", "assessment": draft,
+        "notice": "Qoralama: darsda ishlatishdan oldin barcha savol va javoblarni o‘qituvchi tekshirishi shart."
+    }
+
+
+@app.get("/api/v1/education/assessment-drafts")
+def education_list_assessment_drafts(user=Depends(get_current_user)):
+    profile = user_profiles.get(user["username"], {})
+    role = str(profile.get("role") or user.get("role") or "").strip().lower()
+    if role not in {"school_teacher", "super_admin"}:
+        raise HTTPException(status_code=403, detail="Bu bo‘lim maktab o‘qituvchisi uchun.")
+    drafts = profile.get("education_assessment_drafts", [])
+    return {"status": "ok", "drafts": drafts[:30]}
+
 
 @app.post("/api/v1/assistant/chat")
 def assistant_chat(data: AssistantMessageRequest, user=Depends(get_current_user)):
