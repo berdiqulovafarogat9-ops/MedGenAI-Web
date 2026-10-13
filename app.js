@@ -2256,8 +2256,46 @@ function openModule(moduleName) {
       teacher.className = 'tool hidden';
       $('workspace')?.appendChild(teacher);
     }
-    teacher.innerHTML = '<div class="academy-v2"><p class="eyebrow">SCHOOL WORKSPACE • O‘QITUVCHI</p><h3>👩‍🏫 O‘qituvchi ish maydoni</h3><p class="muted">Maktab akkauntingiz tasdiqlangach, sinflar va o‘quvchilar bilan ishlash imkoniyati ochiladi.</p><div class="grid"><article class="panel"><h4>🏫 Maktab va sinf</h4><p>Biriktirilgan maktab: ' + escapeHtml(state.user?.school_name || state.user?.profile?.school_name || 'Tasdiqlanishi kutilmoqda') + '</p><p>Sinf: ' + escapeHtml(state.user?.class_name || state.user?.profile?.class_name || 'Administrator belgilaydi') + '</p></article><article class="panel"><h4>📝 Topshiriqlar</h4><p>Topshiriqlarni yaratish va sinfga yuborish backenddagi sinf/topshiriq xizmatlari qo‘shilgandan keyin yoqiladi.</p></article><article class="panel"><h4>📊 O‘quvchilar natijalari</h4><p>Shaxsiy ma’lumotlar faqat tasdiqlangan ruxsatlar va biriktirilgan sinflar doirasida ko‘rsatiladi.</p></article></div></div>';
+    const schoolName = state.user?.school_name || state.user?.profile?.school_name || '';
+    const assignedClass = state.user?.class_name || state.user?.profile?.class_name || '';
+    teacher.innerHTML = '<div class="academy-v2"><p class="eyebrow">SCHOOL WORKSPACE • O‘QITUVCHI</p><h3>👩‍🏫 O‘qituvchi ish maydoni</h3><div class="grid"><article class="panel"><h4>🏫 Maktab va sinf</h4><p>Maktab: ' + escapeHtml(schoolName || '—') + '</p><p>Biriktirilgan sinf: ' + escapeHtml(assignedClass || 'Hali biriktirilmagan') + '</p><small>Topshiriq yaratish uchun administrator taklif kodi orqali sinfni biriktirishi kerak.</small></article><article class="panel"><h4>📝 Yangi topshiriq</h4><label>Sarlavha<input id="schoolTeacherTaskTitle" maxlength="160" required placeholder="Topshiriq nomi"></label><label>Fan<input id="schoolTeacherTaskSubject" maxlength="100" placeholder="Biologiya"></label><label>Sinf<input id="schoolTeacherTaskClass" maxlength="40" required value="' + escapeHtml(assignedClass) + '"' + (assignedClass ? ' readonly' : '') + ' placeholder="Administrator biriktirgan sinf"></label><label>Tavsif<textarea id="schoolTeacherTaskDescription" maxlength="5000" rows="4" required placeholder="Topshiriq sharti"></textarea></label><label>Muddat<input id="schoolTeacherTaskDue" type="date"></label><button id="schoolTeacherTaskCreate" class="primary" type="button">Topshiriqni saqlash</button><div id="schoolTeacherTaskStatus" class="status" role="status"></div></article><article class="panel"><h4>📚 Mening topshiriqlarim</h4><div id="schoolTeacherAssignments" class="status">Yuklanmoqda...</div></article><article class="panel"><h4>📊 O‘quvchilar topshiriqlari</h4><div id="schoolTeacherSubmissions" class="status">Yuklanmoqda...</div></article></div></div>';
+    const taskStatus = $('schoolTeacherTaskStatus');
+    const reloadTeacher = async () => {
+      try {
+        const data = await api('/school/assignments');
+        const assignments = Array.isArray(data.assignments) ? data.assignments : [];
+        const box = $('schoolTeacherAssignments');
+        if (box) box.innerHTML = assignments.length ? assignments.map(a => '<article class="card"><b>' + escapeHtml(a.title) + '</b><div>' + escapeHtml(a.subject || '') + ' · ' + escapeHtml(a.class_name || '') + '</div><p>' + escapeHtml(a.description || '') + '</p><small>Yaratildi: ' + escapeHtml(a.created_at || '') + ' · Muddat: ' + escapeHtml(a.due_date || 'Belgilanmagan') + '</small></article>').join('') : '<p>Hozircha topshiriq yo‘q.</p>';
+        const subData = await api('/school/submissions');
+        const submissions = Array.isArray(subData.submissions) ? subData.submissions : [];
+        const subBox = $('schoolTeacherSubmissions');
+        if (subBox) subBox.innerHTML = submissions.length ? submissions.map(a => '<article class="card"><b>' + escapeHtml(a.assignment_title || 'Topshiriq') + '</b><div>' + escapeHtml(a.student_name || a.student_username || '') + ' · ' + escapeHtml(a.class_name || '') + '</div><p>' + escapeHtml(a.answer || '') + '</p><small>' + escapeHtml(a.submitted_at || '') + '</small></article>').join('') : '<p>Hozircha o‘quvchi javoblari yo‘q.</p>';
+      } catch (e) {
+        const box = $('schoolTeacherAssignments');
+        if (box) box.innerHTML = '<p>' + escapeHtml(e.message) + '</p>';
+      }
+    };
+    $('schoolTeacherTaskCreate')?.addEventListener('click', async () => {
+      const title = $('schoolTeacherTaskTitle')?.value.trim() || '';
+      const subject = $('schoolTeacherTaskSubject')?.value.trim() || '';
+      const class_name = $('schoolTeacherTaskClass')?.value.trim() || '';
+      const description = $('schoolTeacherTaskDescription')?.value.trim() || '';
+      const due_date = $('schoolTeacherTaskDue')?.value || '';
+      if (!title || !class_name || !description) { if (taskStatus) taskStatus.textContent = 'Sarlavha, sinf va tavsifni to‘ldiring.'; return; }
+      const btn = $('schoolTeacherTaskCreate'); if (btn) btn.disabled = true;
+      try {
+        await api('/school/assignments', {method:'POST', body:JSON.stringify({title, subject, class_name, description, due_date})});
+        if (taskStatus) taskStatus.textContent = 'Topshiriq saqlandi.';
+        $('schoolTeacherTaskTitle').value = '';
+        $('schoolTeacherTaskSubject').value = '';
+        $('schoolTeacherTaskDescription').value = '';
+        $('schoolTeacherTaskDue').value = '';
+        await reloadTeacher();
+      } catch (e) { if (taskStatus) taskStatus.textContent = 'Saqlanmadi: ' + e.message; }
+      finally { if (btn) btn.disabled = false; }
+    });
     teacher.classList.remove('hidden');
+    reloadTeacher();
     return;
   }
 
@@ -2272,7 +2310,7 @@ function openModule(moduleName) {
     const progressKey = 'medgen_school_progress_' + String(state.user?.username || 'learner');
     let progress = {};
     try { progress = JSON.parse(localStorage.getItem(progressKey) || '{}') || {}; } catch (_) {}
-    school.innerHTML = '<div class="academy-v2"><p class="eyebrow">SCHOOL WORKSPACE • O‘QUVCHI</p><h3>📘 Mening o‘quv maydonim</h3><p class="muted">Fanlarni o‘rganing, topshiriqlarni bajaring va qisqa test orqali bilimingizni tekshiring.</p><div class="grid"><article class="panel"><h4>📚 Fanlar</h4><p>Biologiya — hujayra, irsiyat va inson organizmi.</p><p>Kimyo — elementlar, birikmalar va reaksiyalar.</p><p>Matematika — hisoblash va mantiqiy masalalar.</p></article><article class="panel"><h4>📝 Topshiriqlar</h4><ul><li>Biologiya: hujayraning 3 asosiy qismini yozing.</li><li>Kimyo: H₂O tarkibidagi elementlarni aniqlang.</li><li>Matematika: 12 × 8 misolini yeching.</li></ul><button class="primary small" id="schoolTaskDone" type="button">Topshiriqlarni bajardim</button><div id="schoolTaskStatus" class="status"></div></article><article class="panel"><h4>🧪 Bilim testi</h4><p>Inson tanasida qonni haydaydigan a’zo qaysi?</p><label><input type="radio" name="schoolQuiz" value="lungs"> O‘pka</label><br><label><input type="radio" name="schoolQuiz" value="heart"> Yurak</label><br><label><input type="radio" name="schoolQuiz" value="stomach"> Oshqozon</label><br><button class="primary small" id="schoolQuizCheck" type="button">Javobni tekshirish</button><div id="schoolQuizStatus" class="status" aria-live="polite"></div></article><article class="panel"><h4>🎯 Imtihon va progress</h4><p id="schoolProgressText">Bajarilgan topshiriqlar: '+(progress.tasksDone ? '1' : '0')+'/1 · Testlar: '+(progress.quizPassed ? '1' : '0')+'/1</p><p class="muted">Bu boshlang‘ich o‘quv namunasi. Rasmiy baho yoki maktab jurnaliga yuborilmaydi.</p></article></div></div>';
+    school.innerHTML = '<div class="academy-v2"><p class="eyebrow">SCHOOL WORKSPACE • O‘QUVCHI</p><h3>📘 Mening o‘quv maydonim</h3><p class="muted">Fanlarni o‘rganing, topshiriqlarni bajaring va qisqa test orqali bilimingizni tekshiring.</p><div class="grid"><article class="panel"><h4>📚 Fanlar</h4><p>Biologiya — hujayra, irsiyat va inson organizmi.</p><p>Kimyo — elementlar, birikmalar va reaksiyalar.</p><p>Matematika — hisoblash va mantiqiy masalalar.</p></article><article class="panel"><h4>📝 Topshiriqlar</h4><ul><li>Biologiya: hujayraning 3 asosiy qismini yozing.</li><li>Kimyo: H₂O tarkibidagi elementlarni aniqlang.</li><li>Matematika: 12 × 8 misolini yeching.</li></ul><button class="primary small" id="schoolTaskDone" type="button">Topshiriqlarni bajardim</button><div id="schoolTaskStatus" class="status"></div></article><article class="panel"><h4>🧪 Bilim testi</h4><p>Inson tanasida qonni haydaydigan a’zo qaysi?</p><label><input type="radio" name="schoolQuiz" value="lungs"> O‘pka</label><br><label><input type="radio" name="schoolQuiz" value="heart"> Yurak</label><br><label><input type="radio" name="schoolQuiz" value="stomach"> Oshqozon</label><br><button class="primary small" id="schoolQuizCheck" type="button">Javobni tekshirish</button><div id="schoolQuizStatus" class="status" aria-live="polite"></div></article><article class="panel"><h4>🎯 Imtihon va progress</h4><p id="schoolProgressText">Bajarilgan topshiriqlar: '+(progress.tasksDone ? '1' : '0')+'/1 · Testlar: '+(progress.quizPassed ? '1' : '0')+'/1</p><p class="muted">Bu boshlang‘ich o‘quv namunasi. Rasmiy baho yoki maktab jurnaliga yuborilmaydi.</p></article><article class="panel"><h4>📬 O‘qituvchi topshiriqlari</h4><div id="schoolAssignmentList" class="status">Yuklanmoqda...</div></article></div></div>';
     school.querySelector('#schoolTaskDone')?.addEventListener('click', () => {
       progress.tasksDone = true;
       localStorage.setItem(progressKey, JSON.stringify(progress));
@@ -2288,7 +2326,32 @@ function openModule(moduleName) {
       status.textContent = progress.quizPassed ? 'To‘g‘ri! Yurak qonni butun tana bo‘ylab haydaydi.' : 'Qayta urinib ko‘ring. Qonni tana bo‘ylab haydaydigan a’zoni eslang.';
       school.querySelector('#schoolProgressText').textContent = 'Bajarilgan topshiriqlar: ' + (progress.tasksDone ? '1' : '0') + '/1 · Testlar: ' + (progress.quizPassed ? '1' : '0') + '/1';
     });
+    const reloadSchoolAssignments = async () => {
+      const list = $('schoolAssignmentList');
+      if (!list) return;
+      try {
+        const data = await api('/school/assignments');
+        const assignments = Array.isArray(data.assignments) ? data.assignments : [];
+        list.innerHTML = assignments.length ? assignments.map(a => {
+          const submitted = a.my_submission;
+          return '<article class="card"><b>' + escapeHtml(a.title || 'Topshiriq') + '</b><div>' + escapeHtml(a.subject || '') + ' · Muddat: ' + escapeHtml(a.due_date || 'Belgilanmagan') + '</div><p>' + escapeHtml(a.description || '') + '</p>' +
+            (submitted ? '<p class="status">Javob yuborilgan: ' + escapeHtml(submitted.submitted_at || '') + '</p><p>' + escapeHtml(submitted.answer || '') + '</p>' :
+            '<label>Javobingiz<textarea data-school-answer="' + escapeHtml(a.id) + '" rows="3" maxlength="5000" placeholder="Javobni yozing"></textarea></label><button type="button" class="primary small" data-school-submit="' + escapeHtml(a.id) + '">Javobni yuborish</button>') + '</article>';
+        }).join('') : '<p>Hozircha o‘qituvchi topshirig‘i yo‘q.</p>';
+        list.querySelectorAll('[data-school-submit]').forEach(btn => btn.addEventListener('click', async () => {
+          const id = btn.dataset.schoolSubmit;
+          const answer = list.querySelector('[data-school-answer="' + CSS.escape(id) + '"]')?.value.trim() || '';
+          if (!answer) { alert('Javobni yozing.'); return; }
+          btn.disabled = true;
+          try { await api('/school/assignments/' + encodeURIComponent(id) + '/submit', {method:'POST', body:JSON.stringify({answer})}); await reloadSchoolAssignments(); }
+          catch (e) { alert('Javob yuborilmadi: ' + e.message); btn.disabled = false; }
+        }));
+      } catch (e) {
+        list.innerHTML = '<p>' + escapeHtml(e.message) + '</p>';
+      }
+    };
     school.classList.remove('hidden');
+    reloadSchoolAssignments();
     return;
   }
 
