@@ -3749,6 +3749,7 @@ function renderStudentOsce(){
 ========================================================= */
 const MEDGEN_ROLES = {
   school_student:{title:'O‘quvchi',icon:'📘',desc:'School Workspace: fanlar, topshiriqlar, testlar, imtihonlar va progress.',modules:['School Learning']},
+  school_teacher:{title:'Maktab o‘qituvchisi',icon:'👩‍🏫',desc:'School Teaching Workspace: sinflar, topshiriqlar, testlar va o‘quvchilar progressi.',modules:['School Teaching']},
   student:{title:'Talaba',icon:'🎓',desc:'Medical Academy: kursga mos anatomiya, patologiya, klinik fikrlash, virtual bemor, OSCE va ko‘nikmalar. Virtual Laboratory — faqat o‘quv/simulyatsiya rejimida ochiq.',modules:['Medical Academy','Virtual Laboratory']},
   doctor:{title:'Shifokor',icon:'👨‍⚕️',desc:'Clinical Workspace: klinik case, diagnostika, differensial tashxis, medical knowledge va simulation.',modules:['Clinical Reference','Clinical Simulation','Research Assistant','Reports & History']},
   researcher:{title:'Olim / Researcher',icon:'🔬',desc:'Research Workspace: ilmiy izlanish, literature, bioinformatics, knowledge graph va virtual laboratory.',modules:['Research Assistant','Bioinformatics','Virtual Laboratory','Reports & History']},
@@ -4925,6 +4926,7 @@ async function detectProfileLocation(fromSecurity=false){
 (function phase1RoleFirstShell(){
   const CATEGORY_ORDER = [
     ['school_student','📘','O‘quvchi'],
+    ['school_teacher','👩‍🏫','Maktab o‘qituvchisi'],
     ['student','🎓','Talaba'],
     ['doctor','👨‍⚕️','Shifokor'],
     ['researcher','🔬','Olim / Researcher'],
@@ -5562,6 +5564,7 @@ async function renderPdb3D(){
     if(grid){
       const labels = {
         'School Learning':['📘','Fanlar, topshiriqlar va testlar','Maktab fanlari, bilim testi va o‘quv progressi'],
+        'School Teaching':['👩‍🏫','Sinf va topshiriqlar','O‘qituvchi sinflari, topshiriqlar va o‘quvchilar natijalari'],
         'Medical Academy':['🎓','Tibbiyot akademiyasi','Kurslar, fanlar va ta’lim vositalari'],
         'Virtual Laboratory':['🧪','Virtual laboratoriya','Xavfsiz simulyatsiya va tajriba protokollari'],
         'Research Assistant':['🔬','Ilmiy tadqiqot','Adabiyotlar, gipotezalar va tadqiqot jarayoni'],
