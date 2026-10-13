@@ -1334,7 +1334,13 @@ async function openProfile() {
 
 function isProfileComplete(p) {
   if (!p) return false;
-  const role = String(p.role || state.user?.role || state.user?.user_role || '').trim().toLowerCase().replace(/[\s-]+/g, '_');
+  let role = String(p.role || state.user?.role || state.user?.user_role || '').trim().toLowerCase().replace(/[\s-]+/g, '_');
+  // Older accounts may still report generic "student" while registration saved
+  // the actual school role locally; use that only for generic student accounts.
+  if (role === 'student') {
+    const savedRole = getLocalRole()?.key;
+    if (['school_student', 'school_teacher'].includes(savedRole)) role = savedRole;
+  }
   // School accounts collect only the information needed for enrollment.
   if (['school_student', 'school_teacher'].includes(role)) {
     if (!(String(p.full_name || '').trim() && String(p.email || '').trim() && String(p.school_name || '').trim())) return false;
