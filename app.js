@@ -5058,17 +5058,6 @@ async function loadSecurityCenter() {
   try {
     const d=await api('/security/summary');
     renderCards(d);
-    const consent=d.consent_complete?'✅ Tasdiqlangan':'⚠️ Tasdiqlash kerak';
-    const identity=d.identity?.status==='PENDING_PROVIDER'?'🟡 Provayder kutilyapti':'⚪ Tasdiqlanmagan';
-    const loc=d.location?.label||[d.location?.country,d.location?.region,d.location?.district,d.location?.city].filter(Boolean).join(' · ')||'Kiritilmagan';
-    grid.innerHTML='<div class="security-card"><span>📜</span><strong>Roziliklar</strong><div>'+escapeHtml(consent)+'</div><small>Terms, Privacy, Data Processing va Research Disclaimer.</small></div>'+
-      '<div class="security-card"><span>🪪</span><strong>Identifikatsiya</strong><div>'+escapeHtml(identity)+'</div><small>Passport/selfie xom ma’lumotlari MedGen AI tomonidan saqlanmaydi.</small><button id="identityStart" class="ghost small" type="button">Identifikatsiyani boshlash</button></div>'+
-      '<div class="security-card"><span>🔐</span><strong>Hisob xavfsizligi</strong><div>'+Number(d.active_sessions||0)+' faol sessiya</div><small>Parolni Profil → Account & Security orqali almashtiring.</small></div>'+
-      '<div class="security-card"><span>📍</span><strong>Joylashuv</strong><div>'+escapeHtml(loc)+'</div><small>Joylashuv faqat foydalanuvchi ruxsati bilan aniqlanadi.</small><button id="securityLocation" class="ghost small" type="button">Joylashuv ruxsatini tekshirish</button></div>'+
-      '<div class="security-card"><span>🛡️</span><strong>Maxfiylik</strong><div>Minimal ma’lumot prinsipi</div><small>Keraksiz passport, raw biometric yoki aniq koordinatalar avtomatik yig‘ilmaydi.</small><p><a href="/legal.html#privacy" target="_blank" rel="noopener">Maxfiylik siyosati</a></p></div>'+
-      '<div class="security-card"><span>🔑</span><strong>Parol</strong><div>Account password</div><small>Kuchli parol va sessiya nazorati talab qilinadi.</small></div>'+'<div class="security-card"><span>📄</span><strong>Huquqiy hujjatlar</strong><p><a href="/legal.html#terms" target="_blank" rel="noopener">Foydalanish shartlari</a></p><p><a href="/legal.html#data" target="_blank" rel="noopener">Ma’lumotlarni qayta ishlashga rozilik</a></p><p><a href="/legal.html#medical" target="_blank" rel="noopener">Ilmiy va tibbiy ogohlantirish</a></p></div>';
-    $('identityStart')?.addEventListener('click',async()=>{try{const x=await api('/security/identity/request',{method:'POST',body:JSON.stringify({method:'DOCUMENT_PROVIDER'})});$('securityStatus').textContent='🟡 '+(x.identity?.note||'Identifikatsiya so‘rovi yuborildi.');await loadSecurityCenter();}catch(e){$('securityStatus').textContent='❌ '+e.message;}});
-    $('securityLocation')?.addEventListener('click',()=>detectProfileLocation(true));
   } catch(e) { const status=$('securityStatus'); if(status)status.textContent='Serverdagi holat hozircha yuklanmadi; hujjatlar va xavfsizlik havolalari mavjud.'; }
 }
 function openSecurityCenter(){
