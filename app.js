@@ -5646,7 +5646,7 @@ async function runMolecule3D() {
 
 function runScientificWorkflow(){
   const panel=document.getElementById('scientificWorkflowPanel');
-  const status=panel?.querySelector('#workflowStatus'), out=panel?.querySelector('#workflowResult');
+  const status=panel?.querySelector('#scientificWorkflowStatus'), out=panel?.querySelector('#scientificWorkflowResult');
   if(!status || !out) return;
   const body={
     name:document.getElementById('workflowName')?.value || 'MedGen Scientific Workflow',
