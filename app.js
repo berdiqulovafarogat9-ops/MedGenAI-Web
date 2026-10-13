@@ -3046,15 +3046,17 @@ async function createLabWorkflow() {
       const executionStatus = executed?.experiment?.status || executed?.status || 'completed';
       const summary = executed?.experiment?.results?.execution_summary;
       if (status) {
+        const details = summary
+          ? ` Bajarildi: ${summary.completed_steps ?? 0}; o‘tkazildi: ${summary.skipped_steps ?? 0}; xato: ${summary.failed_steps ?? 0}; qo‘shimcha kirish talab qilinadi: ${summary.steps_requiring_inputs ?? 0}.`
+          : '';
         if (executionStatus === 'completed_with_warnings') {
-          const details = summary
-            ? ` Bajarildi: ${summary.completed_steps}; o‘tkazildi: ${summary.skipped_steps}; xato: ${summary.failed_steps}; qo‘shimcha kirish talab qilinadi: ${summary.steps_requiring_inputs}.`
-            : '';
           status.textContent = 'Pipeline qisman bajarildi — natijalarni tekshiring.' + details + (report ? ' Hisobot saqlandi.' : ' Hisobot yaratilmadi.');
-        } else {
+        } else if (executionStatus === 'completed') {
           status.textContent = report
             ? 'Ilmiy tajriba bajarildi; natija va hisobot saqlandi.'
             : 'Ilmiy tajriba bajarildi; hisobot yaratilmadi.';
+        } else {
+          status.textContent = 'Pipeline holati: ' + executionStatus + '. Natijalarni va hisobotni tekshiring.' + details + (report ? ' Hisobot saqlandi.' : ' Hisobot yaratilmadi.');
         }
       }
       return;
