@@ -2168,6 +2168,37 @@ function openModule(moduleName) {
       tool.classList.add('hidden');
     });
 
+  if (moduleName === 'School Learning') {
+    let school = $('schoolLearningWorkspace');
+    if (!school) {
+      school = document.createElement('section');
+      school.id = 'schoolLearningWorkspace';
+      school.className = 'tool hidden';
+      $('workspace')?.appendChild(school);
+    }
+    const progressKey = 'medgen_school_progress_' + String(state.user?.username || 'learner');
+    let progress = {};
+    try { progress = JSON.parse(localStorage.getItem(progressKey) || '{}') || {}; } catch (_) {}
+    school.innerHTML = '<div class="academy-v2"><p class="eyebrow">SCHOOL WORKSPACE • O‘QUVCHI</p><h3>📘 Mening o‘quv maydonim</h3><p class="muted">Fanlarni o‘rganing, topshiriqlarni bajaring va qisqa test orqali bilimingizni tekshiring.</p><div class="grid"><article class="panel"><h4>📚 Fanlar</h4><p>Biologiya — hujayra, irsiyat va inson organizmi.</p><p>Kimyo — elementlar, birikmalar va reaksiyalar.</p><p>Matematika — hisoblash va mantiqiy masalalar.</p></article><article class="panel"><h4>📝 Topshiriqlar</h4><ul><li>Biologiya: hujayraning 3 asosiy qismini yozing.</li><li>Kimyo: H₂O tarkibidagi elementlarni aniqlang.</li><li>Matematika: 12 × 8 misolini yeching.</li></ul><button class="primary small" id="schoolTaskDone" type="button">Topshiriqlarni bajardim</button><div id="schoolTaskStatus" class="status"></div></article><article class="panel"><h4>🧪 Bilim testi</h4><p>Inson tanasida qonni haydaydigan a’zo qaysi?</p><label><input type="radio" name="schoolQuiz" value="lungs"> O‘pka</label><br><label><input type="radio" name="schoolQuiz" value="heart"> Yurak</label><br><label><input type="radio" name="schoolQuiz" value="stomach"> Oshqozon</label><br><button class="primary small" id="schoolQuizCheck" type="button">Javobni tekshirish</button><div id="schoolQuizStatus" class="status" aria-live="polite"></div></article><article class="panel"><h4>🎯 Imtihon va progress</h4><p id="schoolProgressText">Bajarilgan topshiriqlar: '+(progress.tasksDone ? '1' : '0')+'/1 · Testlar: '+(progress.quizPassed ? '1' : '0')+'/1</p><p class="muted">Bu boshlang‘ich o‘quv namunasi. Rasmiy baho yoki maktab jurnaliga yuborilmaydi.</p></article></div></div>';
+    school.querySelector('#schoolTaskDone')?.addEventListener('click', () => {
+      progress.tasksDone = true;
+      localStorage.setItem(progressKey, JSON.stringify(progress));
+      school.querySelector('#schoolTaskStatus').textContent = 'Topshiriqlar bajarildi deb belgilandi.';
+      school.querySelector('#schoolProgressText').textContent = 'Bajarilgan topshiriqlar: 1/1 · Testlar: ' + (progress.quizPassed ? '1' : '0') + '/1';
+    });
+    school.querySelector('#schoolQuizCheck')?.addEventListener('click', () => {
+      const answer = school.querySelector('input[name="schoolQuiz"]:checked')?.value;
+      const status = school.querySelector('#schoolQuizStatus');
+      if (!answer) { status.textContent = 'Avval javobni tanlang.'; return; }
+      progress.quizPassed = answer === 'heart';
+      localStorage.setItem(progressKey, JSON.stringify(progress));
+      status.textContent = progress.quizPassed ? 'To‘g‘ri! Yurak qonni butun tana bo‘ylab haydaydi.' : 'Qayta urinib ko‘ring. Qonni tana bo‘ylab haydaydigan a’zoni eslang.';
+      school.querySelector('#schoolProgressText').textContent = 'Bajarilgan topshiriqlar: ' + (progress.tasksDone ? '1' : '0') + '/1 · Testlar: ' + (progress.quizPassed ? '1' : '0') + '/1';
+    });
+    school.classList.remove('hidden');
+    return;
+  }
+
   if (moduleName === 'Clinical Reference' || moduleName === 'Clinical Simulation') {
     let clinical = $('doctorClinicalWorkspace');
     if (!clinical) {
@@ -3657,7 +3688,7 @@ function renderStudentOsce(){
    ROLE-BASED PLATFORM ARCHITECTURE
 ========================================================= */
 const MEDGEN_ROLES = {
-  school_student:{title:'O‘quvchi',icon:'📘',desc:'School Workspace: fanlar, topshiriqlar, testlar, imtihonlar va progress.',modules:['Medical Academy']},
+  school_student:{title:'O‘quvchi',icon:'📘',desc:'School Workspace: fanlar, topshiriqlar, testlar, imtihonlar va progress.',modules:['School Learning']},
   student:{title:'Talaba',icon:'🎓',desc:'Medical Academy: kursga mos anatomiya, patologiya, klinik fikrlash, virtual bemor, OSCE va ko‘nikmalar. Virtual Laboratory — faqat o‘quv/simulyatsiya rejimida ochiq.',modules:['Medical Academy','Virtual Laboratory']},
   doctor:{title:'Shifokor',icon:'👨‍⚕️',desc:'Clinical Workspace: klinik case, diagnostika, differensial tashxis, medical knowledge va simulation.',modules:['Clinical Reference','Clinical Simulation','Research Assistant','Reports & History']},
   researcher:{title:'Olim / Researcher',icon:'🔬',desc:'Research Workspace: ilmiy izlanish, literature, bioinformatics, knowledge graph va virtual laboratory.',modules:['Research Assistant','Bioinformatics','Virtual Laboratory','Reports & History']},
@@ -5467,6 +5498,7 @@ async function renderPdb3D(){
     if(badge) badge.textContent = key === 'admin' ? 'OWNER / ADMIN' : 'PRIMARY ROLE';
     if(grid){
       const labels = {
+        'School Learning':['📘','Fanlar, topshiriqlar va testlar','Maktab fanlari, bilim testi va o‘quv progressi'],
         'Medical Academy':['🎓','Tibbiyot akademiyasi','Kurslar, fanlar va ta’lim vositalari'],
         'Virtual Laboratory':['🧪','Virtual laboratoriya','Xavfsiz simulyatsiya va tajriba protokollari'],
         'Research Assistant':['🔬','Ilmiy tadqiqot','Adabiyotlar, gipotezalar va tadqiqot jarayoni'],
