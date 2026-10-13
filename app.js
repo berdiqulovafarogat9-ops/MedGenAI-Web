@@ -2227,6 +2227,8 @@ function closeWorkspace() {
 
 function openModule(moduleName) {
 
+  // Let dashboard wrappers know whether the module was actually allowed to open.
+  window.__MEDGEN_OPENED_MODULE = null;
   if (!enforceProfileCompletion() && !(moduleName === 'Medical Academy' && state.user?.consent_complete === true)) return;
 
   const activeSchoolRole = ['school_student', 'school_teacher'].includes(roleKey());
@@ -2243,6 +2245,7 @@ function openModule(moduleName) {
     return;
   }
 
+  window.__MEDGEN_OPENED_MODULE = moduleName;
   $('roleDashboard')?.classList.add('hidden');
   $('userDirectoryDashboard')?.classList.add('hidden');
   $('securityCenter')?.classList.add('hidden');
