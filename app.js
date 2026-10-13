@@ -1807,7 +1807,7 @@ async function loadAdminDetails(kind) {
           } catch (e) { alert('Tasdiqlash amalga oshmadi: ' + e.message); btn.disabled = false; }
         }));
       } catch (e) {
-        list.innerHTML = '<p>⚠️ Maktab boshqaruvi API’si hali serverda mavjud emas yoki ruxsat yo‘q.</p><p>' + escapeHtml(e.message) + '</p><small>Bu panel ishlashi uchun backendda /admin/school-management va taklif kodlari endpointlari joriy qilinishi shart. Hozircha hech qanday kod yoki ariza soxta tarzda saqlanmaydi.</small>';
+        list.innerHTML = '<p>⚠️ Maktab boshqaruvi ma’lumotlarini yuklab bo‘lmadi.</p><p>' + escapeHtml(e.message) + '</p><small>Serverga ulanishni, akkaunt ruxsatlarini va administrator rolini tekshiring. Taklif kodi faqat server muvaffaqiyatli javob berganda yaratiladi.</small>';
       }
     };
     $('schoolCreateInvite')?.addEventListener('click', async () => {
