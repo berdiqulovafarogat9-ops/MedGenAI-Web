@@ -2273,7 +2273,7 @@ function openModule(moduleName) {
   if (moduleName === 'Learning Hub') {
     let hub = $('learningHubWorkspace');
     if (!hub) { hub = document.createElement('section'); hub.id = 'learningHubWorkspace'; hub.className = 'tool hidden'; $('workspace')?.appendChild(hub); }
-    hub.innerHTML = '<div class="academy-v2"><p class="eyebrow">MEDGEN AI ACADEMY</p><h3>🌍 O‘rganish markazi</h3><p class="muted">Tillar, sertifikat imtihonlari va tibbiy bilimlarni bir joyda mashq qiling. Bu mashqlar tayyorgarlik uchun; rasmiy sertifikat yoki imtihon o‘rnini bosmaydi.</p><div class="grid"><article class="panel"><h4>🗣️ Til kurslari</h4><label>Til<select id="hubLanguage"><option value="en">Ingliz tili</option><option value="ru">Rus tili</option><option value="de">Nemis tili</option><option value="fr">Fransuz tili</option></select></label><label>Yo‘nalish<select id="hubLanguageTrack"><option value="medical">Tibbiyot uchun</option><option value="general">Umumiy muloqot</option><option value="exam">Sertifikat imtihoni</option></select></label><button class="primary" id="hubStartLanguage" type="button">Darsni boshlash</button><div id="hubLanguageLesson" class="status" role="status">Til va yo‘nalishni tanlang.</div></article><article class="panel"><h4>🎮 Tezkor bilim o‘yini</h4><p>Biologiya va tibbiyot terminlari bo‘yicha savolga javob bering, ball to‘plang.</p><button class="primary" id="hubStartGame" type="button">O‘yinni boshlash</button><div id="hubGame" class="status" role="status"></div></article><article class="panel"><h4>🎯 Imtihonga tayyorgarlik</h4><label>Imtihon<select id="hubExam"><option>IELTS</option><option>USMLE</option><option>Milliy sertifikat</option><option>Xalqaro fan olimpiadasi</option></select></label><label>Mavzu<input id="hubExamTopic" maxlength="160" placeholder="Masalan: hujayra tuzilishi"></label><button class="primary" id="hubExamPlan" type="button">Mashq rejasini tuzish</button><div id="hubExamResult" class="status" role="status"></div></article><article class="panel"><h4>🏆 Musobaqalar va yutuqlar</h4><p>Bu bosqichda o‘quv mashqlari mavjud. Rasmiy musobaqa jadvali va tasdiqlanadigan sertifikatlar alohida integratsiya qilinadi.</p><div id="hubAchievement" class="status">Mashqni yakunlab o‘z natijangizni kuzating.</div></article></div></div>';
+    hub.innerHTML = '<div class="academy-v2"><p class="eyebrow">MEDGEN AI ACADEMY</p><h3>🌍 O‘rganish markazi</h3><p class="muted">Tillar, sertifikat imtihonlari va tibbiy bilimlarni bir joyda mashq qiling. Bu mashqlar tayyorgarlik uchun; rasmiy sertifikat yoki imtihon o‘rnini bosmaydi.</p><div class="grid"><article class="panel"><h4>🗣️ Til kurslari</h4><label>Til<select id="hubLanguage"><option value="en">Ingliz tili</option><option value="ru">Rus tili</option><option value="de">Nemis tili</option><option value="fr">Fransuz tili</option></select></label><label>Yo‘nalish<select id="hubLanguageTrack"><option value="medical">Tibbiyot uchun</option><option value="general">Umumiy muloqot</option><option value="exam">Sertifikat imtihoni</option></select></label><button class="primary" id="hubStartLanguage" type="button">Darsni boshlash</button><div id="hubLanguageLesson" class="status" role="status">Til va yo‘nalishni tanlang.</div></article><article class="panel"><h4>🎮 Tezkor bilim o‘yini</h4><p>Biologiya va tibbiyot terminlari bo‘yicha savolga javob bering, ball to‘plang.</p><button class="primary" id="hubStartGame" type="button">O‘yinni boshlash</button><div id="hubGame" class="status" role="status"></div></article><article class="panel"><h4>🎯 Imtihonga tayyorgarlik</h4><label>Imtihon<select id="hubExam"><option>IELTS</option><option>USMLE</option><option>Milliy sertifikat</option><option>Xalqaro fan olimpiadasi</option></select></label><label>Mavzu<input id="hubExamTopic" maxlength="160" placeholder="Masalan: hujayra tuzilishi"></label><button class="primary" id="hubExamPlan" type="button">Mashq rejasini tuzish</button><div id="hubExamResult" class="status" role="status"></div></article><article class="panel"><h4>🧬 3D biologiya animatsiyasi</h4><p>Hujayra modelini aylantirib, tuzilishini ko‘ring. Bu o‘quv uchun sxematik model.</p><div id="hubCell3D" role="img" aria-label="Aylanuvchi hujayraning 3D o‘quv modeli" style="height:240px;width:100%;border-radius:12px;overflow:hidden;background:#101b2b"></div><div id="hubCell3DStatus" class="status" role="status">3D model yuklanmoqda…</div></article><article class="panel"><h4>🏆 Musobaqalar va yutuqlar</h4><p>Bu bosqichda o‘quv mashqlari mavjud. Rasmiy musobaqa jadvali va tasdiqlanadigan sertifikatlar alohida integratsiya qilinadi.</p><div id="hubAchievement" class="status">Mashqni yakunlab o‘z natijangizni kuzating.</div></article></div></div>';
     const lessons = {
       en:{medical:[['symptom','alomat'],['treatment','davolash'],['blood pressure','qon bosimi']],general:[['Good morning','Xayrli tong'],['How are you?','Qalaysiz?'],['Thank you','Rahmat']],exam:[['reading','o‘qib tushunish'],['listening','tinglab tushunish'],['speaking','gapirish']]},
       ru:{medical:[['симптом','alomat'],['лечение','davolash'],['артериальное давление','qon bosimi']],general:[['Здравствуйте','Salom'],['Как дела?','Ishlaringiz qalay?'],['Спасибо','Rahmat']],exam:[['чтение','o‘qish'],['аудирование','tinglab tushunish'],['говорение','gapirish']]},
@@ -2299,6 +2299,43 @@ function openModule(moduleName) {
     const showGame=()=>{const box=$('hubGame');if(!box)return;if(gameIndex>=gameQuestions.length){box.innerHTML='<b>Natija: '+gameScore+'/'+gameQuestions.length+'</b><p>Ball: '+(gameScore*10)+' XP. Yana mashq qilib natijani yaxshilashingiz mumkin.</p>';$('hubAchievement').textContent='Oxirgi mini-o‘yin natijasi: '+gameScore+'/'+gameQuestions.length;return;}const q=gameQuestions[gameIndex];box.innerHTML='<p><b>Savol '+(gameIndex+1)+'/'+gameQuestions.length+': '+q.q+'</b></p>'+q.opts.map((o,n)=>'<button type="button" class="secondary hub-game-answer" data-answer="'+n+'">'+escapeHtml(o)+'</button> ').join('');box.querySelectorAll('[data-answer]').forEach(b=>b.onclick=()=>{if(Number(b.dataset.answer)===q.correct)gameScore++;gameIndex++;showGame();});};
     $('hubStartGame')?.addEventListener('click',()=>{gameIndex=0;gameScore=0;showGame();});
     $('hubExamPlan')?.addEventListener('click',()=>{const exam=$('hubExam')?.value||'IELTS',topic=$('hubExamTopic')?.value.trim()||'asosiy mavzular',box=$('hubExamResult');if(box)box.innerHTML='<b>'+escapeHtml(exam)+' uchun mashq rejasi</b><ol><li>'+escapeHtml(topic)+' bo‘yicha boshlang‘ich bilimni tekshirish.</li><li>15 daqiqa nazariya va asosiy terminlarni takrorlash.</li><li>10 ta amaliy savol yechish va xatolarni qayd etish.</li><li>Ertasi kuni xato qilingan savollarni qayta ishlash.</li></ol><small>Bu umumiy o‘quv rejasi; rasmiy imtihon materiali yoki natijasi emas.</small>';});
+    const initHubCell3D = () => {
+      const viewer = $('hubCell3D'), status = $('hubCell3DStatus');
+      if (!viewer || viewer.dataset.ready === '1') return;
+      viewer.dataset.ready = '1';
+      const loadThree = () => new Promise((resolve, reject) => {
+        if (window.THREE) return resolve(window.THREE);
+        const script = document.createElement('script');
+        script.src = 'https://cdn.jsdelivr.net/npm/three@0.160.0/build/three.min.js';
+        script.onload = () => window.THREE ? resolve(window.THREE) : reject(new Error('3D kutubxonasi topilmadi'));
+        script.onerror = () => reject(new Error('3D kutubxonasi yuklanmadi'));
+        document.head.appendChild(script);
+      });
+      loadThree().then(THREE => {
+        if (!viewer.isConnected) return;
+        const width = Math.max(viewer.clientWidth, 280), height = 240;
+        const scene = new THREE.Scene(); scene.background = new THREE.Color(0x101b2b);
+        const camera = new THREE.PerspectiveCamera(42, width / height, 0.1, 100); camera.position.set(0, 0, 7);
+        const renderer = new THREE.WebGLRenderer({antialias:true}); renderer.setPixelRatio(Math.min(window.devicePixelRatio || 1, 2)); renderer.setSize(width, height); viewer.appendChild(renderer.domElement);
+        scene.add(new THREE.HemisphereLight(0xffffff, 0x536078, 2));
+        const light = new THREE.DirectionalLight(0xffffff, 2); light.position.set(4, 5, 7); scene.add(light);
+        const cell = new THREE.Group(); scene.add(cell);
+        const sphere = (color, x, y, z, scale) => { const m = new THREE.Mesh(new THREE.SphereGeometry(1, 28, 20), new THREE.MeshStandardMaterial({color, roughness:.45, transparent:true, opacity:.9})); m.position.set(x,y,z); m.scale.setScalar(scale); cell.add(m); return m; };
+        sphere(0x65b8d4, 0, 0, 0, 1.65);
+        sphere(0x4c86bb, -.25, .05, .1, .82);
+        sphere(0xd98ab4, -.25, .05, .85, .35);
+        [[.8,.55,.2],[.7,-.6,.25],[-.8,.55,.2],[-.8,-.55,.1],[.2,.9,-.2],[.3,-.9,-.2]].forEach((p,i)=>sphere(i%2?0xf2c879:0x83c99d,p[0],p[1],p[2],.18));
+        const membrane = new THREE.Mesh(new THREE.SphereGeometry(1.68, 32, 24), new THREE.MeshBasicMaterial({color:0x83d8ed, wireframe:true, transparent:true, opacity:.18})); cell.add(membrane);
+        let dragging=false,lastX=0,lastY=0;
+        renderer.domElement.addEventListener('pointerdown',e=>{dragging=true;lastX=e.clientX;lastY=e.clientY;renderer.domElement.setPointerCapture(e.pointerId);});
+        renderer.domElement.addEventListener('pointermove',e=>{if(!dragging)return;cell.rotation.y+=(e.clientX-lastX)*.01;cell.rotation.x+=(e.clientY-lastY)*.01;lastX=e.clientX;lastY=e.clientY;});
+        renderer.domElement.addEventListener('pointerup',()=>dragging=false);
+        renderer.domElement.addEventListener('wheel',e=>{camera.position.z=Math.max(4,Math.min(10,camera.position.z+e.deltaY*.008));},{passive:true});
+        const animate=()=>{if(!viewer.isConnected){renderer.dispose();return;}if(!dragging)cell.rotation.y+=.004;renderer.render(scene,camera);requestAnimationFrame(animate);}; animate();
+        if(status) status.textContent='3D model tayyor: sudrab aylantiring, yaqinlashtirish uchun ekranda g‘ildirak/zoomdan foydalaning.';
+      }).catch(()=>{if(status)status.textContent='3D kutubxonasi yuklanmadi. Internet ulanishini tekshiring.';});
+    };
+    initHubCell3D();
     hub.classList.remove('hidden');
     return;
   }
