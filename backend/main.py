@@ -5134,6 +5134,30 @@ def molecule_3d(data: Molecule3DRequest, user=Depends(get_current_user)):
         "warning": "3D conformer is a computational starting geometry, not an experimentally determined structure.",
     }
 
+@app.get("/api/v1/pdb/structures/{pdb_id}/viewer")
+def pdb_structure_viewer(pdb_id: str, user=Depends(get_current_user)):
+    """Return the actual PDB coordinate text consumed by the frontend 3D viewer."""
+    pdb_id = pdb_id.strip().upper()
+    if not re.fullmatch(r"[0-9A-Z]{4}", pdb_id):
+        raise HTTPException(status_code=400, detail="PDB ID must contain 4 alphanumeric characters")
+    request = Request(
+        f"https://files.rcsb.org/download/{pdb_id}.pdb",
+        headers={"User-Agent": "MedGenAI/1.1"},
+    )
+    try:
+        with urlopen(request, timeout=20) as response:
+            pdb_text = response.read().decode("utf-8")
+    except HTTPError as exc:
+        if exc.code == 404:
+            raise HTTPException(status_code=404, detail=f"PDB structure {pdb_id} not found")
+        raise HTTPException(status_code=502, detail="RCSB PDB file service returned an error")
+    except (URLError, TimeoutError):
+        raise HTTPException(status_code=503, detail="RCSB PDB file service is temporarily unavailable")
+    if not pdb_text.strip() or not ("ATOM" in pdb_text or "HETATM" in pdb_text):
+        raise HTTPException(status_code=502, detail="RCSB returned an empty or invalid PDB file")
+    return {"status": "ready", "module": "PDB & Structure", "pdb_id": pdb_id, "pdb": pdb_text, "user": user["username"]}
+
+
 @app.get("/api/v1/pdb/structures/{pdb_id}/links")
 def pdb_structure_links(pdb_id: str, user=Depends(get_current_user)):
     pdb_id = pdb_id.strip().upper()
