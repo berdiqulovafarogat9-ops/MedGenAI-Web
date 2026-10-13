@@ -1668,7 +1668,7 @@ def create_experiment(
 
 @app.get("/api/v1/experiments")
 def list_experiments(user=Depends(get_current_user)):
-    items = [e for e in experiments_store if e["user"] == user["username"]]
+    items = [e for e in experiments_store if e.get("user") == user["username"]]
     return {"experiments": items, "count": len(items), "user": user["username"]}
 
 
@@ -1677,7 +1677,7 @@ def get_experiment(experiment_id: str, user=Depends(get_current_user)):
     experiment = next((e for e in experiments_store if e["id"] == experiment_id), None)
     if not experiment:
         raise HTTPException(status_code=404, detail="Experiment not found")
-    if experiment["user"] != user["username"] and user["role"] != "SUPER_ADMIN":
+    if experiment.get("user") != user["username"] and user["role"] != "SUPER_ADMIN":
         raise HTTPException(status_code=403, detail="Access denied")
     return experiment
 
