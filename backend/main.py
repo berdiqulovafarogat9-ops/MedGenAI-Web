@@ -5389,52 +5389,119 @@ def create_lab_pipeline(data: LabPipelineRequest, user=Depends(get_current_user)
 
 @app.post("/api/v1/lab/experiments/{experiment_id}/execute")
 def execute_lab_experiment(experiment_id: str, user=Depends(get_current_user)):
-    experiment=next((e for e in experiments_store if e.get("id")==experiment_id),None)
-    if not experiment: raise HTTPException(status_code=404,detail="Experiment not found")
-    if experiment.get("user")!=user["username"] and user.get("role")!="SUPER_ADMIN": raise HTTPException(status_code=403,detail="Access denied")
-    results=experiment.setdefault("results",{}).setdefault("steps",[])
+    experiment = next((e for e in experiments_store if e.get("id") == experiment_id), None)
+    if not experiment:
+        raise HTTPException(status_code=404, detail="Experiment not found")
+    if experiment.get("user") != user["username"] and user.get("role") != "SUPER_ADMIN":
+        raise HTTPException(status_code=403, detail="Access denied")
+
+    experiment_input = experiment.get("input", {})
+    results = experiment.setdefault("results", {}).setdefault("steps", [])
+
     for item in results:
-        if item.get("status") in ("ready", "available_after_completion"):
-            if item.get("step")=="virtual_screening":
-                smiles = str(experiment.get("input", {}).get("ligand_smiles", "") or "").strip()
-                if smiles:
-                    try:
-                        screening = calculate_molecule_score(smiles)
-                        item["status"] = "completed"
-                        item["result"] = {
-                            "engine": "RDKit molecular screening",
-                            "status": "completed",
-                            "molecule": screening,
-                            "note": "Property-based computational screening only; not docking, binding-affinity or ADMET prediction."
-                        }
-                    except HTTPException as exc:
-                        item["status"] = "failed"
-                        item["result"] = {"error": str(exc.detail)}
-                else:
+        step = item.get("step")
+        if item.get("status") not in ("ready", "available_after_completion"):
+            continue
+
+        if step == "sequence_analysis":
+            sequence = str(experiment_input.get("sequence", "") or "").strip()
+            if sequence:
+                try:
+                    item["result"] = bioinformatics_analyze(SequenceRequest(sequence=sequence), user)
+                    item["status"] = "completed"
+                except HTTPException as exc:
+                    item["status"] = "failed"
+                    item["result"] = {"error": exc.detail}
+            else:
+                item["status"] = "skipped"
+                item["result"] = {"reason": "No sequence supplied"}
+
+        elif step == "structure_lookup":
+            pdb_id = str(experiment_input.get("pdb_id", "") or "").strip().upper()
+            if pdb_id:
+                try:
+                    item["result"] = pdb_structure(pdb_id, user)
+                    item["status"] = "completed"
+                except HTTPException as exc:
+                    item["status"] = "failed"
+                    item["result"] = {"error": exc.detail}
+            else:
+                item["status"] = "skipped"
+                item["result"] = {"reason": "No PDB ID supplied"}
+
+        elif step == "molecular_analysis":
+            smiles = str(experiment_input.get("ligand_smiles", "") or "").strip()
+            if smiles:
+                try:
+                    item["result"] = _molecule_descriptors(smiles)
+                    item["status"] = "completed"
+                except (ValueError, HTTPException) as exc:
+                    item["status"] = "failed"
+                    item["result"] = {"error": getattr(exc, "detail", str(exc))}
+            else:
+                item["status"] = "skipped"
+                item["result"] = {"reason": "No ligand SMILES supplied"}
+
+        elif step == "virtual_screening":
+            smiles = str(experiment_input.get("ligand_smiles", "") or "").strip()
+            if smiles:
+                try:
+                    screening = calculate_molecule_score(smiles)
                     item["status"] = "completed"
                     item["result"] = {
-                        "engine": "MedGen screening workflow",
-                        "status": "skipped",
-                        "reason": "No ligand SMILES supplied"
+                        "engine": "RDKit molecular screening",
+                        "status": "completed",
+                        "molecule": screening,
+                        "note": "Property-based computational screening only; not docking, binding-affinity or ADMET prediction."
                     }
-            elif item.get("step")=="structure_lookup":
-                pdb_id = str(experiment.get("input", {}).get("pdb_id", "") or "").strip().upper()
-                if pdb_id:
-                    try:
-                        item["result"] = pdb_structure(pdb_id, user)
-                        item["status"] = "completed"
-                    except HTTPException as exc:
-                        item["status"] = "failed"
-                        item["result"] = {"error": exc.detail}
-                else:
-                    item["status"] = "completed"
-                    item["result"] = {"status": "skipped", "reason": "No PDB ID supplied"}
-            elif item.get("step")=="report": item["status"]="completed"
-    experiment["status"]="completed"
-    experiment["updated_at"]=datetime.now(timezone.utc).isoformat()
-    activity_log.insert(0,{"type":"lab_experiment_executed","username":user["username"],"experiment_id":experiment_id,"at":experiment["updated_at"]})
+                except (ValueError, HTTPException) as exc:
+                    item["status"] = "failed"
+                    item["result"] = {"error": getattr(exc, "detail", str(exc))}
+            else:
+                item["status"] = "skipped"
+                item["result"] = {
+                    "engine": "MedGen screening workflow",
+                    "status": "skipped",
+                    "reason": "No ligand SMILES supplied"
+                }
+
+        elif step == "docking":
+            item["status"] = "requires_prepared_inputs"
+            item["result"] = {
+                "reason": "Docking was not run: a prepared receptor and ligand PDBQT plus binding-site coordinates are required.",
+                "endpoint": "/api/v1/docking/run"
+            }
+
+        elif step == "report":
+            item["status"] = "completed"
+            item["result"] = {"note": "Experiment data is ready for scientific report generation."}
+
+    failed = sum(1 for item in results if item.get("status") == "failed")
+    pending = sum(1 for item in results if item.get("status") in ("ready", "requires_prepared_inputs"))
+    skipped = sum(1 for item in results if item.get("status") == "skipped")
+    experiment["status"] = "completed_with_warnings" if (failed or pending or skipped) else "completed"
+    experiment["results"]["execution_summary"] = {
+        "total_steps": len(results),
+        "completed_steps": sum(1 for item in results if item.get("status") == "completed"),
+        "failed_steps": failed,
+        "skipped_steps": skipped,
+        "steps_requiring_inputs": pending,
+        "status": experiment["status"]
+    }
+    experiment["updated_at"] = datetime.now(timezone.utc).isoformat()
+    activity_log.insert(0, {
+        "type": "lab_experiment_executed",
+        "username": user["username"],
+        "experiment_id": experiment_id,
+        "status": experiment["status"],
+        "at": experiment["updated_at"]
+    })
     _db_save()
-    return {"status":"completed","module":"Virtual Laboratory","experiment":experiment}
+    return {
+        "status": experiment["status"],
+        "module": "Virtual Laboratory",
+        "experiment": experiment
+    }
 
 @app.get("/api/v1/lab/experiments/{experiment_id}")
 def get_lab_experiment(experiment_id: str, user=Depends(get_current_user)):
