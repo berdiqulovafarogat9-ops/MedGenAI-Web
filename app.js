@@ -5814,7 +5814,7 @@ async function renderPdb3D(){
   const priorRoleKey = roleKey;
   function resolveWorkspaceRole(){
     const serverRole = String(state.user?.role || state.user?.user_role || state.user?.type || '')
-      .trim().toLowerCase().replace(/[\\s-]+/g, '_');
+      .trim().toLowerCase().replace(/[\s-]+/g, '_');
     const privileged = ['admin','super_admin','superadmin','founder','ceo','owner'];
     if (privileged.includes(serverRole)) return priorRoleKey.call(this);
 
