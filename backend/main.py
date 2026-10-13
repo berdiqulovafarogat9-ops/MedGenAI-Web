@@ -1691,7 +1691,7 @@ def update_experiment(
     experiment = next((e for e in experiments_store if e["id"] == experiment_id), None)
     if not experiment:
         raise HTTPException(status_code=404, detail="Experiment not found")
-    if experiment["user"] != user["username"] and user["role"] != "SUPER_ADMIN":
+    if experiment.get("user") != user["username"] and user["role"] != "SUPER_ADMIN":
         raise HTTPException(status_code=403, detail="Access denied")
 
     if data.status is not None:
