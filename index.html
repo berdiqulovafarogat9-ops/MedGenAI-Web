@@ -2258,6 +2258,11 @@ document.addEventListener("DOMContentLoaded", function () {
     document.getElementById('finalAdminOpen')?.addEventListener('click',()=>{hideAll();document.getElementById('adminDashboard')?.classList.remove('hidden');if(typeof loadAdminDashboard==='function')loadAdminDashboard()});
   }
   function openService(kind){
+    // Route these cards to the API-backed service implementations; the legacy
+    // lightweight panels rendered below had buttons without submit handlers.
+    if(['support','ai','community'].includes(kind)&&typeof window.openFunctionalService==='function'){
+      return window.openFunctionalService(kind==='ai'?'assistant':kind);
+    }
     /* Use the full security controller instead of replacing the same securityCenter element with the older lightweight panel. */
     if(kind==='security'&&typeof window.openSecurityCenter==='function'){window.openSecurityCenter();return;}
     hideAll();let id={support:'supportCenter',ai:'aiCenter',community:'communityCenter',security:'securityCenter'}[kind];
