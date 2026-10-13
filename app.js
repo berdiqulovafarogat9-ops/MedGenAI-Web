@@ -2214,6 +2214,20 @@ function openModule(moduleName) {
 
   if (!enforceProfileCompletion() && !(moduleName === 'Medical Academy' && state.user?.consent_complete === true)) return;
 
+  const activeSchoolRole = ['school_student', 'school_teacher'].includes(roleKey());
+  const schoolStatus = String(state.user?.school_status || state.user?.profile?.school_status || 'pending').toLowerCase();
+  if (!isSuperAdmin() && activeSchoolRole && schoolStatus !== 'approved' &&
+      ['School Learning', 'School Teaching'].includes(moduleName)) {
+    const message = $('schoolAccessStatus');
+    if (message) {
+      message.textContent = 'Maktab akkauntingiz administrator tasdig‘ini kutmoqda. Tasdiqlangandan keyin bu bo‘lim ochiladi.';
+      message.classList.remove('hidden');
+    } else {
+      alert('Maktab akkauntingiz administrator tasdig‘ini kutmoqda. Tasdiqlangandan keyin bu bo‘lim ochiladi.');
+    }
+    return;
+  }
+
   $('roleDashboard')?.classList.add('hidden');
   $('userDirectoryDashboard')?.classList.add('hidden');
   $('securityCenter')?.classList.add('hidden');
@@ -2227,6 +2241,19 @@ function openModule(moduleName) {
     .forEach(tool => {
       tool.classList.add('hidden');
     });
+
+  if (moduleName === 'School Teaching') {
+    let teacher = $('schoolTeachingWorkspace');
+    if (!teacher) {
+      teacher = document.createElement('section');
+      teacher.id = 'schoolTeachingWorkspace';
+      teacher.className = 'tool hidden';
+      $('workspace')?.appendChild(teacher);
+    }
+    teacher.innerHTML = '<div class="academy-v2"><p class="eyebrow">SCHOOL WORKSPACE • O‘QITUVCHI</p><h3>👩‍🏫 O‘qituvchi ish maydoni</h3><p class="muted">Maktab akkauntingiz tasdiqlangach, sinflar va o‘quvchilar bilan ishlash imkoniyati ochiladi.</p><div class="grid"><article class="panel"><h4>🏫 Maktab va sinf</h4><p>Biriktirilgan maktab: ' + escapeHtml(state.user?.school_name || state.user?.profile?.school_name || 'Tasdiqlanishi kutilmoqda') + '</p><p>Sinf: ' + escapeHtml(state.user?.class_name || state.user?.profile?.class_name || 'Administrator belgilaydi') + '</p></article><article class="panel"><h4>📝 Topshiriqlar</h4><p>Topshiriqlarni yaratish va sinfga yuborish backenddagi sinf/topshiriq xizmatlari qo‘shilgandan keyin yoqiladi.</p></article><article class="panel"><h4>📊 O‘quvchilar natijalari</h4><p>Shaxsiy ma’lumotlar faqat tasdiqlangan ruxsatlar va biriktirilgan sinflar doirasida ko‘rsatiladi.</p></article></div></div>';
+    teacher.classList.remove('hidden');
+    return;
+  }
 
   if (moduleName === 'School Learning') {
     let school = $('schoolLearningWorkspace');
@@ -3807,7 +3834,13 @@ function applyRoleDashboard(){
   if(desc) desc.textContent=role.desc;
   if(badge) badge.textContent='PRIMARY ROLE';
   const quick=$('roleQuickGrid');
-  if(quick) quick.innerHTML=role.modules.map(m=>'<button class="role-quick" data-role-module="'+m+'"><b>'+m+'</b><span>Ochish →</span></button>').join('');
+  const schoolRole = ['school_student', 'school_teacher'].includes(key);
+  const schoolStatus = String(state.user?.school_status || state.user?.profile?.school_status || 'pending').toLowerCase();
+  if (quick && schoolRole && !isSuperAdmin() && schoolStatus !== 'approved') {
+    quick.innerHTML = '<article class="panel"><h3>⏳ Maktab akkaunti tasdiqlanishi kutilmoqda</h3><p>Administrator arizangizni tekshiradi. Taklif kodi kiritilgan bo‘lsa ham, tasdiq holati shu yerda ko‘rsatiladi.</p><p id="schoolAccessStatus" class="status" role="status">Holat: ' + escapeHtml(schoolStatus) + '</p></article>';
+  } else if (quick) {
+    quick.innerHTML=role.modules.map(m=>'<button class="role-quick" data-role-module="'+m+'"><b>'+m+'</b><span>Ochish →</span></button>').join('');
+  }
   quick?.querySelectorAll('[data-role-module]').forEach(b=>b.addEventListener('click',()=>openModule(b.dataset.roleModule)));
   document.querySelectorAll('.module').forEach(btn=>{
     const allowed=role.modules.includes(btn.dataset.module) || key==='admin';
