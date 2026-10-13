@@ -2204,9 +2204,15 @@ document.addEventListener("DOMContentLoaded", function () {
         }
       }catch(_){}
     }
-    // Privileged access comes only from the authenticated server role, never local storage.
+    // The server role remains authoritative for permissions. A super-admin may
+    // preview another role's dashboard, but that preview changes presentation only.
     const privileged=['super_admin','superadmin','founder','ceo','owner','admin'];
-    if(privileged.includes(candidates[0]))return 'SUPER_ADMIN';
+    if(privileged.includes(candidates[0])){
+      const preview=norm(window.medgenPreviewRole||'');
+      const previewKey=aliases[preview]||preview;
+      if(previewKey && previewKey!=='SUPER_ADMIN' && previewKey!=='admin' && ROLES[previewKey])return previewKey;
+      return 'SUPER_ADMIN';
+    }
     for(const candidate of candidates){
       const canonical=aliases[candidate]||candidate;
       if(ROLES[canonical]&&canonical!=='SUPER_ADMIN'&&canonical!=='student')return canonical;
