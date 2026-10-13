@@ -964,16 +964,22 @@ def update_profile(
     data: ProfileRequest,
     user=Depends(get_current_user),
 ):
+    existing_profile = user_profiles.get(user["username"], {})
+    profile_role = normalize_role(existing_profile.get("role") or user.get("role"))
+    school_role = profile_role in {"school_student", "school_teacher"}
     if not data.full_name.strip():
         raise HTTPException(status_code=400, detail="To‘liq ism majburiy.")
     if not data.email.strip() or "@" not in data.email:
         raise HTTPException(status_code=400, detail="To‘g‘ri email manzili majburiy.")
-    if not data.country.strip():
-        raise HTTPException(status_code=400, detail="Mamlakat majburiy.")
-    if not data.region.strip() or not data.district.strip() or not data.city.strip():
-        raise HTTPException(status_code=400, detail="Viloyat, tuman va shahar majburiy.")
-    if data.birth_year is None or data.birth_month is None or data.birth_day is None:
-        raise HTTPException(status_code=400, detail="Tug‘ilgan yil, oy va kun majburiy.")
+    # School profiles intentionally do not require personal location or birth
+    # details; enrollment is validated with school/class fields at registration.
+    if not school_role:
+        if not data.country.strip():
+            raise HTTPException(status_code=400, detail="Mamlakat majburiy.")
+        if not data.region.strip() or not data.district.strip() or not data.city.strip():
+            raise HTTPException(status_code=400, detail="Viloyat, tuman va shahar majburiy.")
+        if data.birth_year is None or data.birth_month is None or data.birth_day is None:
+            raise HTTPException(status_code=400, detail="Tug‘ilgan yil, oy va kun majburiy.")
     if data.birth_month is not None and not 1 <= data.birth_month <= 12:
         raise HTTPException(
             status_code=400,
@@ -995,7 +1001,16 @@ def update_profile(
     # Merge editable profile fields into the existing record. Replacing the whole
     # record here would silently erase role/approval state, academic profile,
     # education preferences, and other server-managed fields.
-    profile = {**user_profiles.get(user["username"], {}), **data.model_dump()}
+    profile = {**existing_profile, **data.model_dump()}
+    if school_role:
+        # A school learner can update name/email without accidentally erasing
+        # fields that are not part of the school profile form.
+        for key in ("country", "region", "district", "city", "location_label", "location_source",
+                    "location_lat", "location_lon", "birth_year", "birth_month", "birth_day"):
+            incoming = getattr(data, key)
+            current = existing_profile.get(key)
+            if (incoming is None or (isinstance(incoming, str) and not incoming.strip())) and current not in (None, ""):
+                profile[key] = current
     # Normalize optional location fields; exact coordinates are only stored when
     # the user explicitly grants browser location permission.
     profile["country"] = str(profile.get("country") or "").strip()[:120]
