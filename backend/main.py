@@ -357,14 +357,25 @@ def validate_password(password: str):
         )
 
 def is_required_profile_complete(profile: dict) -> bool:
-    if not profile: return False
-    required = ["full_name","email","country","region","district","city"]
-    if not all(str(profile.get(k) or "").strip() for k in required): return False
-    if not all(profile.get(k) is not None for k in ("birth_year","birth_month","birth_day")): return False
+    if not profile:
+        return False
     role = normalize_role(profile.get("role") or "student")
-    if role in {"student","school_student","researcher","professor"}:
+    # School accounts use data minimization: do not require university fields,
+    # precise location, or date of birth just to access school learning.
+    if role in {"school_student", "school_teacher"}:
+        required = ["full_name", "email", "school_name"]
+        if role == "school_student":
+            required.append("class_name")
+        return all(str(profile.get(k) or "").strip() for k in required)
+    required = ["full_name", "email", "country", "region", "district", "city"]
+    if not all(str(profile.get(k) or "").strip() for k in required):
+        return False
+    if not all(profile.get(k) is not None for k in ("birth_year", "birth_month", "birth_day")):
+        return False
+    if role in {"student", "researcher", "professor"}:
         ap = profile.get("academic_profile") or {}
-        if not all(str(ap.get(k) or "").strip() for k in ("university","faculty","major","group")): return False
+        if not all(str(ap.get(k) or "").strip() for k in ("university", "faculty", "major", "group")):
+            return False
     return True
 
 def normalize_role(value: str) -> str:
