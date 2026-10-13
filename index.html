@@ -2253,6 +2253,9 @@ document.addEventListener("DOMContentLoaded", function () {
       serviceCard('support','🆘',ft('support'),ft('supportDesc'))+serviceCard('ai','🤖',ft('assistant'),ft('aiDesc'))+serviceCard('community','💬',ft('community'),ft('communityDesc'))+serviceCard('security','🔐',ft('security'),ft('securityDesc'))+
       '</div>'+(key==='SUPER_ADMIN'?'<div class="final-admin-strip"><b>👑 '+ft('owner')+'</b><span>'+esc(ft('ownerDash'))+'</span><button id="finalAdminOpen" class="primary small">'+ft('ownerDash')+'</button></div>':'');
     d.querySelector('.container')?.prepend(home);
+    // Use one visible dashboard at a time; the legacy role grid remains a
+    // fallback but must not appear underneath this role-specific home.
+    document.getElementById('roleDashboard')?.classList.add('hidden');
     home.querySelectorAll('[data-final-module]').forEach(b=>b.onclick=(e)=>{e.preventDefault();e.stopImmediatePropagation();const name=b.dataset.finalModule;const workspace=document.getElementById('workspace');const home=document.getElementById('finalHome');const role=document.getElementById('roleDashboard');if(home)home.style.setProperty('display','none','important');if(role)role.classList.add('hidden');if(workspace)workspace.classList.remove('hidden');openModuleSafe(name);if(home)home.style.setProperty('display','none','important');if(role)role.classList.add('hidden');if(workspace)workspace.classList.remove('hidden');});
     home.querySelectorAll('[data-final-service]').forEach(b=>b.onclick=()=>openService(b.dataset.finalService));
     document.getElementById('finalAdminOpen')?.addEventListener('click',()=>{hideAll();document.getElementById('adminDashboard')?.classList.remove('hidden');if(typeof loadAdminDashboard==='function')loadAdminDashboard()});
