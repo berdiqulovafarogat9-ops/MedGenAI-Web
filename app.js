@@ -1648,6 +1648,7 @@ async function loadAdminDashboard() {
 
     const cards = [
       ['Academic approvals', (academicApprovals.pending || []).length, 'academic-approvals'],
+      ['Maktablar va taklif kodlari', '🏫', 'school-management'],
       ['Rasmiy fan dasturlari', 0, 'syllabi'],
       ['Users', d.users, 'users'],
       ['Active tokens', d.active_tokens, 'tokens'],
@@ -1753,6 +1754,65 @@ async function loadAdminDetails(kind) {
       } catch (e) { status.textContent = 'Xatolik: ' + e.message; }
     });
     reload();
+    return;
+  }
+
+  if (kind === 'school-management') {
+    out.innerHTML = '<h3>🏫 Maktab boshqaruvi</h3>' +
+      '<p>Maktab, o‘qituvchi va o‘quvchilarni boshqarish. Taklif kodlari serverda yaratilishi va tekshirilishi kerak.</p>' +
+      '<div class="grid" style="gap:10px">' +
+      '<label>Maktab nomi<input id="schoolName" maxlength="160" required placeholder="Masalan, 12-maktab"></label>' +
+      '<label>Hudud<input id="schoolRegion" maxlength="120" placeholder="Viloyat / tuman"></label>' +
+      '<label>Taklif kodi kim uchun?<select id="schoolInviteRole"><option value="school_student">O‘quvchi</option><option value="school_teacher">O‘qituvchi</option></select></label>' +
+      '<label>Sinf (o‘quvchilar uchun)<input id="schoolInviteClass" maxlength="40" placeholder="Masalan, 8-A"></label>' +
+      '<label>Amal qilish muddati (kun)<input id="schoolInviteDays" type="number" min="1" max="90" value="7"></label>' +
+      '</div><button type="button" id="schoolCreateInvite">Taklif kodi yaratish</button> <span id="schoolInviteStatus" class="status" role="status"></span>' +
+      '<div id="schoolInviteResult"></div><hr><h3>Arizalar va maktablar</h3><div id="schoolManagementList" class="status">Ma’lumotlar yuklanmoqda...</div>';
+    const status = $('schoolInviteStatus');
+    const list = $('schoolManagementList');
+    const reloadSchools = async () => {
+      try {
+        const data = await api('/admin/school-management');
+        const schools = Array.isArray(data.schools) ? data.schools : [];
+        const pending = Array.isArray(data.pending) ? data.pending : [];
+        list.innerHTML = '<h4>Maktablar (' + schools.length + ')</h4>' +
+          (schools.length ? schools.map(x => '<article class="card"><b>' + escapeHtml(x.name || 'Maktab') + '</b><div>' + escapeHtml(x.region || '') + '</div><small>O‘quvchilar: ' + Number(x.students || 0) + ' · O‘qituvchilar: ' + Number(x.teachers || 0) + '</small></article>').join('') : '<p>Hozircha maktab yo‘q.</p>') +
+          '<h4>Tasdiqlash kutilmoqda (' + pending.length + ')</h4>' +
+          (pending.length ? pending.map(x => '<article class="card"><b>' + escapeHtml(x.full_name || x.username) + '</b><div>' + escapeHtml(x.role || '') + ' · ' + escapeHtml(x.school_name || '') + ' · ' + escapeHtml(x.class_name || '') + '</div><button type="button" data-school-review="approve" data-username="' + escapeHtml(x.username) + '">Tasdiqlash</button> <button type="button" data-school-review="reject" data-username="' + escapeHtml(x.username) + '">Rad etish</button></article>').join('') : '<p>Yangi arizalar yo‘q.</p>');
+        list.querySelectorAll('[data-school-review]').forEach(btn => btn.addEventListener('click', async () => {
+          const note = btn.dataset.schoolReview === 'reject' ? (prompt('Rad etish sababi:') || '') : '';
+          if (btn.dataset.schoolReview === 'reject' && !note.trim()) return;
+          btn.disabled = true;
+          try {
+            await api('/admin/school-management/' + encodeURIComponent(btn.dataset.username), {method:'PATCH', body:JSON.stringify({approve:btn.dataset.schoolReview === 'approve', note})});
+            await reloadSchools();
+          } catch (e) { alert('Tasdiqlash amalga oshmadi: ' + e.message); btn.disabled = false; }
+        }));
+      } catch (e) {
+        list.innerHTML = '<p>⚠️ Maktab boshqaruvi API’si hali serverda mavjud emas yoki ruxsat yo‘q.</p><p>' + escapeHtml(e.message) + '</p><small>Bu panel ishlashi uchun backendda /admin/school-management va taklif kodlari endpointlari joriy qilinishi shart. Hozircha hech qanday kod yoki ariza soxta tarzda saqlanmaydi.</small>';
+      }
+    };
+    $('schoolCreateInvite')?.addEventListener('click', async () => {
+      const name = $('schoolName')?.value.trim() || '';
+      const region = $('schoolRegion')?.value.trim() || '';
+      const role = $('schoolInviteRole')?.value || 'school_student';
+      const class_name = $('schoolInviteClass')?.value.trim() || '';
+      const expires_in_days = Number($('schoolInviteDays')?.value || 7);
+      if (!name) { if (status) status.textContent = 'Maktab nomini kiriting.'; return; }
+      if (role === 'school_student' && !class_name) { if (status) status.textContent = 'O‘quvchilar kodi uchun sinfni kiriting.'; return; }
+      const button = $('schoolCreateInvite'); if (button) button.disabled = true;
+      try {
+        const data = await api('/admin/school-invitations', {method:'POST', body:JSON.stringify({school_name:name, region, role, class_name, expires_in_days})});
+        const code = String(data.code || data.invite_code || '');
+        if (!code) throw new Error('Server taklif kodini qaytarmadi.');
+        $('schoolInviteResult').innerHTML = '<article class="card"><b>Taklif kodi: <code>' + escapeHtml(code) + '</code></b><p>' + escapeHtml(name) + ' · ' + escapeHtml(role === 'school_teacher' ? 'O‘qituvchi' : 'O‘quvchi') + (class_name ? ' · ' + escapeHtml(class_name) : '') + '</p><button type="button" id="schoolCopyInvite">Kodni nusxalash</button></article>';
+        $('schoolCopyInvite')?.addEventListener('click', async () => { try { await navigator.clipboard.writeText(code); if(status) status.textContent='Kod nusxalandi.'; } catch (_) { if(status) status.textContent='Kodni qo‘lda nusxalang.'; } });
+        if (status) status.textContent = 'Kod serverda yaratildi.';
+        await reloadSchools();
+      } catch (e) { if (status) status.textContent = 'Kod yaratilmadi: ' + e.message; }
+      finally { if (button) button.disabled = false; }
+    });
+    reloadSchools();
     return;
   }
 
@@ -3794,6 +3854,9 @@ async function registerAccount() {
       body: JSON.stringify({
         username, password, full_name, email, phone,
         role: selectedRole,
+        school_name: $('registerSchoolName')?.value?.trim() || '',
+        class_name: $('registerSchoolClass')?.value?.trim() || '',
+        invitation_code: $('registerInviteCode')?.value?.trim() || '',
         education_mode: 'GLOBAL',
         academic_year: 1
       })
