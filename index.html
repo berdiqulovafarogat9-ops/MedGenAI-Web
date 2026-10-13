@@ -2175,7 +2175,7 @@ document.addEventListener("DOMContentLoaded", function () {
   const icons={'School Learning':'📘','Learning Hub':'🌍','School Teaching':'👩‍🏫','AI Teacher Studio':'🧑‍🏫','Clinical Reference':'🩺','Clinical Simulation':'🩺','Medical Academy':'🎓','Bioinformatics':'🧬','Molecular Analysis':'⚗️','PDB & Structure':'🧫','Drug Discovery':'💊','Scientific Jobs':'⚙️','Research Assistant':'📚','Virtual Laboratory':'🧪','Reports & History':'📊','Global Platform':'🌐'};
   const roleKey=()=>{
     const u=window.__MEDGEN_USER||{};
-    const norm=v=>String(v||'').trim().toLowerCase().replace(/[\\s-]+/g,'_');
+    const norm=v=>String(v||'').trim().toLowerCase().replace(/[\s-]+/g,'_');
     const aliases={
       super_admin:'SUPER_ADMIN',superadmin:'SUPER_ADMIN',founder:'SUPER_ADMIN',ceo:'SUPER_ADMIN',owner:'SUPER_ADMIN',admin:'SUPER_ADMIN',
       schoolstudent:'school_student',pupil:'school_student',schoolchild:'school_student',
