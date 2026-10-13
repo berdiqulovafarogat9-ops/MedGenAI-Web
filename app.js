@@ -3039,9 +3039,20 @@ async function createLabWorkflow() {
         console.warn('Scientific report creation failed:', reportError);
       }
       renderResult(result, { experiment: executed?.experiment || created.experiment, report });
-      if (status) status.textContent = report
-        ? 'Ilmiy tajriba bajarildi; natija va hisobot saqlandi.'
-        : 'Ilmiy tajriba bajarildi; hisobot yaratilmadi.';
+      const executionStatus = executed?.experiment?.status || executed?.status || 'completed';
+      const summary = executed?.experiment?.results?.execution_summary;
+      if (status) {
+        if (executionStatus === 'completed_with_warnings') {
+          const details = summary
+            ? ` Bajarildi: ${summary.completed_steps}; o‘tkazildi: ${summary.skipped_steps}; xato: ${summary.failed_steps}; qo‘shimcha kirish talab qilinadi: ${summary.steps_requiring_inputs}.`
+            : '';
+          status.textContent = 'Pipeline qisman bajarildi — natijalarni tekshiring.' + details + (report ? ' Hisobot saqlandi.' : ' Hisobot yaratilmadi.');
+        } else {
+          status.textContent = report
+            ? 'Ilmiy tajriba bajarildi; natija va hisobot saqlandi.'
+            : 'Ilmiy tajriba bajarildi; hisobot yaratilmadi.';
+        }
+      }
       return;
     }
 
