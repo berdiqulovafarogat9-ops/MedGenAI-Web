@@ -4071,22 +4071,6 @@ async function changeAccountPassword() {
 
 function bindEvents() {
 
-  // Password visibility control was present in the login UI but had no
-  // event handler, leaving its eye button inert.
-  const passwordToggle = $('toggleLoginPassword');
-  if (passwordToggle && passwordToggle.dataset.bound !== '1') {
-    passwordToggle.dataset.bound = '1';
-    passwordToggle.addEventListener('click', () => {
-      const password = $('loginPassword');
-      if (!password) return;
-      const reveal = password.type === 'password';
-      password.type = reveal ? 'text' : 'password';
-      passwordToggle.textContent = reveal ? '🙈' : '👁';
-      passwordToggle.setAttribute('aria-label', reveal ? 'Hide password' : 'Show password');
-      passwordToggle.setAttribute('aria-pressed', String(reveal));
-    });
-  }
-
   const loginForm =
     $('loginForm');
 
