@@ -5136,7 +5136,9 @@ async function detectProfileLocation(fromSecurity=false){
     const list=document.getElementById('navModules');
     if(!drawer || !list || !state.user) return;
     const key=roleKey();
-    const isAdmin=key==='admin';
+    // Keep the full role switcher available to the authenticated owner even
+    // while previewing another role. Preview affects presentation, not authority.
+    const isAdmin=isSuperAdmin();
     const allowed=isAdmin ? CATEGORY_ORDER : CATEGORY_ORDER.filter(x=>x[0]===key);
     list.innerHTML=allowed.map(([id,icon,label])=>
       '<button class="nav-item" data-role-nav="'+id+'"><span>'+icon+'</span><b>'+label+'</b></button>'
@@ -5164,7 +5166,7 @@ async function detectProfileLocation(fromSecurity=false){
     }));
 
     const title=document.querySelector('.nav-drawer-head b');
-    if(title) title.textContent=isAdmin ? 'MEDGEN AI • OWNER' : 'MEDGEN AI • '+(MEDGEN_ROLES[key]?.title||'Workspace');
+    if(title) title.textContent=isAdmin ? (window.medgenPreviewRole ? 'MEDGEN AI • PREVIEW: '+(MEDGEN_ROLES[key]?.title||key) : 'MEDGEN AI • OWNER') : 'MEDGEN AI • '+(MEDGEN_ROLES[key]?.title||'Workspace');
   }
 
   function enforceHome(){
