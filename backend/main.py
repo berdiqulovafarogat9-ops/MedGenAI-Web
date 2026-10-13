@@ -5140,7 +5140,7 @@ def pdb_structure_viewer(pdb_id: str, user=Depends(get_current_user)):
     pdb_id = pdb_id.strip().upper()
     if not re.fullmatch(r"[0-9A-Z]{4}", pdb_id):
         raise HTTPException(status_code=400, detail="PDB ID must contain 4 alphanumeric characters")
-    request = Request(
+    request = URLRequest(
         f"https://files.rcsb.org/download/{pdb_id}.pdb",
         headers={"User-Agent": "MedGenAI/1.1"},
     )
