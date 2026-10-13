@@ -2209,12 +2209,13 @@ document.addEventListener("DOMContentLoaded", function () {
     if(privileged.includes(candidates[0]))return 'SUPER_ADMIN';
     for(const candidate of candidates){
       const canonical=aliases[candidate]||candidate;
-      if(ROLES[canonical]&&canonical!=='SUPER_ADMIN')return canonical;
+      if(ROLES[canonical]&&canonical!=='SUPER_ADMIN'&&canonical!=='student')return canonical;
     }
-    // Older accounts may be returned by the API with a generic role; restore only
-    // the non-privileged role explicitly selected during registration.
+    // Older accounts may be returned by the API with a generic student role;
+    // prefer their saved non-privileged registration role over that generic fallback.
     const savedCanonical=aliases[saved]||saved;
-    if(ROLES[savedCanonical]&&savedCanonical!=='SUPER_ADMIN')return savedCanonical;
+    if(ROLES[savedCanonical]&&savedCanonical!=='SUPER_ADMIN'&&savedCanonical!=='admin')return savedCanonical;
+    if(candidates.includes('student'))return 'student';
     return 'student';
   };
   const ALL_MODULES=['Medical Academy','Bioinformatics','Molecular Analysis','PDB & Structure','Drug Discovery','Scientific Jobs','Research Assistant','Virtual Laboratory','Reports & History','Global Platform'];
