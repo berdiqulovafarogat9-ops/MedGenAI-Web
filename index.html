@@ -2310,7 +2310,39 @@ document.addEventListener("DOMContentLoaded", function () {
     drawer.querySelector('[data-final-nav="profile"]')?.addEventListener('click',()=>{drawer.classList.remove('open');document.getElementById('profileBtn')?.click()});
     drawer.querySelector('#finalMenuAdmin')?.addEventListener('click',()=>{drawer.classList.remove('open');hideAll();document.getElementById('adminDashboard')?.classList.remove('hidden');if(typeof loadAdminDashboard==='function')loadAdminDashboard()});
   }
-  function bootUser(u){window.__MEDGEN_USER=u||window.__MEDGEN_USER||{role:'student'};try{if(typeof state!=='undefined'){state.user=window.__MEDGEN_USER;state.token=sessionStorage.getItem('medgen_access_token')||state.token}}catch(_){};renderMenu();renderHome();}
+  function bootUser(u){
+    const user=u||window.__MEDGEN_USER||{role:'student'};
+    // Synchronize the selected registration role into BOTH dashboard systems.
+    // Older API responses can say "student" for a professional account; in
+    // that case restore only the non-privileged role saved for this username.
+    const raw=String(user.role||user.user_role||user.type||'').trim().toLowerCase().replace(/[\s-]+/g,'_');
+    const username=String(user.username||user.user?.username||user.account?.username||'').trim();
+    const privileged=['admin','super_admin','superadmin','founder','ceo','owner'];
+    if(!privileged.includes(raw) && (raw==='student'||!ROLES[raw])){
+      let saved='';
+      if(username){
+        try{
+          saved=String(JSON.parse(localStorage.getItem('medgen_role_'+username)||'null')?.key||'').trim().toLowerCase().replace(/[\s-]+/g,'_');
+          if(!saved){
+            for(let i=0;i<localStorage.length;i++){
+              const k=localStorage.key(i);
+              if(k&&k.toLowerCase()===('medgen_role_'+username).toLowerCase()){
+                saved=String(JSON.parse(localStorage.getItem(k)||'null')?.key||'').trim().toLowerCase().replace(/[\s-]+/g,'_');
+                break;
+              }
+            }
+          }
+        }catch(_){}
+      }
+      const aliases={teacher:'school_teacher',schoolteacher:'school_teacher',pupil:'school_student',schoolchild:'school_student',schoolstudent:'school_student,scientist:'researcher',pharmacist:'pharma',pharmaceutical:'pharma',lab_specialist:'lab',laboratory_specialist:'lab',hospital_admin:'hospital'};
+      const canonical=aliases[saved]||saved;
+      if(canonical && ROLES[canonical] && canonical!=='SUPER_ADMIN' && canonical!=='admin') user.role=canonical;
+    }
+    window.__MEDGEN_USER=user;
+    try{if(typeof state!=='undefined'){state.user=user;state.token=sessionStorage.getItem('medgen_access_token')||state.token}}catch(_){}
+    renderMenu();
+    renderHome();
+  }
   window.medgenFinalBoot=bootUser;
   document.addEventListener('DOMContentLoaded',()=>{document.getElementById('medgenMenuBtn')?.addEventListener('click',()=>{renderMenu();document.getElementById('finalMenuDrawer')?.classList.add('open')});});
 })();
