@@ -2334,7 +2334,7 @@ document.addEventListener("DOMContentLoaded", function () {
           }
         }catch(_){}
       }
-      const aliases={teacher:'school_teacher',schoolteacher:'school_teacher',pupil:'school_student',schoolchild:'school_student',schoolstudent:'school_student,scientist:'researcher',pharmacist:'pharma',pharmaceutical:'pharma',lab_specialist:'lab',laboratory_specialist:'lab',hospital_admin:'hospital'};
+      const aliases={teacher:'school_teacher',schoolteacher:'school_teacher',pupil:'school_student',schoolchild:'school_student',schoolstudent:'school_student',scientist:'researcher',pharmacist:'pharma',pharmaceutical:'pharma',lab_specialist:'lab',laboratory_specialist:'lab',hospital_admin:'hospital'};
       const canonical=aliases[saved]||saved;
       if(canonical && ROLES[canonical] && canonical!=='SUPER_ADMIN' && canonical!=='admin') user.role=canonical;
     }
