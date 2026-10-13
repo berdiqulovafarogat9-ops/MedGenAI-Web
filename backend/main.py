@@ -4964,8 +4964,12 @@ def bioinformatics_align(data: SequenceAlignRequest, user=Depends(get_current_us
     if len(a) > 5000 or len(b) > 5000:
         raise HTTPException(status_code=413, detail="Sequences are limited to 5000 characters for interactive alignment")
     n, m = len(a), len(b)
+    if n * m > 1_000_000:
+        raise HTTPException(
+            status_code=413,
+            detail="Interactive alignment is limited to 1,000,000 sequence-position pairs. Shorten one or both sequences.",
+        )
     prev = [j * data.gap for j in range(m + 1)]
-    rows = []
     trace = []
     for i in range(1, n + 1):
         cur = [i * data.gap]
@@ -4978,7 +4982,6 @@ def bioinformatics_align(data: SequenceAlignRequest, user=Depends(get_current_us
             cur.append(best)
             row_trace.append(0 if best == diag else (1 if best == up else 2))
         prev = cur
-        rows.append(cur)
         trace.append(row_trace)
     i, j = n, m
     aa, bb = [], []
