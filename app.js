@@ -2897,7 +2897,8 @@ async function createDiscoverySession() {
       data
     );
 
-    // Automatically record the completed screening as a reproducible experiment.
+    // Save the screening result as an experiment and tell the user if saving fails.
+    let experimentSaved = false;
     try {
       await api('/experiments', {
         method: 'POST',
@@ -2915,18 +2916,21 @@ async function createDiscoverySession() {
           },
           results: {
             status: data?.status || 'completed',
-            results: data?.results || []
+            results: data?.results || [],
+            warning: data?.warning || 'Heuristic property-based screening only; not validated docking, affinity, ADMET, or clinical prediction.'
           },
           status: data?.status || 'completed'
         })
       });
+      experimentSaved = true;
     } catch (experimentError) {
       console.warn('EXPERIMENT RECORDING ERROR:', experimentError);
     }
 
     if (status) {
-      status.textContent =
-        t('discoveryCompleted');
+      status.textContent = experimentSaved
+        ? t('discoveryCompleted') + ' Tajriba tarixiga saqlandi.'
+        : t('discoveryCompleted') + ' Diqqat: natija hisoblandi, lekin tajriba tarixiga saqlanmadi.';
     }
 
   } catch (error) {
