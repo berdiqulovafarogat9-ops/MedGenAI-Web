@@ -2165,11 +2165,34 @@ function openModule(moduleName) {
   document
     .querySelectorAll('.tool')
     .forEach(tool => {
-
-      tool.classList.add(
-        'hidden'
-      );
+      tool.classList.add('hidden');
     });
+
+  if (moduleName === 'Clinical Reference' || moduleName === 'Clinical Simulation') {
+    let clinical = $('doctorClinicalWorkspace');
+    if (!clinical) {
+      clinical = document.createElement('section');
+      clinical.id = 'doctorClinicalWorkspace';
+      clinical.className = 'tool hidden';
+      $('workspace')?.appendChild(clinical);
+    }
+    if (moduleName === 'Clinical Reference') {
+      clinical.innerHTML = '<div class="academy-v2"><p class="eyebrow">SHIFOKOR UCHUN • KLINIK MA’LUMOTNOMA</p><h3>🩺 Klinik anatomiya va medical knowledge</h3><p class="muted">Ma’lumotnoma o‘quv va klinik takrorlash uchun. Mustaqil tashxis yoki davolash qarorini almashtirmaydi.</p><div class="grid"><article class="panel"><h4>🫀 Yurak-qon tomir tizimi</h4><p>Yurak kamerasi va klapanlar, koronar qon ta’minoti, asosiy arteriya va venalar.</p></article><article class="panel"><h4>🫁 Nafas olish tizimi</h4><p>Nafas yo‘llari, o‘pka bo‘laklari, plevra va diafragma.</p></article><article class="panel"><h4>🧠 Nerv tizimi</h4><p>Markaziy va periferik nerv tizimi, asosiy nerv yo‘llari va funksional bog‘lanishlar.</p></article><article class="panel"><h4>🦴 Tayanch-harakat tizimi</h4><p>Suyaklar, bo‘g‘imlar, mushak guruhlari va muhim anatomik belgilar.</p></article><article class="panel"><h4>🩻 Qorin bo‘shlig‘i</h4><p>A’zolar topografiyasi, qorin parda va asosiy qon ta’minoti.</p></article><article class="panel"><h4>🩺 Klinik topografiya</h4><p>Anatomik bilimlarni ko‘rik va tasvirlash natijalarini tushunish bilan bog‘lash.</p></article></div></div>';
+    } else {
+      clinical.innerHTML = '<div class="academy-v2"><p class="eyebrow">CLINICAL WORKSPACE • TRAINING ONLY</p><h3>🩺 Klinik case simulyatsiyasi</h3><p class="muted">Faqat ta’lim uchun. Haqiqiy bemor bo‘yicha qarorlarni klinik protokollar va mas’ul mutaxassis bilan tekshiring.</p><label>O‘quv case<select id="doctorCaseSelect"><option value="chest">Ko‘krak og‘rig‘i</option><option value="breath">Nafas qisishi</option><option value="headache">Bosh og‘rig‘i</option></select></label><label>Keyingi xavfsiz qadam<select id="doctorCaseStep"><option value="">Tanlang…</option><option value="triage">Shoshilinchlik va hayotiy ko‘rsatkichlarni baholash</option><option value="history">Anamnez va xavf omillarini aniqlashtirish</option><option value="tests">Klinik holatga mos tekshiruvlarni ko‘rib chiqish</option></select></label><button class="primary" id="doctorCaseCheck" type="button">Javobni ko‘rib chiqish</button><div id="doctorCaseFeedback" class="status" aria-live="polite"></div><p class="muted">Bu soddalashtirilgan mashq bo‘lib, real klinik protokol yoki diagnostika vositasi emas.</p></div>';
+      clinical.querySelector('#doctorCaseCheck')?.addEventListener('click', () => {
+        const caseType = clinical.querySelector('#doctorCaseSelect')?.value;
+        const step = clinical.querySelector('#doctorCaseStep')?.value;
+        const feedback = clinical.querySelector('#doctorCaseFeedback');
+        if (!step) { feedback.textContent = 'Avval keyingi qadamni tanlang.'; return; }
+        feedback.textContent = step === 'triage'
+          ? 'To‘g‘ri boshlang‘ich yondashuv: avvalo shoshilinchlik va hayotiy ko‘rsatkichlarni baholang. Keyingi qadamlar case tafsilotlari va amaldagi protokollarga bog‘liq.'
+          : 'Bu qadam ham klinik baholashning bir qismi bo‘lishi mumkin. Avval shoshilinch holatni istisno qilish, so‘ng anamnez va tekshiruvlarni holatga mos tanlash muhim.';
+      });
+    }
+    clinical.classList.remove('hidden');
+    return;
+  }
 
   const map = {
 
@@ -3636,7 +3659,7 @@ function renderStudentOsce(){
 const MEDGEN_ROLES = {
   school_student:{title:'O‘quvchi',icon:'📘',desc:'School Workspace: fanlar, topshiriqlar, testlar, imtihonlar va progress.',modules:['Medical Academy']},
   student:{title:'Talaba',icon:'🎓',desc:'Medical Academy: kursga mos anatomiya, patologiya, klinik fikrlash, virtual bemor, OSCE va ko‘nikmalar. Virtual Laboratory — faqat o‘quv/simulyatsiya rejimida ochiq.',modules:['Medical Academy','Virtual Laboratory']},
-  doctor:{title:'Shifokor',icon:'👨‍⚕️',desc:'Clinical Workspace: klinik case, diagnostika, differensial tashxis, medical knowledge va simulation.',modules:['Research Assistant','Reports & History','Medical Academy']},
+  doctor:{title:'Shifokor',icon:'👨‍⚕️',desc:'Clinical Workspace: klinik case, diagnostika, differensial tashxis, medical knowledge va simulation.',modules:['Clinical Reference','Clinical Simulation','Research Assistant','Reports & History']},
   researcher:{title:'Olim / Researcher',icon:'🔬',desc:'Research Workspace: ilmiy izlanish, literature, bioinformatics, knowledge graph va virtual laboratory.',modules:['Research Assistant','Bioinformatics','Virtual Laboratory','Reports & History']},
   professor:{title:'Professor',icon:'👨‍🏫',desc:'Teaching Workspace: kurslar, student progress, cases, OSCE va research.',modules:['Medical Academy','Research Assistant','Reports & History']},
   lab:{title:'Laborant',icon:'🧪',desc:'Laboratory Workspace: protokollar, virtual experiments, molecular analysis va natijalar.',modules:['Virtual Laboratory','Molecular Analysis','Reports & History']},
@@ -5545,6 +5568,8 @@ async function renderPdb3D(){
     const grid = $('roleQuickGrid');
     if (grid) {
       const labels = {
+        'Clinical Reference':['🩺','Klinik ma’lumotnoma','Klinik anatomiya va tana tizimlari'],
+        'Clinical Simulation':['🩺','Klinik simulyatsiya','O‘quv klinik case va differensial fikrlash'],
         'Medical Academy':['🎓','Tibbiyot akademiyasi','Kurslar, anatomiya, klinik fikrlash va OSCE'],
         'Virtual Laboratory':['🧪','Virtual laboratoriya','O‘quv simulyatsiyalari va tajriba protokollari'],
         'Research Assistant':['🔬','Ilmiy tadqiqot','Adabiyotlar, gipotezalar va tadqiqot ishlari'],
