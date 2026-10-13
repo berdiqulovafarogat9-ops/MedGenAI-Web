@@ -1447,8 +1447,9 @@ async function saveProfile() {
       throw new Error('Profilni to‘liq to‘ldiring: ism, email, mamlakat, viloyat, tuman, shahar va tug‘ilgan sana majburiy.');
     }
 
-    const role = String(state.user?.role || '').toLowerCase();
-    if (['student','school_student','researcher','professor'].includes(role)) {
+    const role = typeof roleKey === 'function' ? roleKey() : String(state.user?.role || '').toLowerCase();
+    // School learners use school/class enrollment, not university/faculty fields.
+    if (['student','researcher','professor'].includes(role)) {
       if (!$('profileUniversity')?.value?.trim() || !$('profileFaculty')?.value?.trim() ||
           !$('profileMajor')?.value?.trim() || !$('profileGroup')?.value?.trim() ||
           !$('profileStudentId')?.value?.trim()) {
