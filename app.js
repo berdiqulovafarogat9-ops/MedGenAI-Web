@@ -2261,7 +2261,20 @@ function openModule(moduleName) {
       fr:{medical:[['le symptôme','alomat'],['le traitement','davolash'],['la tension artérielle','qon bosimi']],general:[['Bonjour','Salom'],['Comment allez-vous?','Qalaysiz?'],['Merci','Rahmat']],exam:[['lecture','o‘qish'],['écoute','tinglash'],['expression orale','gapirish']]}
     };
     $('hubStartLanguage')?.addEventListener('click',()=>{const lang=$('hubLanguage')?.value||'en',track=$('hubLanguageTrack')?.value||'medical',items=lessons[lang]?.[track]||[];const box=$('hubLanguageLesson');if(box)box.innerHTML='<b>Bugungi mini-dars</b><ol>'+items.map(x=>'<li><b>'+escapeHtml(x[0])+'</b> — '+escapeHtml(x[1])+'</li>').join('')+'</ol><p>Har bir iborani ovoz chiqarib o‘qing va o‘zingiz gap tuzing.</p>';});
-    const gameQuestions=[{q:'“Blood pressure” nimani anglatadi?',opts:['Qon bosimi','Qon guruhi','Yurak urishi'],correct:0},{q:'Qaysi organ qonni haydaydi?',opts:['O‘pka','Yurak','Buyrak'],correct:1},{q:'“Symptom” so‘zining ma’nosi?',opts:['Davolash','Alomat','Tahlil'],correct:1}];
+    const gameQuestions=[
+      {q:'“Blood pressure” nimani anglatadi?',opts:['Qon bosimi','Qon guruhi','Yurak urishi'],correct:0},
+      {q:'Qaysi organ qonni haydaydi?',opts:['O‘pka','Yurak','Buyrak'],correct:1},
+      {q:'“Symptom” so‘zining ma’nosi?',opts:['Davolash','Alomat','Tahlil'],correct:1},
+      {q:'Inglizcha “kidney” qaysi a’zo?',opts:['Jigar','Buyrak','Oshqozon'],correct:1},
+      {q:'“Здоровье” so‘zi o‘zbekchada nima?',opts:['Kasallik','Sog‘liq','Dori'],correct:1},
+      {q:'Fotosintez asosan qayerda sodir bo‘ladi?',opts:['Barglarda','Ildiz uchida','Gul changida'],correct:0},
+      {q:'Qonning kislorod tashishida qaysi hujayra muhim?',opts:['Eritrotsit','Trombotsit','Neyron'],correct:0},
+      {q:'Inglizcha “to learn” nimani bildiradi?',opts:['O‘qitmoq','O‘rganmoq','Yozmoq'],correct:1},
+      {q:'“Лёгкие” qaysi a’zolar?',opts:['O‘pka','Buyraklar','Ichaklar'],correct:0},
+      {q:'DNKning asosiy vazifasi nima?',opts:['Genetik axborotni saqlash','Ovqatni hazm qilish','Qonni haydash'],correct:0},
+      {q:'Inglizcha “careful” so‘zi nimani anglatadi?',opts:['Ehtiyotkor','Charchagan','Tezkor'],correct:0},
+      {q:'Miya va orqa miya qaysi tizimga kiradi?',opts:['Nafas olish','Asab tizimi','Ovqat hazm qilish'],correct:1}
+    ];
     let gameIndex=0,gameScore=0;
     const showGame=()=>{const box=$('hubGame');if(!box)return;if(gameIndex>=gameQuestions.length){box.innerHTML='<b>Natija: '+gameScore+'/'+gameQuestions.length+'</b><p>Ball: '+(gameScore*10)+' XP. Yana mashq qilib natijani yaxshilashingiz mumkin.</p>';$('hubAchievement').textContent='Oxirgi mini-o‘yin natijasi: '+gameScore+'/'+gameQuestions.length;return;}const q=gameQuestions[gameIndex];box.innerHTML='<p><b>Savol '+(gameIndex+1)+'/'+gameQuestions.length+': '+q.q+'</b></p>'+q.opts.map((o,n)=>'<button type="button" class="secondary hub-game-answer" data-answer="'+n+'">'+escapeHtml(o)+'</button> ').join('');box.querySelectorAll('[data-answer]').forEach(b=>b.onclick=()=>{if(Number(b.dataset.answer)===q.correct)gameScore++;gameIndex++;showGame();});};
     $('hubStartGame')?.addEventListener('click',()=>{gameIndex=0;gameScore=0;showGame();});
