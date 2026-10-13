@@ -1447,13 +1447,16 @@ async function saveProfile() {
       avatar: savedAvatar
     };
 
-    if (!payload.full_name || !payload.email || !payload.country || !payload.region ||
-        !payload.district || !payload.city ||
-        payload.birth_year === null || payload.birth_month === null || payload.birth_day === null) {
-      throw new Error('Profilni to‘liq to‘ldiring: ism, email, mamlakat, viloyat, tuman, shahar va tug‘ilgan sana majburiy.');
+    const role = typeof roleKey === 'function' ? roleKey() : String(state.user?.role || '').toLowerCase();
+    const schoolAccount = ['school_student', 'school_teacher'].includes(role);
+    if (!payload.full_name || !payload.email || (!schoolAccount &&
+        (!payload.country || !payload.region || !payload.district || !payload.city ||
+         payload.birth_year === null || payload.birth_month === null || payload.birth_day === null))) {
+      throw new Error(schoolAccount
+        ? 'Maktab profili uchun ism va email majburiy.'
+        : 'Profilni to‘liq to‘ldiring: ism, email, mamlakat, viloyat, tuman, shahar va tug‘ilgan sana majburiy.');
     }
 
-    const role = typeof roleKey === 'function' ? roleKey() : String(state.user?.role || '').toLowerCase();
     // School learners use school/class enrollment, not university/faculty fields.
     if (['student','researcher','professor'].includes(role)) {
       if (!$('profileUniversity')?.value?.trim() || !$('profileFaculty')?.value?.trim() ||
