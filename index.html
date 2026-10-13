@@ -2249,8 +2249,10 @@ document.addEventListener("DOMContentLoaded", function () {
     const key=roleKey(),r=ROLES[key]||ROLES.student,mods=ROLE_MODULES[key]||ROLE_MODULES.student;
     const roleKeys=['student','school_student','school_teacher','doctor','researcher','professor','lab','biotech','pharma','bioinformatician','hospital','company'];
     drawer.innerHTML='<div class="final-drawer-head"><b>☰ '+ft('menu')+'</b><button id="finalMenuClose">×</button></div><div class="final-menu-role">'+r.icon+' '+esc(roleLabel(key))+'</div><button class="final-nav" data-final-nav="home">🏠 '+ft('dashboard')+'</button><button class="final-nav" data-final-nav="profile">👤 '+ft('profile')+'</button><div class="final-nav-title">'+ft('scientific')+'</div>'+mods.map(m=>'<button class="final-nav" data-final-module="'+esc(m)+'">'+icons[m]+' '+esc(moduleLabel(m))+'</button>').join('')+'<div class="final-nav-title">'+ft('platform')+'</div><button class="final-nav" data-final-service="support">🆘 '+ft('support')+'</button><button class="final-nav" data-final-service="ai">🤖 '+ft('assistant')+'</button><button class="final-nav" data-final-service="community">💬 '+ft('community')+'</button><button class="final-nav" data-final-service="security">🔐 '+ft('security')+'</button>'+(key==='SUPER_ADMIN'?'<div class="final-nav-title">'+ft('owner')+'</div><button class="final-nav" id="finalMenuAdmin">👑 '+ft('ownerDash')+'</button>':'');
-    const userTitle=document.createElement('div'); userTitle.className='final-nav-title'; userTitle.textContent=lang()==='ru'?'ПОЛЬЗОВАТЕЛИ':lang()==='en'?'USERS':'FOYDALANUVCHILAR'; drawer.querySelector('.final-nav-title')?.after(userTitle);
-    roleKeys.forEach(k=>{const b=document.createElement('button');b.className='final-nav';b.dataset.roleCommunity=k;b.innerHTML='👥 '+esc(roleLabel(k))+' <span class="role-count">—</span>';drawer.appendChild(b);});
+    if(key==='SUPER_ADMIN'){
+      const userTitle=document.createElement('div'); userTitle.className='final-nav-title'; userTitle.textContent=lang()==='ru'?'ПОЛЬЗОВАТЕЛИ':lang()==='en'?'USERS':'FOYDALANUVCHILAR'; drawer.querySelector('.final-nav-title')?.after(userTitle);
+      roleKeys.forEach(k=>{const b=document.createElement('button');b.className='final-nav';b.dataset.roleCommunity=k;b.innerHTML='👥 '+esc(roleLabel(k))+' <span class="role-count">—</span>';drawer.appendChild(b);});
+    }
     if(key==='SUPER_ADMIN'){ const analytics=document.createElement('div');analytics.className='final-nav-title';analytics.textContent=lang()==='ru'?'АНАЛИТИКА ПОЛЬЗОВАТЕЛЕЙ':lang()==='en'?'USER ANALYTICS':'FOYDALANUVCHILAR ANALITIKASI';drawer.appendChild(analytics); const stats=document.createElement('div');stats.id='finalRoleStats';stats.className='final-role-stats';stats.textContent='Yuklanmoqda...';drawer.appendChild(stats); }
     drawer.querySelector('#finalMenuClose').onclick=()=>drawer.classList.remove('open');
     drawer.querySelectorAll('[data-role-community]').forEach(b=>b.onclick=()=>{drawer.classList.remove('open');window.__MEDGEN_COMMUNITY_ROLE=b.dataset.roleCommunity;openFunctionalService('community');});
@@ -2314,7 +2316,7 @@ document.addEventListener("DOMContentLoaded", function () {
     if(b){e.preventDefault();window.openFunctionalService(b.dataset.service);}
   });
   const oldOpen=window.openService;
-  window.openService=function(kind){ if(['support','assistant','community'].includes(kind)) return window.openFunctionalService(kind); if(typeof oldOpen==='function') return oldOpen(kind); };
+  window.openService=function(kind){ if(kind==='ai') kind='assistant'; if(['support','assistant','community'].includes(kind)) return window.openFunctionalService(kind); if(typeof oldOpen==='function') return oldOpen(kind); };
 })();
 </script>
 
