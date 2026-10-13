@@ -5539,10 +5539,20 @@ def create_scientific_report(data: ScientificReportRequest,user=Depends(get_curr
 
 @app.get("/api/v1/scientific/reports/{report_id}")
 def get_scientific_report(report_id:str,user=Depends(get_current_user)):
-    report=next((r for r in reports_store if r["id"]==report_id),None)
-    if not report: raise HTTPException(status_code=404,detail="Report not found")
-    experiment=next((e for e in experiments_store if e["id"]==report.get("experiment_id")),None)
-    if experiment and experiment.get("user")!=user["username"] and user.get("role")!="SUPER_ADMIN":
+    report=next((r for r in reports_store if r.get("id")==report_id),None)
+    if not report:
+        raise HTTPException(status_code=404,detail="Report not found")
+
+    # Authorize against the report owner itself. Do not allow access to an
+    # orphaned legacy report just because its experiment record is missing.
+    is_admin = user.get("role") == "SUPER_ADMIN"
+    if report.get("user") != user["username"] and not is_admin:
+        raise HTTPException(status_code=403,detail="Access denied")
+
+    # Also protect reports whose owner metadata is present but conflicts with
+    # the linked experiment's owner.
+    experiment=next((e for e in experiments_store if e.get("id")==report.get("experiment_id")),None)
+    if experiment and experiment.get("user") != user["username"] and not is_admin:
         raise HTTPException(status_code=403,detail="Access denied")
     return report
 
