@@ -1335,17 +1335,6 @@ async function openProfile() {
 function isProfileComplete(p) {
   if (!p) return false;
   let role = String(p.role || state.user?.role || state.user?.user_role || '').trim().toLowerCase().replace(/[\s-]+/g, '_');
-  // Older accounts may still report generic "student" while registration saved
-  // the actual school role locally; use that only for generic student accounts.
-  if (role === 'student') {
-    const savedRole = getLocalRole()?.key;
-    if (['school_student', 'school_teacher'].includes(savedRole)) role = savedRole;
-  }
-  // School accounts collect only the information needed for enrollment.
-  if (['school_student', 'school_teacher'].includes(role)) {
-    if (!(String(p.full_name || '').trim() && String(p.email || '').trim() && String(p.school_name || '').trim())) return false;
-    return role !== 'school_student' || String(p.class_name || '').trim().length > 0;
-  }
   if (!(String(p.full_name || '').trim() && String(p.email || '').trim() && String(p.country || '').trim() && String(p.region || '').trim() && String(p.city || '').trim() && String(p.district || '').trim() && Number.isInteger(Number(p.birth_year)) && Number(p.birth_year) >= 1900 && Number(p.birth_year) <= 2100 && Number.isInteger(Number(p.birth_month)) && Number(p.birth_month) >= 1 && Number(p.birth_month) <= 12 && Number.isInteger(Number(p.birth_day)) && Number(p.birth_day) >= 1 && Number(p.birth_day) <= 31)) return false;
   if (['student', 'researcher', 'professor'].includes(role)) {
     const ap = p.academic_profile || {};
@@ -1448,16 +1437,12 @@ async function saveProfile() {
     };
 
     const role = typeof roleKey === 'function' ? roleKey() : String(state.user?.role || '').toLowerCase();
-    const schoolAccount = ['school_student', 'school_teacher'].includes(role);
-    if (!payload.full_name || !payload.email || (!schoolAccount &&
-        (!payload.country || !payload.region || !payload.district || !payload.city ||
-         payload.birth_year === null || payload.birth_month === null || payload.birth_day === null))) {
-      throw new Error(schoolAccount
-        ? 'Maktab profili uchun ism va email majburiy.'
-        : 'Profilni to‘liq to‘ldiring: ism, email, mamlakat, viloyat, tuman, shahar va tug‘ilgan sana majburiy.');
+    if (!payload.full_name || !payload.email || !payload.country || !payload.region ||
+        !payload.district || !payload.city || payload.birth_year === null ||
+        payload.birth_month === null || payload.birth_day === null) {
+      throw new Error('Profilni to‘liq to‘ldiring: ism, email, mamlakat, viloyat, tuman, shahar va tug‘ilgan sana majburiy.');
     }
 
-    // School learners use school/class enrollment, not university/faculty fields.
     if (['student','researcher','professor'].includes(role)) {
       if (!$('profileUniversity')?.value?.trim() || !$('profileFaculty')?.value?.trim() ||
           !$('profileMajor')?.value?.trim() || !$('profileGroup')?.value?.trim() ||
@@ -1664,8 +1649,8 @@ async function loadAdminDashboard() {
 
     const cards = [
       ['Academic approvals', (academicApprovals.pending || []).length, 'academic-approvals'],
-      ['Maktablar va taklif kodlari', '🏫', 'school-management'],
       ['Rasmiy fan dasturlari', 0, 'syllabi'],
+      ['Professor–talaba ruxsatlari', '→', 'teaching-assignments'],
       ['Users', d.users, 'users'],
       ['Active tokens', d.active_tokens, 'tokens'],
       ['Jobs', d.jobs, 'jobs'],
@@ -1681,7 +1666,7 @@ async function loadAdminDashboard() {
       cards.map(c =>
         '<button type="button" class="card admin-card" data-admin="' + c[2] + '">' +
         '<strong>' + c[1] + '</strong>' +
-        '<div>' + escapeHtml(t(c[2] === 'tokens' ? 'activeTokens' : c[2])) + '</div>' +
+        '<div>' + escapeHtml(c[2] === 'teaching-assignments' ? c[0] : t(c[2] === 'tokens' ? 'activeTokens' : c[2])) + '</div>' +
         '<small>' + escapeHtml(t('details')) + ' →</small>' +
         '</button>'
       ).join('') +
@@ -1703,6 +1688,39 @@ async function loadAdminDashboard() {
 async function loadAdminDetails(kind) {
   const out = $('adminDetails');
   if (!out) return;
+
+  if (kind === 'teaching-assignments') {
+    out.textContent = 'Yuklanmoqda…';
+    try {
+      const data = await api('/admin/academy/teaching-assignments');
+      if (!data.professors.length) { out.textContent = 'Faol professorlar mavjud emas.'; return; }
+      out.innerHTML = '<h3>Professor–talaba ruxsatlari</h3><p>Professor faqat biriktirilgan talabalar natijalarini ko‘radi. Barcha belgilarni olib tashlab saqlash ruxsatlarni bekor qiladi.</p>' +
+        '<label>Professor <select id="teachingProfessor">' + data.professors.map(p =>
+          '<option value="' + escapeHtml(p.username) + '">' + escapeHtml(p.full_name + ' (' + p.username + ')') + '</option>').join('') +
+        '</select></label><div id="teachingStudents"></div><button type="button" id="saveTeaching">Saqlash</button><p id="teachingStatus" role="status"></p>';
+      const select = $('teachingProfessor'), list = $('teachingStudents'), save = $('saveTeaching'), status = $('teachingStatus');
+      const render = () => {
+        const assigned = new Set(data.professors.find(p => p.username === select.value)?.students || []);
+        list.innerHTML = data.students.length ? data.students.map(p => '<label style="display:block"><input type="checkbox" value="' + escapeHtml(p.username) + '"' + (assigned.has(p.username) ? ' checked' : '') + '> ' + escapeHtml(p.full_name + ' (' + p.username + ')') + '</label>').join('') : '<p>Faol talabalar mavjud emas.</p>';
+        status.textContent = '';
+      };
+      select.onchange = render;
+      render();
+      save.onclick = async () => {
+        const professor = select.value;
+        const students = Array.from(list.querySelectorAll('input:checked'), input => input.value);
+        save.disabled = select.disabled = true;
+        status.textContent = 'Saqlanmoqda…';
+        try {
+          const result = await api('/admin/academy/teaching-assignments/' + encodeURIComponent(professor), {method:'PUT', body:JSON.stringify({students})});
+          data.professors.find(p => p.username === professor).students = result.students;
+          status.textContent = 'Ruxsatlar saqlandi.';
+        } catch (e) { status.textContent = 'Saqlanmadi: ' + e.message; }
+        finally { save.disabled = select.disabled = false; }
+      };
+    } catch (e) { out.textContent = 'Yuklash xatosi: ' + e.message; }
+    return;
+  }
 
   if (kind === 'syllabi') {
     out.innerHTML = '<h3>Rasmiy fan dasturini kiritish</h3>' +
@@ -1770,67 +1788,6 @@ async function loadAdminDetails(kind) {
       } catch (e) { status.textContent = 'Xatolik: ' + e.message; }
     });
     reload();
-    return;
-  }
-
-  if (kind === 'school-management') {
-    out.innerHTML = '<h3>🏫 Maktab boshqaruvi</h3>' +
-      '<p>Maktab, o‘qituvchi va o‘quvchilarni boshqarish. Taklif kodlari serverda yaratilishi va tekshirilishi kerak.</p>' +
-      '<div class="grid" style="gap:10px">' +
-      '<label>Maktab nomi<input id="schoolName" maxlength="160" required placeholder="Masalan, 12-maktab"></label>' +
-      '<label>Hudud<input id="schoolRegion" maxlength="120" placeholder="Viloyat / tuman"></label>' +
-      '<label>Taklif kodi kim uchun?<select id="schoolInviteRole"><option value="school_student">O‘quvchi</option><option value="school_teacher">O‘qituvchi</option></select></label>' +
-      '<label>Sinf (o‘quvchilar uchun)<input id="schoolInviteClass" maxlength="40" placeholder="Masalan, 8-A"></label>' +
-      '<label>Amal qilish muddati (kun)<input id="schoolInviteDays" type="number" min="1" max="90" value="7"></label>' +
-      '</div><button type="button" id="schoolCreateInvite">Taklif kodi yaratish</button> <span id="schoolInviteStatus" class="status" role="status"></span>' +
-      '<div id="schoolInviteResult"></div><hr><h3>Arizalar va maktablar</h3><div id="schoolManagementList" class="status">Ma’lumotlar yuklanmoqda...</div>';
-    const status = $('schoolInviteStatus');
-    const list = $('schoolManagementList');
-    const reloadSchools = async () => {
-      try {
-        const data = await api('/admin/school-management');
-        const schools = Array.isArray(data.schools) ? data.schools : [];
-        const pending = Array.isArray(data.pending) ? data.pending : [];
-        list.innerHTML = '<h4>Maktablar (' + schools.length + ')</h4>' +
-          (schools.length ? schools.map(x => '<article class="card"><b>' + escapeHtml(x.name || 'Maktab') + '</b><div>' + escapeHtml(x.region || '') + '</div><small>O‘quvchilar: ' + Number(x.students || 0) + ' · O‘qituvchilar: ' + Number(x.teachers || 0) + '</small></article>').join('') : '<p>Hozircha maktab yo‘q.</p>') +
-          '<h4>Tasdiqlash kutilmoqda (' + pending.length + ')</h4>' +
-          (pending.length ? pending.map(x => '<article class="card"><b>' + escapeHtml(x.full_name || x.username) + '</b><div>' + escapeHtml(x.role || '') + ' · ' + escapeHtml(x.school_name || '') + ' · ' + escapeHtml(x.class_name || '') + '</div>' + (x.role === 'school_teacher' ? '<label>Sinfni biriktirish<input data-school-class="' + escapeHtml(x.username) + '" maxlength="40" value="' + escapeHtml(x.class_name || '') + '" placeholder="Masalan, 8-A"></label>' : '') + '<button type="button" data-school-review="approve" data-username="' + escapeHtml(x.username) + '">Tasdiqlash</button> <button type="button" data-school-review="reject" data-username="' + escapeHtml(x.username) + '">Rad etish</button></article>').join('') : '<p>Yangi arizalar yo‘q.</p>');
-        list.querySelectorAll('[data-school-review]').forEach(btn => btn.addEventListener('click', async () => {
-          const note = btn.dataset.schoolReview === 'reject' ? (prompt('Rad etish sababi:') || '') : '';
-          if (btn.dataset.schoolReview === 'reject' && !note.trim()) return;
-          btn.disabled = true;
-          try {
-            const classInput = list.querySelector('[data-school-class="' + btn.dataset.username + '"]');
-            const class_name = classInput ? classInput.value.trim() : '';
-            await api('/admin/school-management/' + encodeURIComponent(btn.dataset.username), {method:'PATCH', body:JSON.stringify({approve:btn.dataset.schoolReview === 'approve', note, class_name})});
-            await reloadSchools();
-          } catch (e) { alert('Tasdiqlash amalga oshmadi: ' + e.message); btn.disabled = false; }
-        }));
-      } catch (e) {
-        list.innerHTML = '<p>⚠️ Maktab boshqaruvi ma’lumotlarini yuklab bo‘lmadi.</p><p>' + escapeHtml(e.message) + '</p><small>Serverga ulanishni, akkaunt ruxsatlarini va administrator rolini tekshiring. Taklif kodi faqat server muvaffaqiyatli javob berganda yaratiladi.</small>';
-      }
-    };
-    $('schoolCreateInvite')?.addEventListener('click', async () => {
-      const name = $('schoolName')?.value.trim() || '';
-      const region = $('schoolRegion')?.value.trim() || '';
-      const role = $('schoolInviteRole')?.value || 'school_student';
-      const class_name = $('schoolInviteClass')?.value.trim() || '';
-      const expires_in_days = Number($('schoolInviteDays')?.value || 7);
-      if (!name) { if (status) status.textContent = 'Maktab nomini kiriting.'; return; }
-      if (role === 'school_student' && !class_name) { if (status) status.textContent = 'O‘quvchilar kodi uchun sinfni kiriting.'; return; }
-      const button = $('schoolCreateInvite'); if (button) button.disabled = true;
-      try {
-        const data = await api('/admin/school-invitations', {method:'POST', body:JSON.stringify({school_name:name, region, role, class_name, expires_in_days})});
-        const code = String(data.code || data.invite_code || '');
-        if (!code) throw new Error('Server taklif kodini qaytarmadi.');
-        $('schoolInviteResult').innerHTML = '<article class="card"><b>Taklif kodi: <code>' + escapeHtml(code) + '</code></b><p>' + escapeHtml(name) + ' · ' + escapeHtml(role === 'school_teacher' ? 'O‘qituvchi' : 'O‘quvchi') + (class_name ? ' · ' + escapeHtml(class_name) : '') + '</p><button type="button" id="schoolCopyInvite">Kodni nusxalash</button></article>';
-        $('schoolCopyInvite')?.addEventListener('click', async () => { try { await navigator.clipboard.writeText(code); if(status) status.textContent='Kod nusxalandi.'; } catch (_) { if(status) status.textContent='Kodni qo‘lda nusxalang.'; } });
-        if (status) status.textContent = 'Kod serverda yaratildi.';
-        await reloadSchools();
-      } catch (e) { if (status) status.textContent = 'Kod yaratilmadi: ' + e.message; }
-      finally { if (button) button.disabled = false; }
-    });
-    reloadSchools();
     return;
   }
 
@@ -2241,20 +2198,6 @@ function openModule(moduleName) {
   window.__MEDGEN_OPENED_MODULE = null;
   if (!enforceProfileCompletion() && !(moduleName === 'Medical Academy' && state.user?.consent_complete === true)) return;
 
-  const activeSchoolRole = ['school_student', 'school_teacher'].includes(roleKey());
-  const schoolStatus = String(state.user?.school_status || state.user?.profile?.school_status || 'pending').toLowerCase();
-  if (!isSuperAdmin() && activeSchoolRole && schoolStatus !== 'approved' &&
-      ['School Learning', 'School Teaching'].includes(moduleName)) {
-    const message = $('schoolAccessStatus');
-    if (message) {
-      message.textContent = 'Maktab akkauntingiz administrator tasdig‘ini kutmoqda. Tasdiqlangandan keyin bu bo‘lim ochiladi.';
-      message.classList.remove('hidden');
-    } else {
-      alert('Maktab akkauntingiz administrator tasdig‘ini kutmoqda. Tasdiqlangandan keyin bu bo‘lim ochiladi.');
-    }
-    return;
-  }
-
   window.__MEDGEN_OPENED_MODULE = moduleName;
   $('roleDashboard')?.classList.add('hidden');
   $('userDirectoryDashboard')?.classList.add('hidden');
@@ -2422,138 +2365,6 @@ function openModule(moduleName) {
     initOrganGame();
     initHubCell3D();
     hub.classList.remove('hidden');
-    return;
-  }
-
-  if (moduleName === 'AI Teacher Studio') {
-    let studio = $('aiTeacherStudioWorkspace');
-    if (!studio) { studio = document.createElement('section'); studio.id = 'aiTeacherStudioWorkspace'; studio.className = 'tool hidden'; $('workspace')?.appendChild(studio); }
-    studio.innerHTML = '<div class="academy-v2"><p class="eyebrow">AI TEACHER STUDIO • DRAFT BUILDER</p><h3>👩‍🏫 Ustoz yordamchisi</h3><p class="muted">Darsga tayyorgarlik va BSB/CHSB mashq variantlari uchun tuzilma yarating. Hozirgi vosita qoralama reja va savol shablonlarini tuzadi; rasmiy test yoki tekshirilgan AI generatsiyasi deb qabul qilmang.</p><div class="grid"><article class="panel"><h4>📚 Ingliz tilida darsga tayyorgarlik</h4><label>Fan<input id="teacherSubject" maxlength="100" placeholder="Biologiya"></label><label>Sinf<input id="teacherGrade" maxlength="30" placeholder="8-sinf"></label><label>Mavzu<input id="teacherTopic" maxlength="180" placeholder="Hujayra tuzilishi"></label><label>Dars tili<select id="teacherLanguage"><option>Ingliz tili</option><option>Rus tili</option><option>O‘zbek tili</option></select></label><button class="primary" id="teacherLessonDraft" type="button">Dars rejasini tayyorlash</button><div id="teacherLessonOutput" class="status" role="status"></div></article><article class="panel"><h4>📝 BSB/CHSB mashq variantı</h4><label>Baholash turi<select id="teacherAssessment"><option>BSB</option><option>CHSB</option><option>Mavzuli mashq</option></select></label><label>Savollar soni<select id="teacherQuestionCount"><option>5</option><option>10</option><option>15</option></select></label><button class="primary" id="teacherTestDraft" type="button">Savol qoralamasini yaratish</button><div id="teacherTestOutput" class="status" role="status"></div></article><article class="panel"><h4>🗂 Saqlangan qoralamalar</h4><button class="secondary small" id="teacherAssessmentReload" type="button">Tarixni yangilash</button><div id="teacherAssessmentHistory" class="status" aria-live="polite">Saqlangan qoralamalar yuklanmoqda…</div></article></div></div>';
-    $('teacherLessonDraft')?.addEventListener('click',()=>{const subject=$('teacherSubject')?.value.trim()||'Fan',grade=$('teacherGrade')?.value.trim()||'Sinf',topic=$('teacherTopic')?.value.trim()||'Mavzu',language=$('teacherLanguage')?.value||'Ingliz tili',out=$('teacherLessonOutput');if(out)out.innerHTML='<b>'+escapeHtml(grade)+' · '+escapeHtml(subject)+' · '+escapeHtml(topic)+'</b><ol><li>Learning objectives: mavzu bo‘yicha 2–3 o‘quv maqsadini belgilang.</li><li>Key vocabulary: 5 ta asosiy atamani '+escapeHtml(language)+' tilida tushuntiring.</li><li>Model explanation: mavzuni misol yoki rasm bilan izohlang.</li><li>Guided practice: juftlikda 3 ta topshiriq bajaring.</li><li>Exit ticket: dars yakunida 3 ta qisqa savol bering.</li></ol><small>Cambridge darsligi yoki maktab dasturi bilan ustoz tekshiruvidan o‘tkazing.</small>';});
-    $('teacherTestDraft')?.addEventListener('click',async()=>{const n=Number($('teacherQuestionCount')?.value||5),type=$('teacherAssessment')?.value||'BSB',topic=$('teacherTopic')?.value.trim()||'',subject=$('teacherSubject')?.value.trim()||'',grade=$('teacherGrade')?.value.trim()||'',languageLabel=$('teacherLanguage')?.value||'O‘zbek tili',language=languageLabel==='Ingliz tili'?'en':languageLabel==='Rus tili'?'ru':'uz',out=$('teacherTestOutput'),btn=$('teacherTestDraft');if(!subject||!grade||!topic){if(out)out.textContent='Avval fan, sinf va mavzuni kiriting.';return;}if(out)out.textContent='Savol qoralamasi tayyorlanmoqda…';if(btn)btn.disabled=true;try{const result=await api('/education/generate-assessment',{method:'POST',body:JSON.stringify({subject,grade,topic,assessment_type:type==='Mavzuli mashq'?'PRACTICE':type,question_count:n,language,difficulty:'medium'})});const a=result.assessment||{},questions=Array.isArray(a.questions)?a.questions:[],items=questions.map(q=>'<li><b>'+escapeHtml(q.type||'Savol')+'</b><p>'+escapeHtml(q.question||'')+'</p>'+(Array.isArray(q.options)&&q.options.length?'<ol type="A">'+q.options.map(v=>'<li>'+escapeHtml(v)+'</li>').join('')+'</ol>':'')+(q.answer?'<details><summary>Javob va izoh</summary><p>'+escapeHtml(q.answer)+'</p><p>'+escapeHtml(q.explanation||'')+'</p></details>':'<small>Javob kaliti kiritilmagan — ustoz to‘ldiradi.</small>')+'<small>Ball: '+escapeHtml(String(q.points||1))+'</small></li>').join('');if(out)out.innerHTML='<b>'+escapeHtml(a.assessment_type||type)+' · '+escapeHtml(subject)+' · '+escapeHtml(grade)+' · '+escapeHtml(topic)+'</b><p>'+((a.generation_mode==='configured_ai_draft')?'AI provayderi tayyorlagan qoralama':'Shablon asosidagi qoralama (AI provayderi sozlanmagan)')+'</p><ol>'+items+'</ol><p><small>'+escapeHtml(result.notice||'O‘qituvchi tekshiruvi shart.')+'</small></p><button type="button" class="secondary" onclick="window.print()">Chop etish / PDF saqlash</button>';}catch(e){if(out)out.textContent='Test qoralamasi yaratilmadi: '+e.message;}finally{if(btn)btn.disabled=false;}});
-    const reloadAssessmentHistory = async () => {
-      const box = $('teacherAssessmentHistory');
-      if (!box) return;
-      box.textContent = 'Saqlangan qoralamalar yuklanmoqda…';
-      try {
-        const result = await api('/education/assessment-drafts');
-        const drafts = Array.isArray(result.drafts) ? result.drafts : [];
-        box.innerHTML = drafts.length ? drafts.map(d => '<details class="card"><summary><b>' + escapeHtml(d.assessment_type || 'Mashq') + ' · ' + escapeHtml(d.subject || '') + ' · ' + escapeHtml(d.grade || '') + '</b><br><small>' + escapeHtml(d.topic || '') + ' · ' + escapeHtml(d.created_at || '') + '</small></summary><p><small>' + (d.generation_mode === 'configured_ai_draft' ? 'AI qoralamasi' : 'Shablon qoralamasi') + ' — ustoz tekshiruvi shart.</small></p><ol>' + (Array.isArray(d.questions) ? d.questions : []).map(q => '<li><p>' + escapeHtml(q.question || '') + '</p>' + (q.answer ? '<p><b>Javob:</b> ' + escapeHtml(q.answer) + '</p>' : '<small>Javob kaliti kiritilmagan.</small>') + '</li>').join('') + '</ol><button type="button" class="secondary small" data-teacher-print="' + escapeHtml(d.id || '') + '">Chop etish / PDF</button></details>').join('') : '<p>Hali saqlangan qoralama yo‘q. Birinchi mashq variantini yarating.</p>';
-        box.querySelectorAll('[data-teacher-print]').forEach(btn => btn.addEventListener('click', () => window.print()));
-      } catch (e) {
-        box.textContent = 'Tarixni yuklab bo‘lmadi: ' + e.message;
-      }
-    };
-    $('teacherAssessmentReload')?.addEventListener('click', reloadAssessmentHistory);
-    reloadAssessmentHistory();
-    studio.classList.remove('hidden');
-    return;
-  }
-
-  if (moduleName === 'School Teaching') {
-    let teacher = $('schoolTeachingWorkspace');
-    if (!teacher) {
-      teacher = document.createElement('section');
-      teacher.id = 'schoolTeachingWorkspace';
-      teacher.className = 'tool hidden';
-      $('workspace')?.appendChild(teacher);
-    }
-    const schoolName = state.user?.school_name || state.user?.profile?.school_name || '';
-    const assignedClass = state.user?.class_name || state.user?.profile?.class_name || '';
-    teacher.innerHTML = '<div class="academy-v2"><p class="eyebrow">SCHOOL WORKSPACE • O‘QITUVCHI</p><h3>👩‍🏫 O‘qituvchi ish maydoni</h3><div class="grid"><article class="panel"><h4>🏫 Maktab va sinf</h4><p>Maktab: ' + escapeHtml(schoolName || '—') + '</p><p>Biriktirilgan sinf: ' + escapeHtml(assignedClass || 'Hali biriktirilmagan') + '</p><small>Topshiriq yaratish uchun administrator taklif kodi orqali sinfni biriktirishi kerak.</small></article><article class="panel"><h4>📝 Yangi topshiriq</h4><label>Sarlavha<input id="schoolTeacherTaskTitle" maxlength="160" required placeholder="Topshiriq nomi"></label><label>Fan<input id="schoolTeacherTaskSubject" maxlength="100" placeholder="Biologiya"></label><label>Sinf<input id="schoolTeacherTaskClass" maxlength="40" required value="' + escapeHtml(assignedClass) + '"' + (assignedClass ? ' readonly' : '') + ' placeholder="Administrator biriktirgan sinf"></label><label>Tavsif<textarea id="schoolTeacherTaskDescription" maxlength="5000" rows="4" required placeholder="Topshiriq sharti"></textarea></label><label>Muddat<input id="schoolTeacherTaskDue" type="date"></label><button id="schoolTeacherTaskCreate" class="primary" type="button">Topshiriqni saqlash</button><div id="schoolTeacherTaskStatus" class="status" role="status"></div></article><article class="panel"><h4>📚 Mening topshiriqlarim</h4><div id="schoolTeacherAssignments" class="status">Yuklanmoqda...</div></article><article class="panel"><h4>📊 O‘quvchilar topshiriqlari</h4><div id="schoolTeacherSubmissions" class="status">Yuklanmoqda...</div></article></div></div>';
-    const taskStatus = $('schoolTeacherTaskStatus');
-    const reloadTeacher = async () => {
-      try {
-        const data = await api('/school/assignments');
-        const assignments = Array.isArray(data.assignments) ? data.assignments : [];
-        const box = $('schoolTeacherAssignments');
-        if (box) box.innerHTML = assignments.length ? assignments.map(a => '<article class="card"><b>' + escapeHtml(a.title) + '</b><div>' + escapeHtml(a.subject || '') + ' · ' + escapeHtml(a.class_name || '') + '</div><p>' + escapeHtml(a.description || '') + '</p><small>Yaratildi: ' + escapeHtml(a.created_at || '') + ' · Muddat: ' + escapeHtml(a.due_date || 'Belgilanmagan') + '</small></article>').join('') : '<p>Hozircha topshiriq yo‘q.</p>';
-        const subData = await api('/school/submissions');
-        const submissions = Array.isArray(subData.submissions) ? subData.submissions : [];
-        const subBox = $('schoolTeacherSubmissions');
-        if (subBox) subBox.innerHTML = submissions.length ? submissions.map(a => '<article class="card"><b>' + escapeHtml(a.assignment_title || 'Topshiriq') + '</b><div>' + escapeHtml(a.student_name || a.student_username || '') + ' · ' + escapeHtml(a.class_name || '') + '</div><p>' + escapeHtml(a.answer || '') + '</p><small>' + escapeHtml(a.submitted_at || '') + '</small></article>').join('') : '<p>Hozircha o‘quvchi javoblari yo‘q.</p>';
-      } catch (e) {
-        const box = $('schoolTeacherAssignments');
-        if (box) box.innerHTML = '<p>' + escapeHtml(e.message) + '</p>';
-      }
-    };
-    $('schoolTeacherTaskCreate')?.addEventListener('click', async () => {
-      const title = $('schoolTeacherTaskTitle')?.value.trim() || '';
-      const subject = $('schoolTeacherTaskSubject')?.value.trim() || '';
-      const class_name = $('schoolTeacherTaskClass')?.value.trim() || '';
-      const description = $('schoolTeacherTaskDescription')?.value.trim() || '';
-      const due_date = $('schoolTeacherTaskDue')?.value || '';
-      if (!title || !class_name || !description) { if (taskStatus) taskStatus.textContent = 'Sarlavha, sinf va tavsifni to‘ldiring.'; return; }
-      const btn = $('schoolTeacherTaskCreate'); if (btn) btn.disabled = true;
-      try {
-        await api('/school/assignments', {method:'POST', body:JSON.stringify({title, subject, class_name, description, due_date})});
-        if (taskStatus) taskStatus.textContent = 'Topshiriq saqlandi.';
-        $('schoolTeacherTaskTitle').value = '';
-        $('schoolTeacherTaskSubject').value = '';
-        $('schoolTeacherTaskDescription').value = '';
-        $('schoolTeacherTaskDue').value = '';
-        await reloadTeacher();
-      } catch (e) { if (taskStatus) taskStatus.textContent = 'Saqlanmadi: ' + e.message; }
-      finally { if (btn) btn.disabled = false; }
-    });
-    teacher.classList.remove('hidden');
-    reloadTeacher();
-    return;
-  }
-
-  if (moduleName === 'School Learning') {
-    let school = $('schoolLearningWorkspace');
-    if (!school) {
-      school = document.createElement('section');
-      school.id = 'schoolLearningWorkspace';
-      school.className = 'tool hidden';
-      $('workspace')?.appendChild(school);
-    }
-    const progressKey = 'medgen_school_progress_' + String(state.user?.username || 'learner');
-    let progress = {};
-    try { progress = JSON.parse(localStorage.getItem(progressKey) || '{}') || {}; } catch (_) {}
-    school.innerHTML = '<div class="academy-v2"><p class="eyebrow">SCHOOL WORKSPACE • O‘QUVCHI</p><h3>📘 Mening o‘quv maydonim</h3><p class="muted">Fanlarni o‘rganing, topshiriqlarni bajaring va qisqa test orqali bilimingizni tekshiring.</p><div class="grid"><article class="panel"><h4>📚 Fanlar</h4><p>Biologiya — hujayra, irsiyat va inson organizmi.</p><p>Kimyo — elementlar, birikmalar va reaksiyalar.</p><p>Matematika — hisoblash va mantiqiy masalalar.</p></article><article class="panel"><h4>📝 Topshiriqlar</h4><ul><li>Biologiya: hujayraning 3 asosiy qismini yozing.</li><li>Kimyo: H₂O tarkibidagi elementlarni aniqlang.</li><li>Matematika: 12 × 8 misolini yeching.</li></ul><button class="primary small" id="schoolTaskDone" type="button">Topshiriqlarni bajardim</button><div id="schoolTaskStatus" class="status"></div></article><article class="panel"><h4>🧪 Bilim testi</h4><p>Inson tanasida qonni haydaydigan a’zo qaysi?</p><label><input type="radio" name="schoolQuiz" value="lungs"> O‘pka</label><br><label><input type="radio" name="schoolQuiz" value="heart"> Yurak</label><br><label><input type="radio" name="schoolQuiz" value="stomach"> Oshqozon</label><br><button class="primary small" id="schoolQuizCheck" type="button">Javobni tekshirish</button><div id="schoolQuizStatus" class="status" aria-live="polite"></div></article><article class="panel"><h4>🎯 Imtihon va progress</h4><p id="schoolProgressText">Bajarilgan topshiriqlar: '+(progress.tasksDone ? '1' : '0')+'/1 · Testlar: '+(progress.quizPassed ? '1' : '0')+'/1</p><p class="muted">Bu boshlang‘ich o‘quv namunasi. Rasmiy baho yoki maktab jurnaliga yuborilmaydi.</p></article><article class="panel"><h4>📬 O‘qituvchi topshiriqlari</h4><div id="schoolAssignmentList" class="status">Yuklanmoqda...</div></article></div></div>';
-    school.querySelector('#schoolTaskDone')?.addEventListener('click', () => {
-      progress.tasksDone = true;
-      localStorage.setItem(progressKey, JSON.stringify(progress));
-      school.querySelector('#schoolTaskStatus').textContent = 'Topshiriqlar bajarildi deb belgilandi.';
-      school.querySelector('#schoolProgressText').textContent = 'Bajarilgan topshiriqlar: 1/1 · Testlar: ' + (progress.quizPassed ? '1' : '0') + '/1';
-    });
-    school.querySelector('#schoolQuizCheck')?.addEventListener('click', () => {
-      const answer = school.querySelector('input[name="schoolQuiz"]:checked')?.value;
-      const status = school.querySelector('#schoolQuizStatus');
-      if (!answer) { status.textContent = 'Avval javobni tanlang.'; return; }
-      progress.quizPassed = answer === 'heart';
-      localStorage.setItem(progressKey, JSON.stringify(progress));
-      status.textContent = progress.quizPassed ? 'To‘g‘ri! Yurak qonni butun tana bo‘ylab haydaydi.' : 'Qayta urinib ko‘ring. Qonni tana bo‘ylab haydaydigan a’zoni eslang.';
-      school.querySelector('#schoolProgressText').textContent = 'Bajarilgan topshiriqlar: ' + (progress.tasksDone ? '1' : '0') + '/1 · Testlar: ' + (progress.quizPassed ? '1' : '0') + '/1';
-    });
-    const reloadSchoolAssignments = async () => {
-      const list = $('schoolAssignmentList');
-      if (!list) return;
-      try {
-        const data = await api('/school/assignments');
-        const assignments = Array.isArray(data.assignments) ? data.assignments : [];
-        list.innerHTML = assignments.length ? assignments.map(a => {
-          const submitted = a.my_submission;
-          return '<article class="card"><b>' + escapeHtml(a.title || 'Topshiriq') + '</b><div>' + escapeHtml(a.subject || '') + ' · Muddat: ' + escapeHtml(a.due_date || 'Belgilanmagan') + '</div><p>' + escapeHtml(a.description || '') + '</p>' +
-            (submitted ? '<p class="status">Javob yuborilgan: ' + escapeHtml(submitted.submitted_at || '') + '</p><p>' + escapeHtml(submitted.answer || '') + '</p>' :
-            '<label>Javobingiz<textarea data-school-answer="' + escapeHtml(a.id) + '" rows="3" maxlength="5000" placeholder="Javobni yozing"></textarea></label><button type="button" class="primary small" data-school-submit="' + escapeHtml(a.id) + '">Javobni yuborish</button>') + '</article>';
-        }).join('') : '<p>Hozircha o‘qituvchi topshirig‘i yo‘q.</p>';
-        list.querySelectorAll('[data-school-submit]').forEach(btn => btn.addEventListener('click', async () => {
-          const id = btn.dataset.schoolSubmit;
-          const answer = list.querySelector('[data-school-answer="' + CSS.escape(id) + '"]')?.value.trim() || '';
-          if (!answer) { alert('Javobni yozing.'); return; }
-          btn.disabled = true;
-          try { await api('/school/assignments/' + encodeURIComponent(id) + '/submit', {method:'POST', body:JSON.stringify({answer})}); await reloadSchoolAssignments(); }
-          catch (e) { alert('Javob yuborilmadi: ' + e.message); btn.disabled = false; }
-        }));
-      } catch (e) {
-        list.innerHTML = '<p>' + escapeHtml(e.message) + '</p>';
-      }
-    };
-    school.classList.remove('hidden');
-    reloadSchoolAssignments();
     return;
   }
 
@@ -4063,8 +3874,6 @@ function renderStudentOsce(){
    ROLE-BASED PLATFORM ARCHITECTURE
 ========================================================= */
 const MEDGEN_ROLES = {
-  school_student:{title:'O‘quvchi',icon:'📘',desc:'School Workspace: fanlar, ingliz/rus tillari, sertifikat va olimpiada mashqlari, o‘yinli ta’lim va progress.',modules:['School Learning','Learning Hub']},
-  school_teacher:{title:'Maktab o‘qituvchisi',icon:'👩‍🏫',desc:'School Teaching Workspace: sinflar, topshiriqlar, test variantlari, ingliz tilida darsga tayyorgarlik va o‘quvchilar progressi.',modules:['School Teaching','AI Teacher Studio']},
   student:{title:'Talaba',icon:'🎓',desc:'Medical Academy: tibbiy fanlar, tillar, imtihonlarga tayyorgarlik, o‘yinli ta’lim, olimpiadalar va klinik simulyatsiyalar.',modules:['Medical Academy','Learning Hub','Virtual Laboratory']},
   doctor:{title:'Shifokor',icon:'👨‍⚕️',desc:'Clinical Workspace: klinik case, diagnostika, differensial tashxis, medical knowledge va simulation.',modules:['Clinical Reference','Clinical Simulation','Research Assistant','Reports & History']},
   researcher:{title:'Olim / Researcher',icon:'🔬',desc:'Research Workspace: ilmiy izlanish, literature, bioinformatics, knowledge graph va virtual laboratory.',modules:['Research Assistant','Bioinformatics','Virtual Laboratory','Reports & History']},
@@ -4122,11 +3931,7 @@ function applyRoleDashboard(){
   if(desc) desc.textContent=role.desc;
   if(badge) badge.textContent='PRIMARY ROLE';
   const quick=$('roleQuickGrid');
-  const schoolRole = ['school_student', 'school_teacher'].includes(key);
-  const schoolStatus = String(state.user?.school_status || state.user?.profile?.school_status || 'pending').toLowerCase();
-  if (quick && schoolRole && !isSuperAdmin() && schoolStatus !== 'approved') {
-    quick.innerHTML = '<article class="panel"><h3>⏳ Maktab akkaunti tasdiqlanishi kutilmoqda</h3><p>Administrator arizangizni tekshiradi. Taklif kodi kiritilgan bo‘lsa ham, tasdiq holati shu yerda ko‘rsatiladi.</p><p id="schoolAccessStatus" class="status" role="status">Holat: ' + escapeHtml(schoolStatus) + '</p></article>';
-  } else if (quick) {
+  if (quick) {
     quick.innerHTML=role.modules.map(m=>'<button class="role-quick" data-role-module="'+m+'"><b>'+m+'</b><span>Ochish →</span></button>').join('');
   }
   quick?.querySelectorAll('[data-role-module]').forEach(b=>b.addEventListener('click',()=>openModule(b.dataset.roleModule)));
@@ -4176,9 +3981,6 @@ async function registerAccount() {
       body: JSON.stringify({
         username, password, full_name, email, phone,
         role: selectedRole,
-        school_name: $('registerSchoolName')?.value?.trim() || '',
-        class_name: $('registerSchoolClass')?.value?.trim() || '',
-        invitation_code: $('registerInviteCode')?.value?.trim() || '',
         education_mode: 'GLOBAL',
         academic_year: 1
       })
@@ -4707,7 +4509,7 @@ async function loadEducationPreferences() {
 
     $("educationMode").value = p.mode === "COUNTRY" ? "COUNTRY" : "GLOBAL";
     $("educationCountry").value = MEDGEN_COUNTRY_CODES.includes(p.country_code) ? p.country_code : "UZ";
-    $("educationLevel").value = ["SCHOOL","COLLEGE","UNIVERSITY","POSTGRADUATE","RESEARCH"].includes(p.education_level)
+    $("educationLevel").value = ["COLLEGE","UNIVERSITY","POSTGRADUATE","RESEARCH"].includes(p.education_level)
       ? p.education_level : "UNIVERSITY";
     $("educationLanguage").value = ["en","uz","ru","es","fr","de","pt","ar","zh","ja","ko","hi","tr"].includes(p.language)
       ? p.language : "en";
@@ -5238,8 +5040,6 @@ async function detectProfileLocation(fromSecurity=false){
 ========================================================= */
 (function phase1RoleFirstShell(){
   const CATEGORY_ORDER = [
-    ['school_student','📘','O‘quvchi'],
-    ['school_teacher','👩‍🏫','Maktab o‘qituvchisi'],
     ['student','🎓','Talaba'],
     ['doctor','👨‍⚕️','Shifokor'],
     ['researcher','🔬','Olim / Researcher'],
@@ -5321,7 +5121,6 @@ async function detectProfileLocation(fromSecurity=false){
 (function initPhase1RoleWorkspaces() {
   const ROLE_CARDS = {
     student:{icon:'🎓',title:'Talabalar',desc:'Universitet talabalari, kurslar, fanlar, progress va akademik natijalar.'},
-    school_student:{icon:'📘',title:'O‘quvchilar',desc:'Maktab/college o‘quvchilari va ularning ta’lim jarayoni.'},
     doctor:{icon:'🩺',title:'Shifokorlar',desc:'Professional learning, research va klinik ta’lim workspace.'},
     researcher:{icon:'🔬',title:'Tadqiqotchilar',desc:'Research, scientific workflows, experiments va reports.'},
     professor:{icon:'👨‍🏫',title:'Professorlar',desc:'Ta’lim, kurslar, topshiriqlar, assessment va ilmiy rahbarlik.'},
@@ -5406,7 +5205,7 @@ async function detectProfileLocation(fromSecurity=false){
     const mine=myModules.map(m=>'<button class="nav-item" data-my-module="'+escapeHtml(m)+'"><span>•</span><b>'+escapeHtml(m)+'</b></button>').join('');
     let users='';
     if(admin()){
-      users='<div class="nav-section-title">ADMIN / OWNER</div><button class="nav-item" data-admin-dashboard="1"><span>👑</span><b>Super Admin Dashboard</b></button><button class="nav-item" data-school-management-nav="1"><span>🏫</span><b>Maktablar va taklif kodlari</b></button><div class="nav-section-title">FOYDALANUVCHILAR</div>'+
+      users='<div class="nav-section-title">ADMIN / OWNER</div><button class="nav-item" data-admin-dashboard="1"><span>👑</span><b>Super Admin Dashboard</b></button><div class="nav-section-title">FOYDALANUVCHILAR</div>'+
         Object.entries(ROLE_CARDS).map(([key,v])=>'<button class="nav-item" data-user-role="'+key+'"><span>'+v.icon+'</span><b>'+v.title+'</b></button>').join('');
     }
     list.innerHTML=home+header+mine+users;
@@ -5427,19 +5226,6 @@ async function detectProfileLocation(fromSecurity=false){
       document.getElementById('navDrawerClose')?.click();
       openModule(b.dataset.myModule);
     }));
-    list.querySelector('[data-school-management-nav]')?.addEventListener('click',async()=>{
-      document.getElementById('navDrawerClose')?.click();
-      if(!admin()) return;
-      $('roleDashboard')?.classList.add('hidden');
-      $('securityCenter')?.classList.add('hidden');
-      $('userDirectoryDashboard')?.classList.add('hidden');
-      $('workspace')?.classList.add('hidden');
-      $('educationPreferencePanel')?.classList.add('hidden');
-      $('adminDashboard')?.classList.remove('hidden');
-      await loadAdminDashboard();
-      await loadAdminDetails('school-management');
-      $('adminDetails')?.scrollIntoView({behavior:'smooth',block:'start'});
-    });
     list.querySelectorAll('[data-user-role]').forEach(b=>b.addEventListener('click',()=>{
       document.getElementById('navDrawerClose')?.click();
       openUserRoleDashboard(b.dataset.userRole);
@@ -5650,7 +5436,6 @@ async function detectProfileLocation(fromSecurity=false){
         q.innerHTML=[
           ['👥','Jami foydalanuvchilar',g.total_users],
           ['🎓','Talabalar',g.role_counts?.student||0],
-          ['📘','O‘quvchilar',g.role_counts?.school_student||0],
           ['🔬','Tadqiqotchilar',g.role_counts?.researcher||0],
           ['🩺','Shifokorlar',g.role_counts?.doctor||0],
           ['👨‍🏫','Professorlar',g.role_counts?.professor||0],
@@ -5896,8 +5681,6 @@ async function renderPdb3D(){
     if(badge) badge.textContent = key === 'admin' ? 'OWNER / ADMIN' : 'PRIMARY ROLE';
     if(grid){
       const labels = {
-        'School Learning':['📘','Fanlar, topshiriqlar va testlar','Maktab fanlari, bilim testi va o‘quv progressi'],
-        'School Teaching':['👩‍🏫','Sinf va topshiriqlar','O‘qituvchi sinflari, topshiriqlar va o‘quvchilar natijalari'],
         'Medical Academy':['🎓','Tibbiyot akademiyasi','Kurslar, fanlar va ta’lim vositalari'],
         'Virtual Laboratory':['🧪','Virtual laboratoriya','Xavfsiz simulyatsiya va tajriba protokollari'],
         'Research Assistant':['🔬','Ilmiy tadqiqot','Adabiyotlar, gipotezalar va tadqiqot jarayoni'],
@@ -5999,10 +5782,7 @@ async function renderPdb3D(){
     const grid = $('roleQuickGrid');
     if (grid) {
       const labels = {
-        'School Learning':['📘','Maktab ta’limi','Fanlar, topshiriqlar va bilim testlari'],
         'Learning Hub':['🌍','O‘rganish markazi','Ingliz/rus tili, mini-o‘yinlar va imtihon mashqlari'],
-        'School Teaching':['👩‍🏫','O‘qituvchi ish joyi','Sinf, topshiriqlar va o‘quvchilar natijalari'],
-        'AI Teacher Studio':['🧑‍🏫','AI o‘qituvchi studiyasi','Dars va test materiallarini tayyorlash'],
         'Clinical Reference':['🩺','Klinik ma’lumotnoma','Klinik anatomiya va tana tizimlari'],
         'Clinical Simulation':['🩺','Klinik simulyatsiya','O‘quv klinik case va differensial fikrlash'],
         'Medical Academy':['🎓','Tibbiyot akademiyasi','Kurslar, anatomiya, klinik fikrlash va OSCE'],

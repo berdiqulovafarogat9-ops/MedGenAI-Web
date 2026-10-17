@@ -323,15 +323,10 @@ frame-ancestors 'none'">
       <label><span>Email</span><input id="registerEmail" type="email" autocomplete="email" required></label>
       <label><span>Telefon raqami</span><input id="registerPhone" type="tel" autocomplete="tel" placeholder="+998 90 123 45 67"></label>
       <label><span>Parol</span><input id="registerPassword" type="password" autocomplete="new-password" minlength="8" required></label>
-      <label><span>Parolni tasdiqlash</span><input id="registerPassword2" type="password" autocomplete="new-password" minlength="8" required></label>
-      <label><span>Maktab nomi (ixtiyoriy)</span><input id="registerSchoolName" maxlength="160" autocomplete="organization" placeholder="Maktab nomi"></label>
-      <label><span>Sinf (o‘quvchilar uchun)</span><input id="registerSchoolClass" maxlength="40" placeholder="Masalan, 8-A"></label>
-      <label><span>Taklif kodi (agar berilgan bo‘lsa)</span><input id="registerInviteCode" maxlength="64" autocomplete="off" placeholder="Administrator bergan kod"></label><div class="role-registration-block">
+      <label><span>Parolni tasdiqlash</span><input id="registerPassword2" type="password" autocomplete="new-password" minlength="8" required></label><div class="role-registration-block">
   <div class="role-title">Sizning asosiy professional rolingiz</div>
   <div class="role-subtitle">Faqat bitta asosiy rol tanlang. Keyingi rollar CEO/Admin tasdig‘idan keyin ochiladi.</div>
   <div id="registerRoleGrid" class="role-grid">
-    <button type="button" class="role-choice" data-role="school_student">📘<b>O‘quvchi</b><span>Maktab ta’limi</span></button>
-    <button type="button" class="role-choice" data-role="school_teacher">👩‍🏫<b>Maktab o‘qituvchisi</b><span>Sinf va topshiriqlar</span></button>
     <button type="button" class="role-choice" data-role="student">🎓<b>Talaba</b><span>Medical Academy</span></button>
     <button type="button" class="role-choice" data-role="doctor">👨‍⚕️<b>Shifokor</b><span>Clinical Workspace</span></button>
     <button type="button" class="role-choice" data-role="researcher">🔬<b>Olim / Researcher</b><span>Research Workspace</span></button>
@@ -490,7 +485,6 @@ frame-ancestors 'none'">
         <label>
           <strong>Education level</strong>
           <select id="educationLevel">
-            <option value="SCHOOL">School</option>
             <option value="COLLEGE">College</option>
             <option value="UNIVERSITY" selected>University</option>
             <option value="POSTGRADUATE">Postgraduate</option>
@@ -2159,8 +2153,6 @@ document.addEventListener("DOMContentLoaded", function () {
 (function(){
   const ROLES={
     student:{icon:'🎓',name:'Talaba',desc:'Medical Academy, fanlar, klinik tayyorgarlik va ilmiy ishlar',mods:['Medical Academy','Bioinformatics','Molecular Analysis','PDB & Structure','Drug Discovery','Research Assistant','Virtual Laboratory','Reports & History']},
-    school_student:{icon:'📘',name:'O‘quvchi',desc:'Maktab fanlari, o‘qituvchi topshiriqlari, bilim testi va o‘quv progressi',mods:['School Learning']},
-    school_teacher:{icon:'👩‍🏫',name:'Maktab o‘qituvchisi',desc:'Sinfga topshiriq berish, o‘quvchi javoblari va sinf progressi',mods:['School Teaching']},
     doctor:{icon:'🩺',name:'Shifokor',desc:'Klinik ta’lim, ilmiy izlanish va professional workspace',mods:['Medical Academy','Research Assistant','PDB & Structure','Bioinformatics','Reports & History']},
     researcher:{icon:'🔬',name:'Olim / Researcher',desc:'Ilmiy tadqiqot, bioinformatika, tajriba va hisobotlar',mods:['Bioinformatics','Molecular Analysis','PDB & Structure','Drug Discovery','Scientific Jobs','Research Assistant','Virtual Laboratory','Reports & History']},
     professor:{icon:'👨‍🏫',name:'Professor',desc:'Ta’lim, assessment, ilmiy rahbarlik va tadqiqot',mods:['Medical Academy','Bioinformatics','Research Assistant','Virtual Laboratory','Reports & History']},
@@ -2172,14 +2164,14 @@ document.addEventListener("DOMContentLoaded", function () {
     company:{icon:'🏢',name:'Biotech / Pharma Company',desc:'Enterprise projectlar, research va operations',mods:['Global Platform','Drug Discovery','Research Assistant','Scientific Jobs','Reports & History']},
     SUPER_ADMIN:{icon:'👑',name:'Super Admin / Owner',desc:'Butun platforma, foydalanuvchilar, tashkilotlar, xavfsizlik va audit nazorati',mods:['Global Platform','Medical Academy','Bioinformatics','Molecular Analysis','PDB & Structure','Drug Discovery','Scientific Jobs','Research Assistant','Virtual Laboratory','Reports & History']}
   };
-  const icons={'School Learning':'📘','Learning Hub':'🌍','School Teaching':'👩‍🏫','AI Teacher Studio':'🧑‍🏫','Clinical Reference':'🩺','Clinical Simulation':'🩺','Medical Academy':'🎓','Bioinformatics':'🧬','Molecular Analysis':'⚗️','PDB & Structure':'🧫','Drug Discovery':'💊','Scientific Jobs':'⚙️','Research Assistant':'📚','Virtual Laboratory':'🧪','Reports & History':'📊','Global Platform':'🌐'};
+  const icons={'Learning Hub':'🌍','Clinical Reference':'🩺','Clinical Simulation':'🩺','Medical Academy':'🎓','Bioinformatics':'🧬','Molecular Analysis':'⚗️','PDB & Structure':'🧫','Drug Discovery':'💊','Scientific Jobs':'⚙️','Research Assistant':'📚','Virtual Laboratory':'🧪','Reports & History':'📊','Global Platform':'🌐'};
   const roleKey=()=>{
     const u=window.__MEDGEN_USER||{};
     const norm=v=>String(v||'').trim().toLowerCase().replace(/[\s-]+/g,'_');
     const aliases={
       super_admin:'SUPER_ADMIN',superadmin:'SUPER_ADMIN',founder:'SUPER_ADMIN',ceo:'SUPER_ADMIN',owner:'SUPER_ADMIN',admin:'SUPER_ADMIN',
-      schoolstudent:'school_student',pupil:'school_student',schoolchild:'school_student',
-      teacher:'school_teacher',schoolteacher:'school_teacher',
+
+
       bioinformatician:'bioinformatician',bioinformatics_specialist:'bioinformatician',
       pharmaceutical:'pharma',pharmacist:'pharma',biotech_company:'company',hospital_admin:'hospital',
       lab_specialist:'lab',laboratory_specialist:'lab',scientist:'researcher'
@@ -2229,8 +2221,8 @@ document.addEventListener("DOMContentLoaded", function () {
     SUPER_ADMIN:ALL_MODULES,
     admin:ALL_MODULES,
     student:['Medical Academy','Learning Hub','Virtual Laboratory'],
-    school_student:['School Learning','Learning Hub'],
-    school_teacher:['School Teaching','AI Teacher Studio'],
+
+
     doctor:['Clinical Reference','Clinical Simulation','Research Assistant','Reports & History'],
     researcher:['Research Assistant','Bioinformatics','Virtual Laboratory','Reports & History'],
     professor:['Medical Academy','Research Assistant','Reports & History'],
@@ -2247,9 +2239,9 @@ document.addEventListener("DOMContentLoaded", function () {
     ru:{menu:'МЕНЮ',dashboard:'Главная',profile:'Мой профиль',scientific:'НАУЧНЫЕ РАБОЧИЕ ПРОСТРАНСТВА',support:'Центр помощи',assistant:'MedGen AI помощник',community:'Сообщество',security:'Центр безопасности',owner:'УПРАВЛЕНИЕ ВЛАДЕЛЬЦА',ownerDash:'Панель Super Admin',workspace:'Рабочее пространство',open:'Открыть →',core:'ОСНОВНАЯ НАУКА',research:'ИССЛЕДОВАНИЯ И ОТКРЫТИЯ',platform:'ПЛАТФОРМА',welcome:'Персональное научное пространство',role:'РОЛЬ',back:'← Главная',supportTitle:'Центр помощи',supportDesc:'Помощь с аккаунтом, платформой или научными модулями.',aiTitle:'AI помощник',aiDesc:'Помощник по биомедицинской платформе и научным workflow.',communityTitle:'Сообщество',communityDesc:'Общайтесь с исследователями и специалистами вашей роли.',securityTitle:'Центр безопасности',securityDesc:'Конфиденциальность, согласия, идентификация и безопасность аккаунта.'}
   };
   const ROLE_I18N={
-    en:{student:'Student',school_student:'School Student',school_teacher:'School Teacher',doctor:'Doctor',researcher:'Researcher',professor:'Professor',lab:'Laboratory Specialist',biotech:'Biotechnologist',pharma:'Pharma',bioinformatician:'Bioinformatician',hospital:'Hospital',company:'Company',admin:'Super Admin / Owner',SUPER_ADMIN:'Super Admin / Owner'},
-    uz:{student:'Talaba',school_student:'Maktab o‘quvchisi',school_teacher:'Maktab o‘qituvchisi',doctor:'Shifokor',researcher:'Olim / Tadqiqotchi',professor:'Professor',lab:'Laboratoriya mutaxassisi',biotech:'Biotexnolog',pharma:'Farmatsevtika',bioinformatician:'Bioinformatik',hospital:'Klinika / Shifoxona',company:'Kompaniya',admin:'Super Admin / Egasi'},
-    ru:{student:'Студент',school_student:'Школьник',school_teacher:'Учитель школы',doctor:'Врач',researcher:'Исследователь',professor:'Профессор',lab:'Лабораторный специалист',biotech:'Биотехнолог',pharma:'Фарма',bioinformatician:'Биоинформатик',hospital:'Больница',company:'Компания',admin:'Super Admin / Владелец'}
+    en:{student:'Student',doctor:'Doctor',researcher:'Researcher',professor:'Professor',lab:'Laboratory Specialist',biotech:'Biotechnologist',pharma:'Pharma',bioinformatician:'Bioinformatician',hospital:'Hospital',company:'Company',admin:'Super Admin / Owner',SUPER_ADMIN:'Super Admin / Owner'},
+    uz:{student:'Talaba',doctor:'Shifokor',researcher:'Olim / Tadqiqotchi',professor:'Professor',lab:'Laboratoriya mutaxassisi',biotech:'Biotexnolog',pharma:'Farmatsevtika',bioinformatician:'Bioinformatik',hospital:'Klinika / Shifoxona',company:'Kompaniya',admin:'Super Admin / Egasi'},
+    ru:{student:'Студент',doctor:'Врач',researcher:'Исследователь',professor:'Профессор',lab:'Лабораторный специалист',biotech:'Биотехнолог',pharma:'Фарма',bioinformatician:'Биоинформатик',hospital:'Больница',company:'Компания',admin:'Super Admin / Владелец'}
   };
   const esc=s=>String(s??'').replace(/[&<>"']/g,m=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[m]));
   const lang=()=>localStorage.getItem('medgen_language')||'uz';
@@ -2259,7 +2251,7 @@ document.addEventListener("DOMContentLoaded", function () {
   function dashboard(){return document.getElementById('dashboardView')}
   function hideAll(){['roleDashboard','moduleDirectory','workspace','educationPreferencePanel','securityCenter','userDirectoryDashboard','adminDashboard','supportCenter','aiCenter','communityCenter'].forEach(id=>document.getElementById(id)?.classList.add('hidden'))}
   function openHome(){hideAll();document.getElementById('roleDashboard')?.classList.remove('hidden');renderHome()}
-  function openModuleSafe(name){if(typeof window.openModule==='function'){window.__MEDGEN_OPENED_MODULE=null;window.openModule(name);if(window.__MEDGEN_OPENED_MODULE!==name)return;const workspace=document.getElementById('workspace');const toolMap={'Molecular Analysis':'molecularTool','Bioinformatics':'bioTool','PDB & Structure':'pdbTool','Drug Discovery':'discoveryTool','Scientific Jobs':'jobsTool','Research Assistant':'researchTool','Virtual Laboratory':'workflowTool','Medical Academy':'studentTool','Reports & History':'reportsTool','Global Platform':'platformTool','School Learning':'schoolLearningWorkspace','School Teaching':'schoolTeachingWorkspace'};const tool=document.getElementById(toolMap[name]);if(workspace)workspace.classList.remove('hidden');if(tool)tool.classList.remove('hidden');document.getElementById('roleDashboard')?.classList.add('hidden');document.getElementById('finalHome')?.classList.add('hidden');}else{hideAll();document.getElementById('workspace')?.classList.remove('hidden');document.getElementById('roleDashboard')?.classList.add('hidden')}}
+  function openModuleSafe(name){if(typeof window.openModule==='function'){window.__MEDGEN_OPENED_MODULE=null;window.openModule(name);if(window.__MEDGEN_OPENED_MODULE!==name)return;const workspace=document.getElementById('workspace');const toolMap={'Molecular Analysis':'molecularTool','Bioinformatics':'bioTool','PDB & Structure':'pdbTool','Drug Discovery':'discoveryTool','Scientific Jobs':'jobsTool','Research Assistant':'researchTool','Virtual Laboratory':'workflowTool','Medical Academy':'studentTool','Reports & History':'reportsTool','Global Platform':'platformTool',};const tool=document.getElementById(toolMap[name]);if(workspace)workspace.classList.remove('hidden');if(tool)tool.classList.remove('hidden');document.getElementById('roleDashboard')?.classList.add('hidden');document.getElementById('finalHome')?.classList.add('hidden');}else{hideAll();document.getElementById('workspace')?.classList.remove('hidden');document.getElementById('roleDashboard')?.classList.add('hidden')}}
   function serviceCard(kind,icon,title,desc){return '<button class="final-service" data-final-service="'+kind+'">'+icon+'<b>'+title+'</b><small>'+desc+'</small></button>'}
   function renderHome(){
     const d=dashboard(),key=roleKey(),r=ROLES[key]||ROLES.student;if(!d)return;
@@ -2268,8 +2260,8 @@ document.addEventListener("DOMContentLoaded", function () {
     const old=document.getElementById('finalHome');if(old)old.remove();
     const home=document.createElement('section');home.id='finalHome';home.className='final-home';
     const core=mods.slice(0,Math.min(5,mods.length)),research=mods.slice(Math.min(5,mods.length));
-    const homeTitles={school_student:'O‘quvchi ish maydoni',school_teacher:'O‘qituvchi boshqaruv paneli',student:'Talaba ish maydoni',doctor:'Klinik ish maydoni',researcher:'Ilmiy tadqiqot paneli',professor:'Ta’lim va ilmiy rahbarlik',lab:'Laboratoriya ish maydoni',biotech:'Biotexnologiya ish maydoni',pharma:'Dori kashf qilish paneli',bioinformatician:'Bioinformatika ish maydoni',hospital:'Klinika boshqaruv paneli',company:'Tashkilot ish maydoni',SUPER_ADMIN:'Platforma boshqaruv markazi'};
-    const coreTitle=key==='school_student'?'O‘QUV BO‘LIMLARI':key==='school_teacher'?'O‘QITUVCHI VOSITALARI':ft('core');
+    const homeTitles={student:'Talaba ish maydoni',doctor:'Klinik ish maydoni',researcher:'Ilmiy tadqiqot paneli',professor:'Ta’lim va ilmiy rahbarlik',lab:'Laboratoriya ish maydoni',biotech:'Biotexnologiya ish maydoni',pharma:'Dori kashf qilish paneli',bioinformatician:'Bioinformatika ish maydoni',hospital:'Klinika boshqaruv paneli',company:'Tashkilot ish maydoni',SUPER_ADMIN:'Platforma boshqaruv markazi'};
+    const coreTitle=ft('core');
     home.classList.add('final-simple-home');
     home.innerHTML='<div class="final-welcome"><div><div class="final-kicker">MEDGEN AI</div><h1>'+r.icon+' '+esc(homeTitles[key]||roleLabel(key)+' — '+ft('workspace'))+'</h1><p>'+esc(r.desc||ft('welcome'))+'</p></div><span class="final-role">'+esc(ft('role'))+': '+esc(roleLabel(key))+'</span></div>'+
       (key==='SUPER_ADMIN'?'<div class="final-admin-strip"><p>Foydalanuvchilar, tasdiqlar, tashkilotlar va tizim faoliyatini boshqarish.</p><button id="finalAdminOpen" class="primary">👑 Boshqaruv panelini ochish →</button></div><details class="final-extra-services final-science-modules"><summary>🧬 Barcha ilmiy modullar ('+mods.length+')</summary><div class="final-section-title">Ilmiy ish maydonlari</div><div class="final-grid">'+mods.map(m=>'<button class="final-module" data-final-module="'+esc(m)+'"><span>'+icons[m]+'</span><b>'+esc(moduleLabel(m))+'</b><small>Ochish →</small></button>').join('')+'</div></details>':'<div class="final-section-title">Sizning bo‘limlaringiz</div><div class="final-grid">'+mods.map(m=>'<button class="final-module" data-final-module="'+esc(m)+'"><span>'+icons[m]+'</span><b>'+esc(moduleLabel(m))+'</b><small>Ochish →</small></button>').join('')+'</div>')+
@@ -2340,7 +2332,7 @@ document.addEventListener("DOMContentLoaded", function () {
           }
         }catch(_){}
       }
-      const aliases={teacher:'school_teacher',schoolteacher:'school_teacher',pupil:'school_student',schoolchild:'school_student',schoolstudent:'school_student',scientist:'researcher',pharmacist:'pharma',pharmaceutical:'pharma',lab_specialist:'lab',laboratory_specialist:'lab',hospital_admin:'hospital'};
+      const aliases={scientist:'researcher',pharmacist:'pharma',pharmaceutical:'pharma',lab_specialist:'lab',laboratory_specialist:'lab',hospital_admin:'hospital'};
       const canonical=aliases[saved]||saved;
       if(canonical && ROLES[canonical] && canonical!=='SUPER_ADMIN' && canonical!=='admin') user.role=canonical;
     }
