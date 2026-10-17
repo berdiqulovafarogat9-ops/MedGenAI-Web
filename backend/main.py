@@ -161,18 +161,25 @@ def _db_init():
         conn.commit()
 
 def _db_load():
+    if DATABASE_URL and psycopg is None:
+        raise RuntimeError("PostgreSQL driver is required when DATABASE_URL is configured")
     if not PERSISTENCE_ENABLED: return
     try:
         _db_init()
         with psycopg.connect(DATABASE_URL) as conn:
             rows = conn.execute("SELECT state_key, state_value FROM medgen_state").fetchall()
         stores={"user_accounts":user_accounts,"user_profiles":user_profiles,"user_consents":user_consents,"role_requests_store":role_requests_store,"experiments_store":experiments_store,"reports_store":reports_store,"academy_syllabi_store":academy_syllabi_store,"activity_log":activity_log,"jobs_store":jobs_store,"workflows_store":workflows_store,"docking_jobs_store":docking_jobs_store,"knowledge_entities_store":knowledge_entities_store,"knowledge_relations_store":knowledge_relations_store,"organizations_store":organizations_store,"school_directory_store":school_directory_store,"school_invitations_store":school_invitations_store,"school_assignments_store":school_assignments_store,"school_submissions_store":school_submissions_store,"memberships_store":memberships_store,"workspaces_store":workspaces_store,"projects_store":projects_store,"api_keys_store":api_keys_store,"platform_audit_log":platform_audit_log,"usage_store":usage_store,"webhooks_store":webhooks_store}
+        # Validate the entire snapshot before changing any process-local state.
+        for key, value in rows:
+            if key in stores and type(value) is not type(stores[key]):
+                raise ValueError("Invalid persisted store type")
         for key,value in rows:
-            if key in stores and isinstance(value,(dict,list)):
+            if key in stores:
                 stores[key].clear()
                 if isinstance(stores[key],dict): stores[key].update(value)
                 else: stores[key].extend(value)
-    except Exception as exc: print(f"PostgreSQL load skipped: {exc}")
+    except Exception as exc:
+        raise RuntimeError("Unable to restore PostgreSQL state; startup aborted") from exc
 
 def _db_save():
     if not PERSISTENCE_ENABLED: return
@@ -182,7 +189,8 @@ def _db_save():
             for key,value in stores.items():
                 conn.execute("INSERT INTO medgen_state(state_key,state_value,updated_at) VALUES (%s,%s::jsonb,NOW()) ON CONFLICT (state_key) DO UPDATE SET state_value=EXCLUDED.state_value,updated_at=NOW()", (key,json.dumps(value,ensure_ascii=False)))
             conn.commit()
-    except Exception as exc: print(f"PostgreSQL save skipped: {exc}")
+    except Exception as exc:
+        raise HTTPException(status_code=503, detail="Ma’lumotni bazaga saqlash amalga oshmadi.") from exc
 
 
 # Load persisted application state once startup definitions are ready.
@@ -3941,11 +3949,7 @@ def discovery_pipeline(data: DiscoveryPipelineRequest, user=Depends(get_current_
     return {"status":"completed","module":"Advanced Drug Discovery","workflow":"Target → Library Filter → Virtual Screening → Ranking → Reproducible Experiment","experiment_id":experiment["id"],"target":target,"filtered_count":len(candidates),"rejected_count":filtered["rejected_count"],"ranked_results":screening["results"],"experiment":experiment}
 
 
-# Initialize persistent platform/application state after all definitions are loaded.
-try:
-    _db_load()
-except Exception as exc:
-    print(f"MedGen state initialization skipped: {exc}")
+# State is restored by the startup handler after all stores are defined.
 
 # =========================================================
 # PHASE 1 — MEDICAL ACADEMY CORE (FINALIZED FOUNDATION)
