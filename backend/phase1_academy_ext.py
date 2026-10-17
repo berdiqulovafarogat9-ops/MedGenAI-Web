@@ -4,7 +4,7 @@ Backward-compatible routes layered on top of the existing Phase 1 core.
 from datetime import datetime, timezone
 from typing import Any
 from fastapi import Depends, HTTPException
-from pydantic import BaseModel
+from pydantic import BaseModel, Field
 
 try:
     from . import main as core
@@ -97,14 +97,61 @@ def academy_academic_record(user=Depends(core.get_current_user)):
     }
 
 
+class TeachingAssignmentRequest(BaseModel):
+    students: list[str] = Field(max_length=500)
+
+
+def _active_role(profile, role):
+    return profile.get("role") == role and profile.get("role_status", "active") == "active"
+
+
+@core.app.get("/api/v1/admin/academy/teaching-assignments")
+def teaching_assignments(user=Depends(core.get_current_user)):
+    core.require_super_admin(user)
+    professors, students = [], []
+    for username, profile in core.user_profiles.items():
+        if username.startswith("__"):
+            continue
+        item = {"username": username, "full_name": profile.get("full_name", "")}
+        if _active_role(profile, "professor"):
+            professors.append({**item, "students": profile.get("teaching_students", [])})
+        elif _active_role(profile, "student"):
+            students.append(item)
+    return {"professors": professors, "students": students}
+
+
+@core.app.put("/api/v1/admin/academy/teaching-assignments/{professor}")
+def update_teaching_assignments(professor: str, data: TeachingAssignmentRequest,
+                                user=Depends(core.get_current_user)):
+    core.require_super_admin(user)
+    profile = core.user_profiles.get(professor, {})
+    if not _active_role(profile, "professor"):
+        raise HTTPException(400, "Active professor required.")
+    students = sorted(set(data.students))
+    if any(not _active_role(core.user_profiles.get(name, {}), "student") for name in students):
+        raise HTTPException(400, "All assignments must reference active students.")
+    previous = list(profile.get("teaching_students", []))
+    profile["teaching_students"] = students
+    core.activity_log.insert(0, {"type": "teaching_assignments_updated",
+        "username": user["username"], "professor": professor,
+        "previous": previous, "students": students, "at": _now()})
+    core._db_save()
+    return {"status": "saved", "professor": professor, "students": students}
+
+
 @core.app.get("/api/v1/academy/professor/overview")
 def academy_professor_overview(user=Depends(core.get_current_user)):
     role = str(user.get("role", "")).lower()
     if role not in {"professor", "super_admin"} and user.get("role") != "SUPER_ADMIN":
         raise HTTPException(status_code=403, detail="Professor or Super Admin access required.")
+    allowed = set(core.user_profiles.get(user["username"], {}).get("teaching_students", []))
     rows = []
     for username, profile in core.user_profiles.items():
         if username.startswith("__") or str(profile.get("role", "")).lower() != "student":
+            continue
+        if role == "professor" and username not in allowed:
+            continue
+        if not _active_role(profile, "student"):
             continue
         ap = profile.get("academic_profile") or {}
         rows.append({
@@ -116,7 +163,7 @@ def academy_professor_overview(user=Depends(core.get_current_user)):
             "year": ap.get("year", 1),
             "group": ap.get("group", ""),
             "student_id": ap.get("student_id", ""),
-            "progress": _progress(username),
+            "progress": profile.get("academy_progress", {}),
         })
     return {"status": "ok", "count": len(rows), "students": rows[:500]}
 

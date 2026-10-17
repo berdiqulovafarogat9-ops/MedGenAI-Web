@@ -26,7 +26,7 @@ from fastapi.security import HTTPAuthorizationCredentials, HTTPBearer
 try:
     from .knowledge_engine import make_entity, make_relation, search_graph, neighborhood, validate_graph, normalize_entity, graph_stats, find_paths
 except ImportError:
-    from knowledge_engine import make_entity, make_relation, search_graph, neighborhood, validate_graph, normalize_entity, graph_stats
+    from knowledge_engine import make_entity, make_relation, search_graph, neighborhood, validate_graph, normalize_entity, graph_stats, find_paths
 from pydantic import BaseModel
 from rdkit import Chem, DataStructs
 from rdkit.Chem import AllChem, Descriptors, Lipinski, QED, rdMolDescriptors
@@ -557,6 +557,8 @@ async def account_readiness_guard(request: Request, call_next):
     academy_learning_path = path in {
         "/api/v1/academy/assessment/start",
         "/api/v1/academy/assessment/submit",
+        "/api/v1/academy/v2/assessment/submit",
+        "/api/v1/academy/lesson/complete",
     }
     if not academy_learning_path and not is_required_profile_complete(profile):
         return JSONResponse(
@@ -569,9 +571,12 @@ async def account_readiness_guard(request: Request, call_next):
     academic_learning_paths = (
         path == "/api/v1/academy/curriculum"
         or path.startswith("/api/v1/academy/subject/")
+        or path.startswith("/api/v1/academy/v2/subject/")
         or path in {
             "/api/v1/academy/assessment/start",
             "/api/v1/academy/assessment/submit",
+            "/api/v1/academy/v2/assessment/submit",
+            "/api/v1/academy/lesson/complete",
         }
         or path.startswith("/api/v1/academy/eligibility/")
     )
@@ -906,6 +911,14 @@ def update_account(data: AccountUpdateRequest, user=Depends(get_current_user)):
                 user_accounts[new_username]["username"] = new_username
             if current in user_profiles:
                 user_profiles[new_username] = user_profiles.pop(current)
+            # Keep explicit teaching grants attached to the renamed account.
+            # Otherwise re-registering the old username could inherit its grants.
+            for teaching_profile in user_profiles.values():
+                if "teaching_students" in teaching_profile:
+                    teaching_profile["teaching_students"] = [
+                        new_username if name == current else name
+                        for name in teaching_profile["teaching_students"]
+                    ]
             for token, owner in list(tokens.items()):
                 if owner == current:
                     tokens[token] = new_username
@@ -2628,10 +2641,10 @@ def dashboard_summary(user=Depends(get_current_user)):
         role_counts[r] = role_counts.get(r, 0) + 1
 
     own_activity = [x for x in activity_log if x.get("username") == username][:20]
-    own_jobs = [x for x in jobs_store if x.get("username") == username]
-    own_workflows = [x for x in workflows_store if x.get("username") == username]
-    own_experiments = [x for x in experiments_store if x.get("username") == username]
-    own_reports = [x for x in reports_store if x.get("username") == username]
+    own_jobs = [x for x in jobs_store if (x.get("user") or x.get("username") or x.get("owner")) == username]
+    own_workflows = [x for x in workflows_store if (x.get("user") or x.get("username") or x.get("owner")) == username]
+    own_experiments = [x for x in experiments_store if (x.get("user") or x.get("username") or x.get("owner")) == username]
+    own_reports = [x for x in reports_store if (x.get("user") or x.get("username") or x.get("owner")) == username]
 
     result = {
         "status": "ok",
@@ -5847,13 +5860,17 @@ def run_scientific_workflow(data: ScientificWorkflowRequest,user=Depends(get_cur
                 except Exception: pass
             result["similarity"]=sorted(sims,key=lambda x:x["similarity"],reverse=True)
             result["stages"].append({"stage":"similarity","status":"completed"})
-    exp={"id":str(uuid.uuid4()),"owner":user["username"],"type":"scientific_workflow",
-         "name":data.name,"target":target,"created_at":result["created_at"],
-         "result":result}
-    experiments_store[exp["id"]]=exp
-    _db_save()
-    result["experiment_id"]=exp["id"]
+    experiment_id = str(uuid.uuid4())
+    result["experiment_id"] = experiment_id
     result["report_ready"]=True
+    # Use the existing list schema and ownership key consumed by history/detail.
+    exp={"id":experiment_id,"owner":user["username"],"user":user["username"],
+         "type":"scientific_workflow","workflow_type":"scientific_workflow",
+         "name":data.name,"target":target,"status":"completed",
+         "created_at":result["created_at"],"updated_at":result["created_at"],
+         "input":data.model_dump(),"parameters":{},"results":result,"result":result}
+    experiments_store.insert(0, exp)
+    _db_save()
     return result
 
 @app.get("/api/v1/scientific/core/status")
