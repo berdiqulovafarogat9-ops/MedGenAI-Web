@@ -1,13 +1,30 @@
-name: Frontend JavaScript Syntax
+name: Frontend regression tests
 on:
   pull_request:
-    branches:
-      - main
+  push:
+    branches: [main]
   workflow_dispatch:
 jobs:
-  syntax:
+  frontend:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
-      - name: Check app.js syntax
-        run: node --check app.js
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '24'
+      - name: Check JavaScript syntax
+        run: |
+          node --check app.js
+          node --check phase1-academy.js
+          node --check phase1-controller.js
+          node --check phase1-shell.js
+      - name: Install DOM test dependency
+        run: npm install --prefix /tmp/medgen-ui-check jsdom@30.1.3 --no-audit --no-fund
+      - name: Run UI and proxy regressions
+        env:
+          NODE_PATH: /tmp/medgen-ui-check/node_modules
+        run: |
+          node tests/school-ui-removal.cjs
+          node tests/learning-hub.cjs
+          node tests/cloudflare-proxy.mjs
+          node tests/script-policy.cjs

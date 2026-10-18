@@ -1,4 +1,6 @@
 import uuid
+import threading
+import copy
 from datetime import datetime, timezone
 import hashlib
 import json
@@ -27,7 +29,7 @@ try:
     from .knowledge_engine import make_entity, make_relation, search_graph, neighborhood, validate_graph, normalize_entity, graph_stats, find_paths
 except ImportError:
     from knowledge_engine import make_entity, make_relation, search_graph, neighborhood, validate_graph, normalize_entity, graph_stats, find_paths
-from pydantic import BaseModel
+from pydantic import BaseModel, Field, StrictInt
 from rdkit import Chem, DataStructs
 from rdkit.Chem import AllChem, Descriptors, Lipinski, QED, rdMolDescriptors
 
@@ -154,13 +156,21 @@ LEGAL_CONSENT_VERSION = "1.2"
 PERSISTENCE_ENABLED = bool(DATABASE_URL and psycopg)
 password_hasher = PasswordHash.recommended() if PasswordHash else None
 
+_PERSISTENCE_LOCK = threading.RLock()
+_state_revision = 0
+
+def _persistent_stores():
+    return {"user_accounts":user_accounts,"user_profiles":user_profiles,"user_consents":user_consents,"role_requests_store":role_requests_store,"experiments_store":experiments_store,"reports_store":reports_store,"academy_syllabi_store":academy_syllabi_store,"activity_log":activity_log,"jobs_store":jobs_store,"workflows_store":workflows_store,"docking_jobs_store":docking_jobs_store,"knowledge_entities_store":knowledge_entities_store,"knowledge_relations_store":knowledge_relations_store,"organizations_store":organizations_store,"school_directory_store":school_directory_store,"school_invitations_store":school_invitations_store,"school_assignments_store":school_assignments_store,"school_submissions_store":school_submissions_store,"memberships_store":memberships_store,"workspaces_store":workspaces_store,"projects_store":projects_store,"api_keys_store":api_keys_store,"platform_audit_log":platform_audit_log,"usage_store":usage_store,"webhooks_store":webhooks_store}
+
 def _db_init():
     if not PERSISTENCE_ENABLED: return
     with psycopg.connect(DATABASE_URL) as conn:
         conn.execute("""CREATE TABLE IF NOT EXISTS medgen_state (state_key TEXT PRIMARY KEY, state_value JSONB NOT NULL, updated_at TIMESTAMPTZ NOT NULL DEFAULT NOW())""")
+        conn.execute("INSERT INTO medgen_state(state_key,state_value) VALUES ('__revision','0'::jsonb) ON CONFLICT (state_key) DO NOTHING")
         conn.commit()
 
 def _db_load():
+    global _state_revision
     if DATABASE_URL and psycopg is None:
         raise RuntimeError("PostgreSQL driver is required when DATABASE_URL is configured")
     if not PERSISTENCE_ENABLED: return
@@ -168,7 +178,10 @@ def _db_load():
         _db_init()
         with psycopg.connect(DATABASE_URL) as conn:
             rows = conn.execute("SELECT state_key, state_value FROM medgen_state").fetchall()
-        stores={"user_accounts":user_accounts,"user_profiles":user_profiles,"user_consents":user_consents,"role_requests_store":role_requests_store,"experiments_store":experiments_store,"reports_store":reports_store,"academy_syllabi_store":academy_syllabi_store,"activity_log":activity_log,"jobs_store":jobs_store,"workflows_store":workflows_store,"docking_jobs_store":docking_jobs_store,"knowledge_entities_store":knowledge_entities_store,"knowledge_relations_store":knowledge_relations_store,"organizations_store":organizations_store,"school_directory_store":school_directory_store,"school_invitations_store":school_invitations_store,"school_assignments_store":school_assignments_store,"school_submissions_store":school_submissions_store,"memberships_store":memberships_store,"workspaces_store":workspaces_store,"projects_store":projects_store,"api_keys_store":api_keys_store,"platform_audit_log":platform_audit_log,"usage_store":usage_store,"webhooks_store":webhooks_store}
+        stores = _persistent_stores()
+        revision = next((v for k, v in rows if k == "__revision"), 0)
+        if type(revision) is not int or revision < 0:
+            raise ValueError("Invalid persisted revision")
         # Validate the entire snapshot before changing any process-local state.
         for key, value in rows:
             if key in stores and type(value) is not type(stores[key]):
@@ -178,17 +191,27 @@ def _db_load():
                 stores[key].clear()
                 if isinstance(stores[key],dict): stores[key].update(value)
                 else: stores[key].extend(value)
+        _state_revision = revision
     except Exception as exc:
         raise RuntimeError("Unable to restore PostgreSQL state; startup aborted") from exc
 
 def _db_save():
+    global _state_revision
     if not PERSISTENCE_ENABLED: return
-    stores={"user_accounts":user_accounts,"user_profiles":user_profiles,"user_consents":user_consents,"role_requests_store":role_requests_store,"experiments_store":experiments_store,"reports_store":reports_store,"academy_syllabi_store":academy_syllabi_store,"activity_log":activity_log,"jobs_store":jobs_store,"workflows_store":workflows_store,"docking_jobs_store":docking_jobs_store,"knowledge_entities_store":knowledge_entities_store,"knowledge_relations_store":knowledge_relations_store,"organizations_store":organizations_store,"school_directory_store":school_directory_store,"school_invitations_store":school_invitations_store,"school_assignments_store":school_assignments_store,"school_submissions_store":school_submissions_store,"memberships_store":memberships_store,"workspaces_store":workspaces_store,"projects_store":projects_store,"api_keys_store":api_keys_store,"platform_audit_log":platform_audit_log,"usage_store":usage_store,"webhooks_store":webhooks_store}
     try:
-        with psycopg.connect(DATABASE_URL) as conn:
-            for key,value in stores.items():
-                conn.execute("INSERT INTO medgen_state(state_key,state_value,updated_at) VALUES (%s,%s::jsonb,NOW()) ON CONFLICT (state_key) DO UPDATE SET state_value=EXCLUDED.state_value,updated_at=NOW()", (key,json.dumps(value,ensure_ascii=False)))
-            conn.commit()
+        with _PERSISTENCE_LOCK:
+            # Snapshot values before opening the transaction; serialize writers in this process.
+            stores = copy.deepcopy(_persistent_stores())
+            with psycopg.connect(DATABASE_URL) as conn:
+                row = conn.execute("SELECT state_value FROM medgen_state WHERE state_key = '__revision' FOR UPDATE").fetchone()
+                if row is None or type(row[0]) is not int or row[0] != _state_revision:
+                    raise RuntimeError("Persisted state changed in another process; restart required")
+                for key, value in stores.items():
+                    conn.execute("INSERT INTO medgen_state(state_key,state_value,updated_at) VALUES (%s,%s::jsonb,NOW()) ON CONFLICT (state_key) DO UPDATE SET state_value=EXCLUDED.state_value,updated_at=NOW()", (key,json.dumps(value,ensure_ascii=False)))
+                next_revision = _state_revision + 1
+                conn.execute("UPDATE medgen_state SET state_value=%s::jsonb, updated_at=NOW() WHERE state_key='__revision'", (json.dumps(next_revision),))
+                conn.commit()
+            _state_revision = next_revision
     except Exception as exc:
         raise HTTPException(status_code=503, detail="Ma’lumotni bazaga saqlash amalga oshmadi.") from exc
 
@@ -416,7 +439,7 @@ def normalize_role(value: str) -> str:
     return "SUPER_ADMIN" if role.upper() == "SUPER_ADMIN" else role
 
 ALLOWED_USER_ROLES = {
-    "student", "school_student", "school_teacher", "doctor", "researcher", "professor",
+    "student", "doctor", "researcher", "professor",
     "lab", "biotech", "pharma", "bioinformatician", "hospital", "company"
 }
 
@@ -552,13 +575,6 @@ async def account_readiness_guard(request: Request, call_next):
         return await call_next(request)
 
     profile = user_profiles.get(username, {})
-    if path.startswith("/api/v1/school/"):
-        is_primary_admin = str(username).strip().casefold() == str(ADMIN_USERNAME).strip().casefold()
-        role = str(profile.get("role") or "").lower()
-        if not is_primary_admin and role not in {"school_student", "school_teacher"}:
-            return JSONResponse(status_code=403, content={"detail": "SCHOOL_ROLE_REQUIRED", "message": "Bu bo‘lim maktab o‘quvchisi yoki o‘qituvchisi uchun."})
-        if not is_primary_admin and str(profile.get("school_status", "pending")).lower() != "approved":
-            return JSONResponse(status_code=403, content={"detail": "SCHOOL_APPROVAL_REQUIRED", "message": "Maktab akkaunti administrator tasdig‘ini kutmoqda."})
     # Medical Academy learning activities use their own academic profile flow.
     # Keep legal consent mandatory, but don't block learning solely because
     # unrelated platform profile fields (e.g. location/date fields) are absent.
@@ -700,10 +716,10 @@ def register(data: RegisterRequest):
     if not 1 <= academic_year <= 6:
         raise HTTPException(status_code=400, detail="Academic year must be between 1 and 6.")
 
-    # Validate school enrollment and invitation before mutating account state.
+    # Reject unsupported roles before mutating account state.
     role = normalize_role(data.role)
     if role not in ALLOWED_USER_ROLES:
-        role = "student"
+        raise HTTPException(status_code=400, detail="Unsupported role.")
     school_name = str(data.school_name or "").strip()[:160]
     class_name = str(data.class_name or "").strip()[:40]
     invitation_code = re.sub(r"[^A-Za-z0-9-]", "", str(data.invitation_code or "").strip()).upper()
@@ -919,6 +935,11 @@ def update_account(data: AccountUpdateRequest, user=Depends(get_current_user)):
                 user_accounts[new_username]["username"] = new_username
             if current in user_profiles:
                 user_profiles[new_username] = user_profiles.pop(current)
+            if current in user_consents:
+                user_consents[new_username] = user_consents.pop(current)
+            for api_key in api_keys_store.values():
+                if api_key.get("created_by") == current:
+                    api_key["created_by"] = new_username
             # Keep explicit teaching grants attached to the renamed account.
             # Otherwise re-registering the old username could inherit its grants.
             for teaching_profile in user_profiles.values():
@@ -927,6 +948,9 @@ def update_account(data: AccountUpdateRequest, user=Depends(get_current_user)):
                         new_username if name == current else name
                         for name in teaching_profile["teaching_students"]
                     ]
+            for record in knowledge_entities_store + knowledge_relations_store:
+                if record.get("owner") == current:
+                    record["owner"] = new_username
             for token, owner in list(tokens.items()):
                 if owner == current:
                     tokens[token] = new_username
@@ -1252,7 +1276,9 @@ def _clean_sequence(raw: str) -> str:
     ]
     if lines and lines[0].startswith(">"):
         lines = lines[1:]
-    return "".join(lines).replace(" ", "").upper()
+    if any(line.startswith(">") for line in lines):
+        raise HTTPException(status_code=400, detail="Submit one FASTA record at a time.")
+    return "".join("".join(lines).split()).upper()
 
 
 def detect_sequence_type(sequence: str) -> str:
@@ -2101,19 +2127,19 @@ def research_agent(data: ResearchAgentRequest, user=Depends(get_current_user)):
     graph_entities_added = []
     graph_relations_added = []
     query_entity = normalize_entity(query)
-    if query and not any(x["id"] == query_entity for x in knowledge_entities_store):
-        knowledge_entities_store.append(make_entity(query, "research_question", "Research Agent"))
+    if query and not any(x["id"] == query_entity for x in knowledge_entities_store if x.get("owner") == user["username"]):
+        knowledge_entities_store.append(_owned_knowledge_entity(user, query, "research_question", "Research Agent"))
         graph_entities_added.append(query_entity)
 
     for item in evidence[:8]:
         pmid = item["pmid"]
         paper_name = f"PMID:{pmid}"
         paper_id = normalize_entity(paper_name)
-        if not any(x["id"] == paper_id for x in knowledge_entities_store):
-            knowledge_entities_store.append(make_entity(paper_name, "publication", "PubMed"))
+        if not any(x["id"] == paper_id for x in knowledge_entities_store if x.get("owner") == user["username"]):
+            knowledge_entities_store.append(_owned_knowledge_entity(user, paper_name, "publication", "PubMed"))
             graph_entities_added.append(paper_id)
         claim = item["evidence"][0] if item["evidence"] else item["title"]
-        rel = make_relation(query, "supported_by", paper_name, "PubMed", claim)
+        rel = _owned_knowledge_relation(user, query, "supported_by", paper_name, "PubMed", claim)
         if rel not in knowledge_relations_store:
             knowledge_relations_store.append(rel)
             graph_relations_added.append(rel)
@@ -2172,14 +2198,14 @@ def autonomous_research(data: ResearchAgentRequest, user=Depends(get_current_use
     top = articles[:8]
     evidence = [{"pmid":a["pmid"],"title":a["title"],"score":a["relevance_score"],"evidence":a["evidence"],"url":a["url"]} for a in top]
     qid = normalize_entity(query)
-    if not any(x["id"] == qid for x in knowledge_entities_store):
-        knowledge_entities_store.append(make_entity(query, "research_question", "PubMed"))
+    if not any(x["id"] == qid for x in knowledge_entities_store if x.get("owner") == user["username"]):
+        knowledge_entities_store.append(_owned_knowledge_entity(user, query, "research_question", "PubMed"))
     added = 0
     for item in evidence:
         pid = normalize_entity("PMID:" + item["pmid"])
-        if not any(x["id"] == pid for x in knowledge_entities_store):
-            knowledge_entities_store.append(make_entity("PMID:" + item["pmid"], "publication", "PubMed"))
-        rel = make_relation(query, "supported_by", "PMID:" + item["pmid"], "PubMed", (item["evidence"] or [item["title"]])[0])
+        if not any(x["id"] == pid for x in knowledge_entities_store if x.get("owner") == user["username"]):
+            knowledge_entities_store.append(_owned_knowledge_entity(user, "PMID:" + item["pmid"], "publication", "PubMed"))
+        rel = _owned_knowledge_relation(user, query, "supported_by", "PMID:" + item["pmid"], "PubMed", (item["evidence"] or [item["title"]])[0])
         if rel not in knowledge_relations_store:
             knowledge_relations_store.append(rel)
             added += 1
@@ -2245,6 +2271,101 @@ class KnowledgeEntityRequest(BaseModel):
     entity_type: str = "concept"
     source: str = "user"
 
+# Learning Hub practice results are graded by the server, not supplied scores.
+HUB_ATTEMPT_LOCK = threading.RLock()
+HUB_ANSWER_KEYS = {
+    "quick": [0, 1, 1, 1, 1, 0, 0, 1, 0, 0, 0, 1],
+    "theory": [0, 0, 0, 0, 0],
+    "clinical": [0, 0, 0, 0, 0],
+    "molecule": [0, 1, 2, 3, 4],
+    "organ": [1, 1, 0, 2, 3],
+    **{"lesson_" + topic: [0] for topic in ("cell", "blood", "heart", "dna", "micro")},
+}
+
+class HubAttemptRequest(BaseModel):
+    attempt_id: uuid.UUID
+    activity: str
+    answers: list[StrictInt] = Field(min_length=1, max_length=12)
+    question_ids: list[StrictInt] = Field(min_length=1, max_length=12)
+    version: int = 1
+
+
+@app.get("/api/v1/learning-hub/progress")
+def hub_progress(user=Depends(get_current_user)):
+    with HUB_ATTEMPT_LOCK:
+        attempts = user_profiles.get(user["username"], {}).get("learning_hub_attempts", [])
+        best = {}
+        for attempt in attempts:
+            activity = attempt["activity"]
+            best[activity] = max(best.get(activity, 0), attempt["percent"])
+        return {"attempts": attempts, "best": best, "retention_limit": 100,
+                "readings": user_profiles.get(user["username"], {}).get("learning_hub_readings", {}),
+                "assessment_kind": "practice", "official_credit": False,
+                "storage": "postgresql" if PERSISTENCE_ENABLED else "process_memory"}
+
+
+@app.post("/api/v1/learning-hub/attempts")
+def hub_attempt(data: HubAttemptRequest, user=Depends(get_current_user)):
+    with HUB_ATTEMPT_LOCK:
+        key = HUB_ANSWER_KEYS.get(data.activity)
+        if data.version != 1 or key is None:
+            raise HTTPException(status_code=400, detail="Unsupported practice version or activity")
+        if (sorted(data.question_ids) != list(range(len(key)))
+                or len(data.answers) != len(key)
+                or any(a < (-1 if data.activity == "organ" else 0) or a >= (5 if data.activity == "molecule" else 4 if data.activity == "organ" else 3) for a in data.answers)):
+            raise HTTPException(status_code=400, detail="A complete set of valid answers is required")
+        profile = user_profiles.setdefault(user["username"], {})
+        attempts = profile.setdefault("learning_hub_attempts", [])
+        attempt_id = str(data.attempt_id)
+        existing = next((a for a in attempts if a["attempt_id"] == attempt_id), None)
+        if existing:
+            if (existing["activity"] != data.activity or existing["answers"] != data.answers
+                    or existing["question_ids"] != data.question_ids):
+                raise HTTPException(status_code=409, detail="Attempt ID already used")
+            return {"status": "saved", "attempt": existing, "storage": "postgresql" if PERSISTENCE_ENABLED else "process_memory"}
+        score = sum(answer == key[q] for q, answer in zip(data.question_ids, data.answers))
+        attempt = {"attempt_id": attempt_id, "activity": data.activity,
+                   "answers": data.answers, "question_ids": data.question_ids,
+                   "score": score, "total": len(key), "percent": round(score * 100 / len(key)),
+                   "version": data.version, "created_at": datetime.now(timezone.utc).isoformat()}
+        previous = attempts[:]
+        attempts.insert(0, attempt)
+        del attempts[100:]
+        try:
+            _db_save()
+        except Exception:
+            # Do not report an unsaved attempt as saved when the client retries.
+            attempts[:] = previous
+            raise
+        return {"status": "saved", "attempt": attempt, "storage": "postgresql" if PERSISTENCE_ENABLED else "process_memory"}
+
+
+class HubReadingRequest(BaseModel):
+    language: str
+    track: str
+
+
+@app.post("/api/v1/learning-hub/readings")
+def hub_reading(data: HubReadingRequest, user=Depends(get_current_user)):
+    if data.language not in {"en", "ru", "de", "fr"} or data.track not in {"medical", "general", "exam"}:
+        raise HTTPException(status_code=400, detail="Unknown language lesson")
+    with HUB_ATTEMPT_LOCK:
+        readings = user_profiles.setdefault(user["username"], {}).setdefault("learning_hub_readings", {})
+        key = data.language + ":" + data.track
+        previous = readings.get(key)
+        readings[key] = {"completed_at": datetime.now(timezone.utc).isoformat(), "self_reported": True}
+        try:
+            _db_save()
+        except Exception:
+            if previous is None:
+                readings.pop(key, None)
+            else:
+                readings[key] = previous
+            raise
+        return {"status": "saved", "reading": readings[key],
+                "storage": "postgresql" if PERSISTENCE_ENABLED else "process_memory"}
+
+
 class KnowledgeRelationRequest(BaseModel):
     subject: str
     relation: str
@@ -2252,18 +2373,33 @@ class KnowledgeRelationRequest(BaseModel):
     source: str = "user"
     evidence: str = ""
 
+def _knowledge_scope(username):
+    # Unattributed legacy rows stay stored but are not shared implicitly.
+    return ([x for x in knowledge_entities_store if x.get("owner") == username],
+            [x for x in knowledge_relations_store if x.get("owner") == username])
+
+
+def _owned_knowledge_entity(user, *args):
+    return {**make_entity(*args), "owner": user["username"]}
+
+
+def _owned_knowledge_relation(user, *args):
+    return {**make_relation(*args), "owner": user["username"]}
+
+
 @app.get("/api/v1/knowledge/graph")
 def knowledge_graph(user=Depends(get_current_user)):
-    return {"status":"ok","entity_count":len(knowledge_entities_store),
-            "relation_count":len(knowledge_relations_store),
-            "entities":knowledge_entities_store[:1000],
-            "relations":knowledge_relations_store[:3000]}
+    entities, relations = _knowledge_scope(user["username"])
+    return {"status":"ok","entity_count":len(entities),
+            "relation_count":len(relations),
+            "entities":entities[:1000],
+            "relations":relations[:3000]}
 
 @app.post("/api/v1/knowledge/entities")
 def knowledge_entity(data: KnowledgeEntityRequest, user=Depends(get_current_user)):
-    entity=make_entity(data.name,data.entity_type,data.source)
+    entity=_owned_knowledge_entity(user, data.name,data.entity_type,data.source)
     if not entity["name"]: raise HTTPException(status_code=400, detail="Entity name is required")
-    if not any(x["id"]==entity["id"] for x in knowledge_entities_store):
+    if not any(x["id"]==entity["id"] for x in knowledge_entities_store if x.get("owner") == user["username"]):
         knowledge_entities_store.append(entity)
         _db_save()
     return {"status":"created","entity":entity}
@@ -2271,9 +2407,11 @@ def knowledge_entity(data: KnowledgeEntityRequest, user=Depends(get_current_user
 @app.delete("/api/v1/knowledge/entities/{entity_id}")
 def knowledge_entity_delete(entity_id: str, user=Depends(get_current_user)):
     key=normalize_entity(entity_id)
+    if not any(e.get("id") == key and e.get("owner") == user["username"] for e in knowledge_entities_store):
+        raise HTTPException(status_code=404, detail="Entity not found")
     before=len(knowledge_entities_store)
-    knowledge_entities_store[:]=[e for e in knowledge_entities_store if e.get("id")!=key]
-    knowledge_relations_store[:]=[r for r in knowledge_relations_store if r.get("subject")!=key and r.get("object")!=key]
+    knowledge_entities_store[:]=[e for e in knowledge_entities_store if not (e.get("id")==key and e.get("owner")==user["username"])]
+    knowledge_relations_store[:]=[r for r in knowledge_relations_store if not (r.get("owner")==user["username"] and (r.get("subject")==key or r.get("object")==key))]
     if len(knowledge_entities_store)==before: raise HTTPException(status_code=404,detail="Entity not found")
     _db_save()
     return {"status":"deleted","entity_id":key}
@@ -2281,11 +2419,11 @@ def knowledge_entity_delete(entity_id: str, user=Depends(get_current_user)):
 
 @app.post("/api/v1/knowledge/relations")
 def knowledge_relation(data: KnowledgeRelationRequest, user=Depends(get_current_user)):
-    try: rel=make_relation(data.subject,data.relation,data.object,data.source,data.evidence)
+    try: rel=_owned_knowledge_relation(user, data.subject,data.relation,data.object,data.source,data.evidence)
     except ValueError as exc: raise HTTPException(status_code=400,detail=str(exc))
     for name in (data.subject,data.object):
-        if not any(x["id"]==normalize_entity(name) for x in knowledge_entities_store):
-            knowledge_entities_store.append(make_entity(name,"concept",data.source))
+        if not any(x["id"]==normalize_entity(name) for x in knowledge_entities_store if x.get("owner") == user["username"]):
+            knowledge_entities_store.append(_owned_knowledge_entity(user, name,"concept",data.source))
     if rel not in knowledge_relations_store:
         knowledge_relations_store.append(rel)
         _db_save()
@@ -2293,30 +2431,35 @@ def knowledge_relation(data: KnowledgeRelationRequest, user=Depends(get_current_
 
 @app.post("/api/v1/knowledge/search")
 def knowledge_search(data: ResearchRequest, user=Depends(get_current_user)):
-    return {"status":"ok",**search_graph(knowledge_entities_store,knowledge_relations_store,data.query,max(1,min(data.limit,50)))}
+    entities, relations = _knowledge_scope(user["username"])
+    return {"status":"ok",**search_graph(entities,relations,data.query,max(1,min(data.limit,50)))}
 
 @app.get("/api/v1/knowledge/neighborhood/{entity}")
 def knowledge_neighborhood(entity: str, hops: int=2, user=Depends(get_current_user)):
-    return {"status":"ok",**neighborhood(knowledge_entities_store,knowledge_relations_store,entity,hops)}
+    entities, relations = _knowledge_scope(user["username"])
+    return {"status":"ok",**neighborhood(entities,relations,entity,hops)}
 
 @app.get("/api/v1/knowledge/validate")
 def knowledge_validate(user=Depends(get_current_user)):
-    errors=validate_graph(knowledge_entities_store,knowledge_relations_store)
-    return {"status":"valid" if not errors else "invalid","errors":errors,"entity_count":len(knowledge_entities_store),"relation_count":len(knowledge_relations_store)}
+    entities, relations = _knowledge_scope(user["username"])
+    errors=validate_graph(entities,relations)
+    return {"status":"valid" if not errors else "invalid","errors":errors,"entity_count":len(entities),"relation_count":len(relations)}
 
 
 @app.get("/api/v1/knowledge/stats")
 def knowledge_stats(user=Depends(get_current_user)):
-    return {"status":"ok", **graph_stats(knowledge_entities_store, knowledge_relations_store)}
+    entities, relations = _knowledge_scope(user["username"])
+    return {"status":"ok", **graph_stats(entities, relations)}
 
 
 @app.get("/api/v1/knowledge/evidence")
 def knowledge_evidence(query: str = "", source: str = "", relation: str = "", limit: int = 50, user=Depends(get_current_user)):
+    entities, relations = _knowledge_scope(user["username"])
     q = query.strip().lower()
     src = source.strip().lower()
     rel = relation.strip().lower().replace(" ", "_")
     items = []
-    for item in knowledge_relations_store:
+    for item in relations:
         if rel and item.get("relation") != rel:
             continue
         if src and src not in str(item.get("source", "")).lower():
@@ -2331,13 +2474,14 @@ def knowledge_evidence(query: str = "", source: str = "", relation: str = "", li
 
 @app.get("/api/v1/knowledge/export")
 def knowledge_export(user=Depends(get_current_user)):
+    entities, relations = _knowledge_scope(user["username"])
     return {
         "status":"ok",
         "format":"medgen-knowledge-v1",
         "generated_at":datetime.now(timezone.utc).isoformat(),
-        "entities":knowledge_entities_store,
-        "relations":knowledge_relations_store,
-        "stats":graph_stats(knowledge_entities_store, knowledge_relations_store),
+        "entities":entities,
+        "relations":relations,
+        "stats":graph_stats(entities, relations),
     }
 
 class KnowledgePathRequest(BaseModel):
@@ -2347,9 +2491,12 @@ class KnowledgePathRequest(BaseModel):
 
 @app.post("/api/v1/knowledge/paths")
 def knowledge_paths(data: KnowledgePathRequest, user=Depends(get_current_user)):
+    entities, relations = _knowledge_scope(user["username"])
     if not data.start.strip() or not data.end.strip():
         raise HTTPException(status_code=400, detail="Start and end entities are required")
-    paths=find_paths(knowledge_entities_store, knowledge_relations_store, data.start, data.end, data.max_hops)
+    ids = {e["id"] for e in entities}
+    paths = (find_paths(entities, relations, data.start, data.end, data.max_hops)
+             if normalize_entity(data.start) in ids and normalize_entity(data.end) in ids else [])
     return {"status":"ok","start":normalize_entity(data.start),"end":normalize_entity(data.end),"paths":paths,"count":len(paths)}
 
 class KnowledgeImportRequest(BaseModel):
@@ -2361,21 +2508,21 @@ class KnowledgeImportRequest(BaseModel):
 def knowledge_import(data: KnowledgeImportRequest, user=Depends(get_current_user)):
     added_entities=0; added_relations=0
     for raw in data.entities:
-        entity=make_entity(str(raw.get("name","")), str(raw.get("type","concept")), data.source)
-        if entity["name"] and not any(x["id"]==entity["id"] for x in knowledge_entities_store):
+        entity=_owned_knowledge_entity(user, str(raw.get("name","")), str(raw.get("type","concept")), data.source)
+        if entity["name"] and not any(x["id"]==entity["id"] for x in knowledge_entities_store if x.get("owner") == user["username"]):
             knowledge_entities_store.append(entity); added_entities+=1
     for raw in data.relations:
         try:
-            rel=make_relation(str(raw.get("subject","")),str(raw.get("relation","")),str(raw.get("object","")),data.source,str(raw.get("evidence","")))
+            rel=_owned_knowledge_relation(user, str(raw.get("subject","")),str(raw.get("relation","")),str(raw.get("object","")),data.source,str(raw.get("evidence","")))
         except ValueError:
             continue
         for name in (rel["subject"],rel["object"]):
-            if not any(x["id"]==normalize_entity(name) for x in knowledge_entities_store):
-                knowledge_entities_store.append(make_entity(name,"concept",data.source))
+            if not any(x["id"]==normalize_entity(name) for x in knowledge_entities_store if x.get("owner") == user["username"]):
+                knowledge_entities_store.append(_owned_knowledge_entity(user, name,"concept",data.source))
         if rel not in knowledge_relations_store:
             knowledge_relations_store.append(rel); added_relations+=1
     _db_save()
-    return {"status":"imported","added_entities":added_entities,"added_relations":added_relations,**graph_stats(knowledge_entities_store,knowledge_relations_store)}
+    return {"status":"imported","added_entities":added_entities,"added_relations":added_relations,**graph_stats(*_knowledge_scope(user["username"]))}
 
 # =========================================================
 # DRUG DISCOVERY PIPELINE
@@ -2869,6 +3016,8 @@ def admin_approve_role(request_id: str, approve: bool=True, user=Depends(get_cur
     req=next((x for x in role_requests_store if x.get("id")==request_id),None)
     if not req: raise HTTPException(status_code=404, detail="Role request not found.")
     if req.get("status")!="PENDING": return {"status":req.get("status")}
+    if approve and normalize_role(req.get("role")) not in ALLOWED_USER_ROLES:
+        raise HTTPException(status_code=400, detail="Unsupported role.")
     req["status"]="APPROVED" if approve else "REJECTED"; req["reviewed_at"]=datetime.now(timezone.utc).isoformat(); req["reviewed_by"]=user["username"]
     if approve:
         p=user_profiles.setdefault(req["username"],{}); roles=[normalize_role(x) for x in (p.get("approved_roles") or [p.get("role","student")])]
@@ -2926,232 +3075,6 @@ def admin_users(user=Depends(get_current_user)):
     }
 
 
-@app.post("/api/v1/admin/school-invitations")
-def admin_create_school_invitation(data: SchoolInvitationRequest, user=Depends(get_current_user)):
-    require_super_admin(user)
-    school_name = str(data.school_name or "").strip()[:160]
-    region = str(data.region or "").strip()[:120]
-    role = normalize_role(data.role)
-    class_name = str(data.class_name or "").strip()[:40]
-    try:
-        expires_in_days = int(data.expires_in_days)
-    except (TypeError, ValueError):
-        raise HTTPException(status_code=400, detail="Taklif muddati noto‘g‘ri.")
-    if not school_name:
-        raise HTTPException(status_code=400, detail="Maktab nomini kiriting.")
-    if role not in {"school_student", "school_teacher"}:
-        raise HTTPException(status_code=400, detail="Taklif faqat o‘quvchi yoki maktab o‘qituvchisi uchun yaratiladi.")
-    if role == "school_student" and not class_name:
-        raise HTTPException(status_code=400, detail="O‘quvchilar kodi uchun sinfni kiriting.")
-    if not 1 <= expires_in_days <= 90:
-        raise HTTPException(status_code=400, detail="Taklif muddati 1–90 kun oralig‘ida bo‘lishi kerak.")
-    raw_code = secrets.token_urlsafe(9).replace("_", "").replace("-", "").upper()[:12]
-    code_hash = hashlib.sha256(raw_code.encode()).hexdigest()
-    now = datetime.now(timezone.utc)
-    invitation = {
-        "id": secrets.token_hex(8), "code_hash": code_hash,
-        "school_name": school_name, "region": region, "role": role, "class_name": class_name,
-        "created_at": now.isoformat(), "created_by": user["username"],
-        "expires_at": (now + __import__("datetime").timedelta(days=expires_in_days)).isoformat(),
-        "max_uses": 100, "used_count": 0, "last_used_at": None, "revoked": False,
-    }
-    school_invitations_store[code_hash] = invitation
-    school_directory_store.setdefault(school_name.casefold(), {"name": school_name, "region": region, "created_at": now.isoformat()})
-    _platform_audit(user, "school.invitation_created", "school", school_name, {"role": role, "class_name": class_name, "expires_in_days": expires_in_days})
-    _db_save()
-    return {"status": "created", "code": raw_code, "school_name": school_name, "region": region, "role": role, "class_name": class_name, "expires_at": invitation["expires_at"], "max_uses": invitation["max_uses"]}
-
-
-@app.get("/api/v1/admin/school-management")
-def admin_school_management(user=Depends(get_current_user)):
-    require_super_admin(user)
-    schools = {}
-    for key, item in school_directory_store.items():
-        schools[key] = {"name": item.get("name", key), "region": item.get("region", ""), "students": 0, "teachers": 0}
-    pending = []
-    for username, profile in user_profiles.items():
-        role = str(profile.get("role", "")).lower()
-        if role not in {"school_student", "school_teacher"}:
-            continue
-        school_name = str(profile.get("school_name") or "").strip()
-        key = school_name.casefold()
-        if school_name:
-            record = schools.setdefault(key, {"name": school_name, "region": profile.get("school_region", ""), "students": 0, "teachers": 0})
-            if role == "school_student":
-                record["students"] += 1
-            else:
-                record["teachers"] += 1
-        status = str(profile.get("school_status", "pending")).lower()
-        if status == "pending":
-            pending.append({
-                "username": username, "full_name": profile.get("full_name", ""), "role": role,
-                "school_name": school_name, "class_name": profile.get("class_name", ""),
-                "school_status": status, "created_at": user_accounts.get(username, {}).get("created_at", ""),
-                "invited": bool(profile.get("invitation_code_used")),
-            })
-    invitations = []
-    for item in school_invitations_store.values():
-        invitations.append({
-            "school_name": item.get("school_name", ""), "role": item.get("role", ""),
-            "class_name": item.get("class_name", ""), "created_at": item.get("created_at", ""),
-            "expires_at": item.get("expires_at", ""), "used_count": int(item.get("used_count", 0)),
-            "max_uses": int(item.get("max_uses", 100)), "revoked": bool(item.get("revoked", False)),
-        })
-    return {"schools": list(schools.values()), "pending": pending, "invitations": invitations}
-
-
-@app.patch("/api/v1/admin/school-management/{username}")
-def admin_review_school_account(username: str, data: SchoolReviewRequest, user=Depends(get_current_user)):
-    require_super_admin(user)
-    target = next((name for name in user_profiles if name.casefold() == username.strip().casefold()), None)
-    if not target:
-        raise HTTPException(status_code=404, detail="Maktab foydalanuvchisi topilmadi.")
-    profile = user_profiles[target]
-    role = str(profile.get("role", "")).lower()
-    if role not in {"school_student", "school_teacher"}:
-        raise HTTPException(status_code=400, detail="Bu akkaunt maktab foydalanuvchisi emas.")
-    now = datetime.now(timezone.utc).isoformat()
-    status = "approved" if data.approve else "rejected"
-    assigned_class = str(data.class_name or "").strip()[:40]
-    if assigned_class:
-        if role == "school_teacher" and not assigned_class:
-            raise HTTPException(status_code=400, detail="O‘qituvchi sinfini belgilang.")
-        profile["class_name"] = assigned_class
-    if data.approve and role == "school_teacher" and not str(profile.get("class_name") or "").strip():
-        raise HTTPException(status_code=400, detail="O‘qituvchini tasdiqlashdan oldin unga sinf biriktiring.")
-    profile["school_status"] = status
-    profile["role_status"] = "active"
-    profile["school_review"] = {
-        "status": status, "submitted_at": (profile.get("school_review") or {}).get("submitted_at"),
-        "reviewed_at": now, "reviewed_by": user["username"], "note": str(data.note or "").strip()[:1000],
-    }
-    if role == "school_student":
-        profile["academic_status"] = status
-        profile["academic_review"] = {
-            "status": status, "submitted_at": (profile.get("academic_review") or {}).get("submitted_at"),
-            "reviewed_at": now, "reviewed_by": user["username"], "note": str(data.note or "").strip()[:1000],
-        }
-    activity_log.insert(0, {"type": "school_account_" + status, "username": target, "role": role, "school_name": profile.get("school_name", ""), "reviewed_by": user["username"], "at": now})
-    _platform_audit(user, "school.account_" + status, "user", target, {"role": role, "school_name": profile.get("school_name", "")})
-    _db_save()
-    return {"status": status, "username": target, "school_status": status, "message": "Maktab akkaunti tasdiqlandi." if data.approve else "Maktab arizasi rad etildi."}
-
-
-@app.post("/api/v1/admin/school-invitations/revoke")
-def admin_revoke_school_invitation(data: dict, user=Depends(get_current_user)):
-    require_super_admin(user)
-    raw_code = str((data or {}).get("code") or "").strip().upper()
-    code_hash = hashlib.sha256(raw_code.encode()).hexdigest()
-    item = school_invitations_store.get(code_hash)
-    if not item:
-        raise HTTPException(status_code=404, detail="Taklif kodi topilmadi.")
-    item["revoked"] = True
-    _db_save()
-    _platform_audit(user, "school.invitation_revoked", "school", item.get("school_name", ""), {})
-    return {"status": "revoked"}
-
-
-@app.get("/api/v1/school/assignments")
-def school_list_assignments(user=Depends(get_current_user)):
-    profile = user_profiles.get(user["username"], {})
-    role = str(profile.get("role") or user.get("role") or "").lower()
-    if role not in {"school_student", "school_teacher"}:
-        raise HTTPException(status_code=403, detail="SCHOOL_ROLE_REQUIRED")
-    school_name = str(profile.get("school_name") or "").strip().casefold()
-    class_name = str(profile.get("class_name") or "").strip().casefold()
-    items = []
-    for item in school_assignments_store.values():
-        if str(item.get("school_name") or "").casefold() != school_name:
-            continue
-        if role == "school_student":
-            if str(item.get("class_name") or "").casefold() != class_name:
-                continue
-            submission = school_submissions_store.get(str(item.get("id")) + ":" + user["username"])
-            items.append({**item, "my_submission": submission})
-        elif item.get("teacher_username") == user["username"]:
-            items.append(item)
-    items.sort(key=lambda x: x.get("created_at", ""), reverse=True)
-    return {"assignments": items, "count": len(items)}
-
-
-@app.post("/api/v1/school/assignments")
-def school_create_assignment(data: SchoolAssignmentRequest, user=Depends(get_current_user)):
-    profile = user_profiles.get(user["username"], {})
-    if str(profile.get("role") or user.get("role") or "").lower() != "school_teacher":
-        raise HTTPException(status_code=403, detail="Faqat tasdiqlangan maktab o‘qituvchisi topshiriq yaratishi mumkin.")
-    school_name = str(profile.get("school_name") or "").strip()
-    assigned_class = str(profile.get("class_name") or "").strip()
-    class_name = str(data.class_name or "").strip()[:40]
-    title = str(data.title or "").strip()[:160]
-    subject = str(data.subject or "").strip()[:100]
-    description = str(data.description or "").strip()[:5000]
-    due_date = str(data.due_date or "").strip()[:40]
-    if not school_name or not assigned_class:
-        raise HTTPException(status_code=403, detail="Topshiriq yaratish uchun administrator o‘qituvchiga maktab va sinf biriktirishi kerak.")
-    if class_name.casefold() != assigned_class.casefold():
-        raise HTTPException(status_code=403, detail="Siz faqat o‘zingizga biriktirilgan sinfga topshiriq bera olasiz.")
-    if not title or not description:
-        raise HTTPException(status_code=400, detail="Topshiriq sarlavhasi va tavsifini kiriting.")
-    now = datetime.now(timezone.utc).isoformat()
-    assignment_id = str(uuid.uuid4())
-    item = {
-        "id": assignment_id, "school_name": school_name, "class_name": assigned_class,
-        "teacher_username": user["username"], "teacher_name": profile.get("full_name", ""),
-        "title": title, "subject": subject, "description": description,
-        "due_date": due_date, "created_at": now, "status": "open",
-    }
-    school_assignments_store[assignment_id] = item
-    _platform_audit(user, "school.assignment_created", "school_assignment", assignment_id, {"school_name": school_name, "class_name": assigned_class})
-    _db_save()
-    return {"status": "created", "assignment": item}
-
-
-@app.post("/api/v1/school/assignments/{assignment_id}/submit")
-def school_submit_assignment(assignment_id: str, data: SchoolSubmissionRequest, user=Depends(get_current_user)):
-    profile = user_profiles.get(user["username"], {})
-    if str(profile.get("role") or user.get("role") or "").lower() != "school_student":
-        raise HTTPException(status_code=403, detail="Faqat o‘quvchi topshiriq yuborishi mumkin.")
-    assignment = school_assignments_store.get(assignment_id)
-    if not assignment:
-        raise HTTPException(status_code=404, detail="Topshiriq topilmadi.")
-    if str(assignment.get("school_name") or "").casefold() != str(profile.get("school_name") or "").casefold() or str(assignment.get("class_name") or "").casefold() != str(profile.get("class_name") or "").casefold():
-        raise HTTPException(status_code=403, detail="Bu topshiriq sizning maktabingiz yoki sinfingiz uchun emas.")
-    answer = str(data.answer or "").strip()[:5000]
-    if not answer:
-        raise HTTPException(status_code=400, detail="Javobni kiriting.")
-    now = datetime.now(timezone.utc).isoformat()
-    key = assignment_id + ":" + user["username"]
-    submission = {
-        "assignment_id": assignment_id, "student_username": user["username"],
-        "student_name": profile.get("full_name", ""), "school_name": profile.get("school_name", ""),
-        "class_name": profile.get("class_name", ""), "answer": answer,
-        "submitted_at": now, "status": "submitted",
-    }
-    school_submissions_store[key] = submission
-    _db_save()
-    return {"status": "submitted", "submission": submission}
-
-
-@app.get("/api/v1/school/submissions")
-def school_list_submissions(user=Depends(get_current_user)):
-    profile = user_profiles.get(user["username"], {})
-    role = str(profile.get("role") or user.get("role") or "").lower()
-    school_name = str(profile.get("school_name") or "").casefold()
-    if role not in {"school_student", "school_teacher"}:
-        raise HTTPException(status_code=403, detail="SCHOOL_ROLE_REQUIRED")
-    result = []
-    for submission in school_submissions_store.values():
-        if str(submission.get("school_name") or "").casefold() != school_name:
-            continue
-        assignment = school_assignments_store.get(submission.get("assignment_id"), {})
-        if role == "school_student" and submission.get("student_username") == user["username"]:
-            result.append({**submission, "assignment_title": assignment.get("title", "")})
-        elif role == "school_teacher" and assignment.get("teacher_username") == user["username"]:
-            result.append({**submission, "assignment_title": assignment.get("title", "")})
-    result.sort(key=lambda x: x.get("submitted_at", ""), reverse=True)
-    return {"submissions": result, "count": len(result)}
-
-
 @app.get("/api/v1/admin/academic-approvals")
 def admin_academic_approvals(user=Depends(get_current_user)):
     """List accounts awaiting academic verification."""
@@ -3159,7 +3082,7 @@ def admin_academic_approvals(user=Depends(get_current_user)):
     pending = []
     reviewed = []
     for username, profile in user_profiles.items():
-        if str(profile.get("role", "student")).lower() not in {"student", "school_student"}:
+        if str(profile.get("role", "student")).lower() not in {"student"}:
             continue
         review = profile.get("academic_review") or {}
         status = str(profile.get("academic_status", "pending")).lower()
@@ -3188,7 +3111,7 @@ def admin_review_academic_approval(
     if not target:
         raise HTTPException(status_code=404, detail="Student account not found.")
     profile = user_profiles[target]
-    if str(profile.get("role", "student")).lower() not in {"student", "school_student"}:
+    if str(profile.get("role", "student")).lower() not in {"student"}:
         raise HTTPException(status_code=400, detail="Only student accounts can receive academic approval.")
     now = datetime.now(timezone.utc).isoformat()
     status = "approved" if approve else "rejected"
@@ -3681,7 +3604,7 @@ def _api_key_context(request: Request):
 @app.get("/api/v1/public/knowledge/stats")
 def public_knowledge_stats(request: Request):
     item = _api_key_context(request)
-    return {"status": "ok", "organization_id": item["organization_id"], **graph_stats(knowledge_entities_store, knowledge_relations_store)}
+    return {"status": "ok", "organization_id": item["organization_id"], **graph_stats(*_knowledge_scope(item["created_by"]))}
 
 @app.get("/api/v1/public/platform/overview")
 def public_platform_overview(request: Request):
@@ -4898,151 +4821,6 @@ def community_post(data: CommunityMessageRequest, user=Depends(get_current_user)
     _db_save()
     return {"status":"sent","message":item}
 
-def _education_assessment_fallback(data: EducationAssessmentRequest) -> list[dict]:
-    # Honest offline fallback: structured teacher prompts, not fabricated answers.
-    lang = str(data.language or "uz").lower()
-    labels = {
-        "uz": ("Tushuncha", "Taqqoslash", "Sabab-oqibat", "Amaliy qo‘llash", "Xulosa"),
-        "en": ("Concept", "Compare", "Cause and effect", "Application", "Conclusion"),
-        "ru": ("Понятие", "Сравнение", "Причина и следствие", "Применение", "Вывод"),
-    }
-    kinds = labels.get(lang, labels["uz"])
-    questions = []
-    for i in range(max(1, min(int(data.question_count or 5), 15))):
-        kind = kinds[i % len(kinds)]
-        questions.append({
-            "number": i + 1,
-            "type": kind,
-            "question": f"{data.topic}: {kind.lower()} bo‘yicha savol matnini o‘qituvchi aniqlashtiradi." if lang == "uz" else (
-                f"{data.topic}: the teacher should complete a {kind.lower()} question." if lang == "en" else
-                f"{data.topic}: преподаватель должен уточнить вопрос типа «{kind.lower()}»."
-            ),
-            "answer": "",
-            "answer_key_status": "teacher_review_required",
-            "points": 1
-        })
-    return questions
-
-
-def _education_ai_generate(data: EducationAssessmentRequest) -> list[dict] | None:
-    api_key = (os.getenv("MEDGEN_AI_API_KEY") or os.getenv("OPENAI_API_KEY") or "").strip()
-    if not api_key:
-        return None
-    base_url = (os.getenv("MEDGEN_AI_BASE_URL") or "https://api.openai.com/v1").rstrip("/")
-    model = (os.getenv("MEDGEN_AI_MODEL") or "gpt-4o-mini").strip()
-    lang_names = {"uz": "Uzbek", "en": "English", "ru": "Russian"}
-    prompt = (
-        "Create a teacher-reviewed practice assessment, not an official exam. "
-        "Return ONLY valid JSON with key questions, an array of objects with number, type, question, "
-        "options (array of 4 strings for multiple-choice, otherwise []), answer, explanation, points. "
-        "Write in " + lang_names.get(data.language.lower(), "Uzbek") + ". "
-        "Use age-appropriate, factually sound content; if the topic is underspecified, ask clear foundational questions. "
-        "No claims this is an official BSB/CHSB test. "
-        f"Subject: {data.subject}; grade: {data.grade}; topic: {data.topic}; "
-        f"assessment type: {data.assessment_type}; count: {data.question_count}; difficulty: {data.difficulty}."
-    )
-    payload = {
-        "model": model,
-        "temperature": 0.2,
-        "response_format": {"type": "json_object"},
-        "messages": [
-            {"role": "system", "content": "You create educational practice drafts for teachers. Accuracy and teacher review are mandatory."},
-            {"role": "user", "content": prompt}
-        ]
-    }
-    req = URLRequest(
-        base_url + "/chat/completions",
-        data=json.dumps(payload, ensure_ascii=False).encode("utf-8"),
-        headers={"Authorization": "Bearer " + api_key, "Content-Type": "application/json"},
-        method="POST"
-    )
-    try:
-        with urlopen(req, timeout=25) as response:
-            result = json.loads(response.read().decode("utf-8"))
-        content = result["choices"][0]["message"]["content"]
-        parsed = json.loads(content)
-        items = parsed.get("questions")
-        if not isinstance(items, list) or not items:
-            return None
-        clean = []
-        for i, item in enumerate(items[:data.question_count]):
-            if not isinstance(item, dict) or not str(item.get("question") or "").strip():
-                continue
-            options = item.get("options", [])
-            clean.append({
-                "number": i + 1,
-                "type": str(item.get("type") or "practice")[:80],
-                "question": str(item.get("question") or "")[:2000],
-                "options": [str(x)[:500] for x in options[:6]] if isinstance(options, list) else [],
-                "answer": str(item.get("answer") or "")[:1500],
-                "explanation": str(item.get("explanation") or "")[:1500],
-                "points": max(1, min(int(item.get("points") or 1), 10)),
-                "answer_key_status": "ai_draft_teacher_review_required"
-            })
-        return clean or None
-    except Exception as exc:
-        print("Education AI provider unavailable; using honest fallback:", type(exc).__name__)
-        return None
-
-
-@app.post("/api/v1/education/generate-assessment")
-def education_generate_assessment(data: EducationAssessmentRequest, user=Depends(get_current_user)):
-    profile = user_profiles.get(user["username"], {})
-    role = str(profile.get("role") or user.get("role") or "").strip().lower()
-    if role not in {"school_teacher", "SUPER_ADMIN".lower()} and user.get("role") != "SUPER_ADMIN":
-        raise HTTPException(status_code=403, detail="Bu vosita maktab o‘qituvchisi uchun.")
-    subject = str(data.subject or "").strip()[:100]
-    grade = str(data.grade or "").strip()[:40]
-    topic = str(data.topic or "").strip()[:180]
-    assessment_type = str(data.assessment_type or "BSB").upper()
-    language = str(data.language or "uz").lower()
-    difficulty = str(data.difficulty or "medium").lower()
-    if not subject or not grade or not topic:
-        raise HTTPException(status_code=400, detail="Fan, sinf va mavzuni to‘ldiring.")
-    if assessment_type not in {"BSB", "CHSB", "PRACTICE"}:
-        assessment_type = "BSB"
-    if language not in {"uz", "en", "ru"}:
-        language = "uz"
-    if difficulty not in {"easy", "medium", "hard"}:
-        difficulty = "medium"
-    clean = EducationAssessmentRequest(
-        subject=subject, grade=grade, topic=topic, assessment_type=assessment_type,
-        question_count=max(1, min(int(data.question_count or 5), 15)),
-        language=language, difficulty=difficulty
-    )
-    questions = _education_ai_generate(clean)
-    mode = "configured_ai_draft" if questions else "template_assisted"
-    if not questions:
-        questions = _education_assessment_fallback(clean)
-    draft = {
-        "id": str(uuid.uuid4()),
-        "subject": subject, "grade": grade, "topic": topic,
-        "assessment_type": assessment_type, "language": language,
-        "difficulty": difficulty, "questions": questions,
-        "generation_mode": mode, "teacher_review_required": True,
-        "created_at": datetime.now(timezone.utc).isoformat(),
-        "created_by": user["username"]
-    }
-    drafts = user_profiles.setdefault(user["username"], {}).setdefault("education_assessment_drafts", [])
-    drafts.insert(0, draft)
-    del drafts[30:]
-    _db_save()
-    return {
-        "status": "ok", "assessment": draft,
-        "notice": "Qoralama: darsda ishlatishdan oldin barcha savol va javoblarni o‘qituvchi tekshirishi shart."
-    }
-
-
-@app.get("/api/v1/education/assessment-drafts")
-def education_list_assessment_drafts(user=Depends(get_current_user)):
-    profile = user_profiles.get(user["username"], {})
-    role = str(profile.get("role") or user.get("role") or "").strip().lower()
-    if role not in {"school_teacher", "super_admin"}:
-        raise HTTPException(status_code=403, detail="Bu bo‘lim maktab o‘qituvchisi uchun.")
-    drafts = profile.get("education_assessment_drafts", [])
-    return {"status": "ok", "drafts": drafts[:30]}
-
-
 @app.post("/api/v1/assistant/chat")
 def assistant_chat(data: AssistantMessageRequest, user=Depends(get_current_user)):
     q=str(data.message or "").strip()
@@ -5116,6 +4894,8 @@ def _translate_dna(sequence: str, frame: int = 1) -> dict[str, Any]:
     seq = _clean_sequence(sequence).replace("U", "T")
     if not seq:
         raise HTTPException(status_code=400, detail="Sequence is required")
+    if set(seq) - DNA_ALPHABET:
+        raise HTTPException(status_code=400, detail="Translation requires DNA or RNA symbols (A, C, G, T/U, N).")
     if frame not in (1, 2, 3):
         raise HTTPException(status_code=400, detail="Frame must be 1, 2 or 3")
     start = frame - 1
@@ -5205,7 +4985,7 @@ def _tanimoto_similarity(smiles_a: str, smiles_b: str) -> float:
 
 def _molecule_descriptors(smiles: str) -> dict[str, Any]:
     mol = Chem.MolFromSmiles(str(smiles).strip())
-    if mol is None:
+    if mol is None or mol.GetNumAtoms() == 0:
         raise ValueError("Invalid SMILES")
     return {
         "input_smiles": str(smiles).strip(),
