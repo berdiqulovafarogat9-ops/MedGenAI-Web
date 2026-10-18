@@ -1,6 +1,7 @@
 name: MedGen AI Build
 
 on:
+  pull_request:
   push:
     branches:
       - main

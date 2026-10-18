@@ -1,0 +1,38 @@
+name: Browser login tests
+on:
+  pull_request:
+  push:
+    branches: [main]
+  workflow_dispatch:
+jobs:
+  browser:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '24'
+      - name: Install preview and browser dependencies
+        run: |
+          pip install fastapi uvicorn httpx rdkit 'pwdlib[argon2]'
+          npm install --prefix /tmp/medgen-browser playwright@1.58.2 --no-audit --no-fund
+          node /tmp/medgen-browser/node_modules/playwright/cli.js install --with-deps chromium
+      - name: Test desktop and mobile login
+        env:
+          NODE_PATH: /tmp/medgen-browser/node_modules
+        run: |
+          python scripts/local_preview.py > /tmp/medgen-preview.log 2>&1 &
+          preview_pid=$!
+          trap 'kill "$preview_pid" || true' EXIT
+          for attempt in $(seq 1 60); do
+            if curl --fail --silent http://127.0.0.1:8080/api/v1/health/live; then break; fi
+            sleep 1
+          done
+          node tests/browser-login.cjs
+      - name: Preview diagnostics
+        if: failure()
+        run: cat /tmp/medgen-preview.log
