@@ -2217,13 +2217,58 @@ function openModule(moduleName) {
     let hub = $('learningHubWorkspace');
     if (!hub) { hub = document.createElement('section'); hub.id = 'learningHubWorkspace'; hub.className = 'tool hidden'; $('workspace')?.appendChild(hub); }
     hub.innerHTML = '<div class="academy-v2"><p class="eyebrow">MEDGEN AI ACADEMY</p><h3>🌍 O‘rganish markazi</h3><p class="muted">Tillar, sertifikat imtihonlari va tibbiy bilimlarni bir joyda mashq qiling. Bu mashqlar tayyorgarlik uchun; rasmiy sertifikat yoki imtihon o‘rnini bosmaydi.</p><div class="grid"><article class="panel"><h4>🗣️ Til kurslari</h4><label>Til<select id="hubLanguage"><option value="en">Ingliz tili</option><option value="ru">Rus tili</option><option value="de">Nemis tili</option><option value="fr">Fransuz tili</option></select></label><label>Yo‘nalish<select id="hubLanguageTrack"><option value="medical">Tibbiyot uchun</option><option value="general">Umumiy muloqot</option><option value="exam">Sertifikat imtihoni</option></select></label><button class="primary" id="hubStartLanguage" type="button">Darsni boshlash</button><div id="hubLanguageLesson" class="status" role="status">Til va yo‘nalishni tanlang.</div></article><article class="panel"><h4>🎮 Tezkor bilim o‘yini</h4><p>Biologiya va tibbiyot terminlari bo‘yicha savolga javob bering, ball to‘plang.</p><button class="primary" id="hubStartGame" type="button">O‘yinni boshlash</button><div id="hubGame" class="status" role="status"></div></article><article class="panel"><h4>🎯 Imtihonga tayyorgarlik</h4><label>Imtihon<select id="hubExam"><option>IELTS</option><option>USMLE</option><option>Milliy sertifikat</option><option>Xalqaro fan olimpiadasi</option></select></label><label>Mavzu<input id="hubExamTopic" maxlength="160" placeholder="Masalan: hujayra tuzilishi"></label><button class="primary" id="hubExamPlan" type="button">Mashq rejasini tuzish</button><div id="hubExamResult" class="status" role="status"></div></article><article class="panel" style="grid-column:1/-1"><h4>🕹️ Organlarni joyiga qo‘y — haqiqiy mini-o‘yin</h4><p>Organni tanlang, so‘ng tanadagi mos joyini bosing. 60 soniyada imkon qadar ko‘pini to‘g‘ri joylashtiring.</p><div id="organGame" style="padding:14px;border-radius:16px;background:linear-gradient(135deg,#101b2b,#173c52);color:#fff"><div style="display:flex;justify-content:space-between;gap:12px;flex-wrap:wrap"><b id="organGameScore">Ball: 0</b><b id="organGameTime">Vaqt: 60 s</b><b id="organGameProgress">0/5</b></div><div id="organGameFeedback" role="status" style="min-height:28px;margin:10px 0">Boshlash tugmasini bosing!</div><div id="organGameChoices" style="display:flex;gap:8px;flex-wrap:wrap;margin:12px 0"></div><div id="organGameBoard" style="display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:10px"></div><button type="button" class="primary" id="organGameStart" style="margin-top:12px">🎮 O‘yinni boshlash</button></div></article><article class="panel"><h4>🧬 3D biologiya animatsiyasi</h4><p>Hujayra modelini aylantirib, tuzilishini ko‘ring. Bu o‘quv uchun sxematik model.</p><div id="hubCell3D" role="img" aria-label="Aylanuvchi hujayraning 3D o‘quv modeli" style="height:240px;width:100%;border-radius:12px;overflow:hidden;background:#101b2b"></div><div id="hubCell3DStatus" class="status" role="status">3D model yuklanmoqda…</div></article><article class="panel" style="grid-column:1/-1"><h4>📚 Haqiqiy nazariya darslari</h4><p>Mavzuni tanlang: qisqa nazariya, asosiy tushunchalar va o‘zingizni tekshirish savoli chiqadi.</p><label>Mavzu<select id="hubTheoryTopic"><option value="cell">Hujayra biologiyasi</option><option value="blood">Qon va qon hujayralari</option><option value="heart">Yurak va qon aylanishi</option><option value="dna">DNK va genetika</option><option value="micro">Mikrobiologiya</option></select></label><button type="button" class="primary" id="hubTheoryOpen">📖 Darsni ochish</button><div id="hubTheoryContent" class="status" role="status">Darsni ochish tugmasini bosing.</div></article><article class="panel"><h4>🧪 Nazariy imtihon</h4><p>5 ta savol, javobni tanlagandan keyin izoh va yakuniy ball.</p><button type="button" class="primary" id="hubTheoryExamStart">Nazariy imtihonni boshlash</button><div id="hubTheoryExam" class="status" role="status"></div></article><article class="panel"><h4>🩺 Amaliy klinik imtihon</h4><p>Vaziyatli savollar orqali klinik fikrlashni mashq qiling. Bu tashxis yoki shifokor maslahati emas.</p><button type="button" class="primary" id="hubClinicalStart">Amaliy imtihonni boshlash</button><div id="hubClinicalExam" class="status" role="status"></div></article><article class="panel"><h4>🧩 Molekula moslashtirish o‘yini</h4><p>Molekula yoki biomolekula nomini uning vazifasi bilan moslang. Har to‘g‘ri javob +10 ball.</p><button type="button" class="primary" id="hubMoleculeStart">O‘yinni boshlash</button><div id="hubMoleculeGame" class="status" role="status"></div></article><article class="panel"><h4>🏆 Musobaqalar va yutuqlar</h4><p>Bu bosqichda o‘quv mashqlari mavjud. Rasmiy musobaqa jadvali va tasdiqlanadigan sertifikatlar alohida integratsiya qilinadi.</p><div id="hubAchievement" class="status">Mashqni yakunlab o‘z natijangizni kuzating.</div></article></div></div>';
+    const hubToken = state.token;
+    const progressBox = document.createElement('div');
+    progressBox.className = 'panel'; progressBox.setAttribute('aria-live', 'polite');
+    hub.querySelector('.academy-v2').appendChild(progressBox);
+    const refreshHubProgress = async () => {
+      progressBox.textContent = 'Saqlangan natijalar yuklanmoqda…';
+      try {
+        const data = await api('/learning-hub/progress');
+        if (!progressBox.isConnected || state.token !== hubToken) return;
+        const labels = {quick:'Tezkor bilim', theory:'Nazariy mashq', clinical:'Klinik mashq', molecule:'Molekulalar',organ:'Organlarni joylashtirish',lesson_cell:'Hujayra darsi',lesson_blood:'Qon darsi',lesson_heart:'Yurak darsi',lesson_dna:'DNK darsi',lesson_micro:'Mikrobiologiya darsi'};
+        progressBox.innerHTML = '<h4>Saqlangan mashq natijalari</h4><p>Oxirgi 100 urinish saqlanadi. Bu rasmiy baho yoki sertifikat emas.</p>' +
+          (data.attempts.length ? '<ul>'+data.attempts.slice(0,10).map(a=>'<li>'+escapeHtml(labels[a.activity]||a.activity)+': '+a.score+'/'+a.total+' ('+a.percent+'%) · '+escapeHtml(new Date(a.created_at).toLocaleString())+'</li>').join('')+'</ul>' : '<p>Hali saqlangan natija yo‘q.</p>') + '<p>O‘qilgan til mini-darslari (o‘zingiz belgilagan): '+Object.keys(data.readings||{}).length+'/12.</p>';
+      } catch (_) {
+        if (progressBox.isConnected) progressBox.textContent = 'Natijalarni yuklab bo‘lmadi. Markazni qayta ochib urinib ko‘ring.';
+      }
+    };
+    const saveHubAttempt = (activity, answers, questionIds, box) => {
+      const payload = {attempt_id:crypto.randomUUID(), activity, answers:[...answers], question_ids:[...questionIds], version:1};
+      const status = document.createElement('div'); status.setAttribute('role','status'); box.appendChild(status);
+      const send = async () => {
+        if (state.token !== hubToken || !status.isConnected) return;
+        status.textContent = 'Natija serverga saqlanmoqda…';
+        try {
+          const data = await api('/learning-hub/attempts',{method:'POST',body:JSON.stringify(payload)});
+          if (state.token !== hubToken || !status.isConnected) return;
+          status.textContent = (data.storage==='postgresql'?'Bazaga saqlandi: ':'Vaqtinchalik server xotirasida: ')+data.attempt.score+'/'+data.attempt.total+'.'+(data.storage==='postgresql'?'':' Server qayta ishga tushsa yo‘qolishi mumkin.');
+          refreshHubProgress();
+        } catch (_) {
+          if (state.token !== hubToken || !status.isConnected) return;
+          status.textContent = 'Saqlash tasdiqlanmadi. ';
+          const retry = document.createElement('button'); retry.type='button'; retry.textContent='Qayta saqlash'; retry.onclick=send; status.appendChild(retry);
+        }
+      };
+      send();
+    };
+    refreshHubProgress();
     const lessons = {
       en:{medical:[['symptom','alomat'],['treatment','davolash'],['blood pressure','qon bosimi']],general:[['Good morning','Xayrli tong'],['How are you?','Qalaysiz?'],['Thank you','Rahmat']],exam:[['reading','o‘qib tushunish'],['listening','tinglab tushunish'],['speaking','gapirish']]},
       ru:{medical:[['симптом','alomat'],['лечение','davolash'],['артериальное давление','qon bosimi']],general:[['Здравствуйте','Salom'],['Как дела?','Ishlaringiz qalay?'],['Спасибо','Rahmat']],exam:[['чтение','o‘qish'],['аудирование','tinglab tushunish'],['говорение','gapirish']]},
       de:{medical:[['das Symptom','alomat'],['die Behandlung','davolash'],['der Blutdruck','qon bosimi']],general:[['Guten Morgen','Xayrli tong'],['Wie geht es Ihnen?','Qalaysiz?'],['Danke','Rahmat']],exam:[['Lesen','o‘qish'],['Hören','tinglash'],['Sprechen','gapirish']]},
       fr:{medical:[['le symptôme','alomat'],['le traitement','davolash'],['la tension artérielle','qon bosimi']],general:[['Bonjour','Salom'],['Comment allez-vous?','Qalaysiz?'],['Merci','Rahmat']],exam:[['lecture','o‘qish'],['écoute','tinglash'],['expression orale','gapirish']]}
     };
-    $('hubStartLanguage')?.addEventListener('click',()=>{const lang=$('hubLanguage')?.value||'en',track=$('hubLanguageTrack')?.value||'medical',items=lessons[lang]?.[track]||[];const box=$('hubLanguageLesson');if(box)box.innerHTML='<b>Bugungi mini-dars</b><ol>'+items.map(x=>'<li><b>'+escapeHtml(x[0])+'</b> — '+escapeHtml(x[1])+'</li>').join('')+'</ol><p>Har bir iborani ovoz chiqarib o‘qing va o‘zingiz gap tuzing.</p>';});
+    $('hubStartLanguage')?.addEventListener('click',()=>{const lang=$('hubLanguage')?.value||'en',track=$('hubLanguageTrack')?.value||'medical',items=lessons[lang]?.[track]||[];const box=$('hubLanguageLesson');if(box)box.innerHTML='<b>Bugungi mini-dars</b><ol>'+items.map(x=>'<li><b>'+escapeHtml(x[0])+'</b> — '+escapeHtml(x[1])+'</li>').join('')+'</ol><p>Har bir iborani ovoz chiqarib o‘qing va o‘zingiz gap tuzing.</p>';
+      const complete=document.createElement('button');complete.type='button';complete.textContent='O‘qib chiqdim';box.appendChild(complete);
+      complete.onclick=async()=>{
+        if(state.token!==hubToken)return;complete.disabled=true;
+        try{const result=await api('/learning-hub/readings',{method:'POST',body:JSON.stringify({language:lang,track})});
+          if(state.token!==hubToken||!complete.isConnected)return;
+          complete.textContent=result.storage==='postgresql'?'O‘qilgan deb saqlandi':'Vaqtinchalik xotirada belgilandi';refreshHubProgress();
+        }catch(_){if(complete.isConnected){complete.disabled=false;complete.textContent='Saqlanmadi — qayta urinish';}}
+      };
+    });
     const gameQuestions=[
       {q:'“Blood pressure” nimani anglatadi?',opts:['Qon bosimi','Qon guruhi','Yurak urishi'],correct:0},
       {q:'Qaysi organ qonni haydaydi?',opts:['O‘pka','Yurak','Buyrak'],correct:1},
@@ -2238,9 +2283,9 @@ function openModule(moduleName) {
       {q:'Inglizcha “careful” so‘zi nimani anglatadi?',opts:['Ehtiyotkor','Charchagan','Tezkor'],correct:0},
       {q:'Miya va orqa miya qaysi tizimga kiradi?',opts:['Nafas olish','Asab tizimi','Ovqat hazm qilish'],correct:1}
     ];
-    let gameIndex=0,gameScore=0;
-    const showGame=()=>{const box=$('hubGame');if(!box)return;if(gameIndex>=gameQuestions.length){box.innerHTML='<b>Natija: '+gameScore+'/'+gameQuestions.length+'</b><p>Ball: '+(gameScore*10)+' XP. Yana mashq qilib natijani yaxshilashingiz mumkin.</p>';$('hubAchievement').textContent='Oxirgi mini-o‘yin natijasi: '+gameScore+'/'+gameQuestions.length;return;}const q=gameQuestions[gameIndex];box.innerHTML='<p><b>Savol '+(gameIndex+1)+'/'+gameQuestions.length+': '+q.q+'</b></p>'+q.opts.map((o,n)=>'<button type="button" class="secondary hub-game-answer" data-answer="'+n+'">'+escapeHtml(o)+'</button> ').join('');box.querySelectorAll('[data-answer]').forEach(b=>b.onclick=()=>{if(Number(b.dataset.answer)===q.correct)gameScore++;gameIndex++;showGame();});};
-    $('hubStartGame')?.addEventListener('click',()=>{gameIndex=0;gameScore=0;showGame();});
+    let gameIndex=0,gameScore=0,gameAnswers=[];
+    const showGame=()=>{const box=$('hubGame');if(!box)return;if(gameIndex>=gameQuestions.length){box.innerHTML='<b>Natija: '+gameScore+'/'+gameQuestions.length+'</b><p>Ball: '+(gameScore*10)+' XP. Yana mashq qilib natijani yaxshilashingiz mumkin.</p>';$('hubAchievement').textContent='Oxirgi mini-o‘yin natijasi: '+gameScore+'/'+gameQuestions.length;saveHubAttempt('quick',gameAnswers,gameQuestions.map((_,i)=>i),box);return;}const q=gameQuestions[gameIndex];box.innerHTML='<p><b>Savol '+(gameIndex+1)+'/'+gameQuestions.length+': '+q.q+'</b></p>'+q.opts.map((o,n)=>'<button type="button" class="secondary hub-game-answer" data-answer="'+n+'">'+escapeHtml(o)+'</button> ').join('');box.querySelectorAll('[data-answer]').forEach(b=>b.onclick=()=>{gameAnswers.push(Number(b.dataset.answer));if(Number(b.dataset.answer)===q.correct)gameScore++;gameIndex++;showGame();});};
+    $('hubStartGame')?.addEventListener('click',()=>{gameIndex=0;gameScore=0;gameAnswers=[];showGame();});
     $('hubExamPlan')?.addEventListener('click',()=>{const exam=$('hubExam')?.value||'IELTS',topic=$('hubExamTopic')?.value.trim()||'asosiy mavzular',box=$('hubExamResult');if(box)box.innerHTML='<b>'+escapeHtml(exam)+' uchun mashq rejasi</b><ol><li>'+escapeHtml(topic)+' bo‘yicha boshlang‘ich bilimni tekshirish.</li><li>15 daqiqa nazariya va asosiy terminlarni takrorlash.</li><li>10 ta amaliy savol yechish va xatolarni qayd etish.</li><li>Ertasi kuni xato qilingan savollarni qayta ishlash.</li></ol><small>Bu umumiy o‘quv rejasi; rasmiy imtihon materiali yoki natijasi emas.</small>';});
 
     const theoryLibrary = {
@@ -2251,9 +2296,9 @@ function openModule(moduleName) {
       micro:{title:'Mikrobiologiya asoslari',body:'Mikroorganizmlarga bakteriyalar, arxeyalar, mikroskopik zamburug‘lar va ayrim boshqa mikroskopik biologik birliklar kiradi. Viruslar hujayraviy tuzilishga ega emas va ko‘payish uchun xo‘jayin hujayraga muhtoj. Antibiotiklar bakteriyalarga qarshi ishlatiladi, virusli infeksiyalarga bevosita ta’sir qilmaydi.',key:'Antibiotiklar asosan nimaga qarshi ishlatiladi?',opts:['Bakteriyalarga','Barcha viruslarga','Allergenga'],correct:0,why:'Antibiotiklar bakteriyalarga ta’sir qiladi; ularni faqat tibbiy ko‘rsatma bilan qo‘llash kerak.'}
     };
     $('hubTheoryOpen')?.addEventListener('click',()=>{
-      const t=theoryLibrary[$('hubTheoryTopic')?.value||'cell'],box=$('hubTheoryContent'); if(!box)return;
+      const topic=$('hubTheoryTopic')?.value||'cell',t=theoryLibrary[topic],box=$('hubTheoryContent'); if(!box)return;
       box.innerHTML='<h5>'+escapeHtml(t.title)+'</h5><p>'+escapeHtml(t.body)+'</p><b>O‘zingizni tekshiring:</b><p>'+escapeHtml(t.key)+'</p>'+t.opts.map((o,i)=>'<button type="button" class="secondary" data-theory-answer="'+i+'">'+escapeHtml(o)+'</button> ').join('')+'<div id="hubTheoryFeedback" role="status"></div>';
-      box.querySelectorAll('[data-theory-answer]').forEach(b=>b.onclick=()=>{const ok=Number(b.dataset.theoryAnswer)===t.correct;box.querySelectorAll('[data-theory-answer]').forEach(x=>x.disabled=true);$('hubTheoryFeedback').innerHTML=(ok?'✅ To‘g‘ri. ':'❌ Hali to‘g‘ri emas. ')+'<p>'+escapeHtml(t.why)+'</p>';});
+      box.querySelectorAll('[data-theory-answer]').forEach(b=>b.onclick=()=>{if(b.disabled)return;const answer=Number(b.dataset.theoryAnswer),ok=answer===t.correct;box.querySelectorAll('[data-theory-answer]').forEach(x=>x.disabled=true);$('hubTheoryFeedback').innerHTML=(ok?'✅ To‘g‘ri. ':'❌ Hali to‘g‘ri emas. ')+'<p>'+escapeHtml(t.why)+'</p>';saveHubAttempt('lesson_'+topic,[answer],[0],box);});
     });
     const examSets={
       theory:[
@@ -2272,11 +2317,11 @@ function openModule(moduleName) {
       ]
     };
     const runExam=(boxId,setKey)=>{
-      const box=$(boxId);if(!box)return;const qs=examSets[setKey];let i=0,score=0,done=false;
+      const box=$(boxId);if(!box)return;const qs=examSets[setKey];let i=0,score=0,done=false;const answers=[];
       const render=()=>{
-        if(i>=qs.length){done=true;box.innerHTML='<h5>Imtihon yakunlandi</h5><p>Natija: <b>'+score+'/'+qs.length+'</b> ('+Math.round(score/qs.length*100)+'%).</p><button type="button" class="primary" id="'+boxId+'Retry">Qayta topshirish</button>';$(boxId+'Retry')?.addEventListener('click',()=>runExam(boxId,setKey));return;}
+        if(i>=qs.length){done=true;box.innerHTML='<h5>Imtihon yakunlandi</h5><p>Natija: <b>'+score+'/'+qs.length+'</b> ('+Math.round(score/qs.length*100)+'%).</p><button type="button" class="primary" id="'+boxId+'Retry">Qayta topshirish</button>';$(boxId+'Retry')?.addEventListener('click',()=>runExam(boxId,setKey));saveHubAttempt(setKey,answers,qs.map((_,n)=>n),box);return;}
         const q=qs[i];box.innerHTML='<p><b>Savol '+(i+1)+'/'+qs.length+': '+escapeHtml(q.q)+'</b></p>'+q.o.map((o,n)=>'<button type="button" class="secondary" data-exam-answer="'+n+'">'+escapeHtml(o)+'</button> ').join('')+'<div id="'+boxId+'Feedback" role="status" style="margin-top:8px"></div>';
-        box.querySelectorAll('[data-exam-answer]').forEach(b=>b.onclick=()=>{if(done)return;const ok=Number(b.dataset.examAnswer)===q.a;if(ok)score++;box.querySelectorAll('[data-exam-answer]').forEach(x=>x.disabled=true);$(boxId+'Feedback').innerHTML=(ok?'✅ To‘g‘ri. ':'❌ Noto‘g‘ri. ')+'<p>'+escapeHtml(q.e)+'</p><button type="button" class="primary" id="'+boxId+'Next">'+(i===qs.length-1?'Natijani ko‘rish':'Keyingi savol')+'</button>';$ (boxId+'Next')?.addEventListener('click',()=>{i++;render();});});
+        box.querySelectorAll('[data-exam-answer]').forEach(b=>b.onclick=()=>{if(done||b.disabled)return;answers.push(Number(b.dataset.examAnswer));const ok=Number(b.dataset.examAnswer)===q.a;if(ok)score++;box.querySelectorAll('[data-exam-answer]').forEach(x=>x.disabled=true);$(boxId+'Feedback').innerHTML=(ok?'✅ To‘g‘ri. ':'❌ Noto‘g‘ri. ')+'<p>'+escapeHtml(q.e)+'</p><button type="button" class="primary" id="'+boxId+'Next">'+(i===qs.length-1?'Natijani ko‘rish':'Keyingi savol')+'</button>';$ (boxId+'Next')?.addEventListener('click',()=>{i++;render();});});
       };render();
     };
     $('hubTheoryExamStart')?.addEventListener('click',()=>runExam('hubTheoryExam','theory'));
@@ -2289,8 +2334,8 @@ function openModule(moduleName) {
       {name:'Antitana',desc:'Muayyan antigenni tanib bog‘lanadi'}
     ];
     $('hubMoleculeStart')?.addEventListener('click',()=>{
-      const box=$('hubMoleculeGame');if(!box)return;let idx=0,score=0;const shuffled=[...moleculePairs].sort(()=>Math.random()-.5);
-      const render=()=>{if(idx>=shuffled.length){box.innerHTML='<h5>O‘yin tugadi!</h5><p>Natija: '+score+'/'+shuffled.length+' moslik, '+(score*10)+' ball.</p><button type="button" class="primary" id="hubMoleculeAgain">Yana o‘ynash</button>'; $('hubMoleculeAgain')?.addEventListener('click',()=> $('hubMoleculeStart')?.click());return;}const p=shuffled[idx];box.innerHTML='<p><b>'+ (idx+1)+'/'+shuffled.length+' — '+escapeHtml(p.name)+'</b></p>'+[...moleculePairs].sort(()=>Math.random()-.5).map((x,n)=>'<button type="button" class="secondary" data-mol="'+n+'" data-correct="'+(x.name===p.name?'1':'0')+'">'+escapeHtml(x.desc)+'</button> ').join('')+'<div id="hubMoleculeFeedback" role="status"></div>';box.querySelectorAll('[data-mol]').forEach(b=>b.onclick=()=>{const ok=b.dataset.correct==='1';if(ok)score++;box.querySelectorAll('[data-mol]').forEach(x=>x.disabled=true);$('hubMoleculeFeedback').textContent=(ok?'✅ To‘g‘ri! ':'❌ To‘g‘ri moslik: ')+p.desc;const n=document.createElement('button');n.className='primary';n.type='button';n.textContent=idx===shuffled.length-1?'Natija':'Keyingi';n.onclick=()=>{idx++;render();};box.appendChild(n);});};render();
+      const box=$('hubMoleculeGame');if(!box)return;let idx=0,score=0;const answers=[],questionIds=[];const shuffled=[...moleculePairs].sort(()=>Math.random()-.5);
+      const render=()=>{if(idx>=shuffled.length){box.innerHTML='<h5>O‘yin tugadi!</h5><p>Natija: '+score+'/'+shuffled.length+' moslik, '+(score*10)+' ball.</p><button type="button" class="primary" id="hubMoleculeAgain">Yana o‘ynash</button>'; $('hubMoleculeAgain')?.addEventListener('click',()=> $('hubMoleculeStart')?.click());saveHubAttempt('molecule',answers,questionIds,box);return;}const p=shuffled[idx];box.innerHTML='<p><b>'+ (idx+1)+'/'+shuffled.length+' — '+escapeHtml(p.name)+'</b></p>'+[...moleculePairs].sort(()=>Math.random()-.5).map((x,n)=>'<button type="button" class="secondary" data-mol="'+moleculePairs.indexOf(x)+'" data-correct="'+(x.name===p.name?'1':'0')+'">'+escapeHtml(x.desc)+'</button> ').join('')+'<div id="hubMoleculeFeedback" role="status"></div>';box.querySelectorAll('[data-mol]').forEach(b=>b.onclick=()=>{if(b.disabled)return;answers.push(Number(b.dataset.mol));questionIds.push(moleculePairs.indexOf(p));const ok=b.dataset.correct==='1';if(ok)score++;box.querySelectorAll('[data-mol]').forEach(x=>x.disabled=true);$('hubMoleculeFeedback').textContent=(ok?'✅ To‘g‘ri! ':'❌ To‘g‘ri moslik: ')+p.desc;const n=document.createElement('button');n.className='primary';n.type='button';n.textContent=idx===shuffled.length-1?'Natija':'Keyingi';n.onclick=()=>{idx++;render();};box.appendChild(n);});};render();
     });
 
     const initOrganGame = () => {
@@ -2311,7 +2356,7 @@ function openModule(moduleName) {
         {id:'upperbelly',label:'🍽️ QORIN YUQORI QISMI',accept:['stomach']},
         {id:'back',label:'🫘 BEL SOHASI',accept:['kidneys']}
       ];
-      let selected=null, placed=new Set(), score=0, seconds=60, timer=null, active=false;
+      let selected=null, placed=new Set(), score=0, seconds=60, timer=null, active=false, placements={};
       const shuffle = a => a.map(v=>[Math.random(),v]).sort((x,y)=>x[0]-y[0]).map(x=>x[1]);
       const render = () => {
         $('organGameScore').textContent='Ball: '+score;
@@ -2320,10 +2365,10 @@ function openModule(moduleName) {
         choices.innerHTML=shuffle(organs.filter(o=>!placed.has(o.id))).map(o=>'<button type="button" data-organ="'+o.id+'" style="border:2px solid '+(selected===o.id?'#f8d66d':'#6b94ad')+';border-radius:12px;padding:10px;background:'+(selected===o.id?'#f8d66d':'#203b50')+';color:'+(selected===o.id?'#14202b':'#fff')+';font-weight:700">'+o.name+'</button>').join('');
         board.innerHTML=zones.map(z=>'<button type="button" data-zone="'+z.id+'" style="min-height:94px;border:2px dashed #84b5c9;border-radius:14px;padding:10px;background:#173448;color:#fff;text-align:center"><b>'+z.label+'</b><div style="margin-top:8px">'+organs.filter(o=>placed.has(o.id)&&z.accept.includes(o.id)).map(o=>o.name).join(' · ')+'</div></button>').join('');
         choices.querySelectorAll('[data-organ]').forEach(b=>b.onclick=()=>{if(!active)return;selected=b.dataset.organ;const o=organs.find(x=>x.id===selected);feedback.textContent='Tanlangan: '+o.name+'. Endi mos tana qismini bosing.';render();});
-        board.querySelectorAll('[data-zone]').forEach(b=>b.onclick=()=>{if(!active||!selected){feedback.textContent='Avval pastdagi organni tanlang.';return;}const z=zones.find(x=>x.id===b.dataset.zone),o=organs.find(x=>x.id===selected);if(z.accept.includes(o.id)){placed.add(o.id);score+=10;feedback.textContent='✅ To‘g‘ri! '+o.hint;selected=null;render();if(placed.size===organs.length)finish(true);}else{score=Math.max(0,score-2);feedback.textContent='❌ Bu joy mos emas. Maslahat: '+o.hint;render();}});
+        board.querySelectorAll('[data-zone]').forEach(b=>b.onclick=()=>{if(!active||!selected){feedback.textContent='Avval pastdagi organni tanlang.';return;}const z=zones.find(x=>x.id===b.dataset.zone),o=organs.find(x=>x.id===selected);if(z.accept.includes(o.id)){placed.add(o.id);placements[o.id]=zones.indexOf(z);score+=10;feedback.textContent='✅ To‘g‘ri! '+o.hint;selected=null;render();if(placed.size===organs.length)finish(true);}else{score=Math.max(0,score-2);feedback.textContent='❌ Bu joy mos emas. Maslahat: '+o.hint;render();}});
       };
-      const finish=won=>{active=false;clearInterval(timer);timer=null;start.textContent='🔁 Qayta o‘ynash';feedback.textContent=(won?'🏆 Ajoyib! Barcha organlar joyida. ':'⏱️ Vaqt tugadi. ' )+'Yakuniy ball: '+score+'. Qayta o‘ynash uchun tugmani bosing.';};
-      start.onclick=()=>{clearInterval(timer);selected=null;placed=new Set();score=0;seconds=60;active=true;start.textContent='🔄 Qaytadan boshlash';feedback.textContent='Organni tanlang va mos tana qismini bosing!';render();timer=setInterval(()=>{seconds--; $('organGameTime').textContent='Vaqt: '+seconds+' s';if(seconds<=0)finish(false);},1000);};
+      const finish=won=>{if(!active)return;active=false;clearInterval(timer);timer=null;start.textContent='🔁 Qayta o‘ynash';feedback.textContent=(won?'🏆 Ajoyib! Barcha organlar joyida. ':'⏱️ Vaqt tugadi. ' )+'Yakuniy ball: '+score+'. Qayta o‘ynash uchun tugmani bosing.';saveHubAttempt('organ',organs.map(o=>placements[o.id]??-1),organs.map((_,i)=>i),feedback);};
+      start.onclick=()=>{clearInterval(timer);selected=null;placed=new Set();placements={};score=0;seconds=60;active=true;start.textContent='🔄 Qaytadan boshlash';feedback.textContent='Organni tanlang va mos tana qismini bosing!';render();timer=setInterval(()=>{if(!start.isConnected){clearInterval(timer);active=false;return;}seconds--; $('organGameTime').textContent='Vaqt: '+seconds+' s';if(seconds<=0)finish(false);},1000);};
       render();
     };
     const initHubCell3D = () => {
