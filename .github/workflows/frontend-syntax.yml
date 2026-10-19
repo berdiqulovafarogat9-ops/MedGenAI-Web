@@ -28,3 +28,5 @@ jobs:
           node tests/learning-hub.cjs
           node tests/cloudflare-proxy.mjs
           node tests/script-policy.cjs
+          node tests/cabinet-navigation.cjs
+          node tests/docking-form.cjs

@@ -33,6 +33,7 @@ jobs:
             sleep 1
           done
           node tests/browser-login.cjs
+          node tests/browser-workspaces.cjs
       - name: Preview diagnostics
         if: failure()
         run: cat /tmp/medgen-preview.log
