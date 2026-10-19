@@ -1,0 +1,31 @@
+const {JSDOM}=require('jsdom');
+const fs=require('node:fs'),path=require('node:path'),vm=require('node:vm'),assert=require('node:assert/strict');
+const html=fs.readFileSync(path.join(__dirname,'../index.html'),'utf8');
+const dom=new JSDOM(html,{url:'https://medgen-web.onrender.com',runScripts:'outside-only'});
+const w=dom.window;
+let allow=true,opened=[];
+w.openModule=name=>{w.__MEDGEN_OPENED_MODULE=allow?name:null;if(allow)opened.push(name);};
+w.loadAdminDashboard=()=>{};
+const script=[...w.document.querySelectorAll('script:not([src])')].find(s=>s.textContent.includes('window.medgenFinalBoot=bootUser'));
+assert.ok(script);
+vm.runInContext(script.textContent,dom.getInternalVMContext());
+for(const role of ['student','doctor','researcher','professor','lab','biotech','pharma','bioinformatician','hospital','company','SUPER_ADMIN']){
+ w.medgenFinalBoot({username:'fixture',role});
+ assert.equal(w.document.querySelectorAll('#finalHome').length,1);
+ assert.equal(w.document.querySelectorAll('.cabinet-card').length,6);
+ assert.equal(!!w.document.getElementById('finalAdminOpen'),role==='SUPER_ADMIN');
+ for(const link of w.document.querySelectorAll('.cabinet-nav a'))assert.ok(w.document.querySelector(link.getAttribute('href')));
+ const home=w.document.getElementById('finalHome');
+ const button=home.querySelector('[data-final-module]');assert.ok(button);
+ allow=false;button.click();assert.equal(home.classList.contains('hidden'),false,'denied opening retains home');
+ allow=true;button.click();assert.ok(home.classList.contains('hidden'),'allowed opening hides home');
+ assert.equal(opened.at(-1),button.dataset.finalModule);
+}
+w.medgenFinalBoot({role:'student',username:'fixture'});
+assert.ok(w.document.querySelector('#cabinet-bio .cabinet-access'));
+assert.equal(w.document.querySelectorAll('#cabinet-management button').length,0);
+w.medgenFinalBoot({role:'SUPER_ADMIN',username:'fixture'});
+w.document.getElementById('finalAdminOpen').click();
+assert.ok(w.document.getElementById('finalHome').classList.contains('hidden'));
+console.log('PASS: six sections, 11 roles, module routing, denied navigation and admin separation');
+w.close();
