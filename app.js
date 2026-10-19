@@ -827,6 +827,29 @@ function translateResult(value) {
 function renderResult(element, data) {
 
   if (!element) return;
+  // Summaries use only returned measurements; never substitute demo values.
+  document.getElementById(element.id + 'Summary')?.remove();
+  let measurements = [];
+  if (element.id === 'molecularResult' && data.analysis) {
+    const a = data.analysis;
+    measurements = [['Formula', a.molecular_formula], ['Molekulyar massa (g/mol)', a.molecular_weight], ['LogP', a.logP], ['TPSA (Å²)', a.TPSA]];
+  } else if (element.id === 'bioResult') {
+    measurements = [['Ketma-ketlik turi', data.sequence_type], ['Uzunlik', data.length], ['Noaniq belgilar', data.ambiguous_bases]];
+    if (['DNA', 'RNA'].includes(data.sequence_type)) measurements.push(['GC (%)', data.gc_content_percent]);
+  }
+  measurements = measurements.filter(([,value]) => value !== undefined && value !== null);
+  if (measurements.length) {
+    const summary = document.createElement('section');
+    summary.id = element.id + 'Summary'; summary.className = 'measurement-summary';
+    summary.setAttribute('aria-label', 'Hisoblangan natijalar');
+    const title = document.createElement('h3'); title.textContent = 'Hisoblangan natijalar'; summary.appendChild(title);
+    const grid = document.createElement('dl');
+    measurements.forEach(([label,value]) => {
+      const cell = document.createElement('div'), term = document.createElement('dt'), result = document.createElement('dd');
+      term.textContent = label; result.textContent = String(value); cell.append(term,result); grid.appendChild(cell);
+    });
+    summary.appendChild(grid); element.before(summary);
+  }
 
   const translated =
     translateResult(data);
@@ -2206,6 +2229,31 @@ function openModule(moduleName) {
   $('adminDashboard')?.classList.add('hidden');
 
   openWorkspace(moduleName);
+  // A consistent orientation strip for every scientific/education workspace.
+  const guideConfig = {
+    'Medical Academy': ['Ta’lim markazi', 'Fan va kursni tanlang', 'Darsni o‘rganing', 'Mashq natijasini tekshiring'],
+    'Learning Hub': ['Ta’lim markazi', 'Mashqni tanlang', 'Javoblarni yuboring', 'Saqlangan natijani ko‘ring'],
+    'Bioinformatics': ['Bioinformatika', 'Ketma-ketlikni kiriting', 'Tahlilni ishga tushiring', 'Natijani tekshiring'],
+    'Molecular Analysis': ['Molekula va 3D', 'SMILES kiriting', 'Xossalarni hisoblang', 'Natijani solishtiring'],
+    'PDB & Structure': ['Molekula va 3D', 'PDB identifikatorini kiriting', 'Tuzilmani yuklang', 'Modelni tekshiring'],
+    'Drug Discovery': ['Molekula va 3D', 'Kirish ma’lumotini tayyorlang', 'Hisoblash usulini tanlang', 'Cheklovlar bilan baholang'],
+    'Research Assistant': ['Ilmiy tadqiqot', 'Ilmiy savolni yozing', 'Manbalarni qidiring', 'Dalillarni tekshiring'],
+    'Virtual Laboratory': ['Virtual laboratoriya', 'Ish jarayonini tanlang', 'Bosqichlarni bajaring', 'Hisobotni ko‘ring'],
+    'Scientific Jobs': ['Virtual laboratoriya', 'Vazifani tanlang', 'Holatini kuzating', 'Natijani tekshiring'],
+    'Global Platform': ['Boshqaruv paneli', 'Tashkilotni tanlang', 'Loyiha va a’zolar', 'Ruxsatlarni tekshiring'],
+    'Reports & History': ['Natijalar tarixi', 'Hisobotni tanlang', 'Tafsilotlarni ko‘ring', 'Natijani tekshiring']
+  };
+  let guide = $('workspaceGuide');
+  if (!guide) {
+    guide = document.createElement('section'); guide.id = 'workspaceGuide';
+    guide.setAttribute('aria-label', 'Bo‘limdan foydalanish tartibi');
+    $('workspace')?.querySelector('.workspace-head')?.after(guide);
+  }
+  const steps = guideConfig[moduleName];
+  guide.classList.toggle('hidden', !steps);
+  if (steps) {
+    guide.innerHTML = '<p class="workspace-breadcrumb">Kabinet / '+escapeHtml(steps[0])+'</p><ol>'+steps.slice(1).map((text,i)=>'<li><span>'+ (i+1) +'</span>'+escapeHtml(text)+'</li>').join('')+'</ol>';
+  }
 
   document
     .querySelectorAll('.tool')
@@ -2219,8 +2267,15 @@ function openModule(moduleName) {
     hub.innerHTML = '<div class="academy-v2"><p class="eyebrow">MEDGEN AI ACADEMY</p><h3>🌍 O‘rganish markazi</h3><p class="muted">Tillar, sertifikat imtihonlari va tibbiy bilimlarni bir joyda mashq qiling. Bu mashqlar tayyorgarlik uchun; rasmiy sertifikat yoki imtihon o‘rnini bosmaydi.</p><div class="grid"><article class="panel"><h4>🗣️ Til kurslari</h4><label>Til<select id="hubLanguage"><option value="en">Ingliz tili</option><option value="ru">Rus tili</option><option value="de">Nemis tili</option><option value="fr">Fransuz tili</option></select></label><label>Yo‘nalish<select id="hubLanguageTrack"><option value="medical">Tibbiyot uchun</option><option value="general">Umumiy muloqot</option><option value="exam">Sertifikat imtihoni</option></select></label><button class="primary" id="hubStartLanguage" type="button">Darsni boshlash</button><div id="hubLanguageLesson" class="status" role="status">Til va yo‘nalishni tanlang.</div></article><article class="panel"><h4>🎮 Tezkor bilim o‘yini</h4><p>Biologiya va tibbiyot terminlari bo‘yicha savolga javob bering, ball to‘plang.</p><button class="primary" id="hubStartGame" type="button">O‘yinni boshlash</button><div id="hubGame" class="status" role="status"></div></article><article class="panel"><h4>🎯 Imtihonga tayyorgarlik</h4><label>Imtihon<select id="hubExam"><option>IELTS</option><option>USMLE</option><option>Milliy sertifikat</option><option>Xalqaro fan olimpiadasi</option></select></label><label>Mavzu<input id="hubExamTopic" maxlength="160" placeholder="Masalan: hujayra tuzilishi"></label><button class="primary" id="hubExamPlan" type="button">Mashq rejasini tuzish</button><div id="hubExamResult" class="status" role="status"></div></article><article class="panel" style="grid-column:1/-1"><h4>🕹️ Organlarni joyiga qo‘y — haqiqiy mini-o‘yin</h4><p>Organni tanlang, so‘ng tanadagi mos joyini bosing. 60 soniyada imkon qadar ko‘pini to‘g‘ri joylashtiring.</p><div id="organGame" style="padding:14px;border-radius:16px;background:linear-gradient(135deg,#101b2b,#173c52);color:#fff"><div style="display:flex;justify-content:space-between;gap:12px;flex-wrap:wrap"><b id="organGameScore">Ball: 0</b><b id="organGameTime">Vaqt: 60 s</b><b id="organGameProgress">0/5</b></div><div id="organGameFeedback" role="status" style="min-height:28px;margin:10px 0">Boshlash tugmasini bosing!</div><div id="organGameChoices" style="display:flex;gap:8px;flex-wrap:wrap;margin:12px 0"></div><div id="organGameBoard" style="display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:10px"></div><button type="button" class="primary" id="organGameStart" style="margin-top:12px">🎮 O‘yinni boshlash</button></div></article><article class="panel"><h4>🧬 3D biologiya animatsiyasi</h4><p>Hujayra modelini aylantirib, tuzilishini ko‘ring. Bu o‘quv uchun sxematik model.</p><div id="hubCell3D" role="img" aria-label="Aylanuvchi hujayraning 3D o‘quv modeli" style="height:240px;width:100%;border-radius:12px;overflow:hidden;background:#101b2b"></div><div id="hubCell3DStatus" class="status" role="status">3D model yuklanmoqda…</div></article><article class="panel" style="grid-column:1/-1"><h4>📚 Haqiqiy nazariya darslari</h4><p>Mavzuni tanlang: qisqa nazariya, asosiy tushunchalar va o‘zingizni tekshirish savoli chiqadi.</p><label>Mavzu<select id="hubTheoryTopic"><option value="cell">Hujayra biologiyasi</option><option value="blood">Qon va qon hujayralari</option><option value="heart">Yurak va qon aylanishi</option><option value="dna">DNK va genetika</option><option value="micro">Mikrobiologiya</option></select></label><button type="button" class="primary" id="hubTheoryOpen">📖 Darsni ochish</button><div id="hubTheoryContent" class="status" role="status">Darsni ochish tugmasini bosing.</div></article><article class="panel"><h4>🧪 Nazariy imtihon</h4><p>5 ta savol, javobni tanlagandan keyin izoh va yakuniy ball.</p><button type="button" class="primary" id="hubTheoryExamStart">Nazariy imtihonni boshlash</button><div id="hubTheoryExam" class="status" role="status"></div></article><article class="panel"><h4>🩺 Amaliy klinik imtihon</h4><p>Vaziyatli savollar orqali klinik fikrlashni mashq qiling. Bu tashxis yoki shifokor maslahati emas.</p><button type="button" class="primary" id="hubClinicalStart">Amaliy imtihonni boshlash</button><div id="hubClinicalExam" class="status" role="status"></div></article><article class="panel"><h4>🧩 Molekula moslashtirish o‘yini</h4><p>Molekula yoki biomolekula nomini uning vazifasi bilan moslang. Har to‘g‘ri javob +10 ball.</p><button type="button" class="primary" id="hubMoleculeStart">O‘yinni boshlash</button><div id="hubMoleculeGame" class="status" role="status"></div></article><article class="panel"><h4>🏆 Musobaqalar va yutuqlar</h4><p>Bu bosqichda o‘quv mashqlari mavjud. Rasmiy musobaqa jadvali va tasdiqlanadigan sertifikatlar alohida integratsiya qilinadi.</p><div id="hubAchievement" class="status">Mashqni yakunlab o‘z natijangizni kuzating.</div></article></div></div>';
     const hubToken = state.token;
     const progressBox = document.createElement('div');
+    progressBox.id = 'hubProgress'; progressBox.tabIndex = -1;
     progressBox.className = 'panel'; progressBox.setAttribute('aria-live', 'polite');
     hub.querySelector('.academy-v2').appendChild(progressBox);
+    const historyNav = document.createElement('nav'); historyNav.className = 'hub-history-nav';
+    historyNav.setAttribute('aria-label', 'O‘quv natijalari');
+    const historyButton = document.createElement('button'); historyButton.type = 'button';
+    historyButton.className = 'ghost'; historyButton.textContent = 'Natijalar tarixini ko‘rish ↓';
+    historyButton.onclick = () => { progressBox.scrollIntoView({block:'start'}); progressBox.focus({preventScroll:true}); };
+    historyNav.appendChild(historyButton); hub.querySelector('.academy-v2 > .grid').before(historyNav);
     const refreshHubProgress = async () => {
       progressBox.textContent = 'Saqlangan natijalar yuklanmoqda…';
       try {
@@ -2229,8 +2284,12 @@ function openModule(moduleName) {
         const labels = {quick:'Tezkor bilim', theory:'Nazariy mashq', clinical:'Klinik mashq', molecule:'Molekulalar',organ:'Organlarni joylashtirish',lesson_cell:'Hujayra darsi',lesson_blood:'Qon darsi',lesson_heart:'Yurak darsi',lesson_dna:'DNK darsi',lesson_micro:'Mikrobiologiya darsi'};
         progressBox.innerHTML = '<h4>Saqlangan mashq natijalari</h4><p>Oxirgi 100 urinish saqlanadi. Bu rasmiy baho yoki sertifikat emas.</p>' +
           (data.attempts.length ? '<ul>'+data.attempts.slice(0,10).map(a=>'<li>'+escapeHtml(labels[a.activity]||a.activity)+': '+a.score+'/'+a.total+' ('+a.percent+'%) · '+escapeHtml(new Date(a.created_at).toLocaleString())+'</li>').join('')+'</ul>' : '<p>Hali saqlangan natija yo‘q.</p>') + '<p>O‘qilgan til mini-darslari (o‘zingiz belgilagan): '+Object.keys(data.readings||{}).length+'/12.</p>';
-      } catch (_) {
-        if (progressBox.isConnected) progressBox.textContent = 'Natijalarni yuklab bo‘lmadi. Markazni qayta ochib urinib ko‘ring.';
+      } catch (error) {
+        if (progressBox.isConnected && state.token === hubToken) {
+          progressBox.textContent = 'Natijalar tarixi ochilmadi: ' +
+            (error?.message || 'Server bilan aloqa uzildi.') +
+            ' Kerakli amalni bajargach, Learning Hubni qayta oching.';
+        }
       }
     };
     const saveHubAttempt = (activity, answers, questionIds, box) => {
@@ -2687,6 +2746,9 @@ async function analyzeMolecule() {
   const result =
     $('molecularResult');
 
+  if (result) result.textContent = '';
+  $('molecularResultSummary')?.remove();
+
   if (!smiles) {
 
     if (status) {
@@ -2752,6 +2814,9 @@ async function runBioinformatics() {
 
   const result =
     $('bioResult');
+
+  if (result) result.textContent = '';
+  $('bioResultSummary')?.remove();
 
   if (!sequence) {
 
@@ -3013,20 +3078,34 @@ async function runDocking() {
   const target=parts[0]||'';
   const ligand_smiles=parts[1]||'';
   if(!target||!ligand_smiles){if(status)status.textContent='Format: Target | ligand SMILES';return;}
-  const receptor_pdbqt=window.prompt('Prepared receptor PDBQT contentini kiriting:');
-  const ligand_pdbqt=window.prompt('Prepared ligand PDBQT contentini kiriting:');
+  const receptor_pdbqt=$('dockingReceptor')?.value?.trim();
+  const ligand_pdbqt=$('dockingLigand')?.value?.trim();
   if(!receptor_pdbqt||!ligand_pdbqt){if(status)status.textContent='Docking uchun prepared receptor va ligand PDBQT kerak.';return;}
+  const parameters = {};
+  for (const [key,id,min,max,integer] of [
+    ['center_x','dockingCenterX',-Infinity,Infinity,false], ['center_y','dockingCenterY',-Infinity,Infinity,false], ['center_z','dockingCenterZ',-Infinity,Infinity,false],
+    ['size_x','dockingSizeX',0.1,100,false], ['size_y','dockingSizeY',0.1,100,false], ['size_z','dockingSizeZ',0.1,100,false],
+    ['exhaustiveness','dockingExhaustiveness',1,64,true], ['n_poses','dockingPoses',1,20,true]
+  ]) {
+    const field = $(id), raw = field?.value?.trim(), value = Number(raw);
+    if (!raw || !Number.isFinite(value) || value < min || value > max || (integer && !Number.isInteger(value))) {
+      if(status)status.textContent='Docking parametrini to‘g‘ri kiriting: '+key;
+      field?.focus(); return;
+    }
+    parameters[key] = value;
+  }
+  if(result)result.textContent='';
+  const button=$('dockingRun'); if(button)button.disabled=true;
   if(status)status.textContent='AutoDock Vina ishga tushmoqda...';
   try{
     const data=await api('/docking/run',{method:'POST',body:JSON.stringify({
       target,ligand_smiles,receptor_pdbqt,ligand_pdbqt,
-      center_x:22.0,center_y:0.2,center_z:52.8,
-      size_x:20.0,size_y:20.0,size_z:20.0,
-      exhaustiveness:8,n_poses:3
+      ...parameters
     })});
     renderResult(result,data);
     if(status)status.textContent='Docking completed.';
   }catch(error){if(status)status.textContent=error.message;}
+  finally{if(button)button.disabled=false;}
 }
 
 
@@ -5503,12 +5582,7 @@ async function detectProfileLocation(fromSecurity=false){
         $('moduleDirectory')?.classList.add('hidden');
       });
     });
-    $('workspaceClose')?.addEventListener('click',()=>{
-      $('workspace')?.classList.add('hidden');
-      $('roleDashboard')?.classList.remove('hidden');
-      $('moduleDirectory')?.classList.add('hidden');
-      if(window.medgenRefreshRoleNavigation) window.medgenRefreshRoleNavigation();
-    });
+    $('workspaceClose')?.addEventListener('click',()=>closeWorkspace());
     const drawer=document.getElementById('medgenNavDrawer');
     const list=document.getElementById('navModules');
     if(drawer && list && !drawer.querySelector('[data-nav="home"], [data-home-nav]')){
@@ -5714,6 +5788,9 @@ async function renderPdb3D(){
 (function medgenRoleDashboardFix(){
   const originalShowDashboard = showDashboard;
   function renderRoleHome(){
+    // The primary cabinet owns navigation once mounted. Startup timers must
+    // never close a workspace that the user has already opened.
+    if(document.getElementById('finalHome')) return;
     if(!state.user) return;
     const key = typeof roleKey === 'function' ? roleKey() : 'student';
     const role = MEDGEN_ROLES[key] || MEDGEN_ROLES.student;
@@ -5804,6 +5881,7 @@ async function renderPdb3D(){
 
   const originalShowDashboard = showDashboard;
   function enforceRoleHome(){
+    if ($('finalHome')) return;
     if (!state.user) return;
     const key = roleKey();
     const role = MEDGEN_ROLES[key] || MEDGEN_ROLES.student;
