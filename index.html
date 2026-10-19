@@ -713,6 +713,7 @@ frame-ancestors 'none'">
           Run the existing MedGen molecular backend directly from the Web interface.
         </p>
 
+        <label class="workspace-field-label" for="smilesInput">Molekula — SMILES</label>
         <input
           id="smilesInput"
           placeholder="SMILES, e.g. CCO"
@@ -725,19 +726,7 @@ frame-ancestors 'none'">
           Analyze molecule
         </button>
 
-        <div class="scientific-subtools" style="margin-top:12px;display:grid;gap:8px">
-          <textarea id="moleculeBatchInput" placeholder="Batch SMILES — one molecule per line"></textarea>
-          <button id="moleculeBatchRun" class="ghost small" type="button">🧪 Batch analysis</button>
-          <div id="moleculeBatchStatus" class="status"></div>
-          <pre id="moleculeBatchResult" class="result"></pre>
-          <textarea id="moleculeSimilarityInput" placeholder="Reference SMILES + query SMILES (one per line)"></textarea>
-          <button id="moleculeSimilarityRun" class="ghost small" type="button">🔬 Similarity search</button>
-          <div id="moleculeSimilarityStatus" class="status"></div>
-          <pre id="moleculeSimilarityResult" class="result"></pre>
-          <button id="molecule3dRun" class="ghost small" type="button">🧊 Generate 3D conformer</button>
-          <div id="molecule3dStatus" class="status"></div>
-          <pre id="molecule3dResult" class="result"></pre>
-        </div>
+
 
         <div
           id="molecularStatus"
@@ -748,6 +737,22 @@ frame-ancestors 'none'">
           id="molecularResult"
           class="result">
         </pre>
+
+        <details class="advanced-analysis"><summary>Qo‘shimcha tahlillar</summary><div class="scientific-subtools" style="margin-top:12px;display:grid;gap:8px">
+          <label class="workspace-field-label" for="moleculeBatchInput">Bir nechta molekula — har qatorda bitta SMILES</label>
+        <textarea id="moleculeBatchInput" placeholder="Batch SMILES — one molecule per line"></textarea>
+          <button id="moleculeBatchRun" class="ghost small" type="button">🧪 Batch analysis</button>
+          <div id="moleculeBatchStatus" class="status"></div>
+          <pre id="moleculeBatchResult" class="result"></pre>
+          <label class="workspace-field-label" for="moleculeSimilarityInput">Taqqoslash — birinchi qatorda asosiy molekula</label>
+        <textarea id="moleculeSimilarityInput" placeholder="Reference SMILES + query SMILES (one per line)"></textarea>
+          <button id="moleculeSimilarityRun" class="ghost small" type="button">🔬 Similarity search</button>
+          <div id="moleculeSimilarityStatus" class="status"></div>
+          <pre id="moleculeSimilarityResult" class="result"></pre>
+          <button id="molecule3dRun" class="ghost small" type="button">🧊 Generate 3D conformer</button>
+          <div id="molecule3dStatus" class="status"></div>
+          <pre id="molecule3dResult" class="result"></pre>
+        </div></details>
 
       </div>
 
@@ -764,6 +769,7 @@ frame-ancestors 'none'">
           Submit a protected bioinformatics workflow to the backend.
         </p>
 
+        <label class="workspace-field-label" for="bioSequenceType">Ketma-ketlik turi</label>
         <select id="bioSequenceType" aria-label="Sequence type">
           <option value="AUTO">AUTO — Detect automatically</option>
           <option value="DNA">DNA</option>
@@ -771,22 +777,14 @@ frame-ancestors 'none'">
           <option value="PROTEIN">PROTEIN</option>
         </select>
 
+        <label class="workspace-field-label" for="bioSequence">Asosiy ketma-ketlik yoki FASTA</label>
         <textarea
           id="bioSequence"
           placeholder="DNA / RNA / protein sequence or FASTA"
           data-i18n-placeholder="sequencePlaceholder">
         </textarea>
 
-        <div class="scientific-subtools" style="margin-top:12px;display:grid;gap:8px">
-          <input id="bioFrame" type="number" min="1" max="3" value="1" placeholder="Reading frame 1-3">
-          <button id="bioTranslateRun" class="ghost small" type="button">🧬 Translate DNA → Protein</button>
-          <div id="bioTranslateStatus" class="status"></div>
-          <pre id="bioTranslateResult" class="result"></pre>
-          <textarea id="bioSequenceB" placeholder="Second sequence for global alignment"></textarea>
-          <button id="bioAlignRun" class="ghost small" type="button">↔️ Global sequence alignment</button>
-          <div id="bioAlignStatus" class="status"></div>
-          <pre id="bioAlignResult" class="result"></pre>
-        </div>
+
 
         <button
           id="bioRun"
@@ -805,6 +803,19 @@ frame-ancestors 'none'">
           class="result">
         </pre>
 
+        <details class="advanced-analysis"><summary>Qo‘shimcha tahlillar</summary><div class="scientific-subtools" style="margin-top:12px;display:grid;gap:8px">
+          <label class="workspace-field-label" for="bioFrame">O‘qish ramkasi (1–3)</label>
+        <input id="bioFrame" type="number" min="1" max="3" value="1" placeholder="Reading frame 1-3">
+          <button id="bioTranslateRun" class="ghost small" type="button">🧬 Translate DNA → Protein</button>
+          <div id="bioTranslateStatus" class="status"></div>
+          <pre id="bioTranslateResult" class="result"></pre>
+          <label class="workspace-field-label" for="bioSequenceB">Solishtiriladigan ikkinchi ketma-ketlik</label>
+        <textarea id="bioSequenceB" placeholder="Second sequence for global alignment"></textarea>
+          <button id="bioAlignRun" class="ghost small" type="button">↔️ Global sequence alignment</button>
+          <div id="bioAlignStatus" class="status"></div>
+          <pre id="bioAlignResult" class="result"></pre>
+        </div></details>
+
       </div>
 
 
@@ -820,6 +831,7 @@ frame-ancestors 'none'">
           Load a structure from the MedGen PDB backend.
         </p>
 
+        <label class="workspace-field-label" for="pdbInput">PDB identifikatori</label>
         <input
           id="pdbInput"
           placeholder="PDB ID, e.g. 6WC8"
@@ -857,6 +869,7 @@ frame-ancestors 'none'">
           Create a computational drug-discovery session.
         </p>
 
+        <label class="workspace-field-label" for="discoveryTarget">Tadqiqot nishoni</label>
         <input
           id="discoveryTarget"
           placeholder="Target, e.g. HIV-1 Integrase"
@@ -885,9 +898,29 @@ frame-ancestors 'none'">
           AutoDock Vina test: target | SMILES
         </p>
 
+        <label class="workspace-field-label" for="dockingInput">Docking uchun nishon va SMILES</label>
         <input
           id="dockingInput"
           placeholder="EGFR | CCO">
+
+        <details class="advanced-analysis" open>
+          <summary>Docking kirish ma’lumotlari</summary>
+          <p class="muted">Tayyorlangan receptor va ligand PDBQT matni hamda aynan shu nishonga mos qidiruv qutisi koordinatalarini kiriting.</p>
+          <label for="dockingReceptor">Receptor PDBQT</label>
+          <textarea id="dockingReceptor" spellcheck="false" placeholder="Receptor PDBQT matni"></textarea>
+          <label for="dockingLigand">Ligand PDBQT</label>
+          <textarea id="dockingLigand" spellcheck="false" placeholder="Ligand PDBQT matni"></textarea>
+          <div class="docking-parameters">
+            <label>Markaz X (Å)<input id="dockingCenterX" type="number" step="any" required></label>
+            <label>Markaz Y (Å)<input id="dockingCenterY" type="number" step="any" required></label>
+            <label>Markaz Z (Å)<input id="dockingCenterZ" type="number" step="any" required></label>
+            <label>Quti X (Å)<input id="dockingSizeX" type="number" step="any" min="0.1" max="100" value="20"></label>
+            <label>Quti Y (Å)<input id="dockingSizeY" type="number" step="any" min="0.1" max="100" value="20"></label>
+            <label>Quti Z (Å)<input id="dockingSizeZ" type="number" step="any" min="0.1" max="100" value="20"></label>
+            <label>Qidiruv chuqurligi<input id="dockingExhaustiveness" type="number" min="1" max="64" value="8"></label>
+            <label>Pozalar soni<input id="dockingPoses" type="number" min="1" max="20" value="3"></label>
+          </div>
+        </details>
 
         <button
           id="dockingRun"
@@ -915,7 +948,9 @@ frame-ancestors 'none'">
         class="tool hidden">
 
         <p class="muted">Build and run a reproducible virtual-lab workflow.</p>
+        <label class="workspace-field-label" for="labName">Tajriba nomi</label>
         <input id="labName" placeholder="Experiment name, e.g. EGFR screening">
+        <label class="workspace-field-label" for="labType">Ish jarayoni turi</label>
         <select id="labType">
           <option value="drug_discovery">Drug discovery</option>
           <option value="molecular_analysis">Molecular analysis</option>
@@ -923,6 +958,7 @@ frame-ancestors 'none'">
           <option value="structure_analysis">Structure analysis</option>
           <option value="custom">Custom workflow</option>
         </select>
+        <label class="workspace-field-label" for="labInput">Ish jarayoni ma’lumotlari (JSON)</label>
         <textarea id="labInput" placeholder='Workflow input JSON, e.g. {"target":"EGFR","molecules":["CCO"]}'></textarea>
         <button id="labRun" class="primary small" type="button">🧪 Create workflow</button>
         <button id="workflowRefresh" class="ghost" type="button" data-i18n="refreshWorkflows">Refresh workflows</button>
@@ -945,7 +981,9 @@ frame-ancestors 'none'">
           Search the research backend for citation-oriented results.
         </p>
 
+        <label class="workspace-field-label" for="researchQuery">Ilmiy savol yoki qidiruv so‘zlari</label>
         <input id="researchQuery" placeholder="e.g. EGFR mutations in lung cancer" data-i18n-placeholder="researchPlaceholder">
+        <label class="workspace-field-label" for="researchFocus">Qo‘shimcha yo‘nalish (ixtiyoriy)</label>
         <input id="researchFocus" placeholder="Optional focus: mechanism, biomarker, target...">
         <div style="display:flex;gap:8px;flex-wrap:wrap">
           <button id="researchAgentRun" class="primary small" type="button">🧠 Research Agent</button>
@@ -965,12 +1003,29 @@ frame-ancestors 'none'">
       </div>
 
 
-      <!-- KNOWLEDGE LAYER -->\n      <div id="knowledgeTool" class="tool hidden">\n        <p class="muted">Build and explore a structured biomedical knowledge graph.</p>\n        <input id="knowledgeEntity" placeholder="Entity: EGFR, lung cancer, gefitinib">\n        <select id="knowledgeEntityType"><option value="concept">Concept</option><option value="gene">Gene</option><option value="protein">Protein</option><option value="disease">Disease</option><option value="drug">Drug</option><option value="pathway">Pathway</option></select>\n        <button id="knowledgeAddEntity" class="primary small" type="button">+ Add entity</button>\n        <input id="knowledgeSubject" placeholder="Subject">\n        <select id="knowledgeRelation"><option>associated_with</option><option>targets</option><option>inhibits</option><option>activates</option><option>causes</option><option>treats</option><option>biomarker_of</option><option>interacts_with</option><option>participates_in</option><option>expressed_in</option></select>\n        <input id="knowledgeObject" placeholder="Object">\n        <input id="knowledgeEvidence" placeholder="Evidence / PMID / note">\n        <button id="knowledgeAddRelation" class="primary small" type="button">+ Add relation</button>\n        <input id="knowledgeQuery" placeholder="Search knowledge graph">\n        <button id="knowledgeSearch" class="ghost small" type="button">🔎 Search graph</button>\n        <div id="knowledgeStatus" class="status"></div><pre id="knowledgeResult" class="result"></pre>\n      </div>\n\n      <!-- JOBS -->
+      <!-- KNOWLEDGE LAYER -->
+      <div id="knowledgeTool" class="tool hidden">
+        <p class="muted">Build and explore a structured biomedical knowledge graph.</p>
+        <input id="knowledgeEntity" placeholder="Entity: EGFR, lung cancer, gefitinib">
+        <select id="knowledgeEntityType"><option value="concept">Concept</option><option value="gene">Gene</option><option value="protein">Protein</option><option value="disease">Disease</option><option value="drug">Drug</option><option value="pathway">Pathway</option></select>
+        <button id="knowledgeAddEntity" class="primary small" type="button">+ Add entity</button>
+        <input id="knowledgeSubject" placeholder="Subject">
+        <select id="knowledgeRelation"><option>associated_with</option><option>targets</option><option>inhibits</option><option>activates</option><option>causes</option><option>treats</option><option>biomarker_of</option><option>interacts_with</option><option>participates_in</option><option>expressed_in</option></select>
+        <input id="knowledgeObject" placeholder="Object">
+        <input id="knowledgeEvidence" placeholder="Evidence / PMID / note">
+        <button id="knowledgeAddRelation" class="primary small" type="button">+ Add relation</button>
+        <input id="knowledgeQuery" placeholder="Search knowledge graph">
+        <button id="knowledgeSearch" class="ghost small" type="button">🔎 Search graph</button>
+        <div id="knowledgeStatus" class="status"></div><pre id="knowledgeResult" class="result"></pre>
+      </div>
+
+      <!-- JOBS -->
 
       <div
         id="jobsTool"
         class="tool hidden">
 
+        <label class="workspace-field-label" for="jobType">Hisoblash turi</label>
         <select id="jobType">
 
           <option
@@ -993,6 +1048,7 @@ frame-ancestors 'none'">
 
         </select>
 
+        <label class="workspace-field-label" for="jobInput">Hisoblash ma’lumotlari (JSON)</label>
         <textarea id="jobInput" rows="3" placeholder='Input JSON. Molecular misol: {"smiles":"CCO"}'></textarea>
 
         <button
@@ -1047,8 +1103,11 @@ frame-ancestors 'none'">
           <button id="platformPlan" class="ghost small" type="button">Plans</button>
           <button id="platformWebhooks" class="ghost small" type="button">Webhooks</button>
         </div>
+        <label class="workspace-field-label" for="platformOrgName">Tashkilot nomi</label>
         <input id="platformOrgName" placeholder="Organization name">
+        <label class="workspace-field-label" for="platformWorkspaceName">Ish maydoni nomi</label>
         <input id="platformWorkspaceName" placeholder="Workspace name">
+        <label class="workspace-field-label" for="platformProjectName">Loyiha nomi</label>
         <input id="platformProjectName" placeholder="Project name">
         <div id="platformStatus" class="status"></div>
         <pre id="platformResult" class="result"></pre>
@@ -2259,24 +2318,34 @@ document.addEventListener("DOMContentLoaded", function () {
     const globalHero=d.querySelector('.hero');if(globalHero){globalHero.classList.add('final-hide-hero');globalHero.style.setProperty('display','none','important');}
     const old=document.getElementById('finalHome');if(old)old.remove();
     const home=document.createElement('section');home.id='finalHome';home.className='final-home';
-    const core=mods.slice(0,Math.min(5,mods.length)),research=mods.slice(Math.min(5,mods.length));
-    const homeTitles={student:'Talaba ish maydoni',doctor:'Klinik ish maydoni',researcher:'Ilmiy tadqiqot paneli',professor:'Ta’lim va ilmiy rahbarlik',lab:'Laboratoriya ish maydoni',biotech:'Biotexnologiya ish maydoni',pharma:'Dori kashf qilish paneli',bioinformatician:'Bioinformatika ish maydoni',hospital:'Klinika boshqaruv paneli',company:'Tashkilot ish maydoni',SUPER_ADMIN:'Platforma boshqaruv markazi'};
-    const coreTitle=ft('core');
-    home.classList.add('final-simple-home');
-    home.innerHTML='<div class="final-welcome"><div><div class="final-kicker">MEDGEN AI</div><h1>'+r.icon+' '+esc(homeTitles[key]||roleLabel(key)+' — '+ft('workspace'))+'</h1><p>'+esc(r.desc||ft('welcome'))+'</p></div><span class="final-role">'+esc(ft('role'))+': '+esc(roleLabel(key))+'</span></div>'+
-      (key==='SUPER_ADMIN'?'<div class="final-admin-strip"><p>Foydalanuvchilar, tasdiqlar, tashkilotlar va tizim faoliyatini boshqarish.</p><button id="finalAdminOpen" class="primary">👑 Boshqaruv panelini ochish →</button></div><details class="final-extra-services final-science-modules"><summary>🧬 Barcha ilmiy modullar ('+mods.length+')</summary><div class="final-section-title">Ilmiy ish maydonlari</div><div class="final-grid">'+mods.map(m=>'<button class="final-module" data-final-module="'+esc(m)+'"><span>'+icons[m]+'</span><b>'+esc(moduleLabel(m))+'</b><small>Ochish →</small></button>').join('')+'</div></details>':'<div class="final-section-title">Sizning bo‘limlaringiz</div><div class="final-grid">'+mods.map(m=>'<button class="final-module" data-final-module="'+esc(m)+'"><span>'+icons[m]+'</span><b>'+esc(moduleLabel(m))+'</b><small>Ochish →</small></button>').join('')+'</div>')+
-      '<details class="final-extra-services"><summary>Yordam va qo‘shimcha xizmatlar</summary><div class="final-grid secondary">'+
-      serviceCard('support','🆘',ft('support'),ft('supportDesc'))+serviceCard('ai','🤖',ft('assistant'),ft('aiDesc'))+serviceCard('community','💬',ft('community'),ft('communityDesc'))+serviceCard('security','🔐',ft('security'),ft('securityDesc'))+
-      '</div></details>'+'';
+    const groups=[
+      {id:'education',icon:'◈',title:'Ta’lim markazi',desc:'Darslar, mashqlar va o‘quv natijalari.',modules:['Medical Academy','Learning Hub','Clinical Reference','Clinical Simulation']},
+      {id:'bio',icon:'⌁',title:'Bioinformatika',desc:'DNK, RNK va oqsil ketma-ketliklarini tahlil qilish.',modules:['Bioinformatics']},
+      {id:'molecule',icon:'⬡',title:'Molekula va 3D',desc:'Molekulyar xossalar, tuzilmalar va ilmiy taqqoslash.',modules:['Molecular Analysis','PDB & Structure','Drug Discovery']},
+      {id:'research',icon:'⌕',title:'Ilmiy tadqiqot',desc:'Manbalarni topish va dalillar bilan ishlash.',modules:['Research Assistant']},
+      {id:'lab',icon:'⚗',title:'Virtual laboratoriya',desc:'Ilmiy ish jarayonlari va hisoblash vazifalari.',modules:['Virtual Laboratory','Scientific Jobs']},
+      {id:'management',icon:'▦',title:'Boshqaruv paneli',desc:'Tashkilot, foydalanuvchilar va ruxsatlar.',modules:['Global Platform']}
+    ];
+    const names={'Medical Academy':'Tibbiyot akademiyasi','Learning Hub':'Mashqlar va o‘quv tarixi','Clinical Reference':'Klinik ma’lumotnoma','Clinical Simulation':'Klinik mashqlar','Bioinformatics':'Ketma-ketlik tahlili','Molecular Analysis':'Molekula xossalari','PDB & Structure':'Tuzilma ko‘ruvchisi','Drug Discovery':'Dori tadqiqoti','Research Assistant':'Ilmiy manbalar','Virtual Laboratory':'Ish jarayonlari','Scientific Jobs':'Hisoblash vazifalari','Global Platform':'Tashkilot va loyihalar','Reports & History':'Ilmiy hisobotlar'};
+    const moduleButton=m=>'<button class="cabinet-tool" data-final-module="'+esc(m)+'">'+esc(names[m]||m)+'<span aria-hidden="true">↗</span></button>';
+    home.classList.add('cabinet-home');
+    home.innerHTML='<div class="cabinet-layout"><nav class="cabinet-nav" aria-label="Kabinet bo‘limlari"><div class="cabinet-brand">MEDGEN <span>AI</span></div><p>SHAXSIY KABINET</p><a href="#cabinetWelcome">Bosh sahifa</a>'+groups.map(g=>'<a href="#cabinet-'+g.id+'">'+g.icon+' '+g.title+'</a>').join('')+'<button id="cabinetProfile">Profilim</button><button data-final-service="security">Xavfsizlik va roziliklar</button></nav><div class="cabinet-main"><header id="cabinetWelcome" class="cabinet-welcome"><div><p class="cabinet-eyebrow">BILIM · TAHLIL · TADQIQOT</p><h1>Yagona ilmiy kabinet</h1><p>Kerakli bo‘limni tanlang. Vositalar va ruxsatlar akkauntingizga mos ko‘rsatiladi.</p></div><span class="cabinet-role">'+esc(roleLabel(key))+'</span></header><div class="cabinet-shortcuts">'+(mods.includes('Learning Hub')?moduleButton('Learning Hub'):'')+(mods.includes('Reports & History')?moduleButton('Reports & History'):'')+(mods.includes('Global Platform')?moduleButton('Global Platform'):'')+'</div><div class="cabinet-section-heading"><h2>Ish bo‘limlari</h2><span>6 yo‘nalish · bitta akkaunt</span></div><div class="cabinet-grid">'+groups.map((g,i)=>{
+      const available=g.modules.filter(m=>mods.includes(m));
+      const admin=g.id==='management'&&key==='SUPER_ADMIN';
+      return '<article id="cabinet-'+g.id+'" class="cabinet-card'+(!available.length&&!admin?' cabinet-restricted':'')+'"><div class="cabinet-card-top"><span class="cabinet-icon">'+g.icon+'</span><span class="cabinet-number">0'+(i+1)+'</span></div><h3>'+g.title+'</h3><p>'+g.desc+'</p><div class="cabinet-tools">'+available.map(moduleButton).join('')+(admin?'<button id="finalAdminOpen" class="cabinet-tool">Administrator paneli <span>↗</span></button>':'')+(!available.length&&!admin?'<span class="cabinet-access">Bu rol uchun ochilmagan</span>':'')+'</div></article>';
+    }).join('')+'</div><footer class="cabinet-footer"><div><h3>Yordam kerakmi?</h3><p>Hisob, foydalanish va xavfsizlik bo‘yicha yordam.</p></div><div>'+serviceCard('support','↗',ft('support'),ft('supportDesc'))+serviceCard('ai','✦',ft('assistant'),ft('aiDesc'))+serviceCard('community','◎',ft('community'),ft('communityDesc'))+'</div></footer></div></div>';
     hideAll();
     document.getElementById('functionalService')?.remove();
     d.querySelector('.container')?.prepend(home);
     // Use one visible dashboard at a time; the legacy role grid remains a
     // fallback but must not appear underneath this role-specific home.
     document.getElementById('roleDashboard')?.classList.add('hidden');
-    home.querySelectorAll('[data-final-module]').forEach(b=>b.onclick=(e)=>{e.preventDefault();e.stopImmediatePropagation();const name=b.dataset.finalModule;const workspace=document.getElementById('workspace');const home=document.getElementById('finalHome');const role=document.getElementById('roleDashboard');if(home)home.style.setProperty('display','none','important');if(role)role.classList.add('hidden');if(workspace)workspace.classList.remove('hidden');openModuleSafe(name);if(home)home.style.setProperty('display','none','important');if(role)role.classList.add('hidden');if(workspace)workspace.classList.remove('hidden');});
+    home.querySelectorAll('[data-final-module]').forEach(b=>b.onclick=(e)=>{
+      e.preventDefault();openModuleSafe(b.dataset.finalModule);
+    });
+    home.querySelector('#cabinetProfile')?.addEventListener('click',()=>document.getElementById('profileBtn')?.click());
     home.querySelectorAll('[data-final-service]').forEach(b=>b.onclick=()=>openService(b.dataset.finalService));
-    document.getElementById('finalAdminOpen')?.addEventListener('click',()=>{hideAll();document.getElementById('adminDashboard')?.classList.remove('hidden');if(typeof loadAdminDashboard==='function')loadAdminDashboard()});
+    document.getElementById('finalAdminOpen')?.addEventListener('click',()=>{home.classList.add('hidden');hideAll();document.getElementById('adminDashboard')?.classList.remove('hidden');if(typeof loadAdminDashboard==='function')loadAdminDashboard()});
   }
   function openService(kind){
     // Route these cards to the API-backed service implementations; the legacy
@@ -2450,5 +2519,6 @@ document.addEventListener("DOMContentLoaded", function () {
 <script src="/phase1-academy.js?v=20261009-restore"></script>
 
 
-\n</body>
+
+</body>
 </html>
