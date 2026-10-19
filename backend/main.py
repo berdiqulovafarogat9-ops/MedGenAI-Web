@@ -75,20 +75,7 @@ def _build_allowed_cors_origins(configured: str | None) -> list[str]:
 
 ALLOWED_CORS_ORIGINS = _build_allowed_cors_origins(os.getenv("MEDGEN_CORS_ORIGINS"))
 
-app.add_middleware(
-    CORSMiddleware,
-    allow_origins=ALLOWED_CORS_ORIGINS,
-    allow_credentials=False,
-    allow_methods=[
-        "GET",
-        "POST",
-        "PUT",
-        "PATCH",
-        "DELETE",
-        "OPTIONS",
-    ],
-    allow_headers=["*"],
-)
+
 
 
 # =========================================================
@@ -628,6 +615,23 @@ async def account_readiness_guard(request: Request, call_next):
             content={"detail":"LEGAL_CONSENT_REQUIRED","message":"Amaldagi majburiy roziliklarni tasdiqlang."},
         )
     return await call_next(request)
+
+# Register CORS after the readiness middleware so even its early 403 responses
+# include CORS headers and the browser can show the required onboarding action.
+app.add_middleware(
+    CORSMiddleware,
+    allow_origins=ALLOWED_CORS_ORIGINS,
+    allow_credentials=False,
+    allow_methods=[
+        "GET",
+        "POST",
+        "PUT",
+        "PATCH",
+        "DELETE",
+        "OPTIONS",
+    ],
+    allow_headers=["*"],
+)
 
 # =========================================================
 # HEALTH
@@ -5175,12 +5179,12 @@ class PreparedDockingRequest(BaseModel):
     ligand_smiles: str = ""
     receptor_pdbqt: str
     ligand_pdbqt: str
-    center_x: float
-    center_y: float
-    center_z: float
-    size_x: float = 20.0
-    size_y: float = 20.0
-    size_z: float = 20.0
+    center_x: float = Field(allow_inf_nan=False)
+    center_y: float = Field(allow_inf_nan=False)
+    center_z: float = Field(allow_inf_nan=False)
+    size_x: float = Field(default=20.0, gt=0, le=100, allow_inf_nan=False)
+    size_y: float = Field(default=20.0, gt=0, le=100, allow_inf_nan=False)
+    size_z: float = Field(default=20.0, gt=0, le=100, allow_inf_nan=False)
     exhaustiveness: int = 8
     n_poses: int = 3
 
@@ -5213,7 +5217,7 @@ def run_prepared_docking(data: PreparedDockingRequest, user=Depends(get_current_
         receptor_file.close()
         ligand_file.close()
 
-        engine = Vina(sf_name="vina", verbosity=0)
+        engine = Vina(sf_name="vina", verbosity=0, cpu=1)
         engine.set_receptor(receptor_file.name)
         engine.set_ligand_from_file(ligand_file.name)
         engine.compute_vina_maps(
@@ -5225,7 +5229,12 @@ def run_prepared_docking(data: PreparedDockingRequest, user=Depends(get_current_
         poses = []
         for row in energies:
             values = [float(x) for x in row]
-            poses.append({"affinity_kcal_mol": values[0], "inter_rmsd_lb": values[1] if len(values)>1 else None, "inter_rmsd_ub": values[2] if len(values)>2 else None})
+            # Vina.energies() returns energy components, NOT RMSD bounds.
+            # https://autodock-vina.readthedocs.io/en/stable/vina.html
+            columns = ["affinity_kcal_mol", "intermolecular_energy_kcal_mol",
+                       "intramolecular_energy_kcal_mol", "torsional_energy_kcal_mol",
+                       "best_pose_intramolecular_energy_kcal_mol"]
+            poses.append(dict(zip(columns, values)))
         now = datetime.now(timezone.utc).isoformat()
         result = {
             "status": "completed", "module": "Drug Discovery", "workflow": "molecular_docking",
@@ -5238,7 +5247,15 @@ def run_prepared_docking(data: PreparedDockingRequest, user=Depends(get_current_
         }
         job_id = secrets.token_hex(10)
         docking_jobs_store[job_id] = {"id": job_id, **result, "created_at": now}
-        activity_log.insert(0, {"type":"docking_completed","username":user["username"],"job_id":job_id,"target":data.target,"at":now})
+        event = {"type":"docking_completed","username":user["username"],"job_id":job_id,"target":data.target,"at":now}
+        activity_log.insert(0, event)
+        try:
+            _db_save()
+        except Exception:
+            docking_jobs_store.pop(job_id, None)
+            if event in activity_log:
+                activity_log.remove(event)
+            raise
         return {"job_id": job_id, "result": result}
     except HTTPException:
         raise
