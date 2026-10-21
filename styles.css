@@ -335,3 +335,8 @@ html[data-theme] .final-service small{opacity:1}
 #researchEvidence[hidden]{display:none!important;}
 #researchEvidence .report-card{margin:12px 0;}
 #researchEvidence blockquote{margin:10px 0;padding:10px;border-inline-start:3px solid var(--accent);overflow-wrap:anywhere;}
+
+/* Keep navigation readable in both selected themes. */
+html[data-theme] :is(.nav-drawer,.final-drawer){background:var(--surface)!important;color:var(--text)!important;border-color:var(--line)!important}
+html[data-theme] :is(.nav-drawer .nav-item,.final-drawer .final-nav,.final-drawer .final-menu-role){background:var(--surface-alt)!important;color:var(--text)!important;border-color:var(--line)!important}
+html[data-theme] :is(.nav-section-title,.final-nav-title,.nav-drawer-head small){color:var(--muted)!important;opacity:1}
