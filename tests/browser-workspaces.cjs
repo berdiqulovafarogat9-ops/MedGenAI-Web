@@ -37,6 +37,16 @@ const fs=require('node:fs');
     await page.locator('#workspaceGuide').waitFor({state:'visible'});
     await page.locator({student:'#hubStartGame',biotech:'#molecularRun',company:'#researchRun'}[role]).waitFor({state:'visible'});
     assert.equal(await page.locator('#finalHome').isVisible(),false);
+    if(role==='company'){
+     const routePattern='**/api/v1/research/agent';
+     await page.route(routePattern,route=>route.fulfill({status:200,contentType:'application/json',body:JSON.stringify({query:'DNA repair',normalized_query:'dna repair',evidence:[{pmid:'12345',title:'Test source',journal:'Test journal',publication_date:'2025',evidence:['Controlled test excerpt']} ]})}));
+     await page.locator('#researchQuery').fill('DNA repair');await page.locator('#researchAgentRun').click();
+     await page.locator('#researchEvidence a').waitFor({state:'visible'});
+     assert.equal(await page.locator('#researchEvidence a').getAttribute('href'),'https://pubmed.ncbi.nlm.nih.gov/12345/');
+     assert.match(await page.locator('#researchEvidence').textContent(),/Controlled test excerpt/);
+     assert.ok(await page.evaluate(()=>document.documentElement.scrollWidth<=innerWidth+1),'research evidence horizontal overflow');
+     await page.unroute(routePattern);
+    }
     if(role==='student'){
      await page.locator('#hubStartGame').click();
      for(let i=0;i<12;i++)await page.locator('#hubGame [data-answer="0"]').click();
@@ -55,9 +65,31 @@ const fs=require('node:fs');
     assert.ok(await page.evaluate(()=>document.documentElement.scrollWidth<=innerWidth+1),'workspace horizontal overflow');
     if(process.env.MEDGEN_SCREENSHOTS)await page.screenshot({path:process.env.MEDGEN_SCREENSHOTS+'/workspace-'+role+'-'+width+'.png',fullPage:true});
     await page.locator('#workspaceClose').click();await page.locator('#finalHome').waitFor({state:'visible'});
-    for(const extra of (role==='biotech'?['Bioinformatics','PDB & Structure']:role==='company'?['Virtual Laboratory','Global Platform','Drug Discovery']:[])){
+    for(const extra of (role==='biotech'?['Bioinformatics','PDB & Structure']:role==='company'?['Virtual Laboratory','Global Platform','Drug Discovery','Reports & History']:[])){
      await page.locator('#finalHome [data-final-module="'+extra+'"]').first().click();
      await page.locator('#workspaceGuide').waitFor({state:'visible'});
+     if(extra==='Virtual Laboratory'){
+      await page.locator('#labExampleSequence').click();
+      await page.locator('#labExampleMolecule').click();
+      await page.locator('#labName').fill('Guided browser exercise');
+      await page.locator('#labRun').click();
+      await page.waitForFunction(()=>document.querySelector('#labSummary').textContent.includes('C2H6O'));
+      const summary=await page.locator('#labSummary').textContent();
+      assert.match(summary,/C2H6O/);assert.match(summary,/46.069/);assert.match(summary,/50%/);
+      await page.locator('#workflowRefresh').click();
+      await page.waitForFunction(()=>document.querySelector('#workflowResult').textContent.includes('Guided browser exercise'));
+      assert.ok(await page.evaluate(()=>document.documentElement.scrollWidth<=innerWidth+1),'guided lab horizontal overflow');
+     }
+     if(extra==='Reports & History'){
+      await page.locator('#reportsKind').selectOption('report');
+      await page.locator('#reportsSearch').fill('Guided browser exercise');
+      await page.locator('#reportsList .report-card button').first().click();
+      await page.locator('#reportsDetail').waitFor({state:'visible'});
+      assert.match(await page.locator('#reportsResult').textContent(),/C2H6O/);
+      const waiting=page.waitForEvent('download');await page.locator('#reportsDownload').click();const download=await waiting;
+      assert.match(download.suggestedFilename(),/^medgen-report-.*\.json$/);
+      const exported=JSON.parse(fs.readFileSync(await download.path(),'utf8'));assert.equal(exported.kind,'report');assert.equal(exported.record.title,'Guided browser exercise');
+     }
      if(extra==='Bioinformatics'){
       await page.locator('#bioSequence').fill('ATGC');await page.locator('#bioRun').click();
       await page.locator('#bioResultSummary').waitFor({state:'visible'});

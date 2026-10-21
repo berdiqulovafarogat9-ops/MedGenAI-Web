@@ -245,15 +245,7 @@ def academy_assessment_v2(data: AssessmentExtensionRequest, user=Depends(core.ge
         items = bank["case"] if data.assessment_type == "case" else bank["exam"] if data.assessment_type == "exam" else bank["quiz"]
         total = len(items)
         score = round(sum(1 for q in items if data.answers.get(q["id"]) == q["answer"]) * 100 / total) if total else 0
-    rec = _progress(user["username"]).setdefault(core._academy_key(data.course, data.subject_id), {})
-    old = rec.get(data.assessment_type, {})
-    rec[data.assessment_type] = {
-        "score": score,
-        "passed": score >= 70,
-        "attempts": int(old.get("attempts", 0)) + 1,
-        "updated_at": _now(),
-    }
-    core._db_save()
+    rec = core._save_academy_assessment(user["username"], data.course, data.subject_id, data.assessment_type, score)
     return {"status": "recorded", "score": score, "passed": score >= 70, "total": total, "assessment_type": data.assessment_type, "progress": rec}
 
 

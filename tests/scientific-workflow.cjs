@@ -1,0 +1,26 @@
+const {JSDOM}=require('jsdom'),fs=require('fs'),vm=require('vm'),assert=require('node:assert/strict');
+const dom=new JSDOM(fs.readFileSync('index.html','utf8'),{runScripts:'outside-only'}),w=dom.window;
+const source=fs.readFileSync('app.js','utf8');
+const start=source.indexOf('async function runScientificWorkflow()');
+const end=source.indexOf('function bindScientificWorkflowPanelButton()',start);
+let calls=0,finish;
+w.fetch=()=>{calls++;return new Promise(resolve=>{finish=resolve;});};
+vm.runInContext("const API_BASE='/api/v1'; const state={token:'test'};"+source.slice(start,end),dom.getInternalVMContext());
+const el=id=>w.document.getElementById(id);
+(async()=>{
+ el('workflowTarget').value='Reference';
+ await w.runScientificWorkflow();assert.equal(calls,0);
+ el('workflowSequence').value='ATGC';
+ const running=w.runScientificWorkflow();assert.equal(calls,1);assert.equal(el('workflowRun').disabled,true);
+ await w.runScientificWorkflow();assert.equal(calls,1,'duplicate submit blocked');
+ finish({ok:false,json:async()=>({detail:{message:'Invalid sequence',invalid_symbols:['!']}})});
+ await running;assert.equal(el('workflowRun').disabled,false);
+ assert.equal(el('scientificWorkflowResult').textContent,'Invalid sequence');
+ const retry=w.runScientificWorkflow();assert.equal(calls,2);
+ finish({ok:true,json:async()=>({status:'completed',experiment_id:'saved'})});await retry;
+ assert.equal(el('scientificWorkflowStatus').textContent,'Workflow completed');
+ assert.match(el('scientificWorkflowResult').textContent,/saved/);
+ w.fetch=async()=>{throw Error('Network unavailable');};await w.runScientificWorkflow();
+ assert.equal(el('workflowRun').disabled,false);assert.equal(el('scientificWorkflowResult').textContent,'Network unavailable');
+ console.log('PASS scientific workflow: empty input, duplicate submit, readable error, retry, network recovery');w.close();
+})().catch(e=>{console.error(e);w.close();process.exitCode=1;});
