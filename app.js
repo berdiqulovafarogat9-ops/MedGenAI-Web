@@ -909,6 +909,7 @@ function translateModuleTitle(moduleName) {
 ========================================================= */
 
 async function api(path, options = {}) {
+  const requestToken=state.token;
 
   const headers = {
     ...(options.headers || {})
@@ -963,6 +964,11 @@ async function api(path, options = {}) {
       text
         ? { message: text }
         : null;
+  }
+
+  if(state.token!==requestToken){
+    const error=new Error(window.medgenText?.('Session changed. Reopen this section.')||'Session changed. Reopen this section.');
+    error.name='AbortError';throw error;
   }
 
   if (!response.ok) {
@@ -1448,8 +1454,8 @@ async function saveProfile() {
       district: $('profileDistrictManual')?.value?.trim() || (($('profileDistrict')?.value === 'OTHER') ? '' : ($('profileDistrict')?.value?.trim() || '')),
       city: $('profileCity')?.value?.trim() || '',
       location_label: $('profileLocationLabel')?.value?.trim() || '',
-      location_lat: Number($('detectLocationBtn')?.dataset?.lat || '') || null,
-      location_lon: Number($('detectLocationBtn')?.dataset?.lon || '') || null,
+      location_lat: coordinateValue($('detectLocationBtn')?.dataset?.lat),
+      location_lon: coordinateValue($('detectLocationBtn')?.dataset?.lon),
       location_source: $('detectLocationBtn')?.dataset?.source || '',
       birth_year: birthYearRaw ? Number(birthYearRaw) : null,
       birth_month: birthMonthRaw ? Number(birthMonthRaw) : null,
@@ -2073,13 +2079,35 @@ function showDashboard() {
 ========================================================= */
 
 async function logout() {
-  try { if (state.token) await api('/auth/logout', { method: 'POST' }); } catch (_) {}
+  const previousToken = state.token;
+  // Leave immediately even when a sleeping/offline server cannot revoke yet.
   state.token = '';
   state.user = null;
+  window.__MEDGEN_USER = null;
+  window.__MEDGEN_COMMUNITY_ROLE = null;
+  window.__MEDGEN_OPENED_MODULE = null;
+  state.lastResearchData = null;
+  state.profileEditMode = false;
+  document.querySelectorAll('#dashboardView .result,#labSummary,#adminDetails,#reportsList,#reportsPagination,#reportsSelectedTitle,#researchEvidence').forEach(el=>el.replaceChildren());
+  document.querySelectorAll('#dashboardView input,#dashboardView textarea,#profileModal input,#profileModal textarea').forEach(el=>{
+    if(el.type==='checkbox'||el.type==='radio')el.checked=false;else el.value='';
+  });
+  ['learningHubWorkspace','doctorClinicalWorkspace'].forEach(id=>document.getElementById(id)?.remove());
+  if($('reportsDetail'))$('reportsDetail').hidden=true;
+  if($('reportsDownload'))$('reportsDownload').onclick=null;
+  document.getElementById('legalModal')?.classList.add('hidden');
+  document.getElementById('functionalService')?.remove();
+  document.getElementById('opportunitiesPanel')?.remove();
+  document.getElementById('finalHome')?.remove();
+  ['moleculeVisualPanel','scientificWorkflowPanel'].forEach(id=>document.getElementById(id)?.classList.add('hidden'));
+  document.getElementById('finalMenuDrawer')?.classList.remove('open');
+  document.querySelectorAll('.nav-drawer,.nav-backdrop,#profileModal,#consentModal').forEach(el=>el.classList.add('hidden'));
 
   sessionStorage.removeItem(
     TOKEN_KEY
   );
+  showLogin();
+  window.medgenPhase1Shell?.sync?.();
 
   const dashboardView =
     $('dashboardView');
@@ -2107,6 +2135,12 @@ async function logout() {
 
   if (status) {
     status.textContent = '';
+  }
+  if (previousToken) {
+    const controller = new AbortController();
+    const timer = setTimeout(()=>controller.abort(),5000);
+    fetch(API_BASE+'/auth/logout', {method:'POST',headers:{Authorization:'Bearer '+previousToken},signal:controller.signal})
+      .catch(()=>{}).finally(()=>clearTimeout(timer));
   }
 }
 
@@ -2283,12 +2317,11 @@ function openModule(moduleName) {
         if (!progressBox.isConnected || state.token !== hubToken) return;
         const labels = {quick:'Tezkor bilim', theory:'Nazariy mashq', clinical:'Klinik mashq', molecule:'Molekulalar',organ:'Organlarni joylashtirish',lesson_cell:'Hujayra darsi',lesson_blood:'Qon darsi',lesson_heart:'Yurak darsi',lesson_dna:'DNK darsi',lesson_micro:'Mikrobiologiya darsi'};
         progressBox.innerHTML = '<h4>Saqlangan mashq natijalari</h4><p>Oxirgi 100 urinish saqlanadi. Bu rasmiy baho yoki sertifikat emas.</p>' +
-          (data.attempts.length ? '<ul>'+data.attempts.slice(0,10).map(a=>'<li>'+escapeHtml(labels[a.activity]||a.activity)+': '+a.score+'/'+a.total+' ('+a.percent+'%) · '+escapeHtml(new Date(a.created_at).toLocaleString())+'</li>').join('')+'</ul>' : '<p>Hali saqlangan natija yo‘q.</p>') + '<p>O‘qilgan til mini-darslari (o‘zingiz belgilagan): '+Object.keys(data.readings||{}).length+'/12.</p>';
+          (data.attempts.length ? '<ul>'+data.attempts.slice(0,10).map(a=>'<li><span>'+escapeHtml(labels[a.activity]||a.activity)+'</span>: '+a.score+'/'+a.total+' ('+a.percent+'%) · '+escapeHtml(new Date(a.created_at).toLocaleString())+'</li>').join('')+'</ul>' : '<p>Hali saqlangan natija yo‘q.</p>') + '<p><span>O‘qilgan til mini-darslari (o‘zingiz belgilagan):</span> '+Object.keys(data.readings||{}).length+'/12.</p>';
       } catch (error) {
         if (progressBox.isConnected && state.token === hubToken) {
-          progressBox.textContent = 'Natijalar tarixi ochilmadi: ' +
-            (error?.message || 'Server bilan aloqa uzildi.') +
-            ' Kerakli amalni bajargach, Learning Hubni qayta oching.';
+          progressBox.innerHTML='<span>Natijalar tarixi ochilmadi.</span> <span>Muammoni bartaraf etgach, o‘quv markazini qayta oching.</span>';
+          const detail=document.createElement('p');detail.textContent=error?.message||'';progressBox.appendChild(detail);
         }
       }
     };
@@ -2301,7 +2334,7 @@ function openModule(moduleName) {
         try {
           const data = await api('/learning-hub/attempts',{method:'POST',body:JSON.stringify(payload)});
           if (state.token !== hubToken || !status.isConnected) return;
-          status.textContent = (data.storage==='postgresql'?'Bazaga saqlandi: ':'Vaqtinchalik server xotirasida: ')+data.attempt.score+'/'+data.attempt.total+'.'+(data.storage==='postgresql'?'':' Server qayta ishga tushsa yo‘qolishi mumkin.');
+          status.innerHTML = '<span>'+(data.storage==='postgresql'?'Bazaga saqlandi:':'Vaqtinchalik server xotirasida:')+'</span> '+Number(data.attempt.score)+'/'+Number(data.attempt.total)+'.'+(data.storage==='postgresql'?'':' <span>Server qayta ishga tushsa yo‘qolishi mumkin.</span>');
           refreshHubProgress();
         } catch (_) {
           if (state.token !== hubToken || !status.isConnected) return;
@@ -2343,7 +2376,17 @@ function openModule(moduleName) {
       {q:'Miya va orqa miya qaysi tizimga kiradi?',opts:['Nafas olish','Asab tizimi','Ovqat hazm qilish'],correct:1}
     ];
     let gameIndex=0,gameScore=0,gameAnswers=[];
-    const showGame=()=>{const box=$('hubGame');if(!box)return;if(gameIndex>=gameQuestions.length){box.innerHTML='<b>Natija: '+gameScore+'/'+gameQuestions.length+'</b><p>Ball: '+(gameScore*10)+' XP. Yana mashq qilib natijani yaxshilashingiz mumkin.</p>';$('hubAchievement').textContent='Oxirgi mini-o‘yin natijasi: '+gameScore+'/'+gameQuestions.length;saveHubAttempt('quick',gameAnswers,gameQuestions.map((_,i)=>i),box);return;}const q=gameQuestions[gameIndex];box.innerHTML='<p><b>Savol '+(gameIndex+1)+'/'+gameQuestions.length+': '+q.q+'</b></p>'+q.opts.map((o,n)=>'<button type="button" class="secondary hub-game-answer" data-answer="'+n+'">'+escapeHtml(o)+'</button> ').join('');box.querySelectorAll('[data-answer]').forEach(b=>b.onclick=()=>{gameAnswers.push(Number(b.dataset.answer));if(Number(b.dataset.answer)===q.correct)gameScore++;gameIndex++;showGame();});};
+    const showGame=()=>{
+      const box=$('hubGame');if(!box)return;
+      if(gameIndex>=gameQuestions.length){
+        box.innerHTML='<b><span>Natija</span>: '+gameScore+'/'+gameQuestions.length+'</b><p><span>Ball</span>: '+(gameScore*10)+' XP. <span>Yana mashq qilib natijani yaxshilashingiz mumkin.</span></p>';
+        $('hubAchievement').innerHTML='<span>Oxirgi mini-o‘yin natijasi</span>: '+gameScore+'/'+gameQuestions.length;
+        saveHubAttempt('quick',gameAnswers,gameQuestions.map((_,i)=>i),box);return;
+      }
+      const q=gameQuestions[gameIndex];
+      box.innerHTML='<p><b><span>Savol</span> '+(gameIndex+1)+'/'+gameQuestions.length+': <span>'+escapeHtml(q.q)+'</span></b></p>'+q.opts.map((o,n)=>'<button type="button" class="secondary hub-game-answer" data-answer="'+n+'">'+escapeHtml(o)+'</button> ').join('');
+      box.querySelectorAll('[data-answer]').forEach(b=>b.onclick=()=>{gameAnswers.push(Number(b.dataset.answer));if(Number(b.dataset.answer)===q.correct)gameScore++;gameIndex++;showGame();});
+    };
     $('hubStartGame')?.addEventListener('click',()=>{gameIndex=0;gameScore=0;gameAnswers=[];showGame();});
     $('hubExamPlan')?.addEventListener('click',()=>{const exam=$('hubExam')?.value||'IELTS',topic=$('hubExamTopic')?.value.trim()||'asosiy mavzular',box=$('hubExamResult');if(box)box.innerHTML='<b>'+escapeHtml(exam)+' uchun mashq rejasi</b><ol><li>'+escapeHtml(topic)+' bo‘yicha boshlang‘ich bilimni tekshirish.</li><li>15 daqiqa nazariya va asosiy terminlarni takrorlash.</li><li>10 ta amaliy savol yechish va xatolarni qayd etish.</li><li>Ertasi kuni xato qilingan savollarni qayta ishlash.</li></ol><small>Bu umumiy o‘quv rejasi; rasmiy imtihon materiali yoki natijasi emas.</small>';});
 
@@ -2357,7 +2400,7 @@ function openModule(moduleName) {
     $('hubTheoryOpen')?.addEventListener('click',()=>{
       const topic=$('hubTheoryTopic')?.value||'cell',t=theoryLibrary[topic],box=$('hubTheoryContent'); if(!box)return;
       box.innerHTML='<h5>'+escapeHtml(t.title)+'</h5><p>'+escapeHtml(t.body)+'</p><b>O‘zingizni tekshiring:</b><p>'+escapeHtml(t.key)+'</p>'+t.opts.map((o,i)=>'<button type="button" class="secondary" data-theory-answer="'+i+'">'+escapeHtml(o)+'</button> ').join('')+'<div id="hubTheoryFeedback" role="status"></div>';
-      box.querySelectorAll('[data-theory-answer]').forEach(b=>b.onclick=()=>{if(b.disabled)return;const answer=Number(b.dataset.theoryAnswer),ok=answer===t.correct;box.querySelectorAll('[data-theory-answer]').forEach(x=>x.disabled=true);$('hubTheoryFeedback').innerHTML=(ok?'✅ To‘g‘ri. ':'❌ Hali to‘g‘ri emas. ')+'<p>'+escapeHtml(t.why)+'</p>';saveHubAttempt('lesson_'+topic,[answer],[0],box);});
+      box.querySelectorAll('[data-theory-answer]').forEach(b=>b.onclick=()=>{if(b.disabled)return;const answer=Number(b.dataset.theoryAnswer),ok=answer===t.correct;box.querySelectorAll('[data-theory-answer]').forEach(x=>x.disabled=true);$('hubTheoryFeedback').innerHTML=(ok?'✅ <span>To‘g‘ri.</span> ':'❌ <span>Hali to‘g‘ri emas.</span> ')+'<p>'+escapeHtml(t.why)+'</p>';saveHubAttempt('lesson_'+topic,[answer],[0],box);});
     });
     const examSets={
       theory:[
@@ -2378,9 +2421,9 @@ function openModule(moduleName) {
     const runExam=(boxId,setKey)=>{
       const box=$(boxId);if(!box)return;const qs=examSets[setKey];let i=0,score=0,done=false;const answers=[];
       const render=()=>{
-        if(i>=qs.length){done=true;box.innerHTML='<h5>Imtihon yakunlandi</h5><p>Natija: <b>'+score+'/'+qs.length+'</b> ('+Math.round(score/qs.length*100)+'%).</p><button type="button" class="primary" id="'+boxId+'Retry">Qayta topshirish</button>';$(boxId+'Retry')?.addEventListener('click',()=>runExam(boxId,setKey));saveHubAttempt(setKey,answers,qs.map((_,n)=>n),box);return;}
-        const q=qs[i];box.innerHTML='<p><b>Savol '+(i+1)+'/'+qs.length+': '+escapeHtml(q.q)+'</b></p>'+q.o.map((o,n)=>'<button type="button" class="secondary" data-exam-answer="'+n+'">'+escapeHtml(o)+'</button> ').join('')+'<div id="'+boxId+'Feedback" role="status" style="margin-top:8px"></div>';
-        box.querySelectorAll('[data-exam-answer]').forEach(b=>b.onclick=()=>{if(done||b.disabled)return;answers.push(Number(b.dataset.examAnswer));const ok=Number(b.dataset.examAnswer)===q.a;if(ok)score++;box.querySelectorAll('[data-exam-answer]').forEach(x=>x.disabled=true);$(boxId+'Feedback').innerHTML=(ok?'✅ To‘g‘ri. ':'❌ Noto‘g‘ri. ')+'<p>'+escapeHtml(q.e)+'</p><button type="button" class="primary" id="'+boxId+'Next">'+(i===qs.length-1?'Natijani ko‘rish':'Keyingi savol')+'</button>';$ (boxId+'Next')?.addEventListener('click',()=>{i++;render();});});
+        if(i>=qs.length){done=true;box.innerHTML='<h5>Imtihon yakunlandi</h5><p><span>Natija</span>: <b>'+score+'/'+qs.length+'</b> ('+Math.round(score/qs.length*100)+'%).</p><button type="button" class="primary" id="'+boxId+'Retry">Qayta topshirish</button>';$(boxId+'Retry')?.addEventListener('click',()=>runExam(boxId,setKey));saveHubAttempt(setKey,answers,qs.map((_,n)=>n),box);return;}
+        const q=qs[i];box.innerHTML='<p><b><span>Savol</span> '+(i+1)+'/'+qs.length+': <span>'+escapeHtml(q.q)+'</span></b></p>'+q.o.map((o,n)=>'<button type="button" class="secondary" data-exam-answer="'+n+'">'+escapeHtml(o)+'</button> ').join('')+'<div id="'+boxId+'Feedback" role="status" style="margin-top:8px"></div>';
+        box.querySelectorAll('[data-exam-answer]').forEach(b=>b.onclick=()=>{if(done||b.disabled)return;answers.push(Number(b.dataset.examAnswer));const ok=Number(b.dataset.examAnswer)===q.a;if(ok)score++;box.querySelectorAll('[data-exam-answer]').forEach(x=>x.disabled=true);$(boxId+'Feedback').innerHTML=(ok?'✅ <span>To‘g‘ri.</span> ':'❌ <span>Noto‘g‘ri.</span> ')+'<p>'+escapeHtml(q.e)+'</p><button type="button" class="primary" id="'+boxId+'Next">'+(i===qs.length-1?'Natijani ko‘rish':'Keyingi savol')+'</button>';$ (boxId+'Next')?.addEventListener('click',()=>{i++;render();});});
       };render();
     };
     $('hubTheoryExamStart')?.addEventListener('click',()=>runExam('hubTheoryExam','theory'));
@@ -2394,7 +2437,7 @@ function openModule(moduleName) {
     ];
     $('hubMoleculeStart')?.addEventListener('click',()=>{
       const box=$('hubMoleculeGame');if(!box)return;let idx=0,score=0;const answers=[],questionIds=[];const shuffled=[...moleculePairs].sort(()=>Math.random()-.5);
-      const render=()=>{if(idx>=shuffled.length){box.innerHTML='<h5>O‘yin tugadi!</h5><p>Natija: '+score+'/'+shuffled.length+' moslik, '+(score*10)+' ball.</p><button type="button" class="primary" id="hubMoleculeAgain">Yana o‘ynash</button>'; $('hubMoleculeAgain')?.addEventListener('click',()=> $('hubMoleculeStart')?.click());saveHubAttempt('molecule',answers,questionIds,box);return;}const p=shuffled[idx];box.innerHTML='<p><b>'+ (idx+1)+'/'+shuffled.length+' — '+escapeHtml(p.name)+'</b></p>'+[...moleculePairs].sort(()=>Math.random()-.5).map((x,n)=>'<button type="button" class="secondary" data-mol="'+moleculePairs.indexOf(x)+'" data-correct="'+(x.name===p.name?'1':'0')+'">'+escapeHtml(x.desc)+'</button> ').join('')+'<div id="hubMoleculeFeedback" role="status"></div>';box.querySelectorAll('[data-mol]').forEach(b=>b.onclick=()=>{if(b.disabled)return;answers.push(Number(b.dataset.mol));questionIds.push(moleculePairs.indexOf(p));const ok=b.dataset.correct==='1';if(ok)score++;box.querySelectorAll('[data-mol]').forEach(x=>x.disabled=true);$('hubMoleculeFeedback').textContent=(ok?'✅ To‘g‘ri! ':'❌ To‘g‘ri moslik: ')+p.desc;const n=document.createElement('button');n.className='primary';n.type='button';n.textContent=idx===shuffled.length-1?'Natija':'Keyingi';n.onclick=()=>{idx++;render();};box.appendChild(n);});};render();
+      const render=()=>{if(idx>=shuffled.length){box.innerHTML='<h5>O‘yin tugadi!</h5><p><span>Natija</span>: '+score+'/'+shuffled.length+' <span>moslik</span>, '+(score*10)+' <span>ball</span>.</p><button type="button" class="primary" id="hubMoleculeAgain">Yana o‘ynash</button>'; $('hubMoleculeAgain')?.addEventListener('click',()=> $('hubMoleculeStart')?.click());saveHubAttempt('molecule',answers,questionIds,box);return;}const p=shuffled[idx];box.innerHTML='<p><b>'+ (idx+1)+'/'+shuffled.length+' — <span>'+escapeHtml(p.name)+'</span></b></p>'+[...moleculePairs].sort(()=>Math.random()-.5).map((x,n)=>'<button type="button" class="secondary" data-mol="'+moleculePairs.indexOf(x)+'" data-correct="'+(x.name===p.name?'1':'0')+'">'+escapeHtml(x.desc)+'</button> ').join('')+'<div id="hubMoleculeFeedback" role="status"></div>';box.querySelectorAll('[data-mol]').forEach(b=>b.onclick=()=>{if(b.disabled)return;answers.push(Number(b.dataset.mol));questionIds.push(moleculePairs.indexOf(p));const ok=b.dataset.correct==='1';if(ok)score++;box.querySelectorAll('[data-mol]').forEach(x=>x.disabled=true);$('hubMoleculeFeedback').innerHTML=(ok?'✅ <span>To‘g‘ri!</span> ':'❌ <span>To‘g‘ri moslik:</span> ')+'<span>'+escapeHtml(p.desc)+'</span>';const n=document.createElement('button');n.className='primary';n.type='button';n.textContent=idx===shuffled.length-1?'Natija':'Keyingi';n.onclick=()=>{idx++;render();};box.appendChild(n);});};render();
     });
 
     const initOrganGame = () => {
@@ -2418,16 +2461,16 @@ function openModule(moduleName) {
       let selected=null, placed=new Set(), score=0, seconds=60, timer=null, active=false, placements={};
       const shuffle = a => a.map(v=>[Math.random(),v]).sort((x,y)=>x[0]-y[0]).map(x=>x[1]);
       const render = () => {
-        $('organGameScore').textContent='Ball: '+score;
-        $('organGameTime').textContent='Vaqt: '+seconds+' s';
+        $('organGameScore').innerHTML='<span>Ball</span>: '+score;
+        $('organGameTime').innerHTML='<span>Vaqt</span>: '+seconds+' s';
         $('organGameProgress').textContent=placed.size+'/'+organs.length;
         choices.innerHTML=shuffle(organs.filter(o=>!placed.has(o.id))).map(o=>'<button type="button" data-organ="'+o.id+'" style="border:2px solid '+(selected===o.id?'#f8d66d':'#6b94ad')+';border-radius:12px;padding:10px;background:'+(selected===o.id?'#f8d66d':'#203b50')+';color:'+(selected===o.id?'#14202b':'#fff')+';font-weight:700">'+o.name+'</button>').join('');
-        board.innerHTML=zones.map(z=>'<button type="button" data-zone="'+z.id+'" style="min-height:94px;border:2px dashed #84b5c9;border-radius:14px;padding:10px;background:#173448;color:#fff;text-align:center"><b>'+z.label+'</b><div style="margin-top:8px">'+organs.filter(o=>placed.has(o.id)&&z.accept.includes(o.id)).map(o=>o.name).join(' · ')+'</div></button>').join('');
-        choices.querySelectorAll('[data-organ]').forEach(b=>b.onclick=()=>{if(!active)return;selected=b.dataset.organ;const o=organs.find(x=>x.id===selected);feedback.textContent='Tanlangan: '+o.name+'. Endi mos tana qismini bosing.';render();});
-        board.querySelectorAll('[data-zone]').forEach(b=>b.onclick=()=>{if(!active||!selected){feedback.textContent='Avval pastdagi organni tanlang.';return;}const z=zones.find(x=>x.id===b.dataset.zone),o=organs.find(x=>x.id===selected);if(z.accept.includes(o.id)){placed.add(o.id);placements[o.id]=zones.indexOf(z);score+=10;feedback.textContent='✅ To‘g‘ri! '+o.hint;selected=null;render();if(placed.size===organs.length)finish(true);}else{score=Math.max(0,score-2);feedback.textContent='❌ Bu joy mos emas. Maslahat: '+o.hint;render();}});
+        board.innerHTML=zones.map(z=>'<button type="button" data-zone="'+z.id+'" style="min-height:94px;border:2px dashed #84b5c9;border-radius:14px;padding:10px;background:#173448;color:#fff;text-align:center"><b>'+z.label+'</b><div style="margin-top:8px">'+organs.filter(o=>placed.has(o.id)&&z.accept.includes(o.id)).map(o=>'<span>'+o.name+'</span>').join(' · ')+'</div></button>').join('');
+        choices.querySelectorAll('[data-organ]').forEach(b=>b.onclick=()=>{if(!active)return;selected=b.dataset.organ;const o=organs.find(x=>x.id===selected);feedback.innerHTML='<span>Tanlangan:</span> <span>'+o.name+'</span>. <span>Endi mos tana qismini bosing.</span>';render();});
+        board.querySelectorAll('[data-zone]').forEach(b=>b.onclick=()=>{if(!active||!selected){feedback.textContent='Avval pastdagi organni tanlang.';return;}const z=zones.find(x=>x.id===b.dataset.zone),o=organs.find(x=>x.id===selected);if(z.accept.includes(o.id)){placed.add(o.id);placements[o.id]=zones.indexOf(z);score+=10;feedback.innerHTML='✅ <span>To‘g‘ri!</span> <span>'+o.hint+'</span>';selected=null;render();if(placed.size===organs.length)finish(true);}else{score=Math.max(0,score-2);feedback.innerHTML='❌ <span>Bu joy mos emas. Maslahat:</span> <span>'+o.hint+'</span>';render();}});
       };
-      const finish=won=>{if(!active)return;active=false;clearInterval(timer);timer=null;start.textContent='🔁 Qayta o‘ynash';feedback.textContent=(won?'🏆 Ajoyib! Barcha organlar joyida. ':'⏱️ Vaqt tugadi. ' )+'Yakuniy ball: '+score+'. Qayta o‘ynash uchun tugmani bosing.';saveHubAttempt('organ',organs.map(o=>placements[o.id]??-1),organs.map((_,i)=>i),feedback);};
-      start.onclick=()=>{clearInterval(timer);selected=null;placed=new Set();placements={};score=0;seconds=60;active=true;start.textContent='🔄 Qaytadan boshlash';feedback.textContent='Organni tanlang va mos tana qismini bosing!';render();timer=setInterval(()=>{if(!start.isConnected){clearInterval(timer);active=false;return;}seconds--; $('organGameTime').textContent='Vaqt: '+seconds+' s';if(seconds<=0)finish(false);},1000);};
+      const finish=won=>{if(!active)return;active=false;clearInterval(timer);timer=null;start.textContent='🔁 Qayta o‘ynash';feedback.innerHTML=(won?'🏆 <span>Ajoyib! Barcha organlar joyida.</span> ':'⏱️ <span>Vaqt tugadi.</span> ')+'<span>Yakuniy ball:</span> '+score+'. <span>Qayta o‘ynash uchun tugmani bosing.</span>';saveHubAttempt('organ',organs.map(o=>placements[o.id]??-1),organs.map((_,i)=>i),feedback);};
+      start.onclick=()=>{clearInterval(timer);selected=null;placed=new Set();placements={};score=0;seconds=60;active=true;start.textContent='🔄 Qaytadan boshlash';feedback.textContent='Organni tanlang va mos tana qismini bosing!';render();timer=setInterval(()=>{if(!start.isConnected){clearInterval(timer);active=false;return;}if(document.hidden||start.closest('.hidden'))return;seconds--; $('organGameTime').innerHTML='<span>Vaqt</span>: '+seconds+' s';if(seconds<=0)finish(false);},1000);};
       render();
     };
     const initHubCell3D = () => {
@@ -2458,12 +2501,48 @@ function openModule(moduleName) {
         [[.8,.55,.2],[.7,-.6,.25],[-.8,.55,.2],[-.8,-.55,.1],[.2,.9,-.2],[.3,-.9,-.2]].forEach((p,i)=>sphere(i%2?0xf2c879:0x83c99d,p[0],p[1],p[2],.18));
         const membrane = new THREE.Mesh(new THREE.SphereGeometry(1.68, 32, 24), new THREE.MeshBasicMaterial({color:0x83d8ed, wireframe:true, transparent:true, opacity:.18})); cell.add(membrane);
         let dragging=false,lastX=0,lastY=0;
-        renderer.domElement.addEventListener('pointerdown',e=>{dragging=true;lastX=e.clientX;lastY=e.clientY;renderer.domElement.setPointerCapture(e.pointerId);});
-        renderer.domElement.addEventListener('pointermove',e=>{if(!dragging)return;cell.rotation.y+=(e.clientX-lastX)*.01;cell.rotation.x+=(e.clientY-lastY)*.01;lastX=e.clientX;lastY=e.clientY;});
-        renderer.domElement.addEventListener('pointerup',()=>dragging=false);
-        renderer.domElement.addEventListener('wheel',e=>{camera.position.z=Math.max(4,Math.min(10,camera.position.z+e.deltaY*.008));},{passive:true});
-        const animate=()=>{if(!viewer.isConnected){renderer.dispose();return;}if(!dragging)cell.rotation.y+=.004;renderer.render(scene,camera);requestAnimationFrame(animate);}; animate();
-        if(status) status.textContent='3D model tayyor: sudrab aylantiring, yaqinlashtirish uchun ekranda g‘ildirak/zoomdan foydalaning.';
+        let paused=window.matchMedia?.('(prefers-reduced-motion: reduce)').matches||false;
+        const canvas=renderer.domElement;
+        canvas.tabIndex=0;canvas.style.touchAction='none';
+        canvas.setAttribute('aria-label','3D hujayra: yo‘nalish tugmalari bilan aylantiring');
+        const controls=document.createElement('div');controls.className='cell-view-controls';
+        const button=(label,fn)=>{const el=document.createElement('button');el.type='button';el.className='ghost';el.textContent=label;el.onclick=fn;controls.appendChild(el);return el;};
+        const zoom=delta=>{camera.position.z=Math.max(4,Math.min(10,camera.position.z+delta));};
+        button('Yaqinlashtirish',()=>zoom(-.6));
+        button('Uzoqlashtirish',()=>zoom(.6));
+        const pause=button(paused?'Aylanishni boshlash':'Aylanishni to‘xtatish',()=>{paused=!paused;pause.textContent=paused?'Aylanishni boshlash':'Aylanishni to‘xtatish';pause.setAttribute('aria-pressed',String(paused));});
+        pause.setAttribute('aria-pressed',String(paused));
+        button('Ko‘rinishni tiklash',()=>{camera.position.z=7;cell.rotation.set(0,0,0);});
+        viewer.after(controls);
+        canvas.addEventListener('pointerdown',e=>{dragging=true;lastX=e.clientX;lastY=e.clientY;canvas.setPointerCapture(e.pointerId);});
+        canvas.addEventListener('pointermove',e=>{if(!dragging)return;cell.rotation.y+=(e.clientX-lastX)*.01;cell.rotation.x+=(e.clientY-lastY)*.01;lastX=e.clientX;lastY=e.clientY;});
+        for(const event of ['pointerup','pointercancel','lostpointercapture'])canvas.addEventListener(event,()=>dragging=false);
+        canvas.addEventListener('wheel',e=>{e.preventDefault();zoom(e.deltaY*.008);},{passive:false});
+        canvas.addEventListener('keydown',e=>{
+          if(!['ArrowLeft','ArrowRight','ArrowUp','ArrowDown','+','-','Home'].includes(e.key))return;
+          e.preventDefault();
+          if(e.key==='ArrowLeft')cell.rotation.y-=.15;
+          if(e.key==='ArrowRight')cell.rotation.y+=.15;
+          if(e.key==='ArrowUp')cell.rotation.x-=.15;
+          if(e.key==='ArrowDown')cell.rotation.x+=.15;
+          if(e.key==='+')zoom(-.6);if(e.key==='-')zoom(.6);
+          if(e.key==='Home'){camera.position.z=7;cell.rotation.set(0,0,0);}
+        });
+        const resize=()=>{const w=viewer.clientWidth;if(!w)return;renderer.setSize(w,240);camera.aspect=w/240;camera.updateProjectionMatrix();};
+        const observer=window.ResizeObserver?new ResizeObserver(resize):null;observer?.observe(viewer);
+        let stopped=false;
+        const dispose=()=>{if(stopped)return;stopped=true;observer?.disconnect();cell.traverse(object=>{object.geometry?.dispose();if(object.material)for(const m of [].concat(object.material))m.dispose();});renderer.dispose();renderer.forceContextLoss?.();};
+        const animate=()=>{
+          if(!viewer.isConnected){dispose();return;}
+          // Hidden workspaces retain state but must not keep drawing to WebGL.
+          if(!document.hidden&&viewer.getClientRects().length){
+            if(!dragging&&!paused)cell.rotation.y+=.004;
+            renderer.render(scene,camera);
+          }
+          requestAnimationFrame(animate);
+        };resize();animate();
+        if(status)status.textContent='Sxematik o‘quv modeli. Sudrab yoki yo‘nalish tugmalari bilan aylantiring; kattalashtirish tugmalaridan foydalaning.';
+
       }).catch(()=>{if(status)status.textContent='3D kutubxonasi yuklanmadi. Internet ulanishini tekshiring.';});
     };
     initOrganGame();
@@ -2530,7 +2609,7 @@ function openModule(moduleName) {
       'platformTool'
   };
 
-  $('moleculeVisualPanel')?.classList.toggle('hidden', moduleName !== 'PDB & Structure');
+  $('moleculeVisualPanel')?.classList.toggle('hidden', !['PDB & Structure','Molecular Analysis'].includes(moduleName));
 
   const toolId =
     map[moduleName];
@@ -3113,20 +3192,43 @@ async function runDocking() {
    JOB STATUS
 ========================================================= */
 
+function renderLabSummary(experiment){
+  const box=$('labSummary');if(!box)return;box.replaceChildren();box.hidden=false;
+  const labels={sequence_analysis:'Ketma-ketlik tahlili',molecular_analysis:'Molekulyar tahlil',structure_lookup:'Oqsil tuzilmasi',report:'Hisobot ma’lumotlari',virtual_screening:'Xossalarga asoslangan taqqoslash',docking:'Dokking'};
+  const statuses={completed:'Bajarildi',failed:'Xato',skipped:'O‘tkazib yuborildi',ready:'Kutilmoqda',requires_prepared_inputs:'Qo‘shimcha ma’lumot kerak'};
+  const row=(label,value)=>{const p=document.createElement('p'),span=document.createElement('span');span.textContent=label;p.append(span,document.createTextNode(': '+String(value)));box.appendChild(p);};
+  for(const item of experiment.results?.steps||[]){
+    const heading=document.createElement('h4');const title=document.createElement('span'),status=document.createElement('span');title.textContent=labels[item.step]||item.step;status.textContent=statuses[item.status]||item.status;heading.append(title,' — ',status);box.appendChild(heading);
+    const r=item.result||{};
+    if(item.step==='sequence_analysis'&&item.status==='completed'){row('Ketma-ketlik turi',r.sequence_type);row('Uzunlik',r.length);if(r.sequence_type==='DNA'||r.sequence_type==='RNA')row('GC ulushi',r.gc_content_percent+'%');}
+    if(item.step==='molecular_analysis'&&item.status==='completed'){row('Molekulyar formula',r.molecular_formula);row('Molyar massa',r.molecular_weight+' g/mol');row('Kanonik SMILES',r.canonical_smiles);}
+    if(r.error||r.reason)row('Izoh',typeof(r.error||r.reason)==='string'?(r.error||r.reason):JSON.stringify(r.error||r.reason));
+  }
+  const note=document.createElement('p');note.textContent='Bu hisoblash natijasi; dori samaradorligi yoki xavfsizligi tasdig‘i emas.';box.appendChild(note);
+}
+
 async function createLabWorkflow() {
+  const button=$('labRun');if(button?.disabled)return;
+  const requestToken=state.token;
   const name = $('labName')?.value?.trim() || 'MedGen Virtual Experiment';
   const workflow_type = $('labType')?.value || 'custom';
   const raw = $('labInput')?.value?.trim() || '{}';
   const status = $('workflowStatus');
   const result = $('workflowResult');
   let input;
-  try {
-    input = JSON.parse(raw);
-  } catch {
-    if (status) status.textContent = 'Input JSON noto‘g‘ri.';
-    return;
+  if($('labMode')?.value==='guided'){
+    const sequence=$('labSequence')?.value.trim()||'';
+    const ligand_smiles=$('labSmiles')?.value.trim()||'';
+    const pdb_id=$('labPdb')?.value.trim().toUpperCase()||'';
+    if(!sequence&&!ligand_smiles&&!pdb_id){if(status)status.textContent='Kamida bitta tahlil maydonini to‘ldiring.';return;}
+    input={target:name,sequence,ligand_smiles,pdb_id,steps:[...(sequence?['sequence_analysis']:[]),...(pdb_id?['structure_lookup']:[]),...(ligand_smiles?['molecular_analysis']:[]),'report']};
+  }else{
+    try{input=JSON.parse(raw);if(!input||typeof input!=='object'||Array.isArray(input))throw new Error();}
+    catch{if(status)status.textContent='JSON obyekt kiriting: { ... }';return;}
   }
-
+  if(button)button.disabled=true;
+  if(result)result.textContent='';
+  if($('labSummary'))$('labSummary').hidden=true;
   if (status) status.textContent = 'Workflow ma’lumotlari tekshirilmoqda...';
   try {
     if (String(input.target || '').trim()) {
@@ -3157,11 +3259,13 @@ async function createLabWorkflow() {
           parameters: input.parameters && typeof input.parameters === 'object' ? input.parameters : {}
         })
       });
+      if(state.token!==requestToken)return;
       const experimentId = created?.experiment?.id;
       if (!experimentId) throw new Error('Pipeline yaratildi, lekin experiment ID qaytmadi.');
       const executed = await api('/lab/experiments/' + encodeURIComponent(experimentId) + '/execute', {
         method: 'POST'
       });
+      if(state.token!==requestToken)return;
       let report = null;
       try {
         const reportResponse = await api('/scientific/reports', {
@@ -3177,6 +3281,8 @@ async function createLabWorkflow() {
       } catch (reportError) {
         console.warn('Scientific report creation failed:', reportError);
       }
+      if(state.token!==requestToken)return;
+      renderLabSummary(executed?.experiment || created.experiment);
       renderResult(result, { experiment: executed?.experiment || created.experiment, report });
       const executionStatus = executed?.experiment?.status || executed?.status || 'completed';
       const summary = executed?.experiment?.results?.execution_summary;
@@ -3202,16 +3308,18 @@ async function createLabWorkflow() {
       method: 'POST',
       body: JSON.stringify({ workflow_type, input: { name, ...input } })
     });
+    if(state.token!==requestToken)return;
     renderResult(result, data);
     if (status) status.textContent = 'Umumiy workflow yaratildi.';
     await loadWorkflows();
   } catch (error) {
-    if (status) status.textContent = error.message;
-  }
+    if (status&&state.token===requestToken) status.textContent = error.message;
+  } finally {if(button)button.disabled=false;}
 }
 
 
 async function loadJobStatus() {
+  const requestToken = state.token;
 
   const status =
     $('jobsStatus');
@@ -3223,6 +3331,7 @@ async function loadJobStatus() {
         '/jobs/status'
       );
 
+    if (state.token !== requestToken) return;
     if (status) {
 
       const worker =
@@ -3242,6 +3351,7 @@ async function loadJobStatus() {
     }
 
   } catch (error) {
+    if (state.token !== requestToken) return;
 
     if (status) {
       status.textContent =
@@ -3256,6 +3366,7 @@ async function loadJobStatus() {
 ========================================================= */
 
 async function loadJobs() {
+  const requestToken = state.token;
 
   const result =
     $('jobsResult');
@@ -3270,6 +3381,7 @@ async function loadJobs() {
     const data =
       await api('/jobs');
 
+    if (state.token !== requestToken) return;
     const jobs =
       data?.jobs || [];
 
@@ -3289,6 +3401,7 @@ async function loadJobs() {
     }
 
   } catch (error) {
+    if (state.token !== requestToken) return;
 
     if (result) {
       result.textContent =
@@ -3296,7 +3409,7 @@ async function loadJobs() {
     }
   }
 
-  loadJobStatus();
+  if (state.token === requestToken) await loadJobStatus();
 }
 
 
@@ -3305,6 +3418,9 @@ async function loadJobs() {
 ========================================================= */
 
 async function createJob() {
+  const requestToken = state.token;
+  const button = $('jobCreate');
+  if (button?.disabled) return;
   const jobType = $('jobType')?.value || 'MOLECULAR';
   const status = $('jobCreateStatus');
   const result = $('jobCreateResult');
@@ -3316,22 +3432,29 @@ async function createJob() {
       throw new Error('Input JSON obyekt bo‘lishi kerak.');
     }
   } catch (error) {
+    if (state.token !== requestToken) return;
     if (status) status.textContent = 'Input JSON noto‘g‘ri: ' + error.message;
     return;
   }
+  if (button) button.disabled = true;
+  if (result) result.textContent = '';
   if (status) status.textContent = 'Ilmiy vazifa bajarilmoqda...';
   try {
     const data = await api('/jobs', {
       method: 'POST',
       body: JSON.stringify({ job_type: jobType, input })
     });
+    if (state.token !== requestToken) return;
     renderResult(result, data);
     if (status) status.textContent = data?.status === 'completed'
       ? 'Vazifa bajarildi va natija saqlandi.'
       : 'Vazifa holati: ' + (data?.status || 'noma’lum');
     await loadJobs();
   } catch (error) {
+    if (state.token !== requestToken) return;
     if (status) status.textContent = error.message;
+  } finally {
+    if (button) button.disabled = false;
   }
 }
 
@@ -3340,31 +3463,57 @@ async function createJob() {
    REPORTS
 ========================================================= */
 
-async function loadReports() {
-  const status = $('reportsStatus');
-  const result = $('reportsResult');
-  if (status) status.textContent = t('reportLoading');
-  try {
-    const [reportData, experimentData] = await Promise.all([
-      api('/reports'),
-      api('/experiments')
-    ]);
-    const reports = reportData?.reports || [];
-    const experiments = experimentData?.experiments || [];
-    if (!reports.length && !experiments.length) {
-      if (result) result.textContent = t('noReports');
-    } else {
-      renderResult(result, {
-        reports,
-        experiments,
-        counts: { reports: reports.length, experiments: experiments.length }
-      });
+function renderReportsBrowser(reports,experiments,requestToken){
+  const list=$('reportsList'),pager=$('reportsPagination'),detail=$('reportsDetail');
+  if(!list||!pager||!detail)return;
+  const records=[...reports.map(data=>({kind:'report',data})),...experiments.map(data=>({kind:'experiment',data}))];
+  records.sort((a,b)=>(Date.parse(b.data.created_at)||0)-(Date.parse(a.data.created_at)||0));
+  let page=0;
+  detail.hidden=true;
+  const button=(label,action)=>{const b=document.createElement('button');b.type='button';b.className='ghost';b.textContent=label;b.onclick=action;return b;};
+  const select=record=>{
+    if(state.token!==requestToken)return;
+    $('reportsSelectedTitle').textContent=record.data.title||record.data.name||record.data.id||'';
+    renderResult($('reportsResult'),record.data);detail.hidden=false;
+    $('reportsDownload').onclick=()=>{
+      if(state.token!==requestToken)return;
+      const blob=new Blob([JSON.stringify({kind:record.kind,exported_at:new Date().toISOString(),record:record.data},null,2)],{type:'application/json;charset=utf-8'});
+      const url=URL.createObjectURL(blob),link=document.createElement('a');link.href=url;
+      link.download='medgen-'+record.kind+'-'+String(record.data.id||'record').replace(/[^a-zA-Z0-9_-]/g,'_').slice(0,80)+'.json';
+      document.body.appendChild(link);link.click();link.remove();setTimeout(()=>URL.revokeObjectURL(url),1000);
+    };
+  };
+  const render=()=>{
+    if(state.token!==requestToken)return;
+    const query=$('reportsSearch').value.trim().toLocaleLowerCase(),kind=$('reportsKind').value;
+    const filtered=records.filter(r=>(kind==='all'||r.kind===kind)&&[r.data.title,r.data.name,r.data.id,r.data.target].some(x=>String(x||'').toLocaleLowerCase().includes(query)));
+    const pages=Math.max(1,Math.ceil(filtered.length/20));page=Math.min(page,pages-1);
+    list.replaceChildren();pager.replaceChildren();
+    if(!filtered.length){const empty=document.createElement('p');empty.textContent='Mos yozuv topilmadi.';list.appendChild(empty);}
+    for(const record of filtered.slice(page*20,page*20+20)){
+      const card=document.createElement('article');card.className='report-card';
+      const title=document.createElement('h4');title.className='user-authored';title.textContent=record.data.title||record.data.name||record.data.id||'—';
+      const type=document.createElement('span');type.textContent=record.kind==='report'?'Hisobot':'Tajriba';
+      const metadata=document.createElement('p');metadata.className='user-authored';const date=new Date(record.data.created_at);metadata.textContent=(Number.isNaN(date.valueOf())?'':date.toLocaleString())+' · '+String(record.data.status||record.data.workflow_type||'');
+      card.append(title,type,metadata,button('Ochish',()=>select(record)));list.appendChild(card);
     }
-    if (status) status.textContent =
-      'Hisobotlar: ' + reports.length + ' | Ilmiy tajribalar: ' + experiments.length;
-  } catch (error) {
-    if (status) status.textContent = error.message;
-  }
+    const back=button('Oldingi',()=>{page--;render();}),next=button('Keyingi',()=>{page++;render();});back.disabled=page===0;next.disabled=page>=pages-1;
+    const count=document.createElement('span');count.textContent=(page+1)+' / '+pages+' · '+filtered.length;pager.append(back,count,next);
+  };
+  $('reportsSearch').oninput=()=>{page=0;render();};$('reportsKind').onchange=()=>{page=0;render();};render();
+}
+
+async function loadReports() {
+  const requestToken=state.token,status=$('reportsStatus');
+  $('reportsList')?.replaceChildren();$('reportsPagination')?.replaceChildren();
+  if($('reportsDetail'))$('reportsDetail').hidden=true;
+  if(status)status.textContent=t('reportLoading');
+  try{
+    const [reportData,experimentData]=await Promise.all([api('/reports'),api('/experiments')]);
+    if(state.token!==requestToken)return;
+    renderReportsBrowser(reportData?.reports||[],experimentData?.experiments||[],requestToken);
+    if(status)status.textContent='Tarix yuklandi.';
+  }catch(error){if(status&&state.token===requestToken)status.textContent=error.message;}
 }
 
 
@@ -3373,54 +3522,16 @@ async function loadReports() {
 ========================================================= */
 
 async function loadWorkflows() {
-
-  const result =
-    $('workflowResult');
-
-  const status =
-    $('workflowStatus');
-
-  if (status) {
-    status.textContent =
-      t('workflowLoading');
-  }
-
-  try {
-
-    const data =
-      await api('/workflows');
-
-    const workflows =
-      data?.workflows || [];
-
-    if (!workflows.length) {
-
-      if (result) {
-        result.textContent =
-          t('noWorkflows');
-      }
-
-    } else {
-
-      renderResult(
-        result,
-        data
-      );
-    }
-
-    if (status) {
-
-      status.textContent =
-        `${t('workflowCount')}: ${workflows.length}`;
-    }
-
-  } catch (error) {
-
-    if (status) {
-      status.textContent =
-        error.message;
-    }
-  }
+  const result=$('workflowResult'),status=$('workflowStatus'),token=state.token;
+  if(status)status.textContent=t('workflowLoading');
+  try{
+    const [data,history]=await Promise.all([api('/workflows'),api('/experiments')]);
+    if(state.token!==token)return;
+    const workflows=data?.workflows||[],experiments=(history?.experiments||[]).filter(e=>e.workflow_type==='virtual_lab');
+    if(workflows.length||experiments.length)renderResult(result,{workflows,experiments});
+    else if(result)result.textContent=t('noWorkflows');
+    if(status)status.textContent=t('workflowCount')+': '+(workflows.length+experiments.length);
+  }catch(error){if(status&&state.token===token)status.textContent=error.message;}
 }
 
 
@@ -3428,91 +3539,43 @@ async function loadWorkflows() {
    RESEARCH ASSISTANT
 ========================================================= */
 
+function renderResearchEvidence(data){
+  const box=$('researchEvidence');if(!box)return;box.replaceChildren();box.hidden=false;
+  const text=(tag,value,authored=false)=>{const el=document.createElement(tag);el.textContent=value;if(authored)el.className='user-authored';return el;};
+  box.append(text('h4','Qidiruv manbalari'),text('p',data.query||'',true),text('p','Qidiruv faqat PubMed manbalarini qamraydi. Bu umumiy AI xulosasi yoki davolash tavsiyasi emas.'));
+  const query=text('p','');query.append(text('span','Amalda qidirilgan so‘rov'),': ',text('span',data.normalized_query||data.query||'',true));box.append(query);
+  const evidence=Array.isArray(data.evidence)?data.evidence:[];
+  if(!evidence.length)box.append(text('p','Manba topilmadi. So‘rovni aniqlashtirib qayta urinib ko‘ring.'));
+  for(const item of evidence){
+    const card=document.createElement('article');card.className='report-card';
+    card.append(text('h4',item.title||'—',true),text('p',[item.journal,item.publication_date].filter(Boolean).join(' · '),true));
+    for(const excerpt of Array.isArray(item.evidence)?item.evidence.slice(0,3):[])card.append(text('blockquote',excerpt,true));
+    if(/^\d+$/.test(String(item.pmid||''))){const link=document.createElement('a');link.href='https://pubmed.ncbi.nlm.nih.gov/'+item.pmid+'/';link.target='_blank';link.rel='noopener noreferrer';link.textContent='PubMed: '+item.pmid;card.append(link);}
+    box.append(card);
+  }
+  box.append(text('p','Sarlavha va parchalar asl tilda berilgan. Moslik reytingi va tadqiqot turi avtomatik belgilanadi; manbani o‘zingiz tekshiring.'));
+}
+
 async function runResearchAgent() {
-  const query = $('researchQuery')?.value?.trim() || '';
-  const focus = $('researchFocus')?.value?.trim() || '';
-  const status = $('researchStatus');
-  const result = $('researchResult');
-  if (!query) { if (status) status.textContent = 'Research query is required.'; return; }
-
-  if (status) status.textContent = '1/4 Question → 2/4 Evidence...';
-  try {
-    const data = await api('/research/agent', {
-      method: 'POST',
-      body: JSON.stringify({ query, focus, limit: 8 })
-    });
-    state.lastResearchData = data;
-    renderResult(result, data);
-
-    const pipeline = data?.pipeline || {};
-    const kg = data?.knowledge_graph || {};
-    if (status) {
-      status.textContent =
-        'Research Agent completed: ' +
-        'Evidence ' + (pipeline.evidence_retrieved ?? data?.evidence_count ?? 0) +
-        ' → Knowledge Graph +' + (kg.entities_added ?? 0) + ' entities, +' +
-        (kg.relations_added ?? 0) + ' relations → Reproducible Report ready.';
-    }
-    try { await searchKnowledge(); } catch (_) {}
-    try { await loadReports(); } catch (_) {}
-  } catch (error) {
-    if (status) status.textContent = 'Research Agent error: ' + error.message;
-  }
+  const buttons=[$('researchAgentRun'),$('researchRun')].filter(Boolean);
+  if(buttons.some(b=>b.disabled))return;
+  const query=$('researchQuery')?.value.trim()||'',focus=$('researchFocus')?.value.trim()||'';
+  const status=$('researchStatus'),result=$('researchResult'),requestToken=state.token;
+  if(!query){if(status)status.textContent='Ilmiy savol yoki qidiruv so‘zini kiriting.';return;}
+  buttons.forEach(b=>b.disabled=true);
+  if($('researchEvidence')){$('researchEvidence').replaceChildren();$('researchEvidence').hidden=true;}
+  if(result)result.textContent='';state.lastResearchData=null;
+  if(status)status.textContent='PubMed manbalari qidirilmoqda…';
+  try{
+    const data=await api('/research/agent',{method:'POST',body:JSON.stringify({query,focus,limit:8})});
+    if(state.token!==requestToken)return;
+    state.lastResearchData=data;renderResearchEvidence(data);renderResult(result,data);
+    if(status)status.textContent='Qidiruv tugadi. Natija hisobotlar tarixiga yozildi.';
+  }catch(error){if(status&&state.token===requestToken)status.textContent=error.message;}
+  finally{buttons.forEach(b=>b.disabled=false);}
 }
 
-async function searchResearch() {
-
-  const query =
-    $('researchQuery')?.value?.trim() || '';
-
-  const status =
-    $('researchStatus');
-
-  const result =
-    $('researchResult');
-
-  if (!query) {
-    return;
-  }
-
-  if (status) {
-    status.textContent =
-      t('searching');
-  }
-
-  try {
-
-    const data =
-      await api(
-        '/research/agent',
-        {
-          method: 'POST',
-
-          body: JSON.stringify({
-            query,
-            limit: 8
-          })
-        }
-      );
-
-    renderResult(
-      result,
-      data
-    );
-
-    if (status) {
-      status.textContent =
-        t('searchCompleted');
-    }
-
-  } catch (error) {
-
-    if (status) {
-      status.textContent =
-        error.message;
-    }
-  }
-}
+async function searchResearch(){return runResearchAgent();}
 
 
 /* =========================================================
@@ -4383,6 +4446,11 @@ function bindEvents() {
 
   const labRun = $('labRun');
   if (labRun) labRun.addEventListener('click', createLabWorkflow);
+  $('labMode')?.addEventListener('change',()=>{const guided=$('labMode').value==='guided';$('labGuided').hidden=!guided;$('labAdvanced').hidden=guided;});
+  for(const [buttonId,inputId,value] of [['labExampleSequence','labSequence','>example\nATGC'],['labExampleMolecule','labSmiles','CCO'],['labExampleStructure','labPdb','1CRN']]){
+    $(buttonId)?.addEventListener('click',()=>{$(inputId).value=value;$(inputId).focus();});
+  }
+
 
   const workflowRefresh =
     $('workflowRefresh');
@@ -5131,32 +5199,28 @@ async function loadSecurityCenter() {
 function openSecurityCenter(){
   $('roleDashboard')?.classList.add('hidden');$('userDirectoryDashboard')?.classList.add('hidden');$('moduleDirectory')?.classList.add('hidden');$('educationPreferencePanel')?.classList.add('hidden');$('workspace')?.classList.add('hidden');$('adminDashboard')?.classList.add('hidden');$('securityCenter')?.classList.remove('hidden');loadSecurityCenter();
 }
+function coordinateValue(value){
+  if(value == null || String(value).trim()==='')return null;
+  const number=Number(value);return Number.isFinite(number)?number:null;
+}
 async function detectProfileLocation(fromSecurity=false){
-  const status=$('locationStatus')||$('securityStatus');
-  if(!navigator.geolocation){if(status)status.textContent='❌ Bu qurilmada geolocation mavjud emas.';return;}
-  if(status)status.textContent='📍 Qurilma joylashuviga ruxsat so‘ralmoqda...';
+  const msg=(key)=>window.medgenText?.(key)||key;
+  const show=text=>{const node=$(fromSecurity?'securityStatus':'locationStatus');if(node)node.textContent=text;};
+  if(!navigator.geolocation){show(msg('locationUnavailable'));return;}
+  show(msg('locationWaiting'));
+  const requestedToken=state.token;
   navigator.geolocation.getCurrentPosition(async pos=>{
-    if(fromSecurity) await openProfileEditor();
-    const lat=Number(pos.coords.latitude),lon=Number(pos.coords.longitude),btn=$('detectLocationBtn');
-    if(btn){btn.dataset.lat=String(lat);btn.dataset.lon=String(lon);btn.dataset.source='DEVICE_GEOLOCATION';}
+    if(!requestedToken || state.token!==requestedToken)return;
+    const lat=coordinateValue(pos.coords.latitude),lon=coordinateValue(pos.coords.longitude);
     try{
-      const url='https://nominatim.openstreetmap.org/reverse?format=jsonv2&lat='+encodeURIComponent(lat)+'&lon='+encodeURIComponent(lon)+'&accept-language='+encodeURIComponent(getLanguage());
-      const res=await fetch(url,{headers:{'Accept':'application/json','Accept-Language':getLanguage()}});
-      const geo=await res.json(),a=geo?.address||{},code=String(a.country_code||'').toUpperCase();
-      const regionName=a.state||a.region||'', districtName=a.county||a.city_district||a.district||'';
-      if($('profileCountry')&&code)$('profileCountry').value=code;
-      if($('profileAcademicCountry')&&code)$('profileAcademicCountry').value=code;
-      if($('profileRegion')){$('profileRegion').value=regionName;if(!$('profileRegion').value)$('profileRegion').value='OTHER';}
-      if($('profileDistrict')){$('profileDistrict').value=districtName;if(!$('profileDistrict').value)$('profileDistrict').value='OTHER';}
-      if($('profileRegionManual'))$('profileRegionManual').value=regionName;
-      if($('profileDistrictManual'))$('profileDistrictManual').value=districtName;
-      if($('profileCity'))$('profileCity').value=a.city||a.town||a.village||a.municipality||'';
-      if($('profileLocationLabel'))$('profileLocationLabel').value=a.suburb||a.neighbourhood||a.quarter||'';
-      if(btn)btn.dataset.source='DEVICE_GEOLOCATION_REVERSE';
-      if(status)status.textContent='✅ Joylashuv aniqlandi. Saqlash uchun Profilni saqlang.';
-    }catch(_){if(status)status.textContent='✅ Koordinata aniqlandi, lekin hudud nomini avtomatik olish imkoni bo‘lmadi. Mamlakat/viloyat/tumanni tekshiring.';}
-    if(fromSecurity){$('securityCenter')?.classList.add('hidden');}
-  },()=>{if(status)status.textContent='⚠️ Joylashuv ruxsati berilmadi yoki aniqlanmadi. Mamlakat/viloyat/tumanni qo‘lda tanlang.';},{enableHighAccuracy:false,timeout:12000,maximumAge:300000});
+      await api('/security/location',{method:'POST',body:JSON.stringify({location_lat:lat,location_lon:lon})});
+      if(state.token!==requestedToken)return;
+      const btn=$('detectLocationBtn');
+      if(btn){btn.dataset.lat=String(lat);btn.dataset.lon=String(lon);btn.dataset.source='browser_permission';}
+      if(state.user){state.user.profile={...(state.user.profile||{}),location_lat:lat,location_lon:lon,location_source:'browser_permission'};}
+      show(msg('locationSaved'));
+    }catch(error){show(msg('locationSaveFailed')+' '+error.message);}
+  },()=>show(msg('locationDenied')),{enableHighAccuracy:false,timeout:12000,maximumAge:300000});
 }
 /* =========================================================
    PHASE 1 FINAL SHELL — ROLE-FIRST DASHBOARD
@@ -5672,10 +5736,13 @@ async function runMolecule3D() {
 })();
 
 
-function runScientificWorkflow(){
+async function runScientificWorkflow(){
   const panel=document.getElementById('scientificWorkflowPanel');
   const status=panel?.querySelector('#scientificWorkflowStatus'), out=panel?.querySelector('#scientificWorkflowResult');
   if(!status || !out) return;
+  const button=document.getElementById('workflowRun');
+  if(button?.disabled) return;
+  out.textContent='';
   const body={
     name:document.getElementById('workflowName')?.value || 'MedGen Scientific Workflow',
     target:document.getElementById('workflowTarget')?.value || '',
@@ -5686,12 +5753,22 @@ function runScientificWorkflow(){
     run_similarity:true,
     similarity_library:(document.getElementById('workflowLibrary')?.value || '').split(/\r?\n/).map(x=>x.trim()).filter(Boolean)
   };
-  if(!body.target){ status.textContent='Target is required'; return; }
+  if(!body.target.trim()){ status.textContent='Target is required'; return; }
+  if(![body.sequence,body.pdb_id,body.ligand_smiles].some(value=>value.trim())){
+    status.textContent='Provide a sequence, PDB structure, or ligand SMILES to analyze.'; return;
+  }
   status.textContent='Running scientific workflow...'; out.textContent='';
-  fetch(API_BASE+'/scientific/workflow',{method:'POST',headers:{'Content-Type':'application/json',...(state.token?{Authorization:'Bearer '+state.token}:{})},body:JSON.stringify(body)})
-    .then(async r=>{const j=await r.json(); if(!r.ok) throw new Error(j.detail||'Workflow failed'); return j;})
-    .then(j=>{status.textContent='Workflow completed'; out.textContent=JSON.stringify(j,null,2);})
-    .catch(e=>{status.textContent='Workflow error'; out.textContent=e.message;});
+  if(button) button.disabled=true;
+  try{
+    const r=await fetch(API_BASE+'/scientific/workflow',{method:'POST',headers:{'Content-Type':'application/json',...(state.token?{Authorization:'Bearer '+state.token}:{})},body:JSON.stringify(body)});
+    const j=await r.json();
+    if(!r.ok){
+      const detail=j.detail;
+      throw new Error(typeof detail==='string'?detail:detail?.message || (detail?JSON.stringify(detail):'Workflow failed'));
+    }
+    status.textContent='Workflow completed'; out.textContent=JSON.stringify(j,null,2);
+  }catch(e){status.textContent='Workflow error'; out.textContent=e.message;}
+  finally{if(button) button.disabled=false;}
 }
 function bindScientificWorkflowPanelButton(){
   const button=document.getElementById('openScientificWorkflow');
@@ -5770,8 +5847,26 @@ async function renderPdb3D(){
     if(status)status.textContent='PDB 3D tayyor: '+pdb;
   }catch(e){if(status)status.textContent=e.message;}
 }
+async function renderAlphaFold3D(){
+  const accession=($('visualUniprot')?.value||'').trim().toUpperCase();
+  const status=$('visual3dStatus'),el=$('visual3dCanvas'),button=$('visualAlphaFoldRun');
+  const tr=s=>window.medgenText?.(s)||s;
+  if(!/^[A-Z0-9]{6,10}$/.test(accession)){status.textContent=tr('Enter a UniProt ID, for example P69905.');return;}
+  if(!window.$3Dmol){status.textContent=tr('3D viewer could not load. Check your connection and reload.');return;}
+  if(button.disabled)return;button.disabled=true;status.textContent=tr('Loading…');
+  try{
+    const data=await api('/structures/alphafold/'+accession);
+    el.innerHTML='';
+    const viewer=$3Dmol.createViewer(el,{backgroundColor:'#142333'});
+    viewer.addModel(data.pdb,'pdb');viewer.setStyle({},{cartoon:{color:'spectrum'}});viewer.zoomTo();viewer.render();
+    status.textContent='AlphaFold DB · '+accession+' · '+tr('Mean pLDDT')+': '+(data.mean_plddt??'—');
+    const notice=$('alphaFoldNotice');notice.textContent=tr('Predicted structure, not proof of drug efficacy.');
+    const link=document.createElement('a');link.href=data.source_url;link.target='_blank';link.rel='noopener noreferrer';link.textContent=' AlphaFold DB ↗';notice.append(link);
+  }catch(error){status.textContent=error.message;}finally{button.disabled=false;}
+}
 (function bindVisualLab(){
   function bind(){
+    $('visualAlphaFoldRun')?.addEventListener('click',renderAlphaFold3D);
     $('visual2dRun')?.addEventListener('click',renderMolecule2D);
     $('visual3dMoleculeRun')?.addEventListener('click',renderMolecule3D);
     $('visual3dPdbRun')?.addEventListener('click',renderPdb3D);

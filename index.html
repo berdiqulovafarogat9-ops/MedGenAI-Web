@@ -947,23 +947,34 @@ frame-ancestors 'none'">
         id="workflowTool"
         class="tool hidden">
 
-        <p class="muted">Build and run a reproducible virtual-lab workflow.</p>
+        <p class="muted">Hisoblash orqali o‘rganing: ketma-ketlik, molekula yoki oqsil tuzilmasini tahlil qiling. Bu haqiqiy laboratoriya tajribasi emas.</p>
         <label class="workspace-field-label" for="labName">Tajriba nomi</label>
-        <input id="labName" placeholder="Experiment name, e.g. EGFR screening">
-        <label class="workspace-field-label" for="labType">Ish jarayoni turi</label>
-        <select id="labType">
-          <option value="drug_discovery">Drug discovery</option>
-          <option value="molecular_analysis">Molecular analysis</option>
-          <option value="bioinformatics">Bioinformatics</option>
-          <option value="structure_analysis">Structure analysis</option>
-          <option value="custom">Custom workflow</option>
-        </select>
-        <label class="workspace-field-label" for="labInput">Ish jarayoni ma’lumotlari (JSON)</label>
-        <textarea id="labInput" placeholder='Workflow input JSON, e.g. {"target":"EGFR","molecules":["CCO"]}'></textarea>
-        <button id="labRun" class="primary small" type="button">🧪 Create workflow</button>
+        <input id="labName" maxlength="160" placeholder="Masalan: birinchi o‘quv tahlilim">
+        <label class="workspace-field-label" for="labMode">Kiritish usuli</label>
+        <select id="labMode"><option value="guided">Oddiy maydonlar</option><option value="advanced">Mutaxassis uchun JSON</option></select>
+        <div id="labGuided">
+          <label for="labSequence">DNK, RNK yoki oqsil ketma-ketligi (ixtiyoriy)</label>
+          <textarea id="labSequence" rows="4" placeholder=">example&#10;ATGC"></textarea>
+          <button id="labExampleSequence" class="ghost" type="button">DNK misolini qo‘yish</button>
+          <label for="labSmiles">Molekula SMILES (ixtiyoriy)</label>
+          <input id="labSmiles" placeholder="CCO">
+          <button id="labExampleMolecule" class="ghost" type="button">Etanol misolini qo‘yish</button>
+          <label for="labPdb">PDB tuzilma ID (ixtiyoriy)</label>
+          <input id="labPdb" maxlength="4" placeholder="1CRN">
+          <button id="labExampleStructure" class="ghost" type="button">Oqsil misolini qo‘yish</button>
+          <p class="muted">Kamida bitta maydonni to‘ldiring. Faqat kiritilgan ma’lumotga mos hisoblashlar bajariladi.</p>
+        </div>
+        <div id="labAdvanced" hidden>
+          <label for="labType">Ish jarayoni turi</label>
+          <select id="labType"><option value="drug_discovery">Drug discovery</option><option value="molecular_analysis">Molecular analysis</option><option value="bioinformatics">Bioinformatics</option><option value="structure_analysis">Structure analysis</option><option value="custom">Custom workflow</option></select>
+          <label for="labInput">Ish jarayoni ma’lumotlari (JSON)</label>
+          <textarea id="labInput" rows="5" placeholder='{"target":"Reference analysis","sequence":"ATGC"}'></textarea>
+        </div>
+        <button id="labRun" class="primary small" type="button">🧪 Tahlilni boshlash</button>
         <button id="workflowRefresh" class="ghost" type="button" data-i18n="refreshWorkflows">Refresh workflows</button>
         <button id="openScientificWorkflow" class="primary small" type="button">🔬 End-to-End Scientific Workflow</button>
         <div id="workflowStatus" class="status"></div>
+        <div id="labSummary" class="panel" hidden></div>
         <pre id="workflowResult" class="result"></pre>
 
       </div>
@@ -982,9 +993,9 @@ frame-ancestors 'none'">
         </p>
 
         <label class="workspace-field-label" for="researchQuery">Ilmiy savol yoki qidiruv so‘zlari</label>
-        <input id="researchQuery" placeholder="e.g. EGFR mutations in lung cancer" data-i18n-placeholder="researchPlaceholder">
+        <input maxlength="3000" id="researchQuery" placeholder="e.g. EGFR mutations in lung cancer" data-i18n-placeholder="researchPlaceholder">
         <label class="workspace-field-label" for="researchFocus">Qo‘shimcha yo‘nalish (ixtiyoriy)</label>
-        <input id="researchFocus" placeholder="Optional focus: mechanism, biomarker, target...">
+        <input maxlength="300" id="researchFocus" placeholder="Optional focus: mechanism, biomarker, target...">
         <div style="display:flex;gap:8px;flex-wrap:wrap">
           <button id="researchAgentRun" class="primary small" type="button">🧠 Research Agent</button>
           <button id="researchRun" class="ghost small" type="button" data-i18n="searchResearch">Search research</button>
@@ -995,10 +1006,10 @@ frame-ancestors 'none'">
           class="status">
         </div>
 
-        <pre
-          id="researchResult"
-          class="result">
-        </pre>
+        <div id="researchEvidence" hidden></div>
+        <details><summary>Texnik ma’lumotlar (JSON)</summary>
+          <pre id="researchResult" class="result"></pre>
+        </details>
 
       </div>
 
@@ -1165,10 +1176,19 @@ frame-ancestors 'none'">
           class="status">
         </div>
 
-        <pre
-          id="reportsResult"
-          class="result">
-        </pre>
+        <label for="reportsSearch">Nom yoki ID bo‘yicha qidirish</label>
+        <input id="reportsSearch" type="search" maxlength="200">
+        <label for="reportsKind">Yozuv turi</label>
+        <select id="reportsKind"><option value="all">Barchasi</option><option value="report">Hisobotlar</option><option value="experiment">Tajribalar</option></select>
+        <div id="reportsList" class="reports-list"></div>
+        <div id="reportsPagination" class="cell-view-controls"></div>
+        <section id="reportsDetail" hidden>
+          <h4>Tanlangan yozuv</h4>
+          <p id="reportsSelectedTitle" class="user-authored"></p>
+          <button id="reportsDownload" type="button" class="ghost">JSON yuklab olish</button>
+          <p class="muted">Quyida saqlangan ma’lumotlar ko‘rsatiladi. Hisobot tajribada tasdiqlangan samaradorlikni anglatmaydi.</p>
+          <pre id="reportsResult" class="result"></pre>
+        </section>
 
       </div>
 
@@ -2418,7 +2438,7 @@ document.addEventListener("DOMContentLoaded", function () {
 <script>
 /* MEDGEN FUNCTIONAL SERVICES v1 */
 (function(){
-  const API='https://medgenai-web-1.onrender.com/api/v1';
+  const API=window.MEDGEN_API_BASE||'https://medgenai-web-1.onrender.com/api/v1';
   const token=()=>sessionStorage.getItem('medgen_access_token')||'';
   const esc=(v)=>String(v??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
   async function api(path,opts={}){
@@ -2445,13 +2465,36 @@ document.addEventListener("DOMContentLoaded", function () {
     document.getElementById('supportForm').onsubmit=async e=>{e.preventDefault();const f=new FormData(e.target);try{await api('/support/tickets',{method:'POST',body:JSON.stringify(Object.fromEntries(f))});e.target.reset();support();}catch(x){alert(x.message)}};
   }
   async function assistant(){
-    const el=shell('🤖 MedGen AI Assistant','<div class="ai-messages" id="aiMsgs"><div class="community-card">Salom! MedGen AI platformasi bo‘yicha savolingizni yozing.</div></div><form class="ai-compose" id="aiForm"><input id="aiInput" placeholder="Savolingiz..." autocomplete="off" required><button class="primary">Yuborish</button></form>');
-    document.getElementById('aiForm').onsubmit=async e=>{e.preventDefault();const input=document.getElementById('aiInput'),q=input.value.trim();if(!q)return;const box=document.getElementById('aiMsgs');box.innerHTML+='<div class="community-card"><b>Siz:</b> '+esc(q)+'</div>';input.value='';try{const d=await api('/assistant/chat',{method:'POST',body:JSON.stringify({message:q})});box.innerHTML+='<div class="community-card"><b>MedGen AI:</b> '+esc(d.answer)+'</div>';}catch(x){box.innerHTML+='<div class="community-card">Xatolik: '+x.message+'</div>';}};    
+    const tr=s=>window.medgenText?.(s)||s;
+    shell('🤖 '+tr('MedGen AI Assistant'),'<div class="ai-messages" id="aiMsgs" aria-live="polite"></div><form class="ai-compose" id="aiForm"><textarea id="aiInput" rows="4" required></textarea><label class="evidence-choice"><input type="checkbox" id="assistantEvidence"><span></span></label><button class="primary" type="submit"></button></form>');
+    const input=document.getElementById('aiInput'),box=document.getElementById('aiMsgs'),form=document.getElementById('aiForm'),button=form.querySelector('button');
+    input.placeholder=tr('Your question…');input.setAttribute('aria-label',tr('Your question…'));
+    form.querySelector('.evidence-choice span').textContent=tr('Search PubMed evidence');
+    button.textContent=tr('Send');
+    function message(text){const node=document.createElement('div');node.className='community-card';node.textContent=text;box.append(node);box.scrollTop=box.scrollHeight;return node;}
+    message(tr('Hello! Ask a question about the MedGen AI platform.'));
+    form.onsubmit=async e=>{
+      e.preventDefault();const q=input.value.trim();if(!q||button.disabled)return;
+      const session=token();button.disabled=true;input.readOnly=true;
+      message(tr('You')+': '+q);
+      try{
+        const d=await api('/assistant/chat',{method:'POST',body:JSON.stringify({message:q,language:localStorage.getItem('medgen_language')||'uz',search_evidence:document.getElementById('assistantEvidence').checked})});
+        if(token()!==session||!box.isConnected)return;
+        const node=message('MedGen AI: '+d.answer);input.value='';
+        if(d.search_query){const query=document.createElement('p');query.textContent=tr('Search query')+': '+d.search_query;node.append(query);}
+        for(const article of d.evidence||[]){
+          if(!/^https:\/\/pubmed\.ncbi\.nlm\.nih\.gov\/\d+\/$/.test(article.url))continue;
+          const p=document.createElement('p'),link=document.createElement('a');link.href=article.url;link.target='_blank';link.rel='noopener noreferrer';link.textContent=article.title;p.append(link);node.append(p);
+        }
+        box.scrollTop=box.scrollHeight;
+      }catch(error){if(box.isConnected&&token()===session)message(tr('Request failed')+': '+error.message);}
+      finally{button.disabled=false;input.readOnly=false;}
+    };
   }
   async function community(){
     const role=(window.__MEDGEN_USER&&window.__MEDGEN_USER.role)||'student';
     const label=(window.__MEDGEN_USER&&window.__MEDGEN_USER.role_label)||role;
-    const el=shell('💬 '+label+' Community','<div class="community-card">Bu yopiq xona faqat sizning rolingiz uchun.</div><div id="communityMsgs">Yuklanmoqda...</div><form id="communityForm" class="ai-compose"><input id="communityInput" placeholder="Xabar yozing..." required><button class="primary">Yuborish</button></form>');
+    const el=shell('💬 '+label+' '+(window.medgenText?.('Community')||'Community'),'<div class="community-card">Bu yopiq xona faqat sizning rolingiz uchun.</div><div id="communityMsgs">Yuklanmoqda...</div><form id="communityForm" class="ai-compose"><textarea id="communityInput" rows="4" placeholder="Xabar yozing..." aria-label="Xabar yozing..." required></textarea><button class="primary">Yuborish</button></form>');
     async function load(){try{const d=await api('/community'+(window.__MEDGEN_COMMUNITY_ROLE?'?role='+encodeURIComponent(window.__MEDGEN_COMMUNITY_ROLE):''));document.getElementById('communityMsgs').innerHTML=d.messages.length?d.messages.map(x=>'<div class="community-card"><b>'+esc(x.username)+'</b><br>'+esc(x.message)+'<br><small>'+esc(x.created_at)+'</small></div>').join(''):'Hozircha xabar yo‘q — birinchi bo‘lib yozing.';}catch(e){document.getElementById('communityMsgs').textContent=e.message;}}
     await load();
     document.getElementById('communityForm').onsubmit=async e=>{e.preventDefault();const i=document.getElementById('communityInput'),q=i.value.trim();try{await api('/community/messages',{method:'POST',body:JSON.stringify({message:q,role:window.__MEDGEN_COMMUNITY_ROLE||undefined})});i.value='';load();}catch(x){alert(x.message)}};
@@ -2499,7 +2542,7 @@ document.addEventListener("DOMContentLoaded", function () {
         <button id="visual3dMoleculeRun">Show Molecule 3D</button>
         <button id="visual3dPdbRun">Show PDB 3D</button>
       </div>
-      <div id="visual3dStatus" class="status"></div>
+      <label for="visualUniprot">UniProt ID (AlphaFold)</label><input id="visualUniprot" placeholder="P69905"><button id="visualAlphaFoldRun" type="button">Show AlphaFold model</button><p id="alphaFoldNotice" class="muted"></p><div id="visual3dStatus" class="status"></div>
       <div id="visual3dCanvas" style="height:520px;border-radius:12px;overflow:hidden;background:#07111f"></div>
     </div>
   </div>
@@ -2515,10 +2558,12 @@ document.addEventListener("DOMContentLoaded", function () {
 })();
 </script>
 
-<script>window.MEDGEN_API_BASE="https://medgenai-web-1.onrender.com/api/v1";</script>
+<script>window.MEDGEN_API_BASE=window.MEDGEN_API_BASE||"https://medgenai-web-1.onrender.com/api/v1";</script>
 <script src="/phase1-academy.js?v=20261009-restore"></script>
 
 
 
+<script src="ux.js?v=20261019"></script>
+<script src="opportunities.js?v=20261020"></script>
 </body>
 </html>
