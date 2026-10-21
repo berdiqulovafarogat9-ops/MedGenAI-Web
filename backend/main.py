@@ -1,7 +1,7 @@
 import uuid
 import threading
 import copy
-from datetime import datetime, timezone
+from datetime import date, datetime, timezone
 import hashlib
 import json
 import xml.etree.ElementTree as ET
@@ -17,7 +17,7 @@ try:
     import psycopg
 except Exception:
     psycopg = None
-from urllib.parse import quote
+from urllib.parse import quote, urlsplit
 from urllib.request import Request as URLRequest, urlopen
 from urllib.error import HTTPError, URLError
 
@@ -29,7 +29,7 @@ try:
     from .knowledge_engine import make_entity, make_relation, search_graph, neighborhood, validate_graph, normalize_entity, graph_stats, find_paths
 except ImportError:
     from knowledge_engine import make_entity, make_relation, search_graph, neighborhood, validate_graph, normalize_entity, graph_stats, find_paths
-from pydantic import BaseModel, Field, StrictInt
+from pydantic import BaseModel, Field, StrictInt, ValidationError
 from rdkit import Chem, DataStructs
 from rdkit.Chem import AllChem, Descriptors, Lipinski, QED, rdMolDescriptors
 
@@ -126,6 +126,7 @@ knowledge_relations_store = []
 # =========================================================
 # GLOBAL PLATFORM STATE — ORGANIZATIONS / WORKSPACES / API
 # =========================================================
+opportunities_store = {}
 organizations_store = {}
 school_directory_store = {}
 school_invitations_store = {}
@@ -147,7 +148,7 @@ _PERSISTENCE_LOCK = threading.RLock()
 _state_revision = 0
 
 def _persistent_stores():
-    return {"user_accounts":user_accounts,"user_profiles":user_profiles,"user_consents":user_consents,"role_requests_store":role_requests_store,"experiments_store":experiments_store,"reports_store":reports_store,"academy_syllabi_store":academy_syllabi_store,"activity_log":activity_log,"jobs_store":jobs_store,"workflows_store":workflows_store,"docking_jobs_store":docking_jobs_store,"knowledge_entities_store":knowledge_entities_store,"knowledge_relations_store":knowledge_relations_store,"organizations_store":organizations_store,"school_directory_store":school_directory_store,"school_invitations_store":school_invitations_store,"school_assignments_store":school_assignments_store,"school_submissions_store":school_submissions_store,"memberships_store":memberships_store,"workspaces_store":workspaces_store,"projects_store":projects_store,"api_keys_store":api_keys_store,"platform_audit_log":platform_audit_log,"usage_store":usage_store,"webhooks_store":webhooks_store}
+    return {"opportunities_store":opportunities_store,"user_accounts":user_accounts,"user_profiles":user_profiles,"user_consents":user_consents,"role_requests_store":role_requests_store,"experiments_store":experiments_store,"reports_store":reports_store,"academy_syllabi_store":academy_syllabi_store,"activity_log":activity_log,"jobs_store":jobs_store,"workflows_store":workflows_store,"docking_jobs_store":docking_jobs_store,"knowledge_entities_store":knowledge_entities_store,"knowledge_relations_store":knowledge_relations_store,"organizations_store":organizations_store,"school_directory_store":school_directory_store,"school_invitations_store":school_invitations_store,"school_assignments_store":school_assignments_store,"school_submissions_store":school_submissions_store,"memberships_store":memberships_store,"workspaces_store":workspaces_store,"projects_store":projects_store,"api_keys_store":api_keys_store,"platform_audit_log":platform_audit_log,"usage_store":usage_store,"webhooks_store":webhooks_store}
 
 def _db_init():
     if not PERSISTENCE_ENABLED: return
@@ -305,8 +306,8 @@ class ProfileRequest(BaseModel):
     district: str = ""
     city: str = ""
     location_label: str = ""
-    location_lat: float | None = None
-    location_lon: float | None = None
+    location_lat: float | None = Field(default=None, ge=-90, le=90, allow_inf_nan=False)
+    location_lon: float | None = Field(default=None, ge=-180, le=180, allow_inf_nan=False)
     location_source: str = ""
     birth_year: int | None = None
     birth_month: int | None = None
@@ -342,9 +343,9 @@ class ResearchRequest(BaseModel):
 
 
 class ResearchAgentRequest(BaseModel):
-    query: str
-    limit: int = 8
-    focus: str = ""
+    query: str = Field(min_length=1, max_length=3000)
+    limit: int = Field(default=8, ge=1, le=20)
+    focus: str = Field(default="", max_length=300)
 
 
 class WorkflowRequest(BaseModel):
@@ -545,6 +546,7 @@ async def account_readiness_guard(request: Request, call_next):
         "/api/v1/education/preferences",
         "/api/v1/roles/request",
         "/api/v1/security/overview",
+        "/api/v1/security/location",
         "/api/v1/security/summary",
         # Dashboard summary and roadmap are read-only navigation surfaces.
         # Keep them available during onboarding; scientific/data operations
@@ -1156,7 +1158,8 @@ async def save_security_location(request: Request, user=Depends(get_current_user
     if not (-90 <= lat <= 90 and -180 <= lon <= 180):
         raise HTTPException(status_code=400, detail="Coordinates are outside valid ranges.")
     username = user["username"]
-    profile = dict(user_profiles.get(username, {}))
+    previous_profile = user_profiles.get(username)
+    profile = dict(previous_profile or {})
     profile.update({
         "location_lat": lat,
         "location_lon": lon,
@@ -1164,12 +1167,21 @@ async def save_security_location(request: Request, user=Depends(get_current_user
         "location_label": str(data.get("location_label") or profile.get("location_label") or "Qurilma GPS")[:240],
     })
     user_profiles[username] = profile
-    activity_log.insert(0, {
+    event = {
         "type": "location_updated",
         "username": username,
         "at": datetime.now(timezone.utc).isoformat(),
-    })
-    _db_save()
+    }
+    activity_log.insert(0, event)
+    try:
+        _db_save()
+    except Exception:
+        if previous_profile is None:
+            user_profiles.pop(username, None)
+        else:
+            user_profiles[username] = previous_profile
+        activity_log[:] = [item for item in activity_log if item is not event]
+        raise
     return {"status": "saved", "has_coordinates": True}
 
 
@@ -1546,7 +1558,7 @@ def pdb_structure(
 
 @app.get("/api/v1/jobs")
 def list_jobs(user=Depends(get_current_user)):
-    items = [j for j in jobs_store if j["user"] == user["username"]]
+    items = [j for j in jobs_store if j.get("user") == user["username"]]
     return {"jobs": items, "count": len(items), "user": user["username"]}
 
 
@@ -1594,21 +1606,15 @@ def create_job(
         missing = [key for key in required if not str(job_input.get(key) or "").strip()]
         if missing:
             raise HTTPException(status_code=400, detail="DOCKING job input is missing: " + ", ".join(missing))
-        docking_request = PreparedDockingRequest(
-            target=str(job_input["target"]),
-            ligand_smiles=str(job_input.get("ligand_smiles") or ""),
-            receptor_pdbqt=str(job_input["receptor_pdbqt"]),
-            ligand_pdbqt=str(job_input["ligand_pdbqt"]),
-            center_x=float(job_input.get("center_x", 0)),
-            center_y=float(job_input.get("center_y", 0)),
-            center_z=float(job_input.get("center_z", 0)),
-            size_x=float(job_input.get("size_x", 20)),
-            size_y=float(job_input.get("size_y", 20)),
-            size_z=float(job_input.get("size_z", 20)),
-            exhaustiveness=int(job_input.get("exhaustiveness", 8)),
-            n_poses=int(job_input.get("n_poses", 3)),
-        )
-        result = run_prepared_docking(docking_request, user)
+        try:
+            docking_request = PreparedDockingRequest(**{
+                **{"center_x": 0, "center_y": 0, "center_z": 0},
+                **job_input,
+            })
+        except ValidationError as exc:
+            fields = ", ".join(".".join(map(str, error["loc"])) for error in exc.errors())
+            raise HTTPException(status_code=422, detail="Invalid docking input fields: " + fields)
+        result = _execute_prepared_docking(docking_request, user, persist=False)
         status = "completed"
     elif job_type == "STRUCTURE_PREDICTION":
         raise HTTPException(
@@ -1628,8 +1634,24 @@ def create_job(
         "created_at": datetime.now(timezone.utc).isoformat(),
         "completed_at": datetime.now(timezone.utc).isoformat(),
     }
+    docking_record = docking_event = None
+    if job_type == "DOCKING":
+        docking_id = result["job_id"]
+        docking_record = {"id": docking_id, **result["result"], "created_at": job["created_at"]}
+        docking_event = {"type": "docking_completed", "username": user["username"],
+                         "job_id": docking_id, "target": result["result"]["target"], "at": job["created_at"]}
+        docking_jobs_store[docking_id] = docking_record
+        activity_log.insert(0, docking_event)
     jobs_store.insert(0, job)
-    _db_save()
+    try:
+        _db_save()
+    except Exception:
+        jobs_store[:] = [item for item in jobs_store if item is not job]
+        if docking_record is not None and docking_jobs_store.get(docking_id) is docking_record:
+            docking_jobs_store.pop(docking_id, None)
+        if docking_event is not None:
+            activity_log[:] = [item for item in activity_log if item is not docking_event]
+        raise
     return job
 
 
@@ -2098,9 +2120,25 @@ def research_search(
 # PUBMED ARTICLE DETAILS
 # =========================================================
 
+def _record_research_change(store, item, changes, first=False):
+    if first: store.insert(0,item)
+    else: store.append(item)
+    changes.append((store,item))
+
+
+def _save_research_changes(changes):
+    try:
+        _db_save()
+    except Exception:
+        for store,item in reversed(changes):
+            store[:]=[record for record in store if record is not item]
+        raise
+
+
 @app.post("/api/v1/research/agent")
 def research_agent(data: ResearchAgentRequest, user=Depends(get_current_user)):
     _check_quota(user["username"], "research_runs")
+    changes=[]
     query=data.query.strip()
     if not query: raise HTTPException(status_code=400, detail="Research query is required")
     normalized=normalize_pubmed_query(query)
@@ -2132,7 +2170,7 @@ def research_agent(data: ResearchAgentRequest, user=Depends(get_current_user)):
     graph_relations_added = []
     query_entity = normalize_entity(query)
     if query and not any(x["id"] == query_entity for x in knowledge_entities_store if x.get("owner") == user["username"]):
-        knowledge_entities_store.append(_owned_knowledge_entity(user, query, "research_question", "Research Agent"))
+        _record_research_change(knowledge_entities_store,_owned_knowledge_entity(user, query, "research_question", "Research Agent"),changes)
         graph_entities_added.append(query_entity)
 
     for item in evidence[:8]:
@@ -2140,12 +2178,12 @@ def research_agent(data: ResearchAgentRequest, user=Depends(get_current_user)):
         paper_name = f"PMID:{pmid}"
         paper_id = normalize_entity(paper_name)
         if not any(x["id"] == paper_id for x in knowledge_entities_store if x.get("owner") == user["username"]):
-            knowledge_entities_store.append(_owned_knowledge_entity(user, paper_name, "publication", "PubMed"))
+            _record_research_change(knowledge_entities_store,_owned_knowledge_entity(user, paper_name, "publication", "PubMed"),changes)
             graph_entities_added.append(paper_id)
         claim = item["evidence"][0] if item["evidence"] else item["title"]
         rel = _owned_knowledge_relation(user, query, "supported_by", paper_name, "PubMed", claim)
         if rel not in knowledge_relations_store:
-            knowledge_relations_store.append(rel)
+            _record_research_change(knowledge_relations_store,rel,changes)
             graph_relations_added.append(rel)
 
     report={
@@ -2178,13 +2216,15 @@ def research_agent(data: ResearchAgentRequest, user=Depends(get_current_user)):
         "source":"NCBI PubMed E-utilities", "user":user["username"]
     }
     now=datetime.now(timezone.utc).isoformat()
-    reports_store.insert(0,{"id":secrets.token_hex(10),"type":"research_intelligence","title":"Research Intelligence — "+query,"user":user["username"],"created_at":now,"report":report})
-    activity_log.insert(0,{"type":"research_agent","username":user["username"],"query":query,"evidence_count":len(evidence),"at":now})
+    _record_research_change(reports_store,{"id":secrets.token_hex(10),"type":"research_intelligence","title":"Research Intelligence — "+query,"user":user["username"],"created_at":now,"report":report},changes,first=True)
+    _record_research_change(activity_log,{"type":"research_agent","username":user["username"],"query":query,"evidence_count":len(evidence),"at":now},changes,first=True)
+    _save_research_changes(changes)
     return report
 
 
 @app.post("/api/v1/research/autonomous")
 def autonomous_research(data: ResearchAgentRequest, user=Depends(get_current_user)):
+    changes=[]
     query = data.query.strip()
     if not query:
         raise HTTPException(status_code=400, detail="Research query is required")
@@ -2203,15 +2243,15 @@ def autonomous_research(data: ResearchAgentRequest, user=Depends(get_current_use
     evidence = [{"pmid":a["pmid"],"title":a["title"],"score":a["relevance_score"],"evidence":a["evidence"],"url":a["url"]} for a in top]
     qid = normalize_entity(query)
     if not any(x["id"] == qid for x in knowledge_entities_store if x.get("owner") == user["username"]):
-        knowledge_entities_store.append(_owned_knowledge_entity(user, query, "research_question", "PubMed"))
+        _record_research_change(knowledge_entities_store,_owned_knowledge_entity(user, query, "research_question", "PubMed"),changes)
     added = 0
     for item in evidence:
         pid = normalize_entity("PMID:" + item["pmid"])
         if not any(x["id"] == pid for x in knowledge_entities_store if x.get("owner") == user["username"]):
-            knowledge_entities_store.append(_owned_knowledge_entity(user, "PMID:" + item["pmid"], "publication", "PubMed"))
+            _record_research_change(knowledge_entities_store,_owned_knowledge_entity(user, "PMID:" + item["pmid"], "publication", "PubMed"),changes)
         rel = _owned_knowledge_relation(user, query, "supported_by", "PMID:" + item["pmid"], "PubMed", (item["evidence"] or [item["title"]])[0])
         if rel not in knowledge_relations_store:
-            knowledge_relations_store.append(rel)
+            _record_research_change(knowledge_relations_store,rel,changes)
             added += 1
     now = datetime.now(timezone.utc).isoformat()
     report = {
@@ -2222,9 +2262,11 @@ def autonomous_research(data: ResearchAgentRequest, user=Depends(get_current_use
         "reproducibility":{"source":"NCBI PubMed E-utilities","query":query,"normalized_query":normalized,"limit":data.limit,"focus":data.focus.strip(),"pmids":[x["pmid"] for x in evidence],"generated_at":now},
         "limitations":["Retrieved abstracts are not clinical evidence of efficacy.","Results require expert review and independent validation."]
     }
-    reports_store.insert(0,{"id":secrets.token_hex(10),"type":"autonomous_research","title":"Autonomous Research — "+query,"user":user["username"],"created_at":now,"report":report})
-    activity_log.insert(0,{"type":"autonomous_research","username":user["username"],"query":query,"evidence_count":len(evidence),"at":now})
+    _record_research_change(reports_store,{"id":secrets.token_hex(10),"type":"autonomous_research","title":"Autonomous Research — "+query,"user":user["username"],"created_at":now,"report":report},changes,first=True)
+    _record_research_change(activity_log,{"type":"autonomous_research","username":user["username"],"query":query,"evidence_count":len(evidence),"at":now},changes,first=True)
+    _save_research_changes(changes)
     return report
+
 
 @app.get("/api/v1/research/history")
 def research_history(user=Depends(get_current_user)):
@@ -4123,6 +4165,36 @@ def _academy_progress(username: str):
     p = user_profiles.setdefault(username, {})
     return p.setdefault("academy_progress", {})
 
+def _save_academy_assessment(username, course, subject_id, assessment_type, score):
+    profile = user_profiles.setdefault(username, {})
+    had_progress = "academy_progress" in profile
+    progress = _academy_progress(username)
+    key = _academy_key(course, subject_id)
+    had_subject = key in progress
+    record = progress.setdefault(key, {})
+    previous = record.get(assessment_type)
+    updated = {
+        "score": score, "passed": score >= 70,
+        "attempts": int((previous or {}).get("attempts", 0)) + 1,
+        "updated_at": datetime.now(timezone.utc).isoformat(),
+    }
+    record[assessment_type] = updated
+    try:
+        _db_save()
+    except Exception:
+        if record.get(assessment_type) is updated:
+            if previous is None:
+                record.pop(assessment_type, None)
+            else:
+                record[assessment_type] = previous
+        if not had_subject and not record and progress.get(key) is record:
+            progress.pop(key, None)
+        if not had_progress and not progress and profile.get("academy_progress") is progress:
+            profile.pop("academy_progress", None)
+        raise
+    return record
+
+
 def _academy_key(course: int, subject_id: str):
     return f"{course}:{subject_id}"
 
@@ -4691,16 +4763,7 @@ def academy_submit_assessment(data: AcademyAssessmentSubmitRequest, user=Depends
         correct = sum(1 for q in questions if data.answers.get(q["id"]) == q["answer"])
         total = len(questions)
         score = round(correct * 100 / total) if total else 0
-    key = _academy_key(data.course, data.subject_id)
-    progress = _academy_progress(user["username"])
-    record = progress.setdefault(key, {})
-    record[data.assessment_type] = {
-        "score": score,
-        "passed": score >= 70,
-        "attempts": int(record.get(data.assessment_type, {}).get("attempts", 0)) + 1,
-        "updated_at": datetime.now(timezone.utc).isoformat(),
-    }
-    _db_save()
+    record = _save_academy_assessment(user["username"], data.course, data.subject_id, data.assessment_type, score)
     return {"status": "recorded", "score": score, "passed": score >= 70, "total": total, "progress": record}
 
 @app.get("/api/v1/academy/dashboard")
@@ -4760,7 +4823,9 @@ class CommunityMessageRequest(BaseModel):
     role: str | None = None
 
 class AssistantMessageRequest(BaseModel):
-    message: str
+    message: str = Field(min_length=1, max_length=3000)
+    language: str = "uz"
+    search_evidence: bool = False
 
 _SUPPORT_CATEGORIES = {"GENERAL", "LOGIN", "ACADEMY", "BIOINFORMATICS", "DRUG_DISCOVERY", "RESEARCH", "SECURITY", "BILLING"}
 _SUPPORT_PRIORITIES = {"LOW", "NORMAL", "HIGH", "URGENT"}
@@ -4830,20 +4895,58 @@ def assistant_chat(data: AssistantMessageRequest, user=Depends(get_current_user)
     q=str(data.message or "").strip()
     if not q:
         raise HTTPException(status_code=400, detail="Message is required.")
-    ql=q.lower()
-    if any(x in ql for x in ["login","parol","password","kirm"]):
-        answer="Login muammosi bo‘lsa, username va parolni tekshiring. Parolni hech kimga yubormang. Muammo davom etsa Yordam markazidan ticket oching."
-    elif any(x in ql for x in ["bioinformat","sequence","fasta","dna","rna","protein"]):
-        answer="Bioinformatics modulida FASTA/sequence tahlili, ketma-ketlik turi, uzunlik, tarkib va asosiy tahlillarni bajarishingiz mumkin. Natijalarni ilmiy xulosa sifatida tekshirib foydalaning."
-    elif any(x in ql for x in ["dori","drug","molecule","molekula","docking"]):
-        answer="Drug Discovery modulida molekula va target workflowlari mavjud. Virtual screening/docking natijalari eksperimental tasdiq o‘rnini bosmaydi."
-    elif any(x in ql for x in ["research","pubmed","maqola","ilmiy"]):
-        answer="Research Assistant ilmiy savolni PubMed dalillari bilan tekshirish va manbalarni tartiblashga yordam beradi."
-    elif any(x in ql for x in ["support","yordam","muammo","xato"]):
-        answer="Muammoingizni Yordam markazida kategoriya va ustuvorlik bilan ticket qilib yuboring. Support tarixingiz ham shu yerda saqlanadi."
+    language = data.language if data.language in {"uz", "en", "ru"} else "uz"
+    texts = {
+        "uz": {
+            "login": "Kirish uchun foydalanuvchi nomi va parolni tekshiring. Parolingizni xabarga yozmang. Yordam markazida muammo yuborishingiz mumkin.",
+            "bio": "Bioinformatika bo‘limida DNK, RNK yoki oqsil ketma-ketligini kiriting. Masalan, ATGC bilan uzunlik va GC ulushini ko‘rishingiz mumkin. Bu o‘quv misoli.",
+            "drug": "Molekula bo‘limida SMILES yozuvi bilan hisoblash bajariladi. Masalan, CCO — etanol uchun o‘quv misoli. Docking uchun tayyorlangan ligand, retseptor va tekshirilgan qidiruv sohasi kerak. Hisoblash dori samaradorligini tasdiqlamaydi.",
+            "default": "Savolingizni o‘z tilingizda yozing. Ilmiy maqolalarni topish uchun «PubMed manbalarini qidirish»ni belgilang. Men hozir platforma yo‘riqnomasi va manba qidiruvini bajaraman; umumiy sun’iy intellekt modeli ulanmagan.",
+            "found": "PubMed manbalari topildi. Quyida asl sarlavha va maqola havolalari berilgan; ular avtomatik tarjima yoki davolash tavsiyasi emas. Avval sharh maqolalarni o‘qing, so‘ng tadqiqot savolini toraytiring. Molekula tanlash uchun alohida nishon, taqqoslash mezoni va mustaqil tasdiq zarur.",
+            "empty": "Bu so‘rov uchun PubMed manbasi topilmadi. Kasallik yoki oqsilning boshqa nomini kiriting. Manba yo‘qligi ilmiy xulosa emas.",
+        },
+        "en": {
+            "login": "Check your username and password. Never include your password in messages. You can report the issue in Support.",
+            "bio": "Enter a DNA, RNA or protein sequence in Bioinformatics. For example, ATGC demonstrates length and GC content. This is a learning example.",
+            "drug": "Molecular analysis accepts SMILES. CCO (ethanol) is a learning example. Docking needs a prepared ligand, receptor and validated search box. Computation does not establish drug efficacy.",
+            "default": "Write in your own language. Select Search PubMed evidence to retrieve papers. This assistant currently provides platform guidance and source retrieval; no general AI language model is connected.",
+            "found": "PubMed sources retrieved. Original titles and article links appear below; they are not automatic translations or treatment recommendations. Start with review papers, then narrow your research question. Selecting a molecule requires a defined target, comparison criteria and independent validation.",
+            "empty": "No PubMed sources were found. Try another disease or protein name. Missing search results are not a scientific conclusion.",
+        },
+        "ru": {
+            "login": "Проверьте имя пользователя и пароль. Не отправляйте пароль в сообщениях. Обратитесь в поддержку.",
+            "bio": "Введите последовательность ДНК, РНК или белка в разделе биоинформатики. Например, ATGC показывает длину и долю GC. Это учебный пример.",
+            "drug": "Молекулярный анализ принимает SMILES. CCO (этанол) — учебный пример. Докинг требует подготовленных лиганда, рецептора и проверенной области поиска. Расчёт не подтверждает эффективность лекарства.",
+            "default": "Пишите на своём языке. Для поиска статей выберите «Поиск источников PubMed». Сейчас помощник даёт инструкции по платформе и ищет источники; универсальная языковая ИИ-модель не подключена.",
+            "found": "Найдены источники PubMed. Ниже приведены оригинальные названия и ссылки, а не автоматический перевод или рекомендации по лечению. Начните с обзоров и уточните исследовательский вопрос. Выбор молекулы требует определённой мишени, критериев сравнения и независимой проверки.",
+            "empty": "Источники PubMed не найдены. Попробуйте другое название заболевания или белка. Отсутствие результатов не является научным выводом.",
+        },
+    }[language]
+    ql = q.lower()
+    evidence = []
+    normalized = None
+    if data.search_evidence:
+        # Explicitly scoped retrieval, not an ungrounded diagnosis or drug ranking.
+        normalized = normalize_pubmed_query(q)
+        if re.search(r"\b(oiv(?:ni|ga|ning|dan)?|hiv|вич)\b", ql):
+            normalized = "HIV treatment review"
+        try:
+            articles = _pubmed_articles(normalized, 5)
+        except (URLError, TimeoutError, ET.ParseError):
+            raise HTTPException(status_code=503, detail={"uz":"PubMed bilan bog‘lanib bo‘lmadi. Qayta urinib ko‘ring.","en":"PubMed is unavailable. Please retry.","ru":"PubMed недоступен. Повторите попытку."}[language])
+        evidence = [{k: a.get(k, "") for k in ("pmid", "title", "url", "publication_date")} for a in articles]
+        answer = texts["found" if evidence else "empty"]
+    elif any(x in ql for x in ("login", "parol", "password", "парол", "kirish")):
+        answer = texts["login"]
+    elif any(x in ql for x in ("bioinformat", "sequence", "fasta", "dna", "rna", "protein", "oqsil", "днк", "белок")):
+        answer = texts["bio"]
+    elif any(x in ql for x in ("molecule", "molekula", "docking", "dori", "молекул", "докинг")):
+        answer = texts["drug"]
     else:
-        answer="Men MedGen AI platformasi bo‘yicha yordamchi sifatida ishlayman. Bioinformatics, Molecular Analysis, Drug Discovery, Research, Academy, login yoki platforma funksiyasi haqida savol bering."
-    return {"status":"ok","answer":answer,"role":_safe_role(user),"disclaimer":"AI javobi ilmiy yoki klinik qarorning yagona manbai emas."}
+        answer = texts["default"]
+    return {"status":"ok", "answer":answer, "language":language, "evidence":evidence,
+            "original_query":q, "search_query":normalized, "engine":"platform_guidance_and_pubmed_retrieval", "role":_safe_role(user)}
+
 
 
 # =========================================================
@@ -5185,8 +5288,8 @@ class PreparedDockingRequest(BaseModel):
     size_x: float = Field(default=20.0, gt=0, le=100, allow_inf_nan=False)
     size_y: float = Field(default=20.0, gt=0, le=100, allow_inf_nan=False)
     size_z: float = Field(default=20.0, gt=0, le=100, allow_inf_nan=False)
-    exhaustiveness: int = 8
-    n_poses: int = 3
+    exhaustiveness: int = Field(default=8, ge=1, le=64)
+    n_poses: int = Field(default=3, ge=1, le=20)
 
 class ScientificPipelineRequest(BaseModel):
     name: str = "MedGen Scientific Pipeline"
@@ -5198,6 +5301,10 @@ class ScientificPipelineRequest(BaseModel):
 
 @app.post("/api/v1/docking/run")
 def run_prepared_docking(data: PreparedDockingRequest, user=Depends(get_current_user)):
+    return _execute_prepared_docking(data, user)
+
+
+def _execute_prepared_docking(data: PreparedDockingRequest, user, *, persist=True):
     if not VINA_AVAILABLE:
         raise HTTPException(status_code=503, detail="AutoDock Vina engine is not installed on this deployment.")
     if not data.receptor_pdbqt.strip() or not data.ligand_pdbqt.strip():
@@ -5246,6 +5353,8 @@ def run_prepared_docking(data: PreparedDockingRequest, user=Depends(get_current_
             "warning": "Docking score is computational evidence, not experimentally validated binding affinity or clinical efficacy."
         }
         job_id = secrets.token_hex(10)
+        if not persist:
+            return {"job_id": job_id, "result": result}
         docking_jobs_store[job_id] = {"id": job_id, **result, "created_at": now}
         event = {"type":"docking_completed","username":user["username"],"job_id":job_id,"target":data.target,"at":now}
         activity_log.insert(0, event)
@@ -5332,6 +5441,10 @@ def create_lab_pipeline(data: LabPipelineRequest, user=Depends(get_current_user)
     target=data.target.strip()
     if not target:
         raise HTTPException(status_code=400, detail="Target is required")
+    if not any((data.sequence.strip(),data.pdb_id.strip(),data.ligand_smiles.strip())):
+        raise HTTPException(status_code=400,detail="Provide a sequence, PDB structure, or ligand SMILES to analyze.")
+    if data.sequence.strip():
+        bioinformatics_analyze(SequenceRequest(sequence=data.sequence),user)
     allowed={"sequence_analysis","structure_lookup","molecular_analysis","virtual_screening","docking","report"}
     steps=data.steps[:] if data.steps else ["sequence_analysis","structure_lookup","molecular_analysis","virtual_screening","report"]
     invalid=[x for x in steps if x not in allowed]
@@ -5362,6 +5475,7 @@ def create_lab_pipeline(data: LabPipelineRequest, user=Depends(get_current_user)
             item["status"]="requires_prepared_inputs"; item["endpoint"]="/api/v1/docking/run"
         elif step=="report":
             item["status"]="available_after_completion"
+        step_results.append(item)
     experiment={
         "id":secrets.token_hex(10),"name":data.name.strip() or "MedGen Virtual Lab Experiment",
         "workflow_type":"virtual_lab","target":target,"status":"ready",
@@ -5370,8 +5484,14 @@ def create_lab_pipeline(data: LabPipelineRequest, user=Depends(get_current_user)
         "user":user["username"],"created_at":now,"updated_at":now
     }
     experiments_store.insert(0,experiment)
-    activity_log.insert(0,{"type":"lab_pipeline_created","username":user["username"],"experiment_id":experiment["id"],"target":target,"at":now})
-    _db_save()
+    event={"type":"lab_pipeline_created","username":user["username"],"experiment_id":experiment["id"],"target":target,"at":now}
+    activity_log.insert(0,event)
+    try:
+        _db_save()
+    except Exception:
+        experiments_store[:]=[item for item in experiments_store if item is not experiment]
+        activity_log[:]=[item for item in activity_log if item is not event]
+        raise
     return {"status":"ready","module":"Virtual Laboratory","experiment":experiment}
 
 @app.post("/api/v1/lab/experiments/{experiment_id}/execute")
@@ -5382,6 +5502,9 @@ def execute_lab_experiment(experiment_id: str, user=Depends(get_current_user)):
     if experiment.get("user") != user["username"] and user.get("role") != "SUPER_ADMIN":
         raise HTTPException(status_code=403, detail="Access denied")
 
+    if not experiment.get("results",{}).get("steps"):
+        raise HTTPException(status_code=409,detail="This legacy experiment has no recorded steps. Create a new experiment to run analysis.")
+    previous=copy.deepcopy(experiment)
     experiment_input = experiment.get("input", {})
     results = experiment.setdefault("results", {}).setdefault("steps", [])
 
@@ -5476,14 +5599,20 @@ def execute_lab_experiment(experiment_id: str, user=Depends(get_current_user)):
         "status": experiment["status"]
     }
     experiment["updated_at"] = datetime.now(timezone.utc).isoformat()
-    activity_log.insert(0, {
+    event={
         "type": "lab_experiment_executed",
         "username": user["username"],
         "experiment_id": experiment_id,
         "status": experiment["status"],
         "at": experiment["updated_at"]
-    })
-    _db_save()
+    }
+    activity_log.insert(0,event)
+    try:
+        _db_save()
+    except Exception:
+        experiment.clear();experiment.update(previous)
+        activity_log[:]=[item for item in activity_log if item is not event]
+        raise
     return {
         "status": experiment["status"],
         "module": "Virtual Laboratory",
@@ -5517,8 +5646,14 @@ def create_scientific_report(data: ScientificReportRequest,user=Depends(get_curr
         "disclaimer":"Computational research output. It is not a clinical diagnosis, treatment recommendation, or experimentally validated efficacy/safety result."
     }
     reports_store.insert(0,report)
-    activity_log.insert(0,{"type":"scientific_report_created","username":user["username"],"report_id":report["id"],"experiment_id":experiment["id"],"at":report["created_at"]})
-    _db_save()
+    event={"type":"scientific_report_created","username":user["username"],"report_id":report["id"],"experiment_id":experiment["id"],"at":report["created_at"]}
+    activity_log.insert(0,event)
+    try:
+        _db_save()
+    except Exception:
+        reports_store[:]=[item for item in reports_store if item is not report]
+        activity_log[:]=[item for item in activity_log if item is not event]
+        raise
     return {"status":"completed","module":"Scientific Research","report":report}
 
 @app.get("/api/v1/scientific/reports/{report_id}")
@@ -5629,36 +5764,56 @@ class ScientificWorkflowRequest(BaseModel):
     sequence: str = ""
     ligand_smiles: str = ""
     run_similarity: bool = True
-    similarity_library: list[str] = []
+    similarity_library: list[str] = Field(default_factory=list, max_length=200)
 
 @app.post("/api/v1/scientific/workflow")
 def run_scientific_workflow(data: ScientificWorkflowRequest,user=Depends(get_current_user)):
     target=data.target.strip()
     if not target: raise HTTPException(status_code=400,detail="Target is required")
+    if not any((data.sequence.strip(), data.pdb_id.strip(), data.ligand_smiles.strip())):
+        raise HTTPException(status_code=400, detail="Provide a sequence, PDB structure, or ligand SMILES to analyze.")
+    if data.run_similarity and data.similarity_library and not data.ligand_smiles.strip():
+        raise HTTPException(status_code=400, detail="Similarity analysis requires a reference ligand SMILES.")
+    # Validate submitted inputs before external requests or publishing any result.
+    seq = _clean_sequence(data.sequence)
+    if data.sequence.strip():
+        bioinformatics_analyze(SequenceRequest(sequence=data.sequence), user)
+    molecule = None
+    candidates = []
+    if data.ligand_smiles.strip():
+        try:
+            molecule = _molecule_descriptors(data.ligand_smiles.strip())
+        except ValueError:
+            raise HTTPException(status_code=400, detail="Invalid reference ligand SMILES.")
+    if data.run_similarity:
+        for index, candidate in enumerate(data.similarity_library, 1):
+            try:
+                canonical = _molecule_descriptors(candidate)["canonical_smiles"]
+            except ValueError:
+                raise HTTPException(status_code=400, detail=f"Invalid similarity SMILES at row {index}.")
+            candidates.append((candidate, canonical))
     result={"status":"completed","name":data.name,"target":target,"stages":[],
             "owner":user["username"],"created_at":datetime.utcnow().isoformat()+"Z"}
-    seq=data.sequence.strip().upper()
     if data.pdb_id:
         bridge=sequence_structure_bridge(StructureAnalysisRequest(pdb_id=data.pdb_id,chain_id=data.chain_id),user)
         seq=bridge.get("sequence","") or seq
         result["structure"]=bridge
         result["stages"].append({"stage":"structure","status":"completed"})
     if seq:
-        clean=re.sub(r"[^A-Z]","",seq)
-        result["sequence"]={"length":len(clean),"sequence":clean[:5000]}
+        clean=_clean_sequence(seq)
+        analysis = bioinformatics_analyze(SequenceRequest(sequence=clean), user)
+        result["sequence"]={"length":len(clean),"sequence":clean[:5000],
+                            "truncated":len(clean)>5000,"analysis":analysis}
         result["stages"].append({"stage":"sequence","status":"completed"})
     if data.ligand_smiles.strip():
-        mol=_molecule_descriptors(data.ligand_smiles.strip())
-        result["molecule"]=mol
+        result["molecule"]=molecule
         result["stages"].append({"stage":"molecular_analysis","status":"completed"})
         if data.run_similarity and data.similarity_library:
             sims=[]
             ref=data.ligand_smiles.strip()
-            for candidate in data.similarity_library[:200]:
-                try:
-                    q=_molecule_descriptors(candidate)["canonical_smiles"]
-                    sims.append({"smiles":candidate,"similarity":_tanimoto_similarity(ref,candidate)})
-                except Exception: pass
+            for candidate, canonical in candidates:
+                sims.append({"smiles":candidate,"canonical_smiles":canonical,
+                             "similarity":_tanimoto_similarity(ref,canonical)})
             result["similarity"]=sorted(sims,key=lambda x:x["similarity"],reverse=True)
             result["stages"].append({"stage":"similarity","status":"completed"})
     experiment_id = str(uuid.uuid4())
@@ -5671,7 +5826,13 @@ def run_scientific_workflow(data: ScientificWorkflowRequest,user=Depends(get_cur
          "created_at":result["created_at"],"updated_at":result["created_at"],
          "input":data.model_dump(),"parameters":{},"results":result,"result":result}
     experiments_store.insert(0, exp)
-    _db_save()
+    try:
+        _db_save()
+    except Exception:
+        # Do not leave a failed write visible in the user's history or persist
+        # it accidentally with a later, unrelated successful request.
+        experiments_store[:] = [item for item in experiments_store if item is not exp]
+        raise
     return result
 
 @app.get("/api/v1/scientific/core/status")
@@ -5705,3 +5866,101 @@ except ImportError:
 @app.on_event("startup")
 def load_persisted_state():
     _db_load()
+
+# Existing public AlphaFold DB models; not on-demand folding or drug validation.
+def _alphafold_model(accession: str) -> dict:
+    accession = accession.strip().upper()
+    if not re.fullmatch(r'[A-Z0-9]{6,10}', accession):
+        raise HTTPException(400, 'Enter a UniProt accession, for example P69905.')
+    try:
+        with urlopen(URLRequest('https://alphafold.ebi.ac.uk/api/prediction/'+accession,
+                               headers={'User-Agent':'MedGenAI/1.1'}), timeout=15) as response:
+            entries = json.loads(response.read(2_000_001))
+        if not isinstance(entries, list) or not entries:
+            raise HTTPException(404, 'No AlphaFold DB model found for this accession.')
+        entry = next((item for item in entries if item.get('uniprotAccession') == accession), None)
+        if not entry:
+            raise HTTPException(404, 'No matching AlphaFold DB model found.')
+        model_url = entry.get('pdbUrl', '')
+        if not re.fullmatch(r'https://alphafold\.ebi\.ac\.uk/files/AF-[A-Z0-9]+-F\d+-model_v\d+\.pdb', model_url):
+            raise HTTPException(502, 'AlphaFold returned an unsupported model URL.')
+        with urlopen(URLRequest(model_url, headers={'User-Agent':'MedGenAI/1.1'}), timeout=20) as response:
+            raw = response.read(5_000_001)
+        if len(raw)>5_000_000:
+            raise HTTPException(413, 'This model exceeds the interactive viewer size limit.')
+        pdb = raw.decode('utf-8')
+        if not any(line.startswith('ATOM  ') for line in pdb.splitlines()):
+            raise HTTPException(502, 'AlphaFold returned an invalid structure file.')
+        return {'status':'completed','source':'AlphaFold DB','model_type':'predicted',
+                'accession':accession,'entry_id':entry.get('entryId'),
+                'mean_plddt':entry.get('globalMetricValue'),'model_date':entry.get('modelCreatedDate'),
+                'source_url':'https://alphafold.ebi.ac.uk/entry/'+accession,
+                'pdb':pdb,'warning':'Predicted structure. pLDDT measures local model confidence, not drug efficacy or clinical validity.'}
+    except HTTPError as exc:
+        raise HTTPException(404 if exc.code==404 else 502, 'AlphaFold model is unavailable.') from exc
+    except (URLError, TimeoutError, ValueError, UnicodeError) as exc:
+        raise HTTPException(503, 'Unable to load AlphaFold DB. Retry later.') from exc
+
+@app.get('/api/v1/structures/alphafold/{accession}')
+def alphafold_structure(accession: str, user=Depends(get_current_user)):
+    return _alphafold_model(accession)
+
+class ScholarshipRequest(BaseModel):
+    title: str = Field(min_length=3, max_length=180)
+    organization: str = Field(min_length=2, max_length=180)
+    description: str = Field(min_length=20, max_length=4000)
+    deadline: date
+    source_url: str = Field(max_length=1000)
+    language: str = 'uz'
+
+@app.get('/api/v1/opportunities')
+def list_opportunities(user=Depends(get_current_user)):
+    admin = user.get('role') == 'SUPER_ADMIN'
+    today = date.today().isoformat()
+    items = [dict(item) for item in opportunities_store.values()
+             if admin or item['owner'] == user['username'] or
+             (item['status'] == 'published' and item['deadline'] >= today)]
+    return {'items':sorted(items,key=lambda item:item['deadline']),
+            'can_submit':user.get('role') in {'professor','SUPER_ADMIN'},'can_review':admin}
+
+@app.post('/api/v1/opportunities')
+def create_opportunity(data: ScholarshipRequest, user=Depends(get_current_user)):
+    if user.get('role') not in {'professor','SUPER_ADMIN'}:
+        raise HTTPException(403, 'Only professors and administrators may submit opportunities.')
+    parsed = urlsplit(data.source_url)
+    if parsed.scheme != 'https' or not parsed.hostname or parsed.username or parsed.password:
+        raise HTTPException(400, 'Provide an HTTPS link to the official opportunity page.')
+    if data.deadline < date.today():
+        raise HTTPException(400, 'The deadline must not be in the past.')
+    if not data.title.strip() or not data.organization.strip() or len(data.description.strip()) < 20:
+        raise HTTPException(400, 'Complete the title, organization and eligibility description.')
+    if data.language not in {'uz','en','ru','de','fr'}:
+        raise HTTPException(400, 'Unsupported announcement language.')
+    if sum(item['owner']==user['username'] and item['status']=='pending' for item in opportunities_store.values())>=30:
+        raise HTTPException(429, 'Review pending submissions before creating more.')
+    identifier = secrets.token_hex(12)
+    item = {**data.model_dump(mode='json'), 'id':identifier,'owner':user['username'],
+            'status':'pending','created_at':datetime.now(timezone.utc).isoformat(),
+            'reviewed_by':None}
+    opportunities_store[identifier] = item
+    try: _db_save()
+    except Exception:
+        opportunities_store.pop(identifier,None)
+        raise
+    return {'item':item}
+
+@app.patch('/api/v1/opportunities/{identifier}')
+def review_opportunity(identifier: str, publish: bool, user=Depends(get_current_user)):
+    require_super_admin(user)
+    previous = opportunities_store.get(identifier)
+    if not previous: raise HTTPException(404, 'Opportunity not found.')
+    if publish and previous['deadline'] < date.today().isoformat():
+        raise HTTPException(400, 'Expired opportunities cannot be published.')
+    updated = {**previous,'status':'published' if publish else 'rejected',
+               'reviewed_by':user['username'],'reviewed_at':datetime.now(timezone.utc).isoformat()}
+    opportunities_store[identifier] = updated
+    try: _db_save()
+    except Exception:
+        opportunities_store[identifier] = previous
+        raise
+    return {'item':updated}
