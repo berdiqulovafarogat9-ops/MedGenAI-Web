@@ -145,6 +145,15 @@ platform_audit_log = []
 usage_store = {}
 totp_store = {}
 mfa_pending = {}
+billing_store = {}
+billing_events = {}
+DODO_API_KEY = os.getenv("DODO_API_KEY", "").strip()
+DODO_ENV = os.getenv("DODO_ENV", "test").strip().lower()
+DODO_WEBHOOK_SECRET = os.getenv("DODO_WEBHOOK_SECRET", "").strip()
+BILLING_PLANS = {
+    "pro": {"label": "Pro (Researcher)", "product_id": os.getenv("DODO_PRODUCT_PRO", "").strip()},
+    "enterprise": {"label": "Enterprise (Pharma)", "product_id": os.getenv("DODO_PRODUCT_ENTERPRISE", "").strip()},
+}
 RESEND_API_KEY = os.getenv("RESEND_API_KEY", "").strip()
 BREVO_API_KEY = os.getenv("BREVO_API_KEY", "").strip()
 BREVO_SENDER_EMAIL = os.getenv("BREVO_SENDER_EMAIL", "").strip()
@@ -166,7 +175,7 @@ _PERSISTENCE_LOCK = threading.RLock()
 _state_revision = 0
 
 def _persistent_stores():
-    return {"opportunities_store":opportunities_store,"user_accounts":user_accounts,"user_profiles":user_profiles,"user_consents":user_consents,"role_requests_store":role_requests_store,"experiments_store":experiments_store,"reports_store":reports_store,"academy_syllabi_store":academy_syllabi_store,"activity_log":activity_log,"jobs_store":jobs_store,"workflows_store":workflows_store,"docking_jobs_store":docking_jobs_store,"knowledge_entities_store":knowledge_entities_store,"knowledge_relations_store":knowledge_relations_store,"organizations_store":organizations_store,"school_directory_store":school_directory_store,"school_invitations_store":school_invitations_store,"school_assignments_store":school_assignments_store,"school_submissions_store":school_submissions_store,"memberships_store":memberships_store,"workspaces_store":workspaces_store,"projects_store":projects_store,"api_keys_store":api_keys_store,"platform_audit_log":platform_audit_log,"usage_store":usage_store,"totp_store":totp_store,"webhooks_store":webhooks_store}
+    return {"opportunities_store":opportunities_store,"user_accounts":user_accounts,"user_profiles":user_profiles,"user_consents":user_consents,"role_requests_store":role_requests_store,"experiments_store":experiments_store,"reports_store":reports_store,"academy_syllabi_store":academy_syllabi_store,"activity_log":activity_log,"jobs_store":jobs_store,"workflows_store":workflows_store,"docking_jobs_store":docking_jobs_store,"knowledge_entities_store":knowledge_entities_store,"knowledge_relations_store":knowledge_relations_store,"organizations_store":organizations_store,"school_directory_store":school_directory_store,"school_invitations_store":school_invitations_store,"school_assignments_store":school_assignments_store,"school_submissions_store":school_submissions_store,"memberships_store":memberships_store,"workspaces_store":workspaces_store,"projects_store":projects_store,"api_keys_store":api_keys_store,"platform_audit_log":platform_audit_log,"usage_store":usage_store,"totp_store":totp_store,"billing_store":billing_store,"billing_events":billing_events,"webhooks_store":webhooks_store}
 
 def _db_init():
     if not PERSISTENCE_ENABLED: return
@@ -1262,6 +1271,131 @@ def email_report(report_id: str, user=Depends(get_current_user)):
     )
     _send_email(email, "MedGen AI hisoboti: " + str(item.get("title") or "Report")[:80], _email_shell(inner))
     return {"status": "queued", "to": email[0] + "***" + email[email.index("@"):]}
+
+
+# =========================================================
+# BILLING (Dodo Payments): subscriptions via hosted checkout
+# =========================================================
+def _billing_ready() -> bool:
+    return bool(DODO_API_KEY and any(p["product_id"] for p in BILLING_PLANS.values()))
+
+
+def _dodo_base() -> str:
+    return "https://live.dodopayments.com" if DODO_ENV == "live" else "https://test.dodopayments.com"
+
+
+def _dodo_signature_ok(raw: bytes, wid: str, ts: str, sigs: str) -> bool:
+    if not DODO_WEBHOOK_SECRET or not wid or not ts or not sigs:
+        return False
+    try:
+        if abs(time.time() - int(ts)) > 300:
+            return False
+    except ValueError:
+        return False
+    return _dodo_hmac_match(DODO_WEBHOOK_SECRET, raw, wid, ts, sigs)
+
+
+def _dodo_hmac_match(secret: str, raw: bytes, wid: str, ts: str, sigs: str) -> bool:
+    key = secret.split("_", 1)[1] if secret.startswith("whsec_") else secret
+    try:
+        key_bytes = base64.b64decode(key)
+    except Exception:
+        key_bytes = key.encode("utf-8")
+    signed = f"{wid}.{ts}.".encode("utf-8") + raw
+    expected = base64.b64encode(hmac.new(key_bytes, signed, hashlib.sha256).digest()).decode()
+    for part in sigs.split(" "):
+        version, _, sig = part.partition(",")
+        if version == "v1" and hmac.compare_digest(sig, expected):
+            return True
+    return False
+
+
+@app.get("/api/v1/billing/status")
+def billing_status(user=Depends(get_current_user)):
+    record = billing_store.get(user["username"], {})
+    return {
+        "configured": _billing_ready(),
+        "environment": DODO_ENV,
+        "plan": record.get("plan", "free"),
+        "status": record.get("status", "none"),
+        "plans": [{"id": k, "label": v["label"]} for k, v in BILLING_PLANS.items() if v["product_id"]],
+    }
+
+
+class BillingCheckoutRequest(BaseModel):
+    plan: str
+
+
+@app.post("/api/v1/billing/checkout")
+def billing_checkout(data: BillingCheckoutRequest, user=Depends(get_current_user)):
+    username = user["username"]
+    plan = BILLING_PLANS.get(str(data.plan or "").lower())
+    if not _billing_ready() or not plan or not plan["product_id"]:
+        raise HTTPException(status_code=503, detail="Payments are not configured.")
+    profile = user_profiles.get(username, {})
+    body = {
+        "product_cart": [{"product_id": plan["product_id"], "quantity": 1}],
+        "return_url": SITE_URL + "/?billing=success",
+        "metadata": {"username": username, "plan": str(data.plan).lower()},
+    }
+    email = str(profile.get("email") or "")
+    if "@" in email:
+        body["customer"] = {"email": email, "name": str(profile.get("full_name") or username)}
+    try:
+        req = URLRequest(
+            _dodo_base() + "/checkouts",
+            data=json.dumps(body).encode("utf-8"),
+            headers={"Authorization": "Bearer " + DODO_API_KEY, "Content-Type": "application/json", "User-Agent": "medgen-ai/1.0"},
+            method="POST",
+        )
+        result = json.loads(urlopen(req, timeout=20).read().decode("utf-8"))
+    except Exception as exc:
+        print("BILLING ERROR:", type(exc).__name__)
+        raise HTTPException(status_code=502, detail="Could not start checkout. Try again later.")
+    url = result.get("checkout_url")
+    if not url:
+        raise HTTPException(status_code=502, detail="Could not start checkout. Try again later.")
+    return {"checkout_url": url}
+
+
+@app.post("/api/v1/billing/webhook")
+async def billing_webhook(request: Request):
+    raw = await request.body()
+    wid = request.headers.get("webhook-id", "")
+    if not _dodo_signature_ok(raw, wid, request.headers.get("webhook-timestamp", ""), request.headers.get("webhook-signature", "")):
+        raise HTTPException(status_code=401, detail="Invalid signature")
+    if wid in billing_events:
+        return {"received": True, "duplicate": True}
+    try:
+        payload = json.loads(raw.decode("utf-8"))
+    except Exception:
+        raise HTTPException(status_code=400, detail="Bad payload")
+    etype = str(payload.get("type") or "")
+    data = payload.get("data") or {}
+    meta = data.get("metadata") or {}
+    username = str(meta.get("username") or "")
+    plan = str(meta.get("plan") or "").lower()
+    status = None
+    if etype in {"subscription.active", "subscription.renewed", "subscription.plan_changed"}:
+        status = "active"
+    elif etype in {"subscription.cancelled", "subscription.expired", "subscription.failed"}:
+        status = "inactive"
+    elif etype == "subscription.on_hold":
+        status = "on_hold"
+    if status and username in user_profiles and plan in BILLING_PLANS:
+        billing_store[username] = {
+            "plan": plan if status == "active" else billing_store.get(username, {}).get("plan", plan),
+            "status": status,
+            "subscription_id": str(data.get("subscription_id") or ""),
+            "updated_at": datetime.now(timezone.utc).isoformat(),
+        }
+        activity_log.insert(0, {"type": "billing_" + etype.split(".")[-1], "username": username, "at": datetime.now(timezone.utc).isoformat(), "plan": plan})
+    billing_events[wid] = int(time.time())
+    if len(billing_events) > 500:
+        for old in sorted(billing_events, key=billing_events.get)[:100]:
+            billing_events.pop(old, None)
+    _db_save()
+    return {"received": True}
 
 
 @app.get("/api/v1/account")
