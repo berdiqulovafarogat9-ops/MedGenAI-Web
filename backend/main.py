@@ -550,6 +550,8 @@ async def account_readiness_guard(request: Request, call_next):
         "/api/v1/auth/register",
         "/api/v1/auth/me",
         "/api/v1/auth/logout",
+        "/api/v1/auth/supabase/session",
+        "/api/v1/auth/supabase/mfa-check",
         "/api/v1/profile",
         "/api/v1/account",
         "/api/v1/legal/documents",
@@ -6244,3 +6246,53 @@ def review_opportunity(identifier: str, publish: bool, user=Depends(get_current_
         opportunities_store[identifier] = previous
         raise
     return {'item':updated}
+
+
+# =========================================================
+# STAGING ONLY — Supabase MFA integration probe (non-invasive)
+# =========================================================
+# Intentionally isolated from legacy /api/v1/auth/login and get_current_user.
+# Enable only on a separate staging deployment after adding SUPABASE_URL and
+# SUPABASE_PUBLISHABLE_KEY. This does not migrate legacy accounts or their APIs.
+# NEVER treat a legacy MedGen token as an authenticated Supabase JWT.
+
+async def _supabase_stage_identity(authorization: str | None) -> "Principal":
+    if os.getenv("MEDGEN_SUPABASE_MFA_STAGING", "").lower() not in {"1", "true", "yes"}:
+        raise HTTPException(status_code=404, detail="Staging identity check disabled")
+    try:
+        # Works with either uvicorn main:app or uvicorn backend.main:app.
+        from .supabase_mfa_guard import get_supabase_principal
+    except ImportError:
+        from supabase_mfa_guard import get_supabase_principal
+    return await get_supabase_principal(authorization)
+
+
+@app.get("/api/v1/auth/supabase/session")
+async def supabase_stage_session(request: Request):
+    """Read-only health-check for a verified Supabase Auth session."""
+    principal = await _supabase_stage_identity(request.headers.get("authorization"))
+    requires_mfa = principal.role in {"doctor", "researcher", "pharma", "super_admin"}
+    requires_approval = principal.role in {"doctor", "researcher", "pharma"}
+    return {
+        "status": "verified",
+        "user_id": principal.user_id,
+        "role": principal.role,
+        "verification": principal.verification,
+        "aal": principal.aal,
+        "mfa_required": requires_mfa,
+        "mfa_satisfied": not requires_mfa or principal.aal == "aal2",
+        "role_approved": not requires_approval or principal.verification == "approved",
+    }
+
+
+@app.get("/api/v1/auth/supabase/mfa-check")
+async def supabase_stage_mfa_check(request: Request):
+    """No sensitive data is served, even if this endpoint passes."""
+    principal = await _supabase_stage_identity(request.headers.get("authorization"))
+    if principal.role not in {"doctor", "researcher", "pharma", "super_admin"}:
+        raise HTTPException(status_code=403, detail="Professional role required")
+    if principal.role != "super_admin" and principal.verification != "approved":
+        raise HTTPException(status_code=403, detail="Role not approved")
+    if principal.aal != "aal2":
+        raise HTTPException(status_code=403, detail="MFA_REQUIRED")
+    return {"status": "mfa_verified", "user_id": principal.user_id}
