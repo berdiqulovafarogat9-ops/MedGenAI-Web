@@ -860,6 +860,10 @@ function renderResult(element, data) {
       null,
       2
     );
+
+  if (element.id === 'bioResult' && window.MedGenVisuals) {
+    try { window.MedGenVisuals.bioChart(element, data); } catch (_) {}
+  }
 }
 
 
@@ -1048,7 +1052,7 @@ async function login() {
 
   try {
 
-    const data =
+    let data =
       await api(
         '/auth/login',
         {
@@ -1060,6 +1064,17 @@ async function login() {
           })
         }
       );
+
+    if (data?.mfa_required) {
+      const mfaCode = window.prompt('Google Authenticator kodi (6 xonali):') || '';
+      if (!mfaCode.trim()) {
+        throw new Error('2FA kodi kiritilmadi.');
+      }
+      data = await api('/auth/2fa/login', {
+        method: 'POST',
+        body: JSON.stringify({ mfa_token: data.mfa_token, code: mfaCode.trim() })
+      });
+    }
 
     const token =
       data?.access_token ||
