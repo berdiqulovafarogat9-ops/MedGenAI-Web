@@ -6064,3 +6064,225 @@ async function renderAlphaFold3D(){
     setTimeout(enforceRoleHome, 0);
   }
 })();
+
+
+/* =========================================================
+   MEDGEN SUPABASE AUTH PREVIEW — OPT-IN AND NON-DESTRUCTIVE
+   Enable with ?auth_preview=supabase. Default legacy login is unchanged.
+   This preview NEVER puts a Supabase JWT into state.token or TOKEN_KEY.
+   It NEVER treats a Supabase session as a MedGen legacy API session.
+   Backend session probe works only on a separately configured staging API.
+========================================================= */
+(function medgenSupabaseAuthPreview() {
+  if (typeof window === 'undefined' || typeof document === 'undefined') return;
+  if (new URLSearchParams(window.location.search).get('auth_preview') !== 'supabase') return;
+
+  const PUBLIC_SUPABASE_URL = 'https://dbkxgbeisgyjilflkneq.supabase.co';
+  // Publishable keys are intended for browser usage. Never use service_role/secret keys here.
+  const PUBLIC_SUPABASE_KEY = 'sb_publishable_KhKoel1g9zImoVNoWv3Dbw_F2p0M728';
+  const SUPABASE_SDK = 'https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.118.0';
+
+  async function mount() {
+    if (document.getElementById('medgenSupabasePreview')) return;
+    const panel = document.createElement('section');
+    panel.id = 'medgenSupabasePreview';
+    panel.setAttribute('role', 'dialog');
+    panel.setAttribute('aria-label', 'MedGen AI Supabase Auth sinov sahifasi');
+    panel.style.cssText = 'position:fixed;inset:0;z-index:2147483647;overflow-y:auto;background:#091827;color:#e7f8f4;padding:22px 12px;font:16px system-ui,Arial,sans-serif;';
+    panel.innerHTML = `
+      <div style="max-width:550px;margin:32px auto;background:#12283b;padding:24px;border-radius:18px;box-shadow:0 12px 42px #0006">
+        <div style="color:#54d8c5;font-weight:800;letter-spacing:.08em">MEDGEN AI · STAGING</div>
+        <h2 style="margin:12px 0">Supabase Auth + 2FA sinovi</h2>
+        <p style="line-height:1.5">Bu faqat sinov oynasi. Eski login, Super Admin va ilmiy modullar o‘zgarmaydi. Supabase sessiyasi eski APIga yuborilmaydi.</p>
+        <form id="mgspLoginForm" autocomplete="on" style="display:grid;gap:12px">
+          <label>Email <input id="mgspEmail" type="email" required autocomplete="username" style="display:block;width:100%;box-sizing:border-box;padding:12px;border-radius:9px"></label>
+          <label>Parol <input id="mgspPassword" type="password" required autocomplete="current-password" style="display:block;width:100%;box-sizing:border-box;padding:12px;border-radius:9px"></label>
+          <button type="submit" style="padding:12px;border-radius:9px;background:#54d8c5;color:#092824;font-weight:bold">Supabase orqali sinov kirish</button>
+        </form>
+        <p id="mgspState" role="status" aria-live="polite" style="white-space:pre-wrap;line-height:1.5"></p>
+        <div id="mgspFactor" hidden style="border:1px solid #4b7b85;border-radius:12px;padding:14px;margin-top:12px">
+          <div id="mgspEnroll" hidden>
+            <p>Google Authenticator ilovasida ushbu QR kodni skanerlang yoki kalitni qo‘lda kiriting. Maxfiy kalitni boshqalarga yubormang.</p>
+            <img id="mgspQR" alt="Authenticator QR kodi — maxfiy" style="max-width:230px;background:white;padding:8px" hidden>
+            <p><strong>Kalit (maxfiy):</strong> <code id="mgspSecret" style="word-break:break-all"></code></p>
+          </div>
+          <label>Authenticator kodi <input id="mgspCode" inputmode="numeric" type="text" pattern="[0-9]{6}" maxlength="6" autocomplete="one-time-code" style="display:block;width:100%;box-sizing:border-box;padding:12px;border-radius:9px"></label>
+          <button id="mgspVerify" type="button" style="padding:12px;margin-top:10px;border-radius:9px;background:#54d8c5;color:#092824">6 xonali kodni tasdiqlash</button>
+        </div>
+        <button id="mgspStartEnroll" type="button" hidden style="padding:12px;margin-top:12px;border-radius:9px">Authenticator sozlash</button>
+        <button id="mgspBackend" type="button" hidden style="padding:12px;margin-top:12px;border-radius:9px">Staging backendni tekshirish</button>
+        <p id="mgspBackendState" role="status" style="white-space:pre-wrap"></p>
+        <div style="display:flex;flex-wrap:wrap;gap:12px;margin-top:18px">
+          <button id="mgspSignOut" type="button" style="padding:10px;border-radius:9px">Supabase sessiyasidan chiqish</button>
+          <button id="mgspClose" type="button" style="padding:10px;border-radius:9px">Eski login sahifasiga qaytish</button>
+        </div>
+      </div>`;
+    document.body.appendChild(panel);
+    const el = id => panel.querySelector('#' + id);
+    let client = null;
+    let mfa = null;
+    let mfaGate = null;
+    let pendingFactorId = null;
+    let pendingMode = null;
+    let busy = false;
+    let alreadyClosed = false;
+
+    function clearSecrets() {
+      el('mgspSecret').textContent = '';
+      el('mgspQR').removeAttribute('src');
+      el('mgspQR').hidden = true;
+      el('mgspEnroll').hidden = true;
+      el('mgspCode').value = '';
+      pendingFactorId = null;
+      pendingMode = null;
+    }
+    function setMessage(value) { el('mgspState').textContent = String(value); }
+    function setBusy(value) {
+      busy = Boolean(value);
+      panel.querySelectorAll('button').forEach(button => { button.disabled = busy; });
+    }
+    async function ensureClient() {
+      if (client && mfa) return;
+      if (!window.supabase?.createClient) {
+        await new Promise((resolve, reject) => {
+          const script = document.createElement('script');
+          script.src = SUPABASE_SDK;
+          script.async = true;
+          script.onload = resolve;
+          script.onerror = () => reject(new Error('Supabase JS kutubxonasi yuklanmadi (internet yoki CSP).'));
+          document.head.appendChild(script);
+        });
+      }
+      if (!window.supabase?.createClient) throw new Error('Supabase JS kutubxonasi mavjud emas.');
+      client = window.supabase.createClient(PUBLIC_SUPABASE_URL, PUBLIC_SUPABASE_KEY, {
+        auth: { persistSession: false, autoRefreshToken: false, detectSessionInUrl: false },
+      });
+      const scriptUrl = document.querySelector('script[src*="app.js"]')?.src || location.href;
+      const moduleUrl = new URL('./medgen-mfa.mjs', scriptUrl);
+      const module = await import(moduleUrl.href);
+      mfa = module.createMedgenMfa(client);
+    }
+    function showGate(gate) {
+      clearSecrets();
+      mfaGate = gate;
+      el('mgspFactor').hidden = true;
+      el('mgspStartEnroll').hidden = true;
+      el('mgspBackend').hidden = true;
+      el('mgspBackendState').textContent = '';
+      if (!gate || gate.status === 'signed_out') {
+        setMessage('Supabase orqali email va parol bilan sinovga kiring.');
+        return;
+      }
+      if (gate.status === 'challenge_required') {
+        const factor = gate.verifiedTotp?.[0];
+        if (!factor?.id) { setMessage('Tasdiqlangan TOTP faktori topilmadi.'); return; }
+        pendingFactorId = factor.id;
+        pendingMode = 'login';
+        el('mgspFactor').hidden = false;
+        setMessage('Ikkinchi bosqich: Google Authenticator ilovasidagi 6 xonali kodni kiriting.');
+        return;
+      }
+      if (gate.status === 'setup_required') {
+        el('mgspStartEnroll').hidden = false;
+        setMessage('Sizning professional rolingiz uchun MFA majburiy. Avval Authenticator sozlang.');
+        return;
+      }
+      const role = String(gate.role || 'unknown');
+      const aal = String(gate.aal || 'unknown');
+      setMessage('Supabase sessiyasi tekshirildi. Rol: ' + role + ', AAL: ' + aal +
+        '. Bu natija eski MedGen API va dashboardiga kirish huquqini bermaydi.');
+      el('mgspBackend').hidden = false;
+    }
+    async function act(operation) {
+      if (busy || alreadyClosed) return;
+      setBusy(true);
+      try { await operation(); }
+      catch (err) {
+        // Do not include secrets/tokens/entire errors in console or UI.
+        const msg = typeof err?.message === 'string' ? err.message : 'Amal bajarilmadi.';
+        setMessage('Xatolik: ' + msg);
+      }
+      finally { if (!alreadyClosed) setBusy(false); }
+    }
+    el('mgspLoginForm').addEventListener('submit', event => {
+      event.preventDefault();
+      void act(async () => {
+        await ensureClient();
+        clearSecrets();
+        const email = el('mgspEmail').value.trim();
+        const password = el('mgspPassword').value;
+        el('mgspPassword').value = '';
+        const gate = await mfa.signIn(email, password);
+        showGate(gate);
+      });
+    });
+    el('mgspStartEnroll').addEventListener('click', () => void act(async () => {
+      await ensureClient();
+      if (!mfaGate || mfaGate.status !== 'setup_required') throw new Error('MFA sozlashga ruxsat yo‘q.');
+      const setup = await mfa.beginEnrollment();
+      clearSecrets();
+      pendingFactorId = setup.factorId;
+      pendingMode = 'enroll';
+      const qr = String(setup.qrCode || '');
+      let imageUrl = '';
+      if (/^data:image\/svg\+xml(?:;[^,]*)?,/i.test(qr)) imageUrl = qr;
+      else if (/^<svg[\s>]/i.test(qr.trim())) imageUrl = 'data:image/svg+xml;charset=utf-8,' + encodeURIComponent(qr);
+      if (imageUrl) { el('mgspQR').src = imageUrl; el('mgspQR').hidden = false; }
+      el('mgspSecret').textContent = setup.secret;
+      el('mgspEnroll').hidden = false;
+      el('mgspFactor').hidden = false;
+      el('mgspStartEnroll').hidden = true;
+      setMessage('Kalit faqat shu sahifada vaqtincha ko‘rsatilmoqda. Uni hech kimga yubormang.');
+    }));
+    el('mgspVerify').addEventListener('click', () => void act(async () => {
+      if (!mfa || !pendingFactorId || !pendingMode) throw new Error('MFA seansi topilmadi.');
+      const code = el('mgspCode').value.trim();
+      if (!/^\d{6}$/.test(code)) throw new Error('6 xonali kodni kiriting.');
+      const mode = pendingMode;
+      const gate = mode === 'enroll'
+        ? await mfa.verifyEnrollment(pendingFactorId, code)
+        : await mfa.verifyLogin(pendingFactorId, code);
+      showGate(gate);
+    }));
+    el('mgspBackend').addEventListener('click', () => void act(async () => {
+      if (!client || !mfaGate || mfaGate.status !== 'ready') throw new Error('Avval MFA holatini tekshiring.');
+      const sessionResult = await client.auth.getSession();
+      if (sessionResult.error || !sessionResult.data?.session?.access_token) throw new Error('Supabase sessiyasi topilmadi.');
+      const endpoint = (window.MEDGEN_API_BASE || 'https://medgenai-web-1.onrender.com/api/v1') + '/auth/supabase/session';
+      const response = await fetch(endpoint, {
+        headers: { Authorization: 'Bearer ' + sessionResult.data.session.access_token },
+        cache: 'no-store',
+      });
+      if (response.status === 404) {
+        el('mgspBackendState').textContent = 'Staging backend yoqilmagan (404). Alohida Render staging xizmati kerak.';
+        return;
+      }
+      if (!response.ok) throw new Error('Staging backend sessiyani rad etdi (HTTP ' + response.status + ').');
+      const result = await response.json();
+      if (result.status !== 'verified') throw new Error('Staging backend javobi kutilgan ko‘rinishda emas.');
+      const validated = Boolean(result.role_approved) && Boolean(result.mfa_satisfied);
+      el('mgspBackendState').textContent = 'Backend Supabase sessiyasini tekshirdi: rol=' +
+        String(result.role) + ', aal=' + String(result.aal) + ', ruxsat=' + (validated ? 'tasdiqlangan' : 'cheklangan') +
+        '. Bu legacy APIlarni hali faollashtirmaydi.';
+    }));
+    el('mgspSignOut').addEventListener('click', () => void act(async () => {
+      if (mfa) await mfa.signOut();
+      el('mgspPassword').value = '';
+      showGate({ status: 'signed_out' });
+    }));
+    el('mgspClose').addEventListener('click', async () => {
+      if (busy) return;
+      alreadyClosed = true;
+      clearSecrets();
+      el('mgspPassword').value = '';
+      try { await mfa?.signOut(); } catch (_) {}
+      panel.remove();
+      const url = new URL(location.href);
+      url.searchParams.delete('auth_preview');
+      window.history.replaceState(null, '', url.pathname + url.search + url.hash);
+    });
+    showGate({ status: 'signed_out' });
+  }
+  if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', () => { void mount(); }, { once: true });
+  else void mount();
+})();
