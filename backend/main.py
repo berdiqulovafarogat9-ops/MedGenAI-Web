@@ -146,6 +146,10 @@ usage_store = {}
 totp_store = {}
 mfa_pending = {}
 RESEND_API_KEY = os.getenv("RESEND_API_KEY", "").strip()
+BREVO_API_KEY = os.getenv("BREVO_API_KEY", "").strip()
+BREVO_SENDER_EMAIL = os.getenv("BREVO_SENDER_EMAIL", "").strip()
+BREVO_SENDER_NAME = os.getenv("BREVO_SENDER_NAME", "MedGen AI").strip()
+EMAIL_ENABLED = bool(RESEND_API_KEY or (BREVO_API_KEY and BREVO_SENDER_EMAIL))
 EMAIL_FROM = os.getenv("MEDGEN_EMAIL_FROM", "MedGen AI <onboarding@resend.dev>").strip()
 PUBLIC_API_URL = os.getenv("MEDGEN_PUBLIC_API_URL", "https://medgenai-web-1.onrender.com").rstrip("/")
 SITE_URL = os.getenv("MEDGEN_SITE_URL", "https://medgenai-web.onrender.com").rstrip("/")
@@ -834,7 +838,7 @@ def register(data: RegisterRequest):
         "school_status": "pending" if school_role else "not_applicable",
         "at": datetime.now(timezone.utc).isoformat(),
     })
-    if RESEND_API_KEY:
+    if EMAIL_ENABLED:
         user_profiles[username]["email_verified"] = False
         _send_verification_email(username)
     _db_save()
@@ -976,6 +980,40 @@ def _totp_verify(record: dict, code: str) -> bool:
     return False
 
 
+def _recovery_norm(code: str) -> str:
+    return re.sub(r"[^a-z0-9]", "", str(code or "").lower())
+
+
+def _recovery_hash(norm: str) -> str:
+    return hashlib.sha256((SECRET_KEY + ":rc:" + norm).encode("utf-8")).hexdigest()
+
+
+def _new_recovery_codes(record: dict) -> list:
+    alphabet = "abcdefghjkmnpqrstuvwxyz23456789"
+    codes = []
+    for _ in range(8):
+        raw = "".join(secrets.choice(alphabet) for _ in range(10))
+        codes.append(raw[:5] + "-" + raw[5:])
+    record["recovery"] = [_recovery_hash(_recovery_norm(c)) for c in codes]
+    return codes
+
+
+def _recovery_consume(record: dict, code: str) -> bool:
+    norm = _recovery_norm(code)
+    if len(norm) != 10:
+        return False
+    digest = _recovery_hash(norm)
+    for item in list(record.get("recovery", [])):
+        if hmac.compare_digest(item, digest):
+            record["recovery"].remove(item)
+            return True
+    return False
+
+
+def _second_factor_ok(record: dict, code: str) -> bool:
+    return _totp_verify(record, code) or _recovery_consume(record, code)
+
+
 def _totp_rate_limit(key: str) -> None:
     now = datetime.now(timezone.utc)
     attempts = [t for t in login_attempts.get(key, []) if (now - t).total_seconds() < LOGIN_WINDOW_SECONDS]
@@ -990,7 +1028,8 @@ def _totp_fail(key: str) -> None:
 
 @app.get("/api/v1/auth/2fa/status")
 def twofa_status(user=Depends(get_current_user)):
-    return {"enabled": bool(totp_store.get(user["username"], {}).get("enabled"))}
+    record = totp_store.get(user["username"], {})
+    return {"enabled": bool(record.get("enabled")), "recovery_remaining": len(record.get("recovery", []))}
 
 
 @app.post("/api/v1/auth/2fa/setup")
@@ -1020,10 +1059,11 @@ def twofa_enable(data: TotpCodeRequest, user=Depends(get_current_user)):
         _totp_fail(key)
         raise HTTPException(status_code=400, detail="Invalid code")
     record["enabled"] = True
+    codes = _new_recovery_codes(record)
     login_attempts.pop(key, None)
     activity_log.insert(0, {"type": "2fa_enabled", "username": username, "at": datetime.now(timezone.utc).isoformat()})
     _db_save()
-    return {"enabled": True}
+    return {"enabled": True, "recovery_codes": codes}
 
 
 @app.post("/api/v1/auth/2fa/disable")
@@ -1034,7 +1074,7 @@ def twofa_disable(data: TotpCodeRequest, user=Depends(get_current_user)):
         raise HTTPException(status_code=400, detail="2FA is not enabled.")
     key = "2fa:" + username.lower()
     _totp_rate_limit(key)
-    if not _totp_verify(record, data.code):
+    if not _second_factor_ok(record, data.code):
         _totp_fail(key)
         raise HTTPException(status_code=400, detail="Invalid code")
     totp_store.pop(username, None)
@@ -1042,6 +1082,23 @@ def twofa_disable(data: TotpCodeRequest, user=Depends(get_current_user)):
     activity_log.insert(0, {"type": "2fa_disabled", "username": username, "at": datetime.now(timezone.utc).isoformat()})
     _db_save()
     return {"enabled": False}
+
+
+@app.post("/api/v1/auth/2fa/recovery/regenerate")
+def twofa_recovery_regenerate(data: TotpCodeRequest, user=Depends(get_current_user)):
+    username = user["username"]
+    record = totp_store.get(username)
+    if not record or not record.get("enabled"):
+        raise HTTPException(status_code=400, detail="2FA is not enabled.")
+    key = "2fa:" + username.lower()
+    _totp_rate_limit(key)
+    if not _totp_verify(record, data.code):
+        _totp_fail(key)
+        raise HTTPException(status_code=400, detail="Invalid code")
+    codes = _new_recovery_codes(record)
+    login_attempts.pop(key, None)
+    _db_save()
+    return {"recovery_codes": codes}
 
 
 @app.post("/api/v1/auth/2fa/login")
@@ -1059,7 +1116,7 @@ def twofa_login(data: TotpLoginRequest):
         raise HTTPException(status_code=401, detail="Login session expired. Sign in again.")
     key = "2fa:" + username.lower()
     _totp_rate_limit(key)
-    if not _totp_verify(record, data.code):
+    if not _second_factor_ok(record, data.code):
         _totp_fail(key)
         raise HTTPException(status_code=401, detail="Invalid code")
     mfa_pending.pop(data.mfa_token, None)
@@ -1077,21 +1134,27 @@ def twofa_login(data: TotpLoginRequest):
 # EMAIL (Resend): verification and report delivery
 # =========================================================
 def _send_email(to: str, subject: str, html_body: str) -> bool:
-    if not RESEND_API_KEY or not to:
+    if not EMAIL_ENABLED or not to:
         return False
+
+    if RESEND_API_KEY:
+        url = "https://api.resend.com/emails"
+        payload = {"from": EMAIL_FROM, "to": [to], "subject": subject, "html": html_body}
+        headers = {"Authorization": "Bearer " + RESEND_API_KEY}
+    else:
+        url = "https://api.brevo.com/v3/smtp/email"
+        payload = {
+            "sender": {"name": BREVO_SENDER_NAME, "email": BREVO_SENDER_EMAIL},
+            "to": [{"email": to}],
+            "subject": subject,
+            "htmlContent": html_body,
+        }
+        headers = {"api-key": BREVO_API_KEY, "Accept": "application/json"}
+    headers.update({"Content-Type": "application/json", "User-Agent": "medgen-ai/1.0"})
 
     def _worker():
         try:
-            req = URLRequest(
-                "https://api.resend.com/emails",
-                data=json.dumps({"from": EMAIL_FROM, "to": [to], "subject": subject, "html": html_body}).encode("utf-8"),
-                headers={
-                    "Authorization": "Bearer " + RESEND_API_KEY,
-                    "Content-Type": "application/json",
-                    "User-Agent": "medgen-ai/1.0",
-                },
-                method="POST",
-            )
+            req = URLRequest(url, data=json.dumps(payload).encode("utf-8"), headers=headers, method="POST")
             urlopen(req, timeout=15).read()
         except Exception as exc:
             print("EMAIL ERROR:", type(exc).__name__)
@@ -1168,7 +1231,7 @@ def resend_verification(user=Depends(get_current_user)):
     profile = user_profiles.get(username, {})
     if profile.get("email_verified") is True:
         return {"status": "already_verified"}
-    if not RESEND_API_KEY:
+    if not EMAIL_ENABLED:
         raise HTTPException(status_code=503, detail="Email service is not configured.")
     if time.time() - _email_cooldown.get("v:" + username, 0) < 60:
         raise HTTPException(status_code=429, detail="Wait a minute before requesting another email.")
@@ -1186,7 +1249,7 @@ def email_report(report_id: str, user=Depends(get_current_user)):
     email = str(user_profiles.get(username, {}).get("email") or "")
     if "@" not in email:
         raise HTTPException(status_code=400, detail="No email address on file.")
-    if not RESEND_API_KEY:
+    if not EMAIL_ENABLED:
         raise HTTPException(status_code=503, detail="Email service is not configured.")
     if time.time() - _email_cooldown.get("r:" + username, 0) < 20:
         raise HTTPException(status_code=429, detail="Please wait a few seconds.")
