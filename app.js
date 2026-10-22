@@ -1066,7 +1066,7 @@ async function login() {
       );
 
     if (data?.mfa_required) {
-      const mfaCode = window.prompt('Google Authenticator kodi (6 xonali):') || '';
+      const mfaCode = window.prompt('Google Authenticator kodi (6 xonali) yoki tiklash kodi:') || '';
       if (!mfaCode.trim()) {
         throw new Error('2FA kodi kiritilmadi.');
       }
