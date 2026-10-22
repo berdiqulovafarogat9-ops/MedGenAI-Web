@@ -8,6 +8,10 @@ import xml.etree.ElementTree as ET
 import os
 import secrets
 import re
+import hmac
+import base64
+import struct
+import time
 from typing import Any
 try:
     from pwdlib import PasswordHash
@@ -22,7 +26,8 @@ from urllib.request import Request as URLRequest, urlopen
 from urllib.error import HTTPError, URLError
 
 from fastapi import BackgroundTasks, Depends, FastAPI, HTTPException, Request
-from fastapi.responses import JSONResponse
+from fastapi.responses import HTMLResponse, JSONResponse
+from html import escape as _email_esc
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.security import HTTPAuthorizationCredentials, HTTPBearer
 try:
@@ -138,6 +143,15 @@ projects_store = []
 api_keys_store = {}
 platform_audit_log = []
 usage_store = {}
+totp_store = {}
+mfa_pending = {}
+RESEND_API_KEY = os.getenv("RESEND_API_KEY", "").strip()
+EMAIL_FROM = os.getenv("MEDGEN_EMAIL_FROM", "MedGen AI <onboarding@resend.dev>").strip()
+PUBLIC_API_URL = os.getenv("MEDGEN_PUBLIC_API_URL", "https://medgenai-web-1.onrender.com").rstrip("/")
+SITE_URL = os.getenv("MEDGEN_SITE_URL", "https://medgenai-web.onrender.com").rstrip("/")
+REQUIRE_EMAIL_VERIFICATION = os.getenv("MEDGEN_REQUIRE_EMAIL_VERIFICATION", "").strip().lower() in {"1", "true", "yes"}
+EMAIL_TOKEN_TTL = 172800
+_email_cooldown = {}
 
 DATABASE_URL = os.getenv("DATABASE_URL", "").strip()
 LEGAL_CONSENT_VERSION = "1.2"
@@ -148,7 +162,7 @@ _PERSISTENCE_LOCK = threading.RLock()
 _state_revision = 0
 
 def _persistent_stores():
-    return {"opportunities_store":opportunities_store,"user_accounts":user_accounts,"user_profiles":user_profiles,"user_consents":user_consents,"role_requests_store":role_requests_store,"experiments_store":experiments_store,"reports_store":reports_store,"academy_syllabi_store":academy_syllabi_store,"activity_log":activity_log,"jobs_store":jobs_store,"workflows_store":workflows_store,"docking_jobs_store":docking_jobs_store,"knowledge_entities_store":knowledge_entities_store,"knowledge_relations_store":knowledge_relations_store,"organizations_store":organizations_store,"school_directory_store":school_directory_store,"school_invitations_store":school_invitations_store,"school_assignments_store":school_assignments_store,"school_submissions_store":school_submissions_store,"memberships_store":memberships_store,"workspaces_store":workspaces_store,"projects_store":projects_store,"api_keys_store":api_keys_store,"platform_audit_log":platform_audit_log,"usage_store":usage_store,"webhooks_store":webhooks_store}
+    return {"opportunities_store":opportunities_store,"user_accounts":user_accounts,"user_profiles":user_profiles,"user_consents":user_consents,"role_requests_store":role_requests_store,"experiments_store":experiments_store,"reports_store":reports_store,"academy_syllabi_store":academy_syllabi_store,"activity_log":activity_log,"jobs_store":jobs_store,"workflows_store":workflows_store,"docking_jobs_store":docking_jobs_store,"knowledge_entities_store":knowledge_entities_store,"knowledge_relations_store":knowledge_relations_store,"organizations_store":organizations_store,"school_directory_store":school_directory_store,"school_invitations_store":school_invitations_store,"school_assignments_store":school_assignments_store,"school_submissions_store":school_submissions_store,"memberships_store":memberships_store,"workspaces_store":workspaces_store,"projects_store":projects_store,"api_keys_store":api_keys_store,"platform_audit_log":platform_audit_log,"usage_store":usage_store,"totp_store":totp_store,"webhooks_store":webhooks_store}
 
 def _db_init():
     if not PERSISTENCE_ENABLED: return
@@ -554,7 +568,7 @@ async def account_readiness_guard(request: Request, call_next):
         "/api/v1/dashboard/summary",
         "/api/v1/platform/phase-status",
     }
-    if path in allowed or path.startswith("/api/v1/admin/"):
+    if path in allowed or path.startswith("/api/v1/admin/") or path.startswith("/api/v1/auth/2fa/"):
         return await call_next(request)
 
     auth = request.headers.get("authorization", "")
@@ -686,6 +700,12 @@ def login(data: LoginRequest):
 
     login_attempts.pop(key, None)
     authenticated_username = canonical_username if valid_registered else str(ADMIN_USERNAME).strip()
+    if REQUIRE_EMAIL_VERIFICATION and user_profiles.get(authenticated_username, {}).get("email_verified") is False:
+        raise HTTPException(status_code=403, detail="Email is not verified. Check your inbox.")
+    if totp_store.get(authenticated_username, {}).get("enabled"):
+        mfa_token = secrets.token_urlsafe(32)
+        mfa_pending[mfa_token] = {"username": authenticated_username, "exp": time.time() + 300}
+        return {"mfa_required": True, "mfa_token": mfa_token, "expires_in": 300}
     token = make_token(authenticated_username)
     tokens[token] = authenticated_username
     token_created_at[token] = now.isoformat()
@@ -814,6 +834,9 @@ def register(data: RegisterRequest):
         "school_status": "pending" if school_role else "not_applicable",
         "at": datetime.now(timezone.utc).isoformat(),
     })
+    if RESEND_API_KEY:
+        user_profiles[username]["email_verified"] = False
+        _send_verification_email(username)
     _db_save()
     return {"status": "registered", "username": username, "role": role, "school_status": "pending" if school_role else "not_applicable", "message": "Maktab akkauntingiz administrator tasdig‘ini kutmoqda." if school_role else "Ro‘yxatdan o‘tildi."}
 
@@ -919,6 +942,263 @@ def logout(credentials: HTTPAuthorizationCredentials = Depends(security)):
             })
     _db_save()
     return {"status": "logged_out"}
+
+
+# =========================================================
+# TWO-FACTOR AUTHENTICATION (TOTP, RFC 6238, Google Authenticator)
+# =========================================================
+class TotpCodeRequest(BaseModel):
+    code: str
+
+
+class TotpLoginRequest(BaseModel):
+    mfa_token: str
+    code: str
+
+
+def _totp_code(secret_b32: str, counter: int) -> str:
+    key = base64.b32decode(secret_b32 + "=" * (-len(secret_b32) % 8), casefold=True)
+    digest = hmac.new(key, struct.pack(">Q", counter), hashlib.sha1).digest()
+    offset = digest[-1] & 15
+    value = struct.unpack(">I", digest[offset:offset + 4])[0] & 0x7FFFFFFF
+    return f"{value % 1000000:06d}"
+
+
+def _totp_verify(record: dict, code: str) -> bool:
+    code = re.sub(r"\s", "", str(code or ""))
+    if not re.fullmatch(r"\d{6}", code):
+        return False
+    now = int(time.time() // 30)
+    for counter in (now - 1, now, now + 1):
+        if counter > int(record.get("last_counter", -1)) and hmac.compare_digest(_totp_code(record["secret"], counter), code):
+            record["last_counter"] = counter
+            return True
+    return False
+
+
+def _totp_rate_limit(key: str) -> None:
+    now = datetime.now(timezone.utc)
+    attempts = [t for t in login_attempts.get(key, []) if (now - t).total_seconds() < LOGIN_WINDOW_SECONDS]
+    login_attempts[key] = attempts
+    if len(attempts) >= 5:
+        raise HTTPException(status_code=429, detail="Too many attempts. Try again later.")
+
+
+def _totp_fail(key: str) -> None:
+    login_attempts.setdefault(key, []).append(datetime.now(timezone.utc))
+
+
+@app.get("/api/v1/auth/2fa/status")
+def twofa_status(user=Depends(get_current_user)):
+    return {"enabled": bool(totp_store.get(user["username"], {}).get("enabled"))}
+
+
+@app.post("/api/v1/auth/2fa/setup")
+def twofa_setup(user=Depends(get_current_user)):
+    username = user["username"]
+    if totp_store.get(username, {}).get("enabled"):
+        raise HTTPException(status_code=400, detail="2FA is already enabled. Disable it first.")
+    secret = base64.b32encode(secrets.token_bytes(20)).decode().rstrip("=")
+    totp_store[username] = {"secret": secret, "enabled": False, "last_counter": -1}
+    uri = (
+        "otpauth://totp/" + quote("MedGen AI") + ":" + quote(username)
+        + "?secret=" + secret + "&issuer=" + quote("MedGen AI") + "&algorithm=SHA1&digits=6&period=30"
+    )
+    _db_save()
+    return {"secret": secret, "otpauth_uri": uri}
+
+
+@app.post("/api/v1/auth/2fa/enable")
+def twofa_enable(data: TotpCodeRequest, user=Depends(get_current_user)):
+    username = user["username"]
+    record = totp_store.get(username)
+    if not record or record.get("enabled"):
+        raise HTTPException(status_code=400, detail="Start 2FA setup first.")
+    key = "2fa:" + username.lower()
+    _totp_rate_limit(key)
+    if not _totp_verify(record, data.code):
+        _totp_fail(key)
+        raise HTTPException(status_code=400, detail="Invalid code")
+    record["enabled"] = True
+    login_attempts.pop(key, None)
+    activity_log.insert(0, {"type": "2fa_enabled", "username": username, "at": datetime.now(timezone.utc).isoformat()})
+    _db_save()
+    return {"enabled": True}
+
+
+@app.post("/api/v1/auth/2fa/disable")
+def twofa_disable(data: TotpCodeRequest, user=Depends(get_current_user)):
+    username = user["username"]
+    record = totp_store.get(username)
+    if not record or not record.get("enabled"):
+        raise HTTPException(status_code=400, detail="2FA is not enabled.")
+    key = "2fa:" + username.lower()
+    _totp_rate_limit(key)
+    if not _totp_verify(record, data.code):
+        _totp_fail(key)
+        raise HTTPException(status_code=400, detail="Invalid code")
+    totp_store.pop(username, None)
+    login_attempts.pop(key, None)
+    activity_log.insert(0, {"type": "2fa_disabled", "username": username, "at": datetime.now(timezone.utc).isoformat()})
+    _db_save()
+    return {"enabled": False}
+
+
+@app.post("/api/v1/auth/2fa/login")
+def twofa_login(data: TotpLoginRequest):
+    now_ts = time.time()
+    for stale in [k for k, v in mfa_pending.items() if v["exp"] < now_ts]:
+        mfa_pending.pop(stale, None)
+    pending = mfa_pending.get(data.mfa_token)
+    if not pending:
+        raise HTTPException(status_code=401, detail="Login session expired. Sign in again.")
+    username = pending["username"]
+    record = totp_store.get(username)
+    if not record or not record.get("enabled"):
+        mfa_pending.pop(data.mfa_token, None)
+        raise HTTPException(status_code=401, detail="Login session expired. Sign in again.")
+    key = "2fa:" + username.lower()
+    _totp_rate_limit(key)
+    if not _totp_verify(record, data.code):
+        _totp_fail(key)
+        raise HTTPException(status_code=401, detail="Invalid code")
+    mfa_pending.pop(data.mfa_token, None)
+    login_attempts.pop(key, None)
+    now = datetime.now(timezone.utc)
+    token = make_token(username)
+    tokens[token] = username
+    token_created_at[token] = now.isoformat()
+    activity_log.insert(0, {"type": "login", "username": username, "at": now.isoformat(), "mfa": True})
+    _db_save()
+    return {"access_token": token, "token_type": "bearer", "expires_in": TOKEN_TTL_SECONDS}
+
+
+# =========================================================
+# EMAIL (Resend): verification and report delivery
+# =========================================================
+def _send_email(to: str, subject: str, html_body: str) -> bool:
+    if not RESEND_API_KEY or not to:
+        return False
+
+    def _worker():
+        try:
+            req = URLRequest(
+                "https://api.resend.com/emails",
+                data=json.dumps({"from": EMAIL_FROM, "to": [to], "subject": subject, "html": html_body}).encode("utf-8"),
+                headers={
+                    "Authorization": "Bearer " + RESEND_API_KEY,
+                    "Content-Type": "application/json",
+                    "User-Agent": "medgen-ai/1.0",
+                },
+                method="POST",
+            )
+            urlopen(req, timeout=15).read()
+        except Exception as exc:
+            print("EMAIL ERROR:", type(exc).__name__)
+
+    threading.Thread(target=_worker, daemon=True).start()
+    return True
+
+
+def _email_sig(payload: str) -> str:
+    return hmac.new(SECRET_KEY.encode(), ("email:" + payload).encode(), hashlib.sha256).hexdigest()[:32]
+
+
+def _email_token(username: str) -> str:
+    raw = f"{username}|{int(time.time()) + EMAIL_TOKEN_TTL}".encode("utf-8")
+    payload = base64.urlsafe_b64encode(raw).decode().rstrip("=")
+    return payload + "." + _email_sig(payload)
+
+
+def _email_token_user(token: str):
+    try:
+        payload, sig = str(token or "").split(".", 1)
+        if not hmac.compare_digest(sig, _email_sig(payload)):
+            return None
+        username, exp = base64.urlsafe_b64decode(payload + "=" * (-len(payload) % 4)).decode("utf-8").rsplit("|", 1)
+        return username if int(exp) >= time.time() else None
+    except Exception:
+        return None
+
+
+def _email_shell(inner: str) -> str:
+    return (
+        '<div style="font-family:system-ui,Arial,sans-serif;max-width:560px;margin:auto;padding:24px;'
+        'background:#0f1b2b;color:#e8f0f6;border-radius:16px">'
+        '<h2 style="margin:0 0 12px;color:#56dcc0">MedGen AI</h2>' + inner +
+        '<p style="color:#8fa3b5;font-size:12px;margin-top:24px">Global Biomedical AI Platform</p></div>'
+    )
+
+
+def _send_verification_email(username: str) -> bool:
+    profile = user_profiles.get(username, {})
+    email = profile.get("email")
+    link = PUBLIC_API_URL + "/api/v1/auth/verify-email?token=" + quote(_email_token(username))
+    name = _email_esc(str(profile.get("full_name") or username))
+    inner = (
+        f"<p>Salom, {name}!</p><p>Email manzilingizni tasdiqlash uchun tugmani bosing:</p>"
+        f'<p><a href="{link}" style="display:inline-block;padding:12px 20px;background:#56dcc0;color:#06231d;'
+        'border-radius:10px;font-weight:700;text-decoration:none">Emailni tasdiqlash</a></p>'
+        '<p style="color:#8fa3b5;font-size:13px">Havola 48 soat amal qiladi. Agar siz ro\'yxatdan o\'tmagan bo\'lsangiz, bu xatni e\'tiborsiz qoldiring.</p>'
+    )
+    return _send_email(email, "MedGen AI: emailni tasdiqlang", _email_shell(inner))
+
+
+@app.get("/api/v1/auth/verify-email", response_class=HTMLResponse)
+def verify_email(token: str = ""):
+    username = _email_token_user(token)
+    ok = bool(username and username in user_profiles)
+    if ok:
+        user_profiles[username]["email_verified"] = True
+        _db_save()
+    title = "Email tasdiqlandi ✓" if ok else "Havola yaroqsiz yoki muddati tugagan"
+    page = (
+        '<!doctype html><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">'
+        '<body style="margin:0;min-height:100vh;display:flex;align-items:center;justify-content:center;'
+        'background:#0b1522;color:#e8f0f6;font-family:system-ui,sans-serif;text-align:center;padding:16px">'
+        f'<div><h2 style="color:#56dcc0">{title}</h2>'
+        f'<p><a href="{SITE_URL}" style="color:#56dcc0">MedGen AI ga qaytish</a></p></div></body>'
+    )
+    return HTMLResponse(page, status_code=200 if ok else 400)
+
+
+@app.post("/api/v1/auth/resend-verification")
+def resend_verification(user=Depends(get_current_user)):
+    username = user["username"]
+    profile = user_profiles.get(username, {})
+    if profile.get("email_verified") is True:
+        return {"status": "already_verified"}
+    if not RESEND_API_KEY:
+        raise HTTPException(status_code=503, detail="Email service is not configured.")
+    if time.time() - _email_cooldown.get("v:" + username, 0) < 60:
+        raise HTTPException(status_code=429, detail="Wait a minute before requesting another email.")
+    _email_cooldown["v:" + username] = time.time()
+    _send_verification_email(username)
+    return {"status": "queued"}
+
+
+@app.post("/api/v1/reports/{report_id}/email")
+def email_report(report_id: str, user=Depends(get_current_user)):
+    username = user["username"]
+    item = next((r for r in reports_store if r.get("id") == report_id and r.get("user") == username), None)
+    if not item:
+        raise HTTPException(status_code=404, detail="Report not found.")
+    email = str(user_profiles.get(username, {}).get("email") or "")
+    if "@" not in email:
+        raise HTTPException(status_code=400, detail="No email address on file.")
+    if not RESEND_API_KEY:
+        raise HTTPException(status_code=503, detail="Email service is not configured.")
+    if time.time() - _email_cooldown.get("r:" + username, 0) < 20:
+        raise HTTPException(status_code=429, detail="Please wait a few seconds.")
+    _email_cooldown["r:" + username] = time.time()
+    body = json.dumps(item.get("report", item), ensure_ascii=False, indent=2)[:20000]
+    inner = (
+        f"<h3 style=\"margin:0 0 6px\">{_email_esc(str(item.get('title') or 'Report'))}</h3>"
+        f"<p style=\"color:#8fa3b5;font-size:13px\">{_email_esc(str(item.get('created_at') or ''))}</p>"
+        f"<pre style=\"white-space:pre-wrap;background:#13222f;padding:12px;border-radius:10px;font-size:12px\">{_email_esc(body)}</pre>"
+    )
+    _send_email(email, "MedGen AI hisoboti: " + str(item.get("title") or "Report")[:80], _email_shell(inner))
+    return {"status": "queued", "to": email[0] + "***" + email[email.index("@"):]}
 
 
 @app.get("/api/v1/account")
