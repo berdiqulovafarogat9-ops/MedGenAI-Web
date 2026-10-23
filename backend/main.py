@@ -146,6 +146,7 @@ usage_store = {}
 totp_store = {}
 mfa_pending = {}
 billing_store = {}
+screening_jobs_store = {}
 billing_events = {}
 DODO_API_KEY = os.getenv("DODO_API_KEY", "").strip()
 DODO_ENV = os.getenv("DODO_ENV", "test").strip().lower()
@@ -167,6 +168,7 @@ EMAIL_TOKEN_TTL = 172800
 _email_cooldown = {}
 
 DATABASE_URL = os.getenv("DATABASE_URL", "").strip()
+MIGRATE_TARGET_URL = os.getenv("MEDGEN_MIGRATE_TO_URL", "").strip()
 LEGAL_CONSENT_VERSION = "1.2"
 PERSISTENCE_ENABLED = bool(DATABASE_URL and psycopg)
 password_hasher = PasswordHash.recommended() if PasswordHash else None
@@ -175,7 +177,28 @@ _PERSISTENCE_LOCK = threading.RLock()
 _state_revision = 0
 
 def _persistent_stores():
-    return {"opportunities_store":opportunities_store,"user_accounts":user_accounts,"user_profiles":user_profiles,"user_consents":user_consents,"role_requests_store":role_requests_store,"experiments_store":experiments_store,"reports_store":reports_store,"academy_syllabi_store":academy_syllabi_store,"activity_log":activity_log,"jobs_store":jobs_store,"workflows_store":workflows_store,"docking_jobs_store":docking_jobs_store,"knowledge_entities_store":knowledge_entities_store,"knowledge_relations_store":knowledge_relations_store,"organizations_store":organizations_store,"school_directory_store":school_directory_store,"school_invitations_store":school_invitations_store,"school_assignments_store":school_assignments_store,"school_submissions_store":school_submissions_store,"memberships_store":memberships_store,"workspaces_store":workspaces_store,"projects_store":projects_store,"api_keys_store":api_keys_store,"platform_audit_log":platform_audit_log,"usage_store":usage_store,"totp_store":totp_store,"billing_store":billing_store,"billing_events":billing_events,"webhooks_store":webhooks_store}
+    return {"opportunities_store":opportunities_store,"user_accounts":user_accounts,"user_profiles":user_profiles,"user_consents":user_consents,"role_requests_store":role_requests_store,"experiments_store":experiments_store,"reports_store":reports_store,"academy_syllabi_store":academy_syllabi_store,"activity_log":activity_log,"jobs_store":jobs_store,"workflows_store":workflows_store,"docking_jobs_store":docking_jobs_store,"knowledge_entities_store":knowledge_entities_store,"knowledge_relations_store":knowledge_relations_store,"organizations_store":organizations_store,"school_directory_store":school_directory_store,"school_invitations_store":school_invitations_store,"school_assignments_store":school_assignments_store,"school_submissions_store":school_submissions_store,"memberships_store":memberships_store,"workspaces_store":workspaces_store,"projects_store":projects_store,"api_keys_store":api_keys_store,"platform_audit_log":platform_audit_log,"usage_store":usage_store,"totp_store":totp_store,"billing_store":billing_store,"screening_jobs_store":screening_jobs_store,"billing_events":billing_events,"webhooks_store":webhooks_store}
+
+def _db_migrate_if_requested():
+    """One-time server-side copy of all state rows from DATABASE_URL to MEDGEN_MIGRATE_TO_URL.
+    Data never leaves the server. Remove MEDGEN_MIGRATE_TO_URL after switching DATABASE_URL."""
+    if not MIGRATE_TARGET_URL or not PERSISTENCE_ENABLED or MIGRATE_TARGET_URL == DATABASE_URL:
+        return
+    try:
+        with psycopg.connect(DATABASE_URL) as src, psycopg.connect(MIGRATE_TARGET_URL) as dst:
+            dst.execute("CREATE TABLE IF NOT EXISTS medgen_state (state_key TEXT PRIMARY KEY, state_value JSONB NOT NULL, updated_at TIMESTAMPTZ NOT NULL DEFAULT NOW())")
+            rows = src.execute("SELECT state_key, state_value, updated_at FROM medgen_state").fetchall()
+            for key, value, updated in rows:
+                dst.execute(
+                    "INSERT INTO medgen_state(state_key,state_value,updated_at) VALUES (%s,%s::jsonb,%s) "
+                    "ON CONFLICT (state_key) DO UPDATE SET state_value=EXCLUDED.state_value, updated_at=EXCLUDED.updated_at",
+                    (key, json.dumps(value, ensure_ascii=False), updated),
+                )
+            dst.commit()
+        print("MIGRATION OK: copied", len(rows), "state rows")
+    except Exception as exc:
+        print("MIGRATION FAILED:", type(exc).__name__)
+
 
 def _db_init():
     if not PERSISTENCE_ENABLED: return
@@ -190,6 +213,7 @@ def _db_load():
         raise RuntimeError("PostgreSQL driver is required when DATABASE_URL is configured")
     if not PERSISTENCE_ENABLED: return
     try:
+        _db_migrate_if_requested()
         _db_init()
         with psycopg.connect(DATABASE_URL) as conn:
             rows = conn.execute("SELECT state_key, state_value FROM medgen_state").fetchall()
@@ -5854,6 +5878,112 @@ def _execute_prepared_docking(data: PreparedDockingRequest, user, *, persist=Tru
                     os.unlink(f.name)
             except Exception:
                 pass
+
+# =========================================================
+# HIGH-THROUGHPUT VIRTUAL SCREENING (AutoDock Vina, batch of prepared ligands)
+# =========================================================
+SCREENING_MAX_LIGANDS = int(os.getenv("MEDGEN_SCREENING_MAX_LIGANDS", "25") or 25)
+SCREENING_ROLES = {"pharma", "researcher", "bioinformatician", "biotech", "super_admin", "admin"}
+_screening_lock = threading.Lock()
+_screening_running = set()
+
+
+class ScreeningLigand(BaseModel):
+    name: str = Field(default="ligand", max_length=80)
+    smiles: str = Field(default="", max_length=500)
+    ligand_pdbqt: str = Field(max_length=200000)
+
+
+class VirtualScreeningRequest(BaseModel):
+    target: str = Field(max_length=200)
+    receptor_pdbqt: str = Field(max_length=5000000)
+    center_x: float = Field(allow_inf_nan=False)
+    center_y: float = Field(allow_inf_nan=False)
+    center_z: float = Field(allow_inf_nan=False)
+    size_x: float = Field(default=20.0, gt=0, le=100, allow_inf_nan=False)
+    size_y: float = Field(default=20.0, gt=0, le=100, allow_inf_nan=False)
+    size_z: float = Field(default=20.0, gt=0, le=100, allow_inf_nan=False)
+    exhaustiveness: int = Field(default=4, ge=1, le=16)
+    ligands: list[ScreeningLigand] = Field(min_length=1, max_length=200)
+
+
+def _screening_worker(job_id: str, data: VirtualScreeningRequest, user: dict) -> None:
+    job = screening_jobs_store[job_id]
+    try:
+        for lig in data.ligands:
+            entry = {"name": lig.name, "smiles": lig.smiles}
+            try:
+                req = PreparedDockingRequest(
+                    target=data.target, ligand_smiles=lig.smiles,
+                    receptor_pdbqt=data.receptor_pdbqt, ligand_pdbqt=lig.ligand_pdbqt,
+                    center_x=data.center_x, center_y=data.center_y, center_z=data.center_z,
+                    size_x=data.size_x, size_y=data.size_y, size_z=data.size_z,
+                    exhaustiveness=data.exhaustiveness, n_poses=1,
+                )
+                res = _execute_prepared_docking(req, user, persist=False)
+                entry["affinity_kcal_mol"] = res["result"]["poses"][0]["affinity_kcal_mol"]
+            except HTTPException as exc:
+                entry["error"] = str(exc.detail)[:200]
+            except Exception as exc:
+                entry["error"] = type(exc).__name__
+            job["results"].append(entry)
+            job["done"] += 1
+        job["status"] = "completed"
+    except Exception as exc:
+        job["status"] = "failed"
+        job["error"] = type(exc).__name__
+    finally:
+        job["completed_at"] = datetime.now(timezone.utc).isoformat()
+        try:
+            _db_save()
+        except Exception:
+            pass
+        with _screening_lock:
+            _screening_running.discard(job["user"])
+
+
+def _screening_view(job: dict) -> dict:
+    ok = sorted([r for r in job["results"] if "affinity_kcal_mol" in r], key=lambda r: r["affinity_kcal_mol"])
+    bad = [r for r in job["results"] if "affinity_kcal_mol" not in r]
+    ranked = [dict(r, rank=i + 1) for i, r in enumerate(ok)] + bad
+    return {k: v for k, v in job.items() if k != "results"} | {"results": ranked}
+
+
+@app.post("/api/v1/screening/run")
+def screening_run(data: VirtualScreeningRequest, user=Depends(get_current_user)):
+    username = user["username"]
+    if str(user.get("role", "")).lower() not in SCREENING_ROLES:
+        raise HTTPException(status_code=403, detail="Virtual screening is available for Pharma and Researcher roles.")
+    if not VINA_AVAILABLE:
+        raise HTTPException(status_code=503, detail="AutoDock Vina engine is not installed on this deployment.")
+    if len(data.ligands) > SCREENING_MAX_LIGANDS:
+        raise HTTPException(status_code=400, detail=f"At most {SCREENING_MAX_LIGANDS} ligands per run.")
+    if not data.receptor_pdbqt.strip() or not all(l.ligand_pdbqt.strip() for l in data.ligands):
+        raise HTTPException(status_code=400, detail="Prepared PDBQT content is required for receptor and every ligand.")
+    with _screening_lock:
+        if username in _screening_running or len(_screening_running) >= 2:
+            raise HTTPException(status_code=429, detail="A screening is already running. Try again when it finishes.")
+        _screening_running.add(username)
+    job_id = secrets.token_hex(10)
+    screening_jobs_store[job_id] = {
+        "id": job_id, "user": username, "target": data.target, "status": "running",
+        "total": len(data.ligands), "done": 0, "results": [],
+        "created_at": datetime.now(timezone.utc).isoformat(), "engine": "AutoDock Vina",
+        "warning": "Docking scores are computational evidence, not experimentally validated binding affinity.",
+    }
+    threading.Thread(target=_screening_worker, args=(job_id, data, user), daemon=True).start()
+    return {"job_id": job_id, "status": "running", "total": len(data.ligands)}
+
+
+@app.get("/api/v1/screening/{job_id}")
+def screening_status(job_id: str, user=Depends(get_current_user)):
+    job = screening_jobs_store.get(job_id)
+    if not job:
+        raise HTTPException(status_code=404, detail="Screening job not found")
+    if job.get("user") != user["username"] and user.get("role") != "SUPER_ADMIN":
+        raise HTTPException(status_code=403, detail="Access denied")
+    return _screening_view(job)
+
 
 @app.get("/api/v1/docking/status/{job_id}")
 def get_docking_job(job_id: str, user=Depends(get_current_user)):
