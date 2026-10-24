@@ -179,15 +179,47 @@ _state_revision = 0
 def _persistent_stores():
     return {"opportunities_store":opportunities_store,"user_accounts":user_accounts,"user_profiles":user_profiles,"user_consents":user_consents,"role_requests_store":role_requests_store,"experiments_store":experiments_store,"reports_store":reports_store,"academy_syllabi_store":academy_syllabi_store,"activity_log":activity_log,"jobs_store":jobs_store,"workflows_store":workflows_store,"docking_jobs_store":docking_jobs_store,"knowledge_entities_store":knowledge_entities_store,"knowledge_relations_store":knowledge_relations_store,"organizations_store":organizations_store,"school_directory_store":school_directory_store,"school_invitations_store":school_invitations_store,"school_assignments_store":school_assignments_store,"school_submissions_store":school_submissions_store,"memberships_store":memberships_store,"workspaces_store":workspaces_store,"projects_store":projects_store,"api_keys_store":api_keys_store,"platform_audit_log":platform_audit_log,"usage_store":usage_store,"totp_store":totp_store,"billing_store":billing_store,"screening_jobs_store":screening_jobs_store,"billing_events":billing_events,"webhooks_store":webhooks_store}
 
+def _normalize_db_url(raw: str) -> str:
+    """Forgiving cleanup of a pasted Postgres URL: quotes, spaces, [brackets] around the password,
+    and unescaped special characters in the user/password."""
+    from urllib.parse import quote, unquote
+    url = str(raw or "").strip().strip("'\"").strip()
+    if "://" not in url:
+        return url
+    scheme, rest = url.split("://", 1)
+    if "@" not in rest:
+        return url
+    userinfo, hostpart = rest.rsplit("@", 1)
+    user, sep, password = userinfo.partition(":")
+    password = password.strip()
+    if password.startswith("[") and password.endswith("]"):
+        password = password[1:-1]
+    def enc(v):
+        return quote(unquote(v) if re.search(r"%[0-9A-Fa-f]{2}", v) else v, safe="")
+    userinfo = enc(user) + ((":" + enc(password)) if sep else "")
+    return scheme + "://" + userinfo + "@" + hostpart.strip()
+
+
 def _db_migrate_if_requested():
     """One-time server-side copy of all state rows from DATABASE_URL to MEDGEN_MIGRATE_TO_URL.
     Data never leaves the server. Remove MEDGEN_MIGRATE_TO_URL after switching DATABASE_URL."""
     if not MIGRATE_TARGET_URL or not PERSISTENCE_ENABLED or MIGRATE_TARGET_URL == DATABASE_URL:
         return
+    phase = "parse-target-url"
+    target_url = _normalize_db_url(MIGRATE_TARGET_URL)
     try:
-        with psycopg.connect(DATABASE_URL) as src, psycopg.connect(MIGRATE_TARGET_URL) as dst:
-            dst.execute("CREATE TABLE IF NOT EXISTS medgen_state (state_key TEXT PRIMARY KEY, state_value JSONB NOT NULL, updated_at TIMESTAMPTZ NOT NULL DEFAULT NOW())")
+        from urllib.parse import urlsplit
+        parts = urlsplit(target_url)
+        print("MIGRATION target:", "scheme=" + str(parts.scheme), "host=" + str(parts.hostname), "port=" + str(parts.port),
+              "user=" + str(parts.username)[:40], "has_password=" + str(bool(parts.password)), "db=" + str(parts.path))
+        phase = "connect-source"
+        with psycopg.connect(DATABASE_URL) as src:
+            phase = "read-source"
             rows = src.execute("SELECT state_key, state_value, updated_at FROM medgen_state").fetchall()
+        phase = "connect-target"
+        with psycopg.connect(target_url) as dst:
+            phase = "write-target"
+            dst.execute("CREATE TABLE IF NOT EXISTS medgen_state (state_key TEXT PRIMARY KEY, state_value JSONB NOT NULL, updated_at TIMESTAMPTZ NOT NULL DEFAULT NOW())")
             for key, value, updated in rows:
                 dst.execute(
                     "INSERT INTO medgen_state(state_key,state_value,updated_at) VALUES (%s,%s::jsonb,%s) "
@@ -197,7 +229,12 @@ def _db_migrate_if_requested():
             dst.commit()
         print("MIGRATION OK: copied", len(rows), "state rows")
     except Exception as exc:
-        print("MIGRATION FAILED:", type(exc).__name__)
+        msg = str(exc)
+        for secret in (DATABASE_URL, MIGRATE_TARGET_URL):
+            if secret:
+                msg = msg.replace(secret, "<url>")
+        msg = re.sub(r"://[^@\s]+@", "://<redacted>@", msg)
+        print("MIGRATION FAILED:", phase, type(exc).__name__, msg[:200])
 
 
 def _db_init():
