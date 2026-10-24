@@ -11,3 +11,4 @@ meeko
 
 pwdlib[argon2]
 psycopg[binary]
+cryptography

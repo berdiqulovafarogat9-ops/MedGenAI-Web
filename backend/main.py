@@ -146,6 +146,9 @@ usage_store = {}
 totp_store = {}
 mfa_pending = {}
 billing_store = {}
+trusted_devices = {}
+REQUIRE_2FA_ROLES = {r.strip() for r in os.getenv("MEDGEN_REQUIRE_2FA_ROLES", "doctor,pharma,SUPER_ADMIN").split(",") if r.strip()}
+DEVICE_TTL_SECONDS = 30 * 86400
 screening_jobs_store = {}
 billing_events = {}
 DODO_API_KEY = os.getenv("DODO_API_KEY", "").strip()
@@ -227,7 +230,7 @@ _PERSISTENCE_LOCK = threading.RLock()
 _state_revision = 0
 
 def _persistent_stores():
-    return {"opportunities_store":opportunities_store,"user_accounts":user_accounts,"user_profiles":user_profiles,"user_consents":user_consents,"role_requests_store":role_requests_store,"experiments_store":experiments_store,"reports_store":reports_store,"academy_syllabi_store":academy_syllabi_store,"activity_log":activity_log,"jobs_store":jobs_store,"workflows_store":workflows_store,"docking_jobs_store":docking_jobs_store,"knowledge_entities_store":knowledge_entities_store,"knowledge_relations_store":knowledge_relations_store,"organizations_store":organizations_store,"school_directory_store":school_directory_store,"school_invitations_store":school_invitations_store,"school_assignments_store":school_assignments_store,"school_submissions_store":school_submissions_store,"memberships_store":memberships_store,"workspaces_store":workspaces_store,"projects_store":projects_store,"api_keys_store":api_keys_store,"platform_audit_log":platform_audit_log,"usage_store":usage_store,"totp_store":totp_store,"billing_store":billing_store,"screening_jobs_store":screening_jobs_store,"billing_events":billing_events,"webhooks_store":webhooks_store}
+    return {"opportunities_store":opportunities_store,"user_accounts":user_accounts,"user_profiles":user_profiles,"user_consents":user_consents,"role_requests_store":role_requests_store,"experiments_store":experiments_store,"reports_store":reports_store,"academy_syllabi_store":academy_syllabi_store,"activity_log":activity_log,"jobs_store":jobs_store,"workflows_store":workflows_store,"docking_jobs_store":docking_jobs_store,"knowledge_entities_store":knowledge_entities_store,"knowledge_relations_store":knowledge_relations_store,"organizations_store":organizations_store,"school_directory_store":school_directory_store,"school_invitations_store":school_invitations_store,"school_assignments_store":school_assignments_store,"school_submissions_store":school_submissions_store,"memberships_store":memberships_store,"workspaces_store":workspaces_store,"projects_store":projects_store,"api_keys_store":api_keys_store,"platform_audit_log":platform_audit_log,"usage_store":usage_store,"totp_store":totp_store,"billing_store":billing_store,"trusted_devices":trusted_devices,"screening_jobs_store":screening_jobs_store,"billing_events":billing_events,"webhooks_store":webhooks_store}
 
 def _db_migrate_if_requested():
     """One-time server-side copy of all state rows from DATABASE_URL to MEDGEN_MIGRATE_TO_URL.
@@ -332,6 +335,7 @@ def _db_save():
 class LoginRequest(BaseModel):
     username: str
     password: str
+    device_token: str = ""
 
 
 class RegisterRequest(BaseModel):
@@ -647,6 +651,18 @@ async def account_readiness_guard(request: Request, call_next):
     if not path.startswith("/api/v1/"):
         return await call_next(request)
 
+    mfa_exempt = {
+        "/api/v1/health/live", "/api/v1/auth/login", "/api/v1/auth/register", "/api/v1/auth/me",
+        "/api/v1/auth/logout", "/api/v1/account", "/api/v1/profile", "/api/v1/billing/webhook",
+        "/api/v1/auth/verify-email",
+    }
+    if REQUIRE_2FA_ROLES and path not in mfa_exempt and not path.startswith("/api/v1/auth/2fa/"):
+        _hdr = request.headers.get("authorization", "")
+        _tok = _hdr[7:].strip() if _hdr.lower().startswith("bearer ") else ""
+        _usr = tokens.get(_tok)
+        if _usr and _mfa_required_for(_usr) and not totp_store.get(_usr, {}).get("enabled"):
+            return JSONResponse(status_code=403, content={"detail": "MFA_SETUP_REQUIRED"})
+
     allowed = {
         "/api/v1/health/live",
         "/api/v1/auth/login",
@@ -805,7 +821,7 @@ def login(data: LoginRequest):
     authenticated_username = canonical_username if valid_registered else str(ADMIN_USERNAME).strip()
     if REQUIRE_EMAIL_VERIFICATION and user_profiles.get(authenticated_username, {}).get("email_verified") is False:
         raise HTTPException(status_code=403, detail="Email is not verified. Check your inbox.")
-    if totp_store.get(authenticated_username, {}).get("enabled"):
+    if totp_store.get(authenticated_username, {}).get("enabled") and not _device_trusted(authenticated_username, data.device_token):
         mfa_token = secrets.token_urlsafe(32)
         mfa_pending[mfa_token] = {"username": authenticated_username, "exp": time.time() + 300}
         return {"mfa_required": True, "mfa_token": mfa_token, "expires_in": 300}
@@ -1057,6 +1073,73 @@ class TotpCodeRequest(BaseModel):
 class TotpLoginRequest(BaseModel):
     mfa_token: str
     code: str
+    remember: bool = False
+
+
+try:
+    from cryptography.fernet import Fernet, InvalidToken
+except Exception:  # cryptography not installed: secrets stay readable but the app keeps working
+    Fernet = None
+    InvalidToken = Exception
+
+
+def _fernet():
+    if Fernet is None:
+        return None
+    key = base64.urlsafe_b64encode(hashlib.sha256(("medgen-2fa-v1:" + SECRET_KEY).encode("utf-8")).digest())
+    return Fernet(key)
+
+
+def _secret_encrypt(plain: str) -> str:
+    f = _fernet()
+    return ("enc1:" + f.encrypt(plain.encode("utf-8")).decode("utf-8")) if f else plain
+
+
+def _secret_plain(stored: str) -> str:
+    stored = str(stored)
+    if not stored.startswith("enc1:"):
+        return stored
+    f = _fernet()
+    if f is None:
+        raise HTTPException(status_code=503, detail="2FA storage is temporarily unavailable.")
+    try:
+        return f.decrypt(stored[5:].encode("utf-8")).decode("utf-8")
+    except InvalidToken:
+        raise HTTPException(status_code=503, detail="2FA storage key mismatch. Contact the administrator.")
+
+
+def _device_hash(token: str) -> str:
+    return hashlib.sha256(("dev:" + SECRET_KEY + ":" + str(token)).encode("utf-8")).hexdigest()
+
+
+def _device_trusted(username: str, token: str) -> bool:
+    if not token:
+        return False
+    exp = trusted_devices.get(username, {}).get(_device_hash(token))
+    return bool(exp and exp > time.time())
+
+
+def _device_issue(username: str) -> str:
+    token = secrets.token_urlsafe(32)
+    now = time.time()
+    devices = {h: e for h, e in trusted_devices.get(username, {}).items() if e > now}
+    while len(devices) >= 5:
+        devices.pop(min(devices, key=devices.get))
+    devices[_device_hash(token)] = now + DEVICE_TTL_SECONDS
+    trusted_devices[username] = devices
+    return token
+
+
+def _mfa_required_for(username: str) -> bool:
+    if not REQUIRE_2FA_ROLES:
+        return False
+    required = {normalize_role(r) for r in REQUIRE_2FA_ROLES}
+    profile = user_profiles.get(username, {})
+    roles = {normalize_role(profile.get("role") or "student")}
+    roles |= {normalize_role(x) for x in (profile.get("approved_roles") or [])}
+    if str(username).strip().casefold() == str(ADMIN_USERNAME).strip().casefold():
+        roles.add("SUPER_ADMIN")
+    return bool(roles & required)
 
 
 def _totp_code(secret_b32: str, counter: int) -> str:
@@ -1072,9 +1155,12 @@ def _totp_verify(record: dict, code: str) -> bool:
     if not re.fullmatch(r"\d{6}", code):
         return False
     now = int(time.time() // 30)
+    plain = _secret_plain(record["secret"])
     for counter in (now - 1, now, now + 1):
-        if counter > int(record.get("last_counter", -1)) and hmac.compare_digest(_totp_code(record["secret"], counter), code):
+        if counter > int(record.get("last_counter", -1)) and hmac.compare_digest(_totp_code(plain, counter), code):
             record["last_counter"] = counter
+            if not str(record["secret"]).startswith("enc1:"):
+                record["secret"] = _secret_encrypt(plain)
             return True
     return False
 
@@ -1128,7 +1214,12 @@ def _totp_fail(key: str) -> None:
 @app.get("/api/v1/auth/2fa/status")
 def twofa_status(user=Depends(get_current_user)):
     record = totp_store.get(user["username"], {})
-    return {"enabled": bool(record.get("enabled")), "recovery_remaining": len(record.get("recovery", []))}
+    return {
+        "enabled": bool(record.get("enabled")),
+        "recovery_remaining": len(record.get("recovery", [])),
+        "required": _mfa_required_for(user["username"]),
+        "trusted_devices": len([e for e in trusted_devices.get(user["username"], {}).values() if e > time.time()]),
+    }
 
 
 @app.post("/api/v1/auth/2fa/setup")
@@ -1137,7 +1228,7 @@ def twofa_setup(user=Depends(get_current_user)):
     if totp_store.get(username, {}).get("enabled"):
         raise HTTPException(status_code=400, detail="2FA is already enabled. Disable it first.")
     secret = base64.b32encode(secrets.token_bytes(20)).decode().rstrip("=")
-    totp_store[username] = {"secret": secret, "enabled": False, "last_counter": -1}
+    totp_store[username] = {"secret": _secret_encrypt(secret), "enabled": False, "last_counter": -1}
     uri = (
         "otpauth://totp/" + quote("MedGen AI") + ":" + quote(username)
         + "?secret=" + secret + "&issuer=" + quote("MedGen AI") + "&algorithm=SHA1&digits=6&period=30"
@@ -1177,6 +1268,7 @@ def twofa_disable(data: TotpCodeRequest, user=Depends(get_current_user)):
         _totp_fail(key)
         raise HTTPException(status_code=400, detail="Invalid code")
     totp_store.pop(username, None)
+    trusted_devices.pop(username, None)
     login_attempts.pop(key, None)
     activity_log.insert(0, {"type": "2fa_disabled", "username": username, "at": datetime.now(timezone.utc).isoformat()})
     _db_save()
@@ -1198,6 +1290,23 @@ def twofa_recovery_regenerate(data: TotpCodeRequest, user=Depends(get_current_us
     login_attempts.pop(key, None)
     _db_save()
     return {"recovery_codes": codes}
+
+
+@app.post("/api/v1/auth/2fa/devices/revoke")
+def twofa_devices_revoke(data: TotpCodeRequest, user=Depends(get_current_user)):
+    username = user["username"]
+    record = totp_store.get(username)
+    if not record or not record.get("enabled"):
+        raise HTTPException(status_code=400, detail="2FA is not enabled.")
+    key = "2fa:" + username.lower()
+    _totp_rate_limit(key)
+    if not _totp_verify(record, data.code):
+        _totp_fail(key)
+        raise HTTPException(status_code=400, detail="Invalid code")
+    trusted_devices.pop(username, None)
+    login_attempts.pop(key, None)
+    _db_save()
+    return {"revoked": True}
 
 
 @app.post("/api/v1/auth/2fa/login")
@@ -1225,8 +1334,12 @@ def twofa_login(data: TotpLoginRequest):
     tokens[token] = username
     token_created_at[token] = now.isoformat()
     activity_log.insert(0, {"type": "login", "username": username, "at": now.isoformat(), "mfa": True})
+    device = _device_issue(username) if data.remember else None
     _db_save()
-    return {"access_token": token, "token_type": "bearer", "expires_in": TOKEN_TTL_SECONDS}
+    result = {"access_token": token, "token_type": "bearer", "expires_in": TOKEN_TTL_SECONDS}
+    if device:
+        result["device_token"] = device
+    return result
 
 
 # =========================================================
@@ -5949,7 +6062,39 @@ def _execute_prepared_docking(data: PreparedDockingRequest, user, *, persist=Tru
 # HIGH-THROUGHPUT VIRTUAL SCREENING (AutoDock Vina, batch of prepared ligands)
 # =========================================================
 SCREENING_MAX_LIGANDS = int(os.getenv("MEDGEN_SCREENING_MAX_LIGANDS", "25") or 25)
+SCREENING_MAX_SECONDS = int(os.getenv("MEDGEN_SCREENING_MAX_SECONDS", "900") or 900)
 SCREENING_ROLES = {"pharma", "researcher", "bioinformatician", "biotech", "super_admin", "admin"}
+
+
+def _smiles_to_pdbqt(smiles: str) -> str:
+    """Prepare a docking-ready ligand (3D conformer, charges, torsion tree) from a SMILES string."""
+    from rdkit import Chem
+    mol = Chem.MolFromSmiles(str(smiles or "").strip())
+    if mol is None:
+        raise ValueError("Invalid SMILES")
+    if mol.GetNumHeavyAtoms() > 70:
+        raise ValueError("Molecule is too large for screening")
+    mol = Chem.AddHs(mol)
+    params = AllChem.ETKDGv3()
+    params.randomSeed = 42
+    if AllChem.EmbedMolecule(mol, params) != 0:
+        raise ValueError("3D conformer generation failed")
+    try:
+        AllChem.MMFFOptimizeMolecule(mol, maxIters=200)
+    except Exception:
+        pass
+    try:
+        from meeko import MoleculePreparation, PDBQTWriterLegacy
+        setups = MoleculePreparation().prepare(mol)
+        pdbqt, ok, err = PDBQTWriterLegacy.write_string(setups[0])
+        if not ok:
+            raise ValueError(err or "Ligand preparation failed")
+        return pdbqt
+    except ImportError:
+        from meeko import MoleculePreparation
+        prep = MoleculePreparation()
+        prep.prepare(mol)
+        return prep.write_pdbqt_string()
 _screening_lock = threading.Lock()
 _screening_running = set()
 
@@ -5957,7 +6102,7 @@ _screening_running = set()
 class ScreeningLigand(BaseModel):
     name: str = Field(default="ligand", max_length=80)
     smiles: str = Field(default="", max_length=500)
-    ligand_pdbqt: str = Field(max_length=200000)
+    ligand_pdbqt: str = Field(default="", max_length=200000)
 
 
 class VirtualScreeningRequest(BaseModel):
@@ -5975,13 +6120,20 @@ class VirtualScreeningRequest(BaseModel):
 
 def _screening_worker(job_id: str, data: VirtualScreeningRequest, user: dict) -> None:
     job = screening_jobs_store[job_id]
+    started = time.time()
     try:
         for lig in data.ligands:
             entry = {"name": lig.name, "smiles": lig.smiles}
+            if time.time() - started > SCREENING_MAX_SECONDS:
+                entry["error"] = "Skipped: time limit reached"
+                job["results"].append(entry)
+                job["done"] += 1
+                continue
             try:
+                ligand_pdbqt = lig.ligand_pdbqt if lig.ligand_pdbqt.strip() else _smiles_to_pdbqt(lig.smiles)
                 req = PreparedDockingRequest(
                     target=data.target, ligand_smiles=lig.smiles,
-                    receptor_pdbqt=data.receptor_pdbqt, ligand_pdbqt=lig.ligand_pdbqt,
+                    receptor_pdbqt=data.receptor_pdbqt, ligand_pdbqt=ligand_pdbqt,
                     center_x=data.center_x, center_y=data.center_y, center_z=data.center_z,
                     size_x=data.size_x, size_y=data.size_y, size_z=data.size_z,
                     exhaustiveness=data.exhaustiveness, n_poses=1,
@@ -5990,6 +6142,8 @@ def _screening_worker(job_id: str, data: VirtualScreeningRequest, user: dict) ->
                 entry["affinity_kcal_mol"] = res["result"]["poses"][0]["affinity_kcal_mol"]
             except HTTPException as exc:
                 entry["error"] = str(exc.detail)[:200]
+            except ValueError as exc:
+                entry["error"] = str(exc)[:200]
             except Exception as exc:
                 entry["error"] = type(exc).__name__
             job["results"].append(entry)
@@ -6024,10 +6178,12 @@ def screening_run(data: VirtualScreeningRequest, user=Depends(get_current_user))
         raise HTTPException(status_code=503, detail="AutoDock Vina engine is not installed on this deployment.")
     if len(data.ligands) > SCREENING_MAX_LIGANDS:
         raise HTTPException(status_code=400, detail=f"At most {SCREENING_MAX_LIGANDS} ligands per run.")
-    if not data.receptor_pdbqt.strip() or not all(l.ligand_pdbqt.strip() for l in data.ligands):
-        raise HTTPException(status_code=400, detail="Prepared PDBQT content is required for receptor and every ligand.")
+    if not data.receptor_pdbqt.strip():
+        raise HTTPException(status_code=400, detail="Prepared receptor PDBQT is required.")
+    if not all(l.ligand_pdbqt.strip() or l.smiles.strip() for l in data.ligands):
+        raise HTTPException(status_code=400, detail="Each ligand needs a SMILES string or a prepared PDBQT.")
     with _screening_lock:
-        if username in _screening_running or len(_screening_running) >= 2:
+        if username in _screening_running or len(_screening_running) >= 1:
             raise HTTPException(status_code=429, detail="A screening is already running. Try again when it finishes.")
         _screening_running.add(username)
     job_id = secrets.token_hex(10)
@@ -6536,9 +6692,37 @@ except ImportError:
 
 # Restore persisted application state after every Render process start.
 # Keep this at module end so all in-memory stores are defined before loading.
+# =========================================================
+# DAILY STATE SNAPSHOTS (kept inside the same database, last 7)
+# =========================================================
+def _backup_snapshot():
+    if not PERSISTENCE_ENABLED:
+        return
+    try:
+        with psycopg.connect(DATABASE_URL) as conn:
+            conn.execute("CREATE TABLE IF NOT EXISTS medgen_state_backups (id BIGSERIAL PRIMARY KEY, taken_at TIMESTAMPTZ NOT NULL DEFAULT NOW(), state JSONB NOT NULL)")
+            last = conn.execute("SELECT taken_at FROM medgen_state_backups ORDER BY taken_at DESC LIMIT 1").fetchone()
+            if last and (datetime.now(timezone.utc) - last[0]).total_seconds() < 82800:
+                return
+            conn.execute("INSERT INTO medgen_state_backups(state) SELECT COALESCE(jsonb_object_agg(state_key, state_value), '{}'::jsonb) FROM medgen_state")
+            conn.execute("DELETE FROM medgen_state_backups WHERE id NOT IN (SELECT id FROM medgen_state_backups ORDER BY taken_at DESC LIMIT 7)")
+            conn.commit()
+            print("BACKUP OK")
+    except Exception as exc:
+        print("BACKUP FAILED:", type(exc).__name__)
+
+
+def _backup_loop():
+    time.sleep(60)
+    while True:
+        _backup_snapshot()
+        time.sleep(3600)
+
+
 @app.on_event("startup")
 def load_persisted_state():
     _db_load()
+    threading.Thread(target=_backup_loop, daemon=True).start()
 
 # Existing public AlphaFold DB models; not on-demand folding or drug validation.
 def _alphafold_model(accession: str) -> dict:
