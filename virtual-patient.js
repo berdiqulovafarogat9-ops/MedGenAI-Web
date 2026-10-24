@@ -111,7 +111,7 @@
       const response=await fetch(api+'/academy/virtual-patient/leaderboard?limit=10',{headers:{'Authorization':'Bearer '+token}});
       const data=await response.json().catch(()=>({}));
       if(!response.ok)throw new Error(data.detail||('HTTP '+response.status));
-      const rows=data.leaderboard||data.rows||data.results||[];
+      const rows=data.items||data.leaderboard||data.rows||data.results||[];
       if(!rows.length){box.textContent='Hozircha reyting bo‘sh. Birinchi simulyatsiyani yakunlang!';return;}
       box.innerHTML='<ol class="vp-ranking">'+rows.map((row,i)=>'<li><span><b>'+esc(row.username||row.student||'Talaba')+'</b><small>'+Number(row.attempts||1)+' urinish</small></span><strong>'+Number(row.best_score??row.score??0)+'/100</strong></li>').join('')+'</ol>';
     }catch(err){box.textContent='Reytingni yuklab bo‘lmadi: '+String(err.message||err)+'. Simulyatsiya natijangiz baribir mahalliy saqlanadi.';}
