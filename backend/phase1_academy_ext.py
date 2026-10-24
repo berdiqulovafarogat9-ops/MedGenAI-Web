@@ -277,3 +277,89 @@ def academy_dashboard_v2(user=Depends(core.get_current_user)):
         "subjects": subjects,
         "academic_profile": ap,
     }
+
+
+# C-stage virtual-patient assessment persistence and leaderboard.
+# Additive routes: existing Academy endpoints and records remain unchanged.
+class VirtualPatientResultRequest(BaseModel):
+    case_id: str = Field(min_length=2, max_length=40)
+    case_name: str = Field(min_length=2, max_length=160)
+    score: int = Field(ge=0, le=100)
+    diagnosis_correct: bool
+    first_action_seconds: int | None = Field(default=None, ge=0, le=180)
+    actions: list[dict[str, Any]] = Field(default_factory=list, max_length=30)
+    errors: list[str] = Field(default_factory=list, max_length=30)
+    tab_switch_penalties: int = Field(default=0, ge=0, le=50)
+    completed_at: str = Field(min_length=10, max_length=60)
+    reason: str = Field(min_length=2, max_length=120)
+
+
+def _virtual_patient_table():
+    if not core.PERSISTENCE_ENABLED or core.psycopg is None:
+        raise HTTPException(status_code=503, detail="Persistent database is not configured; result remains local to this browser.")
+    with core.psycopg.connect(core.DATABASE_URL) as conn:
+        conn.execute("""
+            CREATE TABLE IF NOT EXISTS student_leaderboard (
+                id BIGSERIAL PRIMARY KEY,
+                username TEXT NOT NULL,
+                case_id TEXT NOT NULL,
+                case_name TEXT NOT NULL,
+                score INTEGER NOT NULL CHECK (score BETWEEN 0 AND 100),
+                diagnosis_correct BOOLEAN NOT NULL,
+                first_action_seconds INTEGER,
+                tab_switch_penalties INTEGER NOT NULL DEFAULT 0,
+                result_json JSONB NOT NULL DEFAULT '{}'::jsonb,
+                created_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
+            )
+        """)
+        conn.execute("CREATE INDEX IF NOT EXISTS idx_student_leaderboard_score ON student_leaderboard(score DESC, created_at DESC)")
+        conn.execute("CREATE INDEX IF NOT EXISTS idx_student_leaderboard_username ON student_leaderboard(username, created_at DESC)")
+        conn.commit()
+
+
+@core.app.post("/api/v1/academy/virtual-patient/result")
+def save_virtual_patient_result(data: VirtualPatientResultRequest, user=Depends(core.get_current_user)):
+    if data.case_id not in {"anaphylaxis", "mi", "pneumonia"}:
+        raise HTTPException(status_code=400, detail="Unknown virtual-patient case.")
+    if data.first_action_seconds is not None and data.first_action_seconds > 180:
+        raise HTTPException(status_code=400, detail="First action time must be within the 3-minute exam.")
+    # Sanitize the JSON payload size and avoid trusting a client-provided username.
+    payload = data.model_dump(mode="json")
+    payload["actions"] = payload["actions"][:30]
+    payload["errors"] = [str(e)[:300] for e in payload["errors"][:30]]
+    _virtual_patient_table()
+    try:
+        with core.psycopg.connect(core.DATABASE_URL) as conn:
+            row = conn.execute("""
+                INSERT INTO student_leaderboard
+                    (username, case_id, case_name, score, diagnosis_correct,
+                     first_action_seconds, tab_switch_penalties, result_json)
+                VALUES (%s,%s,%s,%s,%s,%s,%s,%s::jsonb)
+                RETURNING id, created_at
+            """, (user["username"], data.case_id, data.case_name, data.score,
+                  data.diagnosis_correct, data.first_action_seconds,
+                  data.tab_switch_penalties, core.json.dumps(payload, ensure_ascii=False))).fetchone()
+            conn.commit()
+    except Exception as exc:
+        raise HTTPException(status_code=503, detail="Could not save assessment to the database.") from exc
+    return {"status":"saved", "result_id":row[0], "username":user["username"],
+            "created_at":row[1].isoformat(), "score":data.score}
+
+
+@core.app.get("/api/v1/academy/virtual-patient/leaderboard")
+def virtual_patient_leaderboard(limit: int = 10, user=Depends(core.get_current_user)):
+    limit = max(1, min(int(limit), 50))
+    _virtual_patient_table()
+    with core.psycopg.connect(core.DATABASE_URL) as conn:
+        rows = conn.execute("""
+            SELECT username, MAX(score) AS best_score, COUNT(*) AS attempts,
+                   MAX(created_at) AS last_attempt
+            FROM student_leaderboard
+            GROUP BY username
+            ORDER BY best_score DESC, attempts DESC, last_attempt DESC
+            LIMIT %s
+        """, (limit,)).fetchall()
+    return {"status":"ok", "count":len(rows), "items":[
+        {"rank":i+1,"username":row[0],"best_score":row[1],"attempts":row[2],
+         "last_attempt":row[3].isoformat()} for i,row in enumerate(rows)
+    ]}
