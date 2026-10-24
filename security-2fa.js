@@ -41,16 +41,17 @@
     document.head.appendChild(s);
   }
 
-  async function open() {
+  async function open(forced) {
     var overlay = el("div", "position:fixed;inset:0;background:rgba(0,0,0,.7);display:flex;align-items:center;justify-content:center;z-index:99999");
+    overlay.id = "twofaOverlay";
     var card = el("div", CARD);
     overlay.appendChild(card);
-    overlay.addEventListener("click", function (e) { if (e.target === overlay) overlay.remove(); });
+    overlay.addEventListener("click", function (e) { if (e.target === overlay && !forced) overlay.remove(); });
     document.body.appendChild(overlay);
 
     function head(t) { card.appendChild(el("h3", "margin:0 0 8px;font-size:20px;color:#e8f0f6", t)); }
     function msg() { var m = el("div", "min-height:20px;margin-top:10px;font-size:14px;color:#ff8a8a"); card.appendChild(m); return m; }
-    function close() { var b = el("button", BTN2, "Yopish"); b.onclick = function () { overlay.remove(); }; card.appendChild(b); }
+    function close() { if (forced) return; var b = el("button", BTN2, "Yopish"); b.onclick = function () { overlay.remove(); }; card.appendChild(b); }
 
     function showCodes(codes) {
       card.innerHTML = "";
@@ -74,15 +75,23 @@
       try { st = await call("/auth/2fa/status"); }
       catch (e) { head("Ikki bosqichli himoya"); card.appendChild(el("p", "color:#ff8a8a", e.message)); close(); return; }
 
+      if (st.enabled) forced = false;
       head("Ikki bosqichli himoya (2FA)");
+      if (forced) card.appendChild(el("p", "color:#f6c85f;font-size:14px;margin:0 0 8px", "Sizning rolingiz uchun 2FA majburiy. Davom etish uchun uni yoqing."));
       if (st.enabled) {
         card.appendChild(el("p", "color:#56dcc0;margin:0 0 6px", "Yoqilgan ✓"));
         card.appendChild(el("p", "color:#8fa3b5;font-size:13px;margin:0 0 6px", "Tiklash kodlari: " + (st.recovery_remaining || 0) + " ta qoldi"));
         card.appendChild(el("p", "color:#8fa3b5;font-size:14px", "Quyidagi amallar uchun Google Authenticator'dagi joriy kodni kiriting."));
         var inD = el("input", INPUT); inD.setAttribute("inputmode", "numeric"); inD.maxLength = 6; card.appendChild(inD);
+        card.appendChild(el("p", "color:#8fa3b5;font-size:13px;margin:0 0 6px", "Eslab qolingan qurilmalar: " + (st.trusted_devices || 0) + " ta"));
         var bR = el("button", BTN, "Yangi tiklash kodlarini yaratish"); card.appendChild(bR);
+        var bV = el("button", BTN2, "Barcha qurilmalarni unutish"); card.appendChild(bV);
         var bD = el("button", BTN2, "2FA ni o'chirish"); card.appendChild(bD);
         var mD = msg();
+        bV.onclick = async function () {
+          try { await call("/auth/2fa/devices/revoke", "POST", { code: inD.value.trim() }); render(); }
+          catch (e) { mD.textContent = e.message; }
+        };
         bR.onclick = async function () {
           try { var r = await call("/auth/2fa/recovery/regenerate", "POST", { code: inD.value.trim() }); showCodes(r.recovery_codes); }
           catch (e) { mD.textContent = e.message; }
@@ -135,6 +144,21 @@
     b.addEventListener("click", open);
     logout.parentNode.insertBefore(b, logout);
   }
+
+  var lastToken = null, checking = false;
+  async function checkRequired() {
+    if (checking || document.getElementById("twofaOverlay")) return;
+    checking = true;
+    try {
+      var st = await call("/auth/2fa/status");
+      if (st.required && !st.enabled) open(true);
+    } catch (e) {}
+    checking = false;
+  }
+  setInterval(function () {
+    var t = token();
+    if (t !== lastToken) { lastToken = t; if (t) checkRequired(); }
+  }, 2000);
 
   if (document.readyState === "loading") document.addEventListener("DOMContentLoaded", init); else init();
 })();

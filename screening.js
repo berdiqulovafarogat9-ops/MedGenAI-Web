@@ -70,7 +70,9 @@
     });
     card.appendChild(grid);
 
-    card.appendChild(el("label", LBL, "Ligandlar (.pdbqt, bir nechtasini tanlash mumkin)"));
+    card.appendChild(el("label", LBL, "Ligandlar: SMILES (har qatorda bittadan: nom,SMILES yoki faqat SMILES)"));
+    var smi = el("textarea", FIELD + ";min-height:80px;font-family:monospace"); smi.placeholder = "aspirin,CC(=O)OC1=CC=CC=C1C(=O)O\nibuprofen,CC(C)CC1=CC=C(C=C1)C(C)C(=O)O"; card.appendChild(smi);
+    card.appendChild(el("label", LBL, "yoki tayyor ligand fayllari (.pdbqt, ixtiyoriy)"));
     var ligs = el("input", FIELD); ligs.type = "file"; ligs.multiple = true; ligs.accept = ".pdbqt,.txt"; card.appendChild(ligs);
 
     var run = el("button", BTN, "Skriningni boshlash"); card.appendChild(run);
@@ -126,13 +128,18 @@
       try {
         if (!target.value.trim()) throw new Error("Nishon nomini kiriting.");
         if (!rec.files.length) throw new Error("Retseptor faylini tanlang.");
-        if (!ligs.files.length) throw new Error("Kamida bitta ligand faylini tanlang.");
+        var smilesLines = smi.value.split("\n").map(function (x) { return x.trim(); }).filter(Boolean);
+        if (!ligs.files.length && !smilesLines.length) throw new Error("SMILES kiriting yoki ligand faylini tanlang.");
         var vals = {};
         ids.forEach(function (k) { vals[k] = parseFloat(inputs[k].value); });
         if (ids.some(function (k) { return !isFinite(vals[k]); })) throw new Error("Qutining barcha 6 qiymatini kiriting.");
         run.disabled = true; msg.textContent = "Fayllar o'qilmoqda...";
         var receptor = await readText(rec.files[0]);
-        var list = [];
+        var list = smilesLines.map(function (line, idx) {
+          var parts = line.split(",");
+          var name = parts.length > 1 ? parts.shift().trim() : "ligand" + (idx + 1);
+          return { name: name.slice(0, 80), smiles: parts.join(",").trim() };
+        });
         for (var i = 0; i < ligs.files.length; i++) {
           var f = ligs.files[i];
           list.push({ name: f.name.replace(/\.[^.]+$/, "").slice(0, 80), ligand_pdbqt: await readText(f) });

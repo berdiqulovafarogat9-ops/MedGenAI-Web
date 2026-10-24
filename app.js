@@ -1060,7 +1060,8 @@ async function login() {
 
           body: JSON.stringify({
             username,
-            password
+            password,
+            device_token: (() => { try { return localStorage.getItem('medgen_dt_' + String(username).trim().toLowerCase()) || ''; } catch (_) { return ''; } })()
           })
         }
       );
@@ -1070,10 +1071,14 @@ async function login() {
       if (!mfaCode.trim()) {
         throw new Error('2FA kodi kiritilmadi.');
       }
+      const rememberDevice = window.confirm('Bu qurilmani 30 kun eslab qolaylikmi? (shu qurilmada 2FA kodi so‘ralmaydi)');
       data = await api('/auth/2fa/login', {
         method: 'POST',
-        body: JSON.stringify({ mfa_token: data.mfa_token, code: mfaCode.trim() })
+        body: JSON.stringify({ mfa_token: data.mfa_token, code: mfaCode.trim(), remember: rememberDevice })
       });
+      if (data?.device_token) {
+        try { localStorage.setItem('medgen_dt_' + String(username).trim().toLowerCase(), data.device_token); } catch (_) {}
+      }
     }
 
     const token =
