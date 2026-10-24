@@ -104,7 +104,7 @@
     const box=$('#vpServerSaveStatus'); if(!box)return;
     const token=sessionStorage.getItem('medgen_access_token');
     if(!token){box.textContent='Serverga saqlanmadi: tizimga kirish tokeni topilmadi. Natija ushbu qurilmada saqlandi.';return;}
-    const api=(window.MEDGEN_API_BASE||'https://medgenai-web-1.onrender.com/api/v1').replace(/\\/$/,'');
+    const apiBase=(window.MEDGEN_API_BASE||'https://medgenai-web-1.onrender.com/api/v1'); const api=apiBase.endsWith('/')?apiBase.slice(0,-1):apiBase;
     try{
       const response=await fetch(api+'/academy/virtual-patient/result',{method:'POST',headers:{'Content-Type':'application/json','Authorization':'Bearer '+token},body:JSON.stringify(record)});
       const data=await response.json().catch(()=>({}));
