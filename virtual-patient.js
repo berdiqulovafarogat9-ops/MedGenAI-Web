@@ -95,8 +95,23 @@
   function finish(reason){if(finished)return;finished=true;stop();if(state.diagnosis===null){state.errors.push('Tashxis tanlanmadi.');state.score-=10;}if(!state.criticalDone&&state.case.id!=='mi')state.errors.push('Muhim hayot saqlovchi chora bajarilmadi.');
     const accuracy=state.diagnosis===state.case.correct;const finalScore=clamp(state.score,0,100);const record={case_id:state.case.id,case_name:state.case.name,score:finalScore,diagnosis_correct:accuracy,first_action_seconds:state.firstActionSeconds,actions:state.actions,errors:state.errors,tab_switch_penalties:state.tabPenalty,completed_at:new Date().toISOString(),reason};
     try{const key='medgen_virtual_patient_results_v1';const old=JSON.parse(localStorage.getItem(key)||'[]');old.unshift(record);localStorage.setItem(key,JSON.stringify(old.slice(0,50)))}catch(e){}
-    $('#vpReport').classList.remove('hidden');$('#vpReport').innerHTML='<h3>📋 Klinik audit hisoboti</h3><p><b>Keys:</b> '+esc(record.case_name)+'</p><p><b>Natija:</b> '+finalScore+'/100 · <b>Tashxis:</b> '+(accuracy?'to‘g‘ri':'noto‘g‘ri yoki tanlanmagan')+'</p><p><b>Birinchi harakat:</b> '+(record.first_action_seconds===null?'bajarilmadi':record.first_action_seconds+' soniyada')+'</p><p><b>Tab almashtirish jarimalari:</b> '+record.tab_switch_penalties+' · <b>Yakun:</b> '+esc(reason)+'</p><h4>Bajarilgan harakatlar</h4><ul>'+(record.actions.map(a=>'<li>'+esc(a.label)+' ('+(a.points>0?'+':'')+a.points+')</li>').join('')||'<li>Harakat bajarilmadi.</li>')+'</ul><h4>Xatolar va izohlar</h4><ul>'+(record.errors.map(e=>'<li>'+esc(e)+'</li>').join('')||'<li>Qayd etilgan xato yo‘q.</li>')+'</ul><p class="muted">Hisobot ushbu qurilmada saqlanadi. Serverdagi student_leaderboard jadvaliga ulanish backend endpoint mavjudligi tekshirilmaguncha bajarilgan deb hisoblanmaydi.</p><button id="vpAgain" class="primary small" type="button">Yana bir keys</button>';
+    $('#vpReport').classList.remove('hidden');$('#vpReport').innerHTML='<h3>📋 Klinik audit hisoboti</h3><p><b>Keys:</b> '+esc(record.case_name)+'</p><p><b>Natija:</b> '+finalScore+'/100 · <b>Tashxis:</b> '+(accuracy?'to‘g‘ri':'noto‘g‘ri yoki tanlanmagan')+'</p><p><b>Birinchi harakat:</b> '+(record.first_action_seconds===null?'bajarilmadi':record.first_action_seconds+' soniyada')+'</p><p><b>Tab almashtirish jarimalari:</b> '+record.tab_switch_penalties+' · <b>Yakun:</b> '+esc(reason)+'</p><h4>Bajarilgan harakatlar</h4><ul>'+(record.actions.map(a=>'<li>'+esc(a.label)+' ('+(a.points>0?'+':'')+a.points+')</li>').join('')||'<li>Harakat bajarilmadi.</li>')+'</ul><h4>Xatolar va izohlar</h4><ul>'+(record.errors.map(e=>'<li>'+esc(e)+'</li>').join('')||'<li>Qayd etilgan xato yo‘q.</li>')+'</ul><p id="vpServerSaveStatus" class="muted">Natija serverga yuborilmoqda…</p><button id="vpAgain" class="primary small" type="button">Yana bir keys</button>';
     $('#vpAgain').addEventListener('click',start);setStatus('Simulyatsiya yakunlandi: '+reason);$('#vpTimer').textContent='YAKUNLANDI';
+    saveServerResult(record);
+  }
+
+  async function saveServerResult(record){
+    const box=$('#vpServerSaveStatus'); if(!box)return;
+    const token=sessionStorage.getItem('medgen_access_token');
+    if(!token){box.textContent='Serverga saqlanmadi: tizimga kirish tokeni topilmadi. Natija ushbu qurilmada saqlandi.';return;}
+    const api=(window.MEDGEN_API_BASE||'https://medgenai-web-1.onrender.com/api/v1').replace(/\\/$/,'');
+    try{
+      const response=await fetch(api+'/academy/virtual-patient/result',{method:'POST',headers:{'Content-Type':'application/json','Authorization':'Bearer '+token},body:JSON.stringify(record)});
+      const data=await response.json().catch(()=>({}));
+      if(!response.ok)throw new Error(data.detail||('HTTP '+response.status));
+      box.textContent='✅ Serverga saqlandi · natija ID: '+data.result_id+'. Reyting jadvaliga yozildi.';
+      box.dataset.saved='true';
+    }catch(err){box.textContent='Serverga saqlash amalga oshmadi ('+String(err.message||err)+'). Natija hozircha faqat ushbu qurilmada saqlandi.';box.dataset.saved='false';}
   }
   function stop(){if(ticker){clearInterval(ticker);ticker=null}if(raf){cancelAnimationFrame(raf);raf=null}}
   function penalty(){if(finished||!state||blurPenaltyApplied)return;blurPenaltyApplied=true;state.tabPenalty++;state.score-=15;state.errors.push('Brauzer oynasidan chiqish: −15 jarima balli.');const warning=$('#vpWarning')||document.createElement('div');warning.id='vpWarning';warning.className='vp-warning';warning.setAttribute('role','alert');warning.textContent='⚠️ Anti-cheat: boshqa oyna/ilovaga o‘tish aniqlandi. −15 ball.';$('#virtualPatientPanel').prepend(warning);setTimeout(()=>{warning.remove();blurPenaltyApplied=false},5000)}
