@@ -1513,6 +1513,313 @@ def _dodo_hmac_match(secret: str, raw: bytes, wid: str, ts: str, sigs: str) -> b
     return False
 
 
+# =========================================================
+# CURRICULUM CATALOG, LEADERBOARD AND CERTIFICATES (relational tables)
+# Keyed by username (TEXT): this platform does not use Supabase Auth.
+# =========================================================
+ACADEMY_TABLES = ["academic_years", "subjects", "topics", "topic_resources", "clinical_simulation_cases",
+                  "student_leaderboard", "leaderboard_awards", "certificates"]
+ACADEMY_SCHEMA_SQL = """
+CREATE TABLE IF NOT EXISTS academic_years (id SERIAL PRIMARY KEY, year_number INT NOT NULL UNIQUE, title TEXT NOT NULL);
+CREATE TABLE IF NOT EXISTS subjects (id UUID PRIMARY KEY DEFAULT gen_random_uuid(), academic_year_id INT REFERENCES academic_years(id) ON DELETE CASCADE, name TEXT NOT NULL, code TEXT NOT NULL UNIQUE, icon_url TEXT);
+CREATE TABLE IF NOT EXISTS topics (id UUID PRIMARY KEY DEFAULT gen_random_uuid(), subject_id UUID REFERENCES subjects(id) ON DELETE CASCADE, order_number INT NOT NULL, title TEXT NOT NULL, summary_md TEXT, created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(), UNIQUE (subject_id, order_number));
+CREATE TABLE IF NOT EXISTS topic_resources (id UUID PRIMARY KEY DEFAULT gen_random_uuid(), topic_id UUID REFERENCES topics(id) ON DELETE CASCADE, resource_type TEXT NOT NULL CHECK (resource_type IN ('model_3d','video_interactive','image_dicom','virtual_case')), title TEXT NOT NULL, resource_url TEXT NOT NULL, metadata JSONB NOT NULL DEFAULT '{}'::jsonb, created_at TIMESTAMPTZ NOT NULL DEFAULT NOW());
+CREATE TABLE IF NOT EXISTS clinical_simulation_cases (id UUID PRIMARY KEY DEFAULT gen_random_uuid(), topic_id UUID REFERENCES topics(id) ON DELETE SET NULL, title TEXT NOT NULL, difficulty TEXT NOT NULL DEFAULT 'medium', patient_data JSONB NOT NULL, flow_steps JSONB NOT NULL, time_limit_seconds INT NOT NULL DEFAULT 180, created_at TIMESTAMPTZ NOT NULL DEFAULT NOW());
+CREATE TABLE IF NOT EXISTS student_leaderboard (username TEXT PRIMARY KEY, display_name TEXT NOT NULL, university TEXT, course_number INT, total_score INT NOT NULL DEFAULT 0, solved_cases_count INT NOT NULL DEFAULT 0, consent_at TIMESTAMPTZ NOT NULL, updated_at TIMESTAMPTZ NOT NULL DEFAULT NOW());
+CREATE TABLE IF NOT EXISTS leaderboard_awards (username TEXT NOT NULL, case_id TEXT NOT NULL, award_date DATE NOT NULL DEFAULT CURRENT_DATE, points INT NOT NULL, PRIMARY KEY (username, case_id, award_date));
+CREATE TABLE IF NOT EXISTS certificates (id UUID PRIMARY KEY DEFAULT gen_random_uuid(), username TEXT NOT NULL, certificate_code TEXT UNIQUE NOT NULL, holder_name TEXT NOT NULL, title TEXT NOT NULL, issued_by TEXT, issue_date DATE NOT NULL DEFAULT CURRENT_DATE, revoked BOOLEAN NOT NULL DEFAULT FALSE);
+DO $$
+DECLARE t TEXT; has_anon BOOLEAN;
+BEGIN
+  SELECT EXISTS (SELECT 1 FROM pg_roles WHERE rolname = 'anon') INTO has_anon;
+  FOREACH t IN ARRAY ARRAY['academic_years','subjects','topics','topic_resources','clinical_simulation_cases','student_leaderboard','leaderboard_awards','certificates'] LOOP
+    EXECUTE format('ALTER TABLE %I ENABLE ROW LEVEL SECURITY', t);
+    IF has_anon THEN EXECUTE format('REVOKE ALL ON %I FROM anon, authenticated', t); END IF;
+  END LOOP;
+END $$;
+"""
+ACADEMY_YEARS = [
+    (1, "1-kurs: Fundamental fanlar"), (2, "2-kurs: Funksional fanlar"), (3, "3-kurs: Propedevtika"),
+    (4, "4-kurs: Klinik fanlar"), (5, "5-kurs: Gospital va shoshilinch fanlar"), (6, "6-kurs: Gospital va shoshilinch fanlar"),
+]
+ACADEMY_SUBJECTS = [
+    (1, "Normal anatomiya", "ANAT-101"), (1, "Gistologiya", "HIST-102"), (1, "Tibbiy biologiya va kimyo", "BIOL-103"), (1, "Lotin tili", "LAT-104"),
+    (2, "Fiziologiya", "PHYS-201"), (2, "Biokimyo", "BIOC-202"), (2, "Patologik anatomiya va fiziologiya", "PATH-203"), (2, "Mikrobiologiya", "MICR-204"),
+    (3, "Umumiy xirurgiya", "SURG-301"), (3, "Ichki kasalliklar propedevtikasi", "PROP-302"), (3, "Farmakologiya", "PHAR-303"),
+    (4, "Nevrologiya", "NEUR-401"), (4, "Travmatologiya", "TRAU-402"), (4, "Urologiya", "UROL-403"), (4, "Pediatriya", "PEDI-404"),
+    (5, "Gospital xirurgiya", "HSUR-501"), (5, "Reanimatsiya", "REAN-502"), (5, "Akusherlik va ginekologiya", "OBGY-503"),
+    (6, "Gospital xirurgiya", "HSUR-601"), (6, "Reanimatsiya", "REAN-602"), (6, "Akusherlik va ginekologiya", "OBGY-603"),
+]
+ACADEMY_SAMPLE_NOTE = "\n\n(Namuna kontent. Foydalanishdan oldin o'qituvchi tekshiruvi tavsiya etiladi.)"
+ACADEMY_SAMPLE_TOPICS = [
+    ("ANAT-101", 1, "Kalla suyagi: miya va yuz qismlari",
+     "Kalla suyagi (cranium) ikki qismga bo'linadi: miya qutisi (neurocranium) va yuz skeleti (viscerocranium). Jami 22 ta suyak.\n\n"
+     "Miya qutisi (8 ta): os frontale (1), os parietale (2), os temporale (2), os occipitale (1), os sphenoidale (1), os ethmoidale (1).\n\n"
+     "Yuz skeleti (14 ta): maxilla (2), os zygomaticum (2), os nasale (2), os lacrimale (2), os palatinum (2), concha nasalis inferior (2), vomer (1), mandibula (1)."),
+    ("ANAT-101", 2, "Kalla suyagi asosidagi muhim teshiklar",
+     "Foramen magnum (os occipitale): medulla oblongata va aa. vertebrales o'tadi.\n"
+     "Canalis opticus (os sphenoidale): n. opticus va a. ophthalmica.\n"
+     "Foramen rotundum: n. maxillaris (V2).\n"
+     "Foramen ovale: n. mandibularis (V3).\n"
+     "Foramen spinosum: a. meningea media.\n"
+     "Foramen jugulare: v. jugularis interna, n. glossopharyngeus (IX), n. vagus (X), n. accessorius (XI)."),
+    ("ANAT-101", 3, "Umurtqa pog'onasi bo'limlari",
+     "Umurtqa pog'onasi (columna vertebralis) odatda 33 ta umurtqadan iborat: 7 bo'yin (cervicales), 12 ko'krak (thoracicae), 5 bel (lumbales), 5 dumg'aza (sacrales, o'zaro qo'shilib os sacrum hosil qiladi) va 4 dum (coccygeae).\n\n"
+     "Birinchi bo'yin umurtqasi atlas (C1), ikkinchisi axis (C2); axisda tishsimon o'simta (dens axis) bor."),
+]
+_academy_ready = False
+_academy_lock = threading.Lock()
+
+
+def _academy_ensure() -> None:
+    global _academy_ready
+    if _academy_ready or not PERSISTENCE_ENABLED:
+        return
+    with _academy_lock:
+        if _academy_ready:
+            return
+        with psycopg.connect(DATABASE_URL, connect_timeout=10) as conn:
+            conn.execute(ACADEMY_SCHEMA_SQL)
+            for number, title in ACADEMY_YEARS:
+                conn.execute("INSERT INTO academic_years(year_number, title) VALUES (%s,%s) ON CONFLICT (year_number) DO NOTHING", (number, title))
+            for number, name, code in ACADEMY_SUBJECTS:
+                conn.execute("INSERT INTO subjects(academic_year_id, name, code) SELECT id, %s::text, %s::text FROM academic_years WHERE year_number=%s ON CONFLICT (code) DO NOTHING", (name, code, number))
+            for code, order, title, summary in ACADEMY_SAMPLE_TOPICS:
+                conn.execute("INSERT INTO topics(subject_id, order_number, title, summary_md) SELECT id, %s::int, %s::text, %s::text FROM subjects WHERE code=%s ON CONFLICT (subject_id, order_number) DO NOTHING", (order, title, summary + ACADEMY_SAMPLE_NOTE, code))
+            conn.commit()
+        _academy_ready = True
+
+
+def _sql(query: str, params=(), fetch: str = "all"):
+    if not PERSISTENCE_ENABLED:
+        raise HTTPException(status_code=503, detail="Database is not configured.")
+    try:
+        _academy_ensure()
+        from psycopg.rows import dict_row
+        with psycopg.connect(DATABASE_URL, row_factory=dict_row, connect_timeout=10) as conn:
+            cur = conn.execute(query, params)
+            result = cur.fetchall() if fetch == "all" else (cur.fetchone() if fetch == "one" else None)
+            conn.commit()
+        return result
+    except HTTPException:
+        raise
+    except Exception as exc:
+        print("SQL ERROR:", type(exc).__name__)
+        raise HTTPException(status_code=503, detail="Database is temporarily unavailable.")
+
+
+def _is_admin(user: dict) -> bool:
+    return str(user.get("role", "")).upper() == "SUPER_ADMIN"
+
+
+class CurriculumTopicCreate(BaseModel):
+    subject_code: str = Field(max_length=40)
+    title: str = Field(min_length=2, max_length=200)
+    summary_md: str = Field(default="", max_length=20000)
+    order_number: int = Field(default=0, ge=0, le=1000)
+
+
+class CurriculumResourceCreate(BaseModel):
+    resource_type: str
+    title: str = Field(min_length=2, max_length=200)
+    resource_url: str = Field(max_length=1000)
+    metadata: dict = Field(default_factory=dict)
+
+
+@app.get("/api/v1/curriculum/years")
+def curriculum_years(user=Depends(get_current_user)):
+    rows = _sql("""SELECT y.year_number, y.title AS year_title, s.code, s.name,
+                          (SELECT COUNT(*) FROM topics t WHERE t.subject_id = s.id) AS topic_count
+                   FROM academic_years y LEFT JOIN subjects s ON s.academic_year_id = y.id
+                   ORDER BY y.year_number, s.code""")
+    years = {}
+    for r in rows:
+        year = years.setdefault(r["year_number"], {"year_number": r["year_number"], "title": r["year_title"], "subjects": []})
+        if r["code"]:
+            year["subjects"].append({"code": r["code"], "name": r["name"], "topic_count": r["topic_count"]})
+    return {"years": list(years.values())}
+
+
+@app.get("/api/v1/curriculum/subjects/{code}/topics")
+def curriculum_topics(code: str, user=Depends(get_current_user)):
+    subject = _sql("SELECT id, name, code FROM subjects WHERE code=%s", (code,), "one")
+    if not subject:
+        raise HTTPException(status_code=404, detail="Subject not found")
+    topics = _sql("SELECT id::text AS id, order_number, title FROM topics WHERE subject_id=%s ORDER BY order_number", (subject["id"],))
+    return {"subject": {"code": subject["code"], "name": subject["name"]}, "topics": topics}
+
+
+@app.get("/api/v1/curriculum/topics/{topic_id}")
+def curriculum_topic(topic_id: str, user=Depends(get_current_user)):
+    try:
+        topic = _sql("SELECT id::text AS id, title, summary_md, order_number FROM topics WHERE id=%s::uuid", (topic_id,), "one")
+    except HTTPException:
+        raise HTTPException(status_code=404, detail="Topic not found")
+    if not topic:
+        raise HTTPException(status_code=404, detail="Topic not found")
+    resources = _sql("SELECT id::text AS id, resource_type, title, resource_url, metadata FROM topic_resources WHERE topic_id=%s::uuid ORDER BY created_at", (topic_id,))
+    return {"topic": topic, "resources": resources}
+
+
+@app.post("/api/v1/curriculum/topics")
+def curriculum_topic_create(data: CurriculumTopicCreate, user=Depends(get_current_user)):
+    if not _is_admin(user):
+        raise HTTPException(status_code=403, detail="SUPER_ADMIN required.")
+    subject = _sql("SELECT id FROM subjects WHERE code=%s", (data.subject_code,), "one")
+    if not subject:
+        raise HTTPException(status_code=404, detail="Subject not found")
+    order = data.order_number or (_sql("SELECT COALESCE(MAX(order_number),0)+1 AS n FROM topics WHERE subject_id=%s", (subject["id"],), "one")["n"])
+    row = _sql("INSERT INTO topics(subject_id, order_number, title, summary_md) VALUES (%s,%s,%s,%s) RETURNING id::text AS id", (subject["id"], order, data.title.strip(), data.summary_md), "one")
+    return {"id": row["id"], "order_number": order}
+
+
+@app.post("/api/v1/curriculum/topics/{topic_id}/resources")
+def curriculum_resource_create(topic_id: str, data: CurriculumResourceCreate, user=Depends(get_current_user)):
+    if not _is_admin(user):
+        raise HTTPException(status_code=403, detail="SUPER_ADMIN required.")
+    if data.resource_type not in {"model_3d", "video_interactive", "image_dicom", "virtual_case"}:
+        raise HTTPException(status_code=400, detail="Unknown resource type.")
+    if not data.resource_url.lower().startswith("https://"):
+        raise HTTPException(status_code=400, detail="resource_url must start with https://")
+    row = _sql("INSERT INTO topic_resources(topic_id, resource_type, title, resource_url, metadata) VALUES (%s::uuid,%s,%s,%s,%s::jsonb) RETURNING id::text AS id",
+               (topic_id, data.resource_type, data.title.strip(), data.resource_url.strip(), json.dumps(data.metadata)), "one")
+    return {"id": row["id"]}
+
+
+# ---------------- Leaderboard (opt-in, activity points) ----------------
+class LeaderboardJoin(BaseModel):
+    display_name: str = Field(min_length=2, max_length=40)
+    university: str = Field(default="", max_length=80)
+    course_number: int = Field(default=1, ge=1, le=6)
+    consent: bool = False
+
+
+def _leaderboard_award(username: str, case_id: str, score: int) -> None:
+    """Best-effort: 1 point per 10 completion-score points, once per case per day (opted-in users only)."""
+    try:
+        points = max(0, min(10, int(score) // 10))
+        row = _sql("INSERT INTO leaderboard_awards(username, case_id, points) SELECT %s::text,%s::text,%s::int WHERE EXISTS (SELECT 1 FROM student_leaderboard WHERE username=%s) ON CONFLICT DO NOTHING RETURNING points",
+                   (username, case_id, points, username), "one")
+        if row:
+            _sql("UPDATE student_leaderboard SET total_score = total_score + %s, solved_cases_count = (SELECT COUNT(DISTINCT case_id) FROM leaderboard_awards WHERE username=%s), updated_at = NOW() WHERE username=%s",
+                 (points, username, username), None)
+    except Exception:
+        pass
+
+
+@app.get("/api/v1/leaderboard")
+def leaderboard_top(user=Depends(get_current_user)):
+    top = _sql("SELECT display_name, university, course_number, total_score, solved_cases_count FROM student_leaderboard ORDER BY total_score DESC, solved_cases_count DESC, updated_at ASC LIMIT 50")
+    mine = _sql("SELECT display_name, university, course_number, total_score, solved_cases_count FROM student_leaderboard WHERE username=%s", (user["username"],), "one")
+    return {
+        "metric": "Faollik ochkolari: klinik simulyatorni yakunlash uchun (har keys kuniga bir marta). Bu klinik bilim bahosi emas.",
+        "top": top, "me": mine, "joined": bool(mine),
+    }
+
+
+@app.post("/api/v1/leaderboard/join")
+def leaderboard_join(data: LeaderboardJoin, user=Depends(get_current_user)):
+    if not data.consent:
+        raise HTTPException(status_code=400, detail="Consent is required to appear on the public leaderboard.")
+    name = re.sub(r"\s+", " ", data.display_name).strip()[:40]
+    if len(name) < 2:
+        raise HTTPException(status_code=400, detail="Display name is too short.")
+    _sql("""INSERT INTO student_leaderboard(username, display_name, university, course_number, consent_at)
+            VALUES (%s,%s,%s,%s,NOW())
+            ON CONFLICT (username) DO UPDATE SET display_name=EXCLUDED.display_name, university=EXCLUDED.university, course_number=EXCLUDED.course_number, updated_at=NOW()""",
+         (user["username"], name, data.university.strip(), data.course_number), None)
+    return {"joined": True}
+
+
+@app.delete("/api/v1/leaderboard/me")
+def leaderboard_leave(user=Depends(get_current_user)):
+    _sql("DELETE FROM student_leaderboard WHERE username=%s", (user["username"],), None)
+    _sql("DELETE FROM leaderboard_awards WHERE username=%s", (user["username"],), None)
+    return {"joined": False}
+
+
+# ---------------- Certificates ----------------
+class CertificateIssue(BaseModel):
+    username: str = Field(min_length=1, max_length=120)
+    title: str = Field(min_length=3, max_length=200)
+    holder_name: str = Field(default="", max_length=120)
+
+
+def _new_certificate_code() -> str:
+    raw = base64.b32encode(secrets.token_bytes(8)).decode().rstrip("=")[:12]
+    return f"MG-{raw[:4]}-{raw[4:8]}-{raw[8:12]}"
+
+
+def _qr_svg(text: str) -> str:
+    try:
+        import segno
+        return segno.make(text, error="m").svg_inline(scale=4, border=1, dark="#111111", light="#ffffff")
+    except Exception:
+        return ""
+
+
+@app.post("/api/v1/certificates/issue")
+def certificate_issue(data: CertificateIssue, user=Depends(get_current_user)):
+    if not _is_admin(user):
+        raise HTTPException(status_code=403, detail="SUPER_ADMIN required.")
+    target = next((u for u in user_profiles if str(u).casefold() == data.username.strip().casefold()), None)
+    if not target:
+        raise HTTPException(status_code=404, detail="User not found.")
+    holder = data.holder_name.strip() or str(user_profiles[target].get("full_name") or target)
+    for _ in range(5):
+        code = _new_certificate_code()
+        if not _sql("SELECT 1 FROM certificates WHERE certificate_code=%s", (code,), "one"):
+            break
+    _sql("INSERT INTO certificates(username, certificate_code, holder_name, title, issued_by) VALUES (%s,%s,%s,%s,%s)",
+         (target, code, holder, data.title.strip(), user["username"]), None)
+    return {"certificate_code": code, "view_url": f"{PUBLIC_API_URL}/api/v1/certificates/{code}/view"}
+
+
+@app.get("/api/v1/certificates/mine")
+def certificate_mine(user=Depends(get_current_user)):
+    rows = _sql("SELECT certificate_code, title, holder_name, issue_date::text AS issue_date, revoked FROM certificates WHERE username=%s ORDER BY issue_date DESC", (user["username"],))
+    return {"certificates": rows}
+
+
+@app.post("/api/v1/certificates/{code}/revoke")
+def certificate_revoke(code: str, user=Depends(get_current_user)):
+    if not _is_admin(user):
+        raise HTTPException(status_code=403, detail="SUPER_ADMIN required.")
+    _sql("UPDATE certificates SET revoked=TRUE WHERE certificate_code=%s", (code.strip().upper(),), None)
+    return {"revoked": True}
+
+
+@app.get("/api/v1/certificates/verify/{code}")
+def certificate_verify(code: str):
+    row = _sql("SELECT holder_name, title, issue_date::text AS issue_date, revoked FROM certificates WHERE certificate_code=%s", (code.strip().upper(),), "one")
+    if not row:
+        return {"valid": False}
+    return {"valid": not row["revoked"], "revoked": row["revoked"], "holder_name": row["holder_name"], "title": row["title"], "issue_date": row["issue_date"]}
+
+
+@app.get("/api/v1/certificates/{code}/view", response_class=HTMLResponse)
+def certificate_view(code: str):
+    code = code.strip().upper()
+    row = _sql("SELECT holder_name, title, issue_date::text AS issue_date, revoked FROM certificates WHERE certificate_code=%s", (code,), "one")
+    if not row:
+        return HTMLResponse("<!doctype html><meta charset='utf-8'><body style='font-family:sans-serif;text-align:center;padding:40px'><h2>Sertifikat topilmadi</h2></body>", status_code=404)
+    link = f"{PUBLIC_API_URL}/api/v1/certificates/{code}/view"
+    status = "<p style='color:#b00020;font-weight:700'>BEKOR QILINGAN</p>" if row["revoked"] else "<p style='color:#0b7a4b;font-weight:700'>Haqiqiy sertifikat</p>"
+    page = (
+        "<!doctype html><html><head><meta charset='utf-8'><meta name='viewport' content='width=device-width,initial-scale=1'>"
+        "<title>MedGen AI sertifikati</title><style>@page{size:A4 landscape;margin:12mm}body{margin:0;font-family:Georgia,serif;color:#111;background:#fff}"
+        ".c{max-width:900px;margin:18px auto;border:6px double #0b8a74;padding:36px;text-align:center}h1{margin:0;color:#0b8a74;letter-spacing:.12em;font-size:30px}"
+        ".n{font-size:34px;margin:18px 0;border-bottom:1px solid #999;display:inline-block;padding:0 24px}.t{font-size:22px;margin:10px 0}.m{color:#444;font-size:14px;margin-top:20px}"
+        "button{margin:14px;padding:10px 18px;border:0;border-radius:8px;background:#0b8a74;color:#fff;font-size:15px}@media print{button{display:none}}</style></head><body>"
+        "<div class='c'><h1>MEDGEN AI</h1><p>SERTIFIKAT</p><p>Ushbu sertifikat</p>"
+        f"<div class='n'>{_email_esc(row['holder_name'])}</div><p>ga quyidagi uchun topshirildi:</p><div class='t'>{_email_esc(row['title'])}</div>"
+        f"<div class='m'>Sana: {_email_esc(row['issue_date'])} &nbsp;|&nbsp; Kod: {_email_esc(code)}</div>{status}"
+        f"<div style='margin-top:10px'>{_qr_svg(link)}</div><div class='m'>Haqiqiyligini tekshirish: {_email_esc(link)}</div></div>"
+        "<div style='text-align:center'><button onclick='window.print()'>PDF sifatida saqlash / chop etish</button></div></body></html>"
+    )
+    return HTMLResponse(page)
+
+
 @app.get("/api/v1/billing/status")
 def billing_status(user=Depends(get_current_user)):
     record = billing_store.get(user["username"], {})
@@ -3633,6 +3940,7 @@ def clinical_simulation_submit(data: ClinicalSimulationSubmitRequest, user=Depen
     score = round(completed * 100 / len(case["steps"])) if case["steps"] else 0
     activity_log.insert(0, {"type": "clinical_simulation", "username": user["username"], "case_id": data.case_id, "score": score, "at": datetime.now(timezone.utc).isoformat()})
     _db_save()
+    _leaderboard_award(user["username"], data.case_id, score)
     return {"status": "completed", "case_id": data.case_id, "score": score, "educational_only": True, "disclaimer": case["disclaimer"]}
 
 # =========================================================
