@@ -57,6 +57,7 @@
           <section class="vp-card"><h3>Klinik harakatlar</h3><p class="muted">Harakatlar simulyatsiyadagi vitallarni o‘zgartiradi. Avval xavfsiz, hayot saqlovchi choralarni bajaring.</p><div id="vpActions" class="vp-actions"></div><div id="vpActionFeedback" class="vp-feedback"></div></section></div>
         </div>
         <div id="vpReport" class="vp-report hidden"></div>
+        <section class="vp-card vp-leaderboard"><div class="vp-leaderboard-head"><h3>🏆 Talabalar reytingi</h3><button id="vpLoadLeaderboard" class="ghost small" type="button">Reytingni yangilash</button></div><div id="vpLeaderboard" class="muted" aria-live="polite">Reytingni ko‘rish uchun tizimga kiring.</div></section>
         <p class="vp-disclaimer">O‘quv maqsadida. Bu haqiqiy bemorni boshqarish vositasi emas. Dori, doza va muolajalar mahalliy klinik protokol hamda malakali mutaxassis ko‘rsatmasiga muvofiq tekshirilishi shart.</p>`;
       const container=$('#roleDashboard')?.parentElement||$('.container'); if(container) container.appendChild(panel);
     }
@@ -64,7 +65,7 @@
   function setStatus(t,bad=false){const e=$('#vpStatus');if(e){e.textContent=t;e.classList.toggle('bad',bad)}}
   function selectedCase(){return CASES.find(c=>c.id===$('#vpCase').value)||CASES[0]}
   function start(){
-    stop(); const c=selectedCase(); state={case:c, vitals:{...c.start}, remaining:180,score:100,actions:[],errors:[],diagnosis:null,startedAt:Date.now(),tabPenalty:0,firstActionSeconds:null,criticalDone:false};
+    stop(); const c=selectedCase(); state={case:c, vitals:{...c.start}, remaining:180,score:0,actions:[],errors:[],diagnosis:null,startedAt:Date.now(),tabPenalty:0,firstActionSeconds:null,criticalDone:false};
     finished=false;blurPenaltyApplied=false;$('#vpExam').classList.remove('hidden');$('#vpReport').classList.add('hidden');
     $('#vpClues').innerHTML=c.clues.map(x=>'<div>• '+esc(x)+'</div>').join('');
     $('#vpDiagnoses').innerHTML=c.diagnosis.map((x,i)=>'<button class="option-btn" type="button" data-dx="'+i+'">'+esc(x)+'</button>').join('');
@@ -100,6 +101,21 @@
     saveServerResult(record);
   }
 
+  async function loadLeaderboard(){
+    const box=$('#vpLeaderboard'); if(!box)return;
+    const token=sessionStorage.getItem('medgen_access_token');
+    if(!token){box.textContent='Reyting uchun MedGen AI hisobingizga kiring.';return;}
+    const apiBase=(window.MEDGEN_API_BASE||'https://medgenai-web-1.onrender.com/api/v1'); const api=apiBase.endsWith('/')?apiBase.slice(0,-1):apiBase;
+    box.textContent='Reyting yuklanmoqda…';
+    try{
+      const response=await fetch(api+'/academy/virtual-patient/leaderboard?limit=10',{headers:{'Authorization':'Bearer '+token}});
+      const data=await response.json().catch(()=>({}));
+      if(!response.ok)throw new Error(data.detail||('HTTP '+response.status));
+      const rows=data.leaderboard||data.rows||data.results||[];
+      if(!rows.length){box.textContent='Hozircha reyting bo‘sh. Birinchi simulyatsiyani yakunlang!';return;}
+      box.innerHTML='<ol class="vp-ranking">'+rows.map((row,i)=>'<li><span><b>'+esc(row.username||row.student||'Talaba')+'</b><small>'+Number(row.attempts||1)+' urinish</small></span><strong>'+Number(row.best_score??row.score??0)+'/100</strong></li>').join('')+'</ol>';
+    }catch(err){box.textContent='Reytingni yuklab bo‘lmadi: '+String(err.message||err)+'. Simulyatsiya natijangiz baribir mahalliy saqlanadi.';}
+  }
   async function saveServerResult(record){
     const box=$('#vpServerSaveStatus'); if(!box)return;
     const token=sessionStorage.getItem('medgen_access_token');
@@ -117,6 +133,6 @@
   function penalty(){if(finished||!state||blurPenaltyApplied)return;blurPenaltyApplied=true;state.tabPenalty++;state.score-=15;state.errors.push('Brauzer oynasidan chiqish: −15 jarima balli.');const warning=$('#vpWarning')||document.createElement('div');warning.id='vpWarning';warning.className='vp-warning';warning.setAttribute('role','alert');warning.textContent='⚠️ Anti-cheat: boshqa oyna/ilovaga o‘tish aniqlandi. −15 ball.';$('#virtualPatientPanel').prepend(warning);setTimeout(()=>{warning.remove();blurPenaltyApplied=false},5000)}
   document.addEventListener('visibilitychange',()=>{if(document.visibilityState==='hidden')penalty()});
   window.addEventListener('blur',()=>{if($('#virtualPatientPanel')&&!$('#virtualPatientPanel').classList.contains('hidden'))penalty()});
-  document.addEventListener('click',e=>{if(e.target.closest('#virtualPatientLaunch')){inject();$('#virtualPatientPanel').classList.remove('hidden');$('#virtualPatientPanel').scrollIntoView({behavior:'smooth',block:'start'})}if(e.target.closest('#vpClose'))$('#virtualPatientPanel').classList.add('hidden');if(e.target.closest('#vpStart'))start()});
+  document.addEventListener('click',e=>{if(e.target.closest('#virtualPatientLaunch')){inject();$('#virtualPatientPanel').classList.remove('hidden');$('#virtualPatientPanel').scrollIntoView({behavior:'smooth',block:'start'});loadLeaderboard()}if(e.target.closest('#vpClose'))$('#virtualPatientPanel').classList.add('hidden');if(e.target.closest('#vpStart'))start();if(e.target.closest('#vpLoadLeaderboard'))loadLeaderboard()});
   document.addEventListener('DOMContentLoaded',inject);setInterval(inject,1500);
 })();
