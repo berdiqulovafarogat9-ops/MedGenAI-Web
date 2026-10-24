@@ -167,18 +167,6 @@ REQUIRE_EMAIL_VERIFICATION = os.getenv("MEDGEN_REQUIRE_EMAIL_VERIFICATION", "").
 EMAIL_TOKEN_TTL = 172800
 _email_cooldown = {}
 
-DATABASE_URL = os.getenv("DATABASE_URL", "").strip()
-MIGRATE_TARGET_URL = os.getenv("MEDGEN_MIGRATE_TO_URL", "").strip()
-LEGAL_CONSENT_VERSION = "1.2"
-PERSISTENCE_ENABLED = bool(DATABASE_URL and psycopg)
-password_hasher = PasswordHash.recommended() if PasswordHash else None
-
-_PERSISTENCE_LOCK = threading.RLock()
-_state_revision = 0
-
-def _persistent_stores():
-    return {"opportunities_store":opportunities_store,"user_accounts":user_accounts,"user_profiles":user_profiles,"user_consents":user_consents,"role_requests_store":role_requests_store,"experiments_store":experiments_store,"reports_store":reports_store,"academy_syllabi_store":academy_syllabi_store,"activity_log":activity_log,"jobs_store":jobs_store,"workflows_store":workflows_store,"docking_jobs_store":docking_jobs_store,"knowledge_entities_store":knowledge_entities_store,"knowledge_relations_store":knowledge_relations_store,"organizations_store":organizations_store,"school_directory_store":school_directory_store,"school_invitations_store":school_invitations_store,"school_assignments_store":school_assignments_store,"school_submissions_store":school_submissions_store,"memberships_store":memberships_store,"workspaces_store":workspaces_store,"projects_store":projects_store,"api_keys_store":api_keys_store,"platform_audit_log":platform_audit_log,"usage_store":usage_store,"totp_store":totp_store,"billing_store":billing_store,"screening_jobs_store":screening_jobs_store,"billing_events":billing_events,"webhooks_store":webhooks_store}
-
 def _normalize_db_url(raw: str) -> str:
     """Forgiving cleanup of a pasted Postgres URL: quotes, spaces, [brackets] around the password,
     and unescaped special characters in the user/password."""
@@ -200,13 +188,54 @@ def _normalize_db_url(raw: str) -> str:
     return scheme + "://" + userinfo + "@" + hostpart.strip()
 
 
+SUPABASE_REF = os.getenv("MEDGEN_SUPABASE_REF", "dbkxgbeisgyjilflkneq").strip()
+SUPABASE_REGION = os.getenv("MEDGEN_SUPABASE_REGION", "ap-southeast-2").strip()
+
+
+def _resolve_db_url(raw: str) -> str:
+    """Accepts a full Postgres URL (cleaned up), or just a Supabase database password:
+    in that case the Session-pooler URL is built and the working host is detected."""
+    raw = str(raw or "").strip().strip("'\"").strip()
+    if not raw:
+        return ""
+    if "://" in raw:
+        return _normalize_db_url(raw)
+    if psycopg is None:
+        return raw
+    from urllib.parse import quote
+    pw = quote(raw, safe="")
+    for prefix in ("aws-1", "aws-0"):
+        host = f"{prefix}-{SUPABASE_REGION}.pooler.supabase.com"
+        candidate = f"postgresql://postgres.{SUPABASE_REF}:{pw}@{host}:5432/postgres"
+        try:
+            with psycopg.connect(candidate, connect_timeout=10) as probe:
+                probe.execute("SELECT 1")
+            print("DB shorthand resolved: host=" + host)
+            return candidate
+        except Exception as exc:
+            print("DB shorthand candidate failed: host=" + host, type(exc).__name__)
+    return raw
+
+
+DATABASE_URL = _resolve_db_url(os.getenv("DATABASE_URL", ""))
+MIGRATE_TARGET_URL = _resolve_db_url(os.getenv("MEDGEN_MIGRATE_TO_URL", ""))
+LEGAL_CONSENT_VERSION = "1.2"
+PERSISTENCE_ENABLED = bool(DATABASE_URL and psycopg)
+password_hasher = PasswordHash.recommended() if PasswordHash else None
+
+_PERSISTENCE_LOCK = threading.RLock()
+_state_revision = 0
+
+def _persistent_stores():
+    return {"opportunities_store":opportunities_store,"user_accounts":user_accounts,"user_profiles":user_profiles,"user_consents":user_consents,"role_requests_store":role_requests_store,"experiments_store":experiments_store,"reports_store":reports_store,"academy_syllabi_store":academy_syllabi_store,"activity_log":activity_log,"jobs_store":jobs_store,"workflows_store":workflows_store,"docking_jobs_store":docking_jobs_store,"knowledge_entities_store":knowledge_entities_store,"knowledge_relations_store":knowledge_relations_store,"organizations_store":organizations_store,"school_directory_store":school_directory_store,"school_invitations_store":school_invitations_store,"school_assignments_store":school_assignments_store,"school_submissions_store":school_submissions_store,"memberships_store":memberships_store,"workspaces_store":workspaces_store,"projects_store":projects_store,"api_keys_store":api_keys_store,"platform_audit_log":platform_audit_log,"usage_store":usage_store,"totp_store":totp_store,"billing_store":billing_store,"screening_jobs_store":screening_jobs_store,"billing_events":billing_events,"webhooks_store":webhooks_store}
+
 def _db_migrate_if_requested():
     """One-time server-side copy of all state rows from DATABASE_URL to MEDGEN_MIGRATE_TO_URL.
     Data never leaves the server. Remove MEDGEN_MIGRATE_TO_URL after switching DATABASE_URL."""
     if not MIGRATE_TARGET_URL or not PERSISTENCE_ENABLED or MIGRATE_TARGET_URL == DATABASE_URL:
         return
     phase = "parse-target-url"
-    target_url = _normalize_db_url(MIGRATE_TARGET_URL)
+    target_url = MIGRATE_TARGET_URL
     try:
         from urllib.parse import urlsplit
         parts = urlsplit(target_url)
