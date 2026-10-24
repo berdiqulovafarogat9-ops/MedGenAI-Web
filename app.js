@@ -3497,6 +3497,7 @@ function renderReportsBrowser(reports,experiments,requestToken){
       link.download='medgen-'+record.kind+'-'+String(record.data.id||'record').replace(/[^a-zA-Z0-9_-]/g,'_').slice(0,80)+'.json';
       document.body.appendChild(link);link.click();link.remove();setTimeout(()=>URL.revokeObjectURL(url),1000);
     };
+    if(window.MedGenReports)window.MedGenReports.attach(record);
   };
   const render=()=>{
     if(state.token!==requestToken)return;
@@ -4076,7 +4077,7 @@ function renderStudentOsce(){
    ROLE-BASED PLATFORM ARCHITECTURE
 ========================================================= */
 const MEDGEN_ROLES = {
-  student:{title:'Talaba',icon:'🎓',desc:'Medical Academy: tibbiy fanlar, tillar, imtihonlarga tayyorgarlik, o‘yinli ta’lim, olimpiadalar va klinik simulyatsiyalar.',modules:['Medical Academy','Learning Hub','Virtual Laboratory']},
+  student:{title:'Talaba',icon:'🎓',desc:'Medical Academy: tibbiy fanlar, klinik simulyatsiyalar va virtual laboratoriya.',modules:['Medical Academy','Virtual Laboratory']},
   doctor:{title:'Shifokor',icon:'👨‍⚕️',desc:'Clinical Workspace: klinik case, diagnostika, differensial tashxis, medical knowledge va simulation.',modules:['Clinical Reference','Clinical Simulation','Research Assistant','Reports & History']},
   researcher:{title:'Olim / Researcher',icon:'🔬',desc:'Research Workspace: ilmiy izlanish, literature, bioinformatics, knowledge graph va virtual laboratory.',modules:['Research Assistant','Bioinformatics','Virtual Laboratory','Reports & History']},
   professor:{title:'Professor',icon:'👨‍🏫',desc:'Teaching Workspace: kurslar, student progress, cases, OSCE va research.',modules:['Medical Academy','Research Assistant','Reports & History']},
@@ -6015,7 +6016,6 @@ async function renderAlphaFold3D(){
     const grid = $('roleQuickGrid');
     if (grid) {
       const labels = {
-        'Learning Hub':['🌍','O‘rganish markazi','Ingliz/rus tili, mini-o‘yinlar va imtihon mashqlari'],
         'Clinical Reference':['🩺','Klinik ma’lumotnoma','Klinik anatomiya va tana tizimlari'],
         'Clinical Simulation':['🩺','Klinik simulyatsiya','O‘quv klinik case va differensial fikrlash'],
         'Medical Academy':['🎓','Tibbiyot akademiyasi','Kurslar, anatomiya, klinik fikrlash va OSCE'],

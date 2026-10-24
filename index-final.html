@@ -2243,7 +2243,7 @@ document.addEventListener("DOMContentLoaded", function () {
     company:{icon:'🏢',name:'Biotech / Pharma Company',desc:'Enterprise projectlar, research va operations',mods:['Global Platform','Drug Discovery','Research Assistant','Scientific Jobs','Reports & History']},
     SUPER_ADMIN:{icon:'👑',name:'Super Admin / Owner',desc:'Butun platforma, foydalanuvchilar, tashkilotlar, xavfsizlik va audit nazorati',mods:['Global Platform','Medical Academy','Bioinformatics','Molecular Analysis','PDB & Structure','Drug Discovery','Scientific Jobs','Research Assistant','Virtual Laboratory','Reports & History']}
   };
-  const icons={'Learning Hub':'🌍','Clinical Reference':'🩺','Clinical Simulation':'🩺','Medical Academy':'🎓','Bioinformatics':'🧬','Molecular Analysis':'⚗️','PDB & Structure':'🧫','Drug Discovery':'💊','Scientific Jobs':'⚙️','Research Assistant':'📚','Virtual Laboratory':'🧪','Reports & History':'📊','Global Platform':'🌐'};
+  const icons={'Clinical Reference':'🩺','Clinical Simulation':'🩺','Medical Academy':'🎓','Bioinformatics':'🧬','Molecular Analysis':'⚗️','PDB & Structure':'🧫','Drug Discovery':'💊','Scientific Jobs':'⚙️','Research Assistant':'📚','Virtual Laboratory':'🧪','Reports & History':'📊','Global Platform':'🌐'};
   const roleKey=()=>{
     const u=window.__MEDGEN_USER||{};
     const norm=v=>String(v||'').trim().toLowerCase().replace(/[\s-]+/g,'_');
@@ -2299,7 +2299,7 @@ document.addEventListener("DOMContentLoaded", function () {
   const ROLE_MODULES={
     SUPER_ADMIN:ALL_MODULES,
     admin:ALL_MODULES,
-    student:['Medical Academy','Learning Hub','Virtual Laboratory'],
+    student:['Medical Academy','Virtual Laboratory'],
 
 
     doctor:['Clinical Reference','Clinical Simulation','Research Assistant','Reports & History'],
@@ -2339,7 +2339,7 @@ document.addEventListener("DOMContentLoaded", function () {
     const old=document.getElementById('finalHome');if(old)old.remove();
     const home=document.createElement('section');home.id='finalHome';home.className='final-home';
     const allGroups=[
-      {id:'education',icon:'◈',title:'Ta’lim markazi',desc:'Darslar, mashqlar va o‘quv natijalari.',modules:['Medical Academy','Learning Hub','Clinical Reference','Clinical Simulation']},
+      {id:'education',icon:'◈',title:'Ta’lim markazi',desc:'Darslar, mashqlar va o‘quv natijalari.',modules:['Medical Academy','Clinical Reference','Clinical Simulation']},
       {id:'bio',icon:'⌁',title:'Bioinformatika',desc:'DNK, RNK va oqsil ketma-ketliklarini tahlil qilish.',modules:['Bioinformatics']},
       {id:'molecule',icon:'⬡',title:'Molekula va 3D',desc:'Molekulyar xossalar, tuzilmalar va ilmiy taqqoslash.',modules:['Molecular Analysis','PDB & Structure','Drug Discovery']},
       {id:'research',icon:'⌕',title:'Ilmiy tadqiqot',desc:'Manbalarni topish va dalillar bilan ishlash.',modules:['Research Assistant']},
@@ -2347,7 +2347,7 @@ document.addEventListener("DOMContentLoaded", function () {
       {id:'management',icon:'▦',title:'Boshqaruv paneli',desc:'Tashkilot, foydalanuvchilar va ruxsatlar.',modules:['Global Platform']}
     ];
     const groups=allGroups.filter(g=>g.modules.some(m=>mods.includes(m))||(g.id==='management'&&key==='SUPER_ADMIN'));
-    const names={'Medical Academy':'Tibbiyot akademiyasi','Learning Hub':'Mashqlar va o‘quv tarixi','Clinical Reference':'Klinik ma’lumotnoma','Clinical Simulation':'Klinik mashqlar','Bioinformatics':'Ketma-ketlik tahlili','Molecular Analysis':'Molekula xossalari','PDB & Structure':'Tuzilma ko‘ruvchisi','Drug Discovery':'Dori tadqiqoti','Research Assistant':'Ilmiy manbalar','Virtual Laboratory':'Ish jarayonlari','Scientific Jobs':'Hisoblash vazifalari','Global Platform':'Tashkilot va loyihalar','Reports & History':'Ilmiy hisobotlar'};
+    const names={'Medical Academy':'Tibbiyot akademiyasi','Clinical Reference':'Klinik ma’lumotnoma','Clinical Simulation':'Klinik mashqlar','Bioinformatics':'Ketma-ketlik tahlili','Molecular Analysis':'Molekula xossalari','PDB & Structure':'Tuzilma ko‘ruvchisi','Drug Discovery':'Dori tadqiqoti','Research Assistant':'Ilmiy manbalar','Virtual Laboratory':'Ish jarayonlari','Scientific Jobs':'Hisoblash vazifalari','Global Platform':'Tashkilot va loyihalar','Reports & History':'Ilmiy hisobotlar'};
     const moduleButton=m=>'<button class="cabinet-tool" data-final-module="'+esc(m)+'">'+esc(names[m]||m)+'<span aria-hidden="true">↗</span></button>';
     home.classList.add('cabinet-home');
     home.innerHTML='<div class="cabinet-layout"><nav class="cabinet-nav" aria-label="Kabinet bo‘limlari"><div class="cabinet-brand">MEDGEN <span>AI</span></div><p>SHAXSIY KABINET</p><a href="#cabinetWelcome">Bosh sahifa</a>'+groups.map(g=>'<a href="#cabinet-'+g.id+'">'+g.icon+' '+g.title+'</a>').join('')+'<button id="cabinetProfile">Profilim</button><button data-final-service="security">Xavfsizlik va roziliklar</button></nav><div class="cabinet-main"><header id="cabinetWelcome" class="cabinet-welcome"><div><p class="cabinet-eyebrow">BILIM · TAHLIL · TADQIQOT</p><h1>Yagona ilmiy kabinet</h1><p>Kerakli bo‘limni tanlang. Vositalar va ruxsatlar akkauntingizga mos ko‘rsatiladi.</p></div><span class="cabinet-role">'+esc(roleLabel(key))+'</span></header><div class="cabinet-shortcuts">'+(mods.includes('Learning Hub')?moduleButton('Learning Hub'):'')+(mods.includes('Reports & History')?moduleButton('Reports & History'):'')+(mods.includes('Global Platform')?moduleButton('Global Platform'):'')+'</div><div class="cabinet-section-heading"><h2>Ish bo‘limlari</h2><span>6 yo‘nalish · bitta akkaunt</span></div><div class="cabinet-grid">'+groups.map((g,i)=>{
@@ -2569,5 +2569,7 @@ document.addEventListener("DOMContentLoaded", function () {
 <script src="security-2fa.js?v=1"></script>
 <script src="visuals.js?v=1"></script>
 <script src="billing.js?v=1"></script>
+<script src="reports-pdf.js?v=1"></script>
+<script src="screening.js?v=1"></script>
 </body>
 </html>
