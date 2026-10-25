@@ -1820,6 +1820,215 @@ def certificate_view(code: str):
     return HTMLResponse(page)
 
 
+# =========================================================
+# VIRTUAL PATIENT (stage C): deterministic vitals engine + server-side audited scoring.
+# The browser runs the same rules for display; the SERVER replays the action log and is the
+# only source of the score. Correct/harmful grades and diagnosis answers never leave the server.
+# =========================================================
+VITALS_MAX_SECONDS = 180
+VITALS_TAB_PENALTY = 15
+VITALS_RANGES = {"hr": (0, 250), "sbp": (0, 260), "dbp": (0, 160), "spo2": (0, 100), "rr": (0, 60)}
+VITALS_DISCLAIMER = "Ta'lim uchun simulyatsiya. Klinik qaror emas; dozalar va usullar shifokor tomonidan tekshirilishi kerak."
+
+VITALS_CASES = {
+    "anaphylaxis": {
+        "title": "1-keys: Anafilaktik shok",
+        "level": "Shoshilinch",
+        "story": "45 yoshli bemor, hasharot chaqqanidan 5 daqiqa o'tib: yuz va lab shishi, nafas qisilishi, bosimning keskin tushishi.",
+        "init": {"hr": 135, "sbp": 70, "dbp": 40, "spo2": 88, "rr": 28},
+        "ecg": "normal",
+        "worsen": {"hr": 0.05, "sbp": -0.3, "dbp": -0.2, "spo2": -0.03, "rr": 0.02},
+        "actions": [
+            {"id": "epi", "label": "Adrenalin 0.5 mg (mushak ichiga)", "effects": {"hr": -30, "sbp": 30, "dbp": 18, "spo2": 3, "rr": -4}, "grade": "required",
+             "explain": "Anafilaksiyada birinchi tanlov adrenalin, mushak ichiga. Katta yosh uchun standart doza 0.5 mg (1 mg/ml), kerak bo'lsa 5-15 daqiqada qayta beriladi."},
+            {"id": "o2", "label": "Kislorod (niqob, yuqori oqim)", "effects": {"spo2": 4, "rr": -5}, "grade": "required",
+             "explain": "Gipoksemiyani darhol tuzatish uchun kislorod."},
+            {"id": "fluid", "label": "Tomir ichiga kristalloid (bolus)", "effects": {"sbp": 10, "dbp": 5, "hr": -8}, "grade": "required",
+             "explain": "Tomir hajmini tiklash shok uchun asosiy tadbirlardan biri."},
+            {"id": "antih", "label": "Antigistamin (H1 blokator)", "effects": {}, "grade": "neutral",
+             "explain": "Yordamchi dori: teri va qichishishni yengillashtiradi, lekin shokni davolamaydi va adrenalin o'rnini bosmaydi."},
+            {"id": "bb", "label": "Beta-blokator (propranolol)", "effects": {"hr": -10, "sbp": -15}, "grade": "harm",
+             "explain": "Beta-blokator anafilaksiyada xavfli: adrenalin ta'sirini bloklaydi, bronxospazm va shokni kuchaytiradi."},
+            {"id": "wait", "label": "Dori bermasdan kuzatish", "effects": {"sbp": -3}, "grade": "harm",
+             "explain": "Anafilaksiyada kechiktirish hayot uchun xavfli. Shoshilinch davolash kerak."},
+        ],
+        "diagnosis_options": ["Anafilaktik shok", "Miokard infarkti", "O'tkir astma xuruji", "Pnevmoniya"],
+        "diagnosis_correct": 0,
+        "diagnosis_explain": "Teri shishi, nafas qisilishi va tez bosim tushishi allergik reaktsiyaning tipik belgilari.",
+    },
+    "mi": {
+        "title": "2-keys: Miokard infarkti",
+        "level": "Shoshilinch",
+        "story": "58 yoshli bemor, 40 daqiqadan beri ko'krakda siquvchi og'riq, sovuq ter. EKGda ST-segment ko'tarilishi ko'rinmoqda.",
+        "init": {"hr": 110, "sbp": 90, "dbp": 60, "spo2": 95, "rr": 20},
+        "ecg": "st_elev",
+        "worsen": {"hr": 0.02, "sbp": -0.15, "dbp": -0.1, "spo2": -0.02, "rr": 0.0},
+        "actions": [
+            {"id": "ecg12", "label": "12 tarmoqli EKG", "effects": {}, "grade": "required",
+             "explain": "12 tarmoqli EKG ST-segment ko'tarilishini tasdiqlaydi va infarkt turini aniqlashning asosiy tekshiruvi."},
+            {"id": "asa", "label": "Aspirin 300 mg (chaynab)", "effects": {}, "grade": "required",
+             "explain": "Antitrombotik birinchi yordam; ko'krak og'rig'i va yuqori xavfda darhol beriladi (kontrendikatsiya bo'lmasa)."},
+            {"id": "pci", "label": "Shoshilinch invaziv kardiologiya (PCI) murojaati", "effects": {"hr": -12, "sbp": 12, "dbp": 6}, "grade": "required",
+             "explain": "STEMIda reperfuziya zarur: birlamchi PCI yoki tromboliz. Kechikish miokard nekrozini kuchaytiradi."},
+            {"id": "nitro", "label": "Nitroglitserin (sublingval)", "effects": {"sbp": -15, "dbp": -8}, "grade": "harm",
+             "explain": "Bosim 90 mmHg atrofida gipotenziya xavfi bor; nitratlar bunday holatda kontrendikatsiyalidir."},
+            {"id": "morph", "label": "Morfin (vena ichiga)", "effects": {"rr": -3, "sbp": -6}, "grade": "harm",
+             "explain": "Morfin nafas depressiyasi va gipotenziyani kuchaytirishi mumkin; hozirgi holatda rutin tavsiya etilmaydi."},
+            {"id": "o2", "label": "Kislorod (niqob)", "effects": {"spo2": 2, "rr": -1}, "grade": "neutral",
+             "explain": "Kislorod odatda faqat gipoksemiyada (SpO2 90% dan past) ko'rsatiladi. Bu bemorda rutin emas, lekin zarar bermaydi."},
+        ],
+        "diagnosis_options": ["Miokard infarkti (STEMI)", "Stenokardiya", "Perikardit", "Pnevmoniya"],
+        "diagnosis_correct": 0,
+        "diagnosis_explain": "Og'riq xarakteri, ST-segment ko'tarilishi va vegetativ belgilar o'tkir koronar sindromni ko'rsatadi.",
+    },
+    "pneumonia": {
+        "title": "3-keys: Og'ir pnevmoniya / gipoksiya",
+        "level": "Shoshilinch",
+        "story": "67 yoshli bemor, 3 kun isitma va yo'tal, kuchayib borayotgan nafas yetishmovchiligi. Lablari ko'karib turibdi.",
+        "init": {"hr": 105, "sbp": 120, "dbp": 80, "spo2": 84, "rr": 28},
+        "ecg": "normal",
+        "worsen": {"hr": 0.02, "sbp": -0.05, "dbp": -0.03, "spo2": -0.02, "rr": 0.01},
+        "actions": [
+            {"id": "o2", "label": "Kislorod (yuqori oqim, niqob)", "effects": {"spo2": 8, "rr": -5, "hr": -4}, "grade": "required",
+             "explain": "Gipoksemiyani darhol tuzatish. Maqsad SpO2 94-98% (surunkali o'pka kasalida 88-92%)."},
+            {"id": "cxr", "label": "Ko'krak qafasi rentgenogrammasi", "effects": {}, "grade": "required",
+             "explain": "Infiltratsiyani tasdiqlaydi; pnevmoniya tashxisining asosiy vositalaridan."},
+            {"id": "abx", "label": "Empirik antibiotik (vena ichiga) + qon kulturasi", "effects": {"spo2": 3, "hr": -5, "rr": -4}, "grade": "required",
+             "explain": "Jamiyatda orttirilgan og'ir pnevmoniyada tezkor empirik antibiotik; avval qon kulturasi olinadi."},
+            {"id": "niv", "label": "Noinvaziv ventilatsiya (NIV)", "effects": {"spo2": 2, "rr": -3}, "grade": "neutral",
+             "explain": "Og'ir nafas yetishmovchiligida yordamchi usul; holatga qarab tanlanadi."},
+            {"id": "sed", "label": "Tinchlantiruvchi (benzodiazepin)", "effects": {"rr": -6, "spo2": -6}, "grade": "harm",
+             "explain": "Nafas markazini bostiradi va gipoksiyani kuchaytiradi."},
+            {"id": "fluid", "label": "Katta hajmli tomir ichi suyuqlik (2 l)", "effects": {"spo2": -3}, "grade": "harm",
+             "explain": "O'pka shishi xavfi: gipoksiyali bemorga shoshilinch katta hajm xavfli."},
+        ],
+        "diagnosis_options": ["Pnevmoniya / gipoksemik nafas yetishmovchiligi", "O'tkir yurak yetishmovchiligi", "Anafilaksiya", "O'tkir astma xuruji"],
+        "diagnosis_correct": 0,
+        "diagnosis_explain": "Isitma, yo'tal, past SpO2 va tez nafas olish o'pka infeksiyasi va gipoksemiyaning tipik belgilari.",
+    },
+}
+
+
+def _vit_clamp(st):
+    for k, (lo, hi) in VITALS_RANGES.items():
+        st[k] = min(hi, max(lo, st[k]))
+
+
+def _vit_apply(st, deltas):
+    for k, v in deltas.items():
+        st[k] = st[k] + v
+    _vit_clamp(st)
+
+
+def _vit_normal(st):
+    return 60 <= st["hr"] <= 100 and st["sbp"] >= 100 and st["dbp"] >= 60 and st["spo2"] >= 94 and 12 <= st["rr"] <= 20
+
+
+def _vit_public(case_id):
+    c = VITALS_CASES[case_id]
+    return {
+        "id": case_id, "title": c["title"], "level": c["level"], "story": c["story"],
+        "init": c["init"], "ecg": c["ecg"], "worsen": c["worsen"],
+        "time_limit_seconds": VITALS_MAX_SECONDS,
+        "actions": [{"id": a["id"], "label": a["label"], "effects": a["effects"]} for a in c["actions"]],
+        "diagnosis_options": c["diagnosis_options"], "disclaimer": VITALS_DISCLAIMER,
+    }
+
+
+def _vit_replay(case_id, log, diagnosis):
+    case = VITALS_CASES[case_id]
+    by_id = {a["id"]: a for a in case["actions"]}
+    st = {k: float(v) for k, v in case["init"].items()}
+    by_t = {}
+    for item in sorted(log, key=lambda e: e["t"]):  # stable: keeps order inside the same second
+        by_t.setdefault(item["t"], []).append(item["id"])
+    used, audit, stab_s = set(), [], None
+    for s in range(VITALS_MAX_SECONDS):
+        for aid in by_t.get(s, []):
+            action = by_id[aid]
+            if aid in used:
+                audit.append({"type": "duplicate", "t": s, "action": action["label"], "text": "Bu harakat qayta berildi va hisobga olinmadi."})
+                continue
+            used.add(aid)
+            _vit_apply(st, action["effects"])
+            if action["grade"] == "harm":
+                audit.append({"type": "harm", "t": s, "action": action["label"], "text": action["explain"]})
+        if _vit_normal(st):
+            stab_s = s
+            break
+        _vit_apply(st, case["worsen"])
+    seconds_used = stab_s if stab_s is not None else VITALS_MAX_SECONDS
+    required = [a for a in case["actions"] if a["grade"] == "required"]
+    for a in required:
+        if a["id"] not in used:
+            audit.append({"type": "missed", "t": None, "action": a["label"], "text": a["explain"]})
+    diag_idx = int(diagnosis)
+    diag_ok = diag_idx == case["diagnosis_correct"]
+    if 0 <= diag_idx < len(case["diagnosis_options"]):
+        audit.append({"type": "diagnosis", "t": None, "action": case["diagnosis_options"][diag_idx],
+                      "text": ("To'g'ri tashxis. " if diag_ok else "Noto'g'ri tashxis. To'g'risi: " + case["diagnosis_options"][case["diagnosis_correct"]] + ". ") + case["diagnosis_explain"]})
+    else:
+        audit.append({"type": "diagnosis", "t": None, "action": "Tashxis qo'yilmadi", "text": case["diagnosis_explain"]})
+    req_done = sum(1 for a in required if a["id"] in used)
+    harm_used = sum(1 for aid in used if by_id[aid]["grade"] == "harm")
+    speed = round(20 * (VITALS_MAX_SECONDS - stab_s) / VITALS_MAX_SECONDS) if stab_s is not None else 0
+    stab_pts = (20 + speed) if stab_s is not None else 0
+    return {
+        "st": st, "stab_s": stab_s, "seconds_used": seconds_used, "audit": audit,
+        "req_done": req_done, "req_total": len(required), "harm_used": harm_used,
+        "diag_ok": diag_ok, "stab_pts": stab_pts, "req_pts": 10 * req_done,
+        "diag_pts": 30 if diag_ok else 0, "harm_pts": -10 * harm_used,
+    }
+
+
+class VitalsLogItem(BaseModel):
+    id: str = Field(max_length=40)
+    t: int = Field(ge=0, le=VITALS_MAX_SECONDS)
+
+
+class VitalsReportRequest(BaseModel):
+    case_id: str = Field(max_length=40)
+    diagnosis: int = Field(default=-1, ge=-1, le=10)
+    actions: list[VitalsLogItem] = Field(default_factory=list, max_length=80)
+    tab_switches: int = Field(default=0, ge=0, le=50)
+
+
+@app.get("/api/v1/clinical/vitals/cases")
+def clinical_vitals_cases(user=Depends(get_current_user)):
+    return {"cases": [_vit_public(k) for k in VITALS_CASES], "educational_only": True}
+
+
+@app.post("/api/v1/clinical/vitals/report")
+def clinical_vitals_report(data: VitalsReportRequest, user=Depends(get_current_user)):
+    case = VITALS_CASES.get(data.case_id)
+    if not case:
+        raise HTTPException(status_code=404, detail="Simulation case not found.")
+    known = {a["id"] for a in case["actions"]}
+    if any(item.id not in known for item in data.actions):
+        raise HTTPException(status_code=400, detail="Unknown action in log.")
+    r = _vit_replay(data.case_id, [{"id": i.id, "t": i.t} for i in data.actions], data.diagnosis)
+    penalty = VITALS_TAB_PENALTY * data.tab_switches
+    raw = r["req_pts"] + r["harm_pts"] + r["diag_pts"] + r["stab_pts"] - penalty
+    score = max(0, min(100, raw))
+    if data.tab_switches:
+        r["audit"].append({"type": "tab", "t": None, "action": "Imtihon oynasidan chiqish", "text": f"{data.tab_switches} marta: har biri uchun -{VITALS_TAB_PENALTY} ball."})
+    r["audit"].sort(key=lambda x: (x["t"] is None, x["t"] or 0))
+    st = r["st"]
+    activity_log.insert(0, {"type": "vitals_simulation", "username": user["username"], "case_id": data.case_id, "score": score, "at": datetime.now(timezone.utc).isoformat()})
+    _db_save()
+    _leaderboard_award(user["username"], "vitals:" + data.case_id, score)
+    return {
+        "status": "completed", "case_id": data.case_id, "title": case["title"], "educational_only": True,
+        "disclaimer": VITALS_DISCLAIMER, "stabilized": r["stab_s"] is not None, "stabilized_at_s": r["stab_s"],
+        "seconds_used": r["seconds_used"],
+        "final_vitals": {k: round(v) for k, v in st.items()},
+        "score": score,
+        "breakdown": {"required_done": r["req_done"], "required_total": r["req_total"], "harm_used": r["harm_used"],
+                      "diagnosis_correct": r["diag_ok"], "stabilization_points": r["stab_pts"], "tab_penalty": penalty},
+        "audit": r["audit"],
+    }
+
+
 @app.get("/api/v1/billing/status")
 def billing_status(user=Depends(get_current_user)):
     record = billing_store.get(user["username"], {})
