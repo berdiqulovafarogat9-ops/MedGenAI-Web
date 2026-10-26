@@ -112,6 +112,11 @@
       body.appendChild(el("h3", "margin:6px 0 8px;font-size:18px;color:#e8f0f6", data.topic.title));
       body.appendChild(el("div", "white-space:pre-wrap;font-size:14px;line-height:1.55;color:#dbe7f0", data.topic.summary_md || ""));
       data.resources.forEach(function (r) {
+        if (r.resource_type === "model_3d" && window.MedGenAnatomy && /^https:\/\//i.test(r.resource_url)) {
+          var v = el("button", BTN2, "3D ko'rish: " + r.title);
+          v.onclick = function () { window.MedGenAnatomy.open(r.resource_url, r.title); };
+          body.appendChild(v);
+        }
         if (!/^https:\/\//i.test(r.resource_url)) return;
         var a = el("a", "display:block;margin-top:8px;color:#56dcc0;font-size:14px", "[" + r.resource_type + "] " + r.title);
         a.href = r.resource_url; a.target = "_blank"; a.rel = "noopener noreferrer";
