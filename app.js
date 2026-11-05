@@ -4804,7 +4804,7 @@ if (document.readyState === "loading") {
         <div>
           <p class="eyebrow">PHASE 1 • MEDICAL ACADEMY</p>
           <div style="margin:15px 0;">
-            <button type="button" onclick="window.medgenAnatomyModal.open()" style="background:#10b981;color:white;padding:12px 20px;border-radius:8px;font-weight:bold;border:none;cursor:pointer;display:flex;align-items:center;gap:8px;">
+            <button type="button" id="open-anatomy-btn" style="background:#10b981;color:white;padding:12px 20px;border-radius:8px;font-weight:bold;border:none;cursor:pointer;display:flex;align-items:center;gap:8px;box-shadow:0 4px 12px rgba(16,185,129,.3)">
               💀 3D Inson Skeleti (Interactive 3D Viewer)
             </button>
           </div>
