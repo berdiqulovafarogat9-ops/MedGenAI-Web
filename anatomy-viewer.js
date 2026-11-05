@@ -186,52 +186,81 @@
     });
   }
   let anatomyModal = null;
-  function openAnatomyModal() {
-    if (anatomyModal) {
-      anatomyModal.hidden = false;
-      if (activeViewer) activeViewer.resize();
-      return;
-    }
-    const modal = document.createElement('div');
-    modal.id = 'medgenAnatomyModal';
-    modal.style.cssText = 'position:fixed;inset:0;z-index:99999;background:rgba(2,6,12,.94);display:flex;align-items:center;justify-content:center;padding:12px;';
-    modal.innerHTML = '<div role="dialog" aria-modal="true" aria-label="3D Inson skeleti" style="width:min(1100px,100%);max-height:96vh;overflow:auto;background:#101b2b;border:1px solid #334155;border-radius:16px;padding:14px;color:#e5edf7;box-shadow:0 20px 70px #000"><div style="display:flex;justify-content:space-between;align-items:center;gap:12px;margin-bottom:10px"><div><b style="font-size:18px">💀 3D Inson Skeleti</b><p style="margin:4px 0;color:#9fb0c4">Modelni aylantiring, yaqinlashtiring va suyakni tanlang.</p></div><button type="button" id="medgenAnatomyModalClose" style="background:#334155;color:white;border:0;border-radius:8px;padding:10px 14px;font-weight:bold">✕ Yopish</button></div><div id="medgenAnatomyCanvas" style="height:min(70vh,680px);min-height:360px;width:100%;border-radius:12px;overflow:hidden;background:#080d14;touch-action:pan-y"></div><div id="medgenAnatomyStatus" role="status" aria-live="polite" style="padding:10px 2px">Model tayyorlanmoqda…</div><b id="medgenAnatomyName" aria-live="polite">Hozircha suyak tanlanmagan</b></div>';
-    document.body.appendChild(modal);
-    anatomyModal = modal;
-    modal.querySelector('#medgenAnatomyModalClose').addEventListener('click', closeAnatomyModal);
-    modal.addEventListener('click', (event) => { if (event.target === modal) closeAnatomyModal(); });
-    document.addEventListener('keydown', anatomyEscape);
-    activeViewer = new AnatomyViewer(modal);
-    activeViewer.init();
-  }
-  function anatomyEscape(event) {
-    if (event.key === 'Escape') closeAnatomyModal();
-  }
+  let buttonObserver = null;
+
   function closeAnatomyModal() {
     if (!anatomyModal) return;
-    document.removeEventListener('keydown', anatomyEscape);
-    if (activeViewer) { activeViewer.dispose(); activeViewer = null; }
+    document.removeEventListener('keydown', onAnatomyKeydown);
+    if (activeViewer) {
+      activeViewer.dispose();
+      activeViewer = null;
+    }
     anatomyModal.remove();
     anatomyModal = null;
   }
-  window.medgenAnatomyModal = { open: openAnatomyModal, close: closeAnatomyModal };
 
-  function watch() {
-    const attach = () => {
-      const studentRoot = document.getElementById('studentTool');
-      const studentVisible = studentRoot && !studentRoot.classList.contains('hidden');
-      const phase1Panel = studentVisible ? studentRoot.querySelector('#phase1AcademyPanel') : null;
-      const academyRoot = document.getElementById('academyV2Root');
-      // Prefer the exact Academy panel shown in the Student workspace.
-      // A hidden/stale academyV2Root must never capture the viewer.
-      const root = phase1Panel || (studentVisible ? studentRoot : (academyRoot && !academyRoot.closest('.hidden') ? academyRoot : null));
-      if (root) mount(root);
-    };
-    attach();
-    const observer = new MutationObserver(attach);
-    observer.observe(document.body, { childList: true, subtree: true, attributes: true, attributeFilter: ['class'] });
+  function onAnatomyKeydown(event) {
+    if (event.key === 'Escape') closeAnatomyModal();
   }
-  // The Academy header contains a static button; its click opens the modal above.
-  // Keep the legacy inline mount disabled to avoid duplicate entry points.
+
+  function openAnatomyModal() {
+    if (anatomyModal) {
+      anatomyModal.style.display = 'flex';
+      if (activeViewer) activeViewer.resize();
+      return;
+    }
+
+    anatomyModal = document.createElement('div');
+    anatomyModal.id = 'anatomy-modal';
+    anatomyModal.style.cssText = 'position:fixed;inset:0;width:100vw;height:100vh;background:rgba(0,0,0,.88);z-index:2147483000;display:flex;justify-content:center;align-items:center;padding:12px;box-sizing:border-box;';
+    anatomyModal.innerHTML = '<div role="dialog" aria-modal="true" aria-label="3D Inson skeleti" style="position:relative;width:92%;max-width:900px;height:80vh;min-height:420px;background:#080d14;border:1px solid #1e293b;border-radius:14px;overflow:hidden;display:flex;flex-direction:column;box-sizing:border-box"><div style="display:flex;justify-content:space-between;align-items:center;gap:12px;padding:12px 20px;background:#0f172a;border-bottom:1px solid #1e293b;flex-shrink:0"><span id="medgenAnatomyStatus" role="status" aria-live="polite" style="color:#38bdf8;font-weight:bold;font-size:15px">3D kutubxonalar tekshirilmoqda…</span><button type="button" id="close-anatomy-btn" style="background:#ef4444;color:white;border:0;padding:7px 14px;border-radius:6px;cursor:pointer;font-weight:bold;flex-shrink:0">✕ Yopish</button></div><div id="medgenAnatomyCanvas" style="flex:1;min-height:0;width:100%;position:relative;overflow:hidden;touch-action:none"></div><div style="padding:8px 14px;background:#0f172a;color:#cbd5e1;font-size:13px"><b id="medgenAnatomyName">Model tayyorlanmoqda…</b><div>Modelni aylantirish va yaqinlashtirish mumkin. Suyakni tanlash uchun ustiga bosing.</div></div></div>';
+
+    document.body.appendChild(anatomyModal);
+    anatomyModal.querySelector('#close-anatomy-btn').addEventListener('click', closeAnatomyModal);
+    anatomyModal.addEventListener('click', (event) => {
+      if (event.target === anatomyModal) closeAnatomyModal();
+    });
+    document.addEventListener('keydown', onAnatomyKeydown);
+
+    if (!window.THREE || !THREE.GLTFLoader || !THREE.DRACOLoader || !THREE.OrbitControls) {
+      anatomyModal.querySelector('#medgenAnatomyStatus').textContent = '3D kutubxonalar yuklanmadi. Sahifani yangilang.';
+      return;
+    }
+    try {
+      activeViewer = new AnatomyViewer(anatomyModal);
+      activeViewer.init();
+    } catch (error) {
+      console.error('MedGen anatomy viewer initialization failed:', error);
+      anatomyModal.querySelector('#medgenAnatomyStatus').textContent = '3D viewer ishga tushmadi: ' + (error.message || 'noma’lum xato');
+    }
+  }
+
+  window.medgenAnatomyModal = {
+    open: openAnatomyModal,
+    close: closeAnatomyModal
+  };
+
+  function bindAnatomyButton() {
+    const bind = () => {
+      const button = document.getElementById('open-anatomy-btn');
+      if (!button || button.dataset.anatomyBound === '1') return;
+      button.dataset.anatomyBound = '1';
+      button.addEventListener('click', (event) => {
+        event.preventDefault();
+        openAnatomyModal();
+      });
+    };
+    bind();
+    if (!buttonObserver) {
+      buttonObserver = new MutationObserver(bind);
+      buttonObserver.observe(document.documentElement, { childList: true, subtree: true });
+    }
+  }
+
+  if (document.readyState === 'loading') {
+    document.addEventListener('DOMContentLoaded', bindAnatomyButton, { once: true });
+  } else {
+    bindAnatomyButton();
+  }
   window.MedGenAnatomyViewer = AnatomyViewer;
 })();
