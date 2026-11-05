@@ -4804,7 +4804,7 @@ if (document.readyState === "loading") {
         <div>
           <p class="eyebrow">PHASE 1 • MEDICAL ACADEMY</p>
           <div style="margin:15px 0;">
-            <button type="button" id="btn-open-skeleton" onclick="document.getElementById('skeleton-modal-box').style.display='flex' style="background:#10b981;color:#ffffff;padding:12px 22px;border-radius:8px;font-weight:bold;border:none;cursor:pointer;display:flex;align-items:center;gap:8px;box-shadow:0 4px 15px rgba(16,185,129,.35);font-size:15px">💀 3D Inson Skeleti</button>
+            <button type="button" id="btn-open-skeleton" onclick="window.openMedGenSkeleton()" style="background:#10b981;color:#ffffff;padding:12px 22px;border-radius:8px;font-weight:bold;border:none;cursor:pointer;display:flex;align-items:center;gap:8px;box-shadow:0 4px 15px rgba(16,185,129,.35);font-size:15px">💀 3D Inson Skeleti</button>
           </div>
           <h2>To‘liq akademik profil va o‘quv tizimi</h2>
           <p class="muted">Har bir fan: <b>Nazariya → Mashq → Quiz → Case → Imtihon</b>. Kurs o‘tishi 3 ta savol bilan belgilanmaydi.</p>
