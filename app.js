@@ -6101,3 +6101,63 @@ async function renderAlphaFold3D(){
   render:function(){var root=document.getElementById("surgery-flow-root");if(!root)return;root.style.display="block";var q=this.steps[this.step];root.innerHTML='<div style="background:#090d16;border:1px solid #334155;border-radius:12px;padding:14px;color:#e2e8f0;font:14px system-ui"><b style="color:#38bdf8">Jarrohlik simulyatori — appendektomiya</b><p><b>'+q.title+'</b></p><p style="color:#a7f3d0">O‘quv vositalari: '+q.tool+'</p><p>'+q.goal+'</p><p style="font-size:11px;color:#fbbf24">Faqat ta’limiy simulyatsiya. Haqiqiy operatsiya bo‘yicha ko‘rsatma emas.</p><button id="medgen-surgery-next" type="button" style="padding:8px 12px;background:#10b981;color:white;border:0;border-radius:7px">'+(this.step===this.steps.length-1?'Yakunlash':'Keyingi bosqich →')+'</button> <button id="medgen-surgery-close" type="button" style="padding:8px 12px;background:#334155;color:white;border:0;border-radius:7px">Yopish</button></div>';var self=this;document.getElementById("medgen-surgery-next").onclick=function(){if(self.step<self.steps.length-1){self.step++;self.render();}else root.innerHTML='<div style="padding:14px;color:#10b981;font-weight:700">O‘quv ssenariysi yakunlandi.</div>';};document.getElementById("medgen-surgery-close").onclick=function(){root.style.display="none";};}
  };
 })();
+
+/* MEDGEN AI — full-screen mode tabs for the 3D anatomy workspace */
+window.switchMedGenMode = function(mode) {
+  const allowed = ["anatomy", "patient", "surgery"];
+  if (!allowed.includes(mode)) return;
+
+  const panels = {
+    anatomy: document.getElementById("medgen-anatomy-panel"),
+    patient: document.getElementById("patient-sim-root"),
+    surgery: document.getElementById("surgery-flow-root")
+  };
+
+  // Hide every mode first so panels never overlap.
+  Object.keys(panels).forEach(key => {
+    const panel = panels[key];
+    if (panel) panel.style.display = "none";
+  });
+
+  document.querySelectorAll("#medgen-mode-tabs [data-medgen-mode]").forEach(tab => {
+    const active = tab.getAttribute("data-medgen-mode") === mode;
+    tab.setAttribute("aria-selected", active ? "true" : "false");
+    tab.style.background = active ? "#0e7490" : "#172334";
+    tab.style.color = active ? "#ffffff" : "#cbd5e1";
+    tab.style.borderColor = active ? "#22d3ee" : "#334155";
+  });
+
+  const selected = panels[mode];
+  if (selected) {
+    selected.style.display = mode === "anatomy" ? "flex" : "block";
+    selected.style.width = "100%";
+    selected.style.flex = "1 1 auto";
+    selected.style.minHeight = "0";
+  }
+
+  if (mode !== "anatomy" && window.medgenAnatomyQuiz?.active) {
+    window.medgenAnatomyQuiz.stop();
+  }
+
+  if (mode === "surgery") {
+    if (typeof window.medgenSurgery?.render === "function") {
+      window.medgenSurgery.render();
+    } else if (typeof window.medgenSurgery?.start === "function") {
+      window.medgenSurgery.start();
+    }
+  }
+
+  if (mode === "patient") {
+    // The patient panel is shown first; the existing clinical engine then opens.
+    if (typeof window.medgenPatient?.start === "function") {
+      window.medgenPatient.start("anaphylaxis");
+    }
+  }
+
+  // Recalculate the WebGL viewport after returning to the anatomy tab.
+  if (mode === "anatomy") {
+    requestAnimationFrame(() => {
+      window.dispatchEvent(new Event("resize"));
+    });
+  }
+};
