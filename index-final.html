@@ -2611,14 +2611,14 @@ document.addEventListener("DOMContentLoaded", function () {
             <span>🦴 MedGen AI • To‘liq Inson Skeleti (3D)</span>
             <button type="button" id="close-medgen-skeleton" style="background:#ef4444;color:#fff;border:0;padding:8px 14px;border-radius:8px;cursor:pointer;font-weight:bold;">✕ Yopish</button>
           </div>
-          <div style="display:flex;gap:8px;align-items:center;flex-wrap:wrap;padding:9px 12px;background:#0b1220;border-bottom:1px solid #1e293b;">
-            <button type="button" onclick="window.medgenAnatomyQuiz.start()" style="padding:7px 11px;background:#f59e0b;color:#fff;border:0;border-radius:7px;font-weight:700;">🎯 Toping va bosing</button>
-            <div id="quiz-status-bar" style="color:#cbd5e1;font-size:13px;flex:1;min-width:180px;">O‘yinni boshlash uchun tugmani bosing.</div>
-            <button type="button" onclick="window.medgenPatient.start()" style="padding:7px 11px;background:#0e7490;color:#fff;border:0;border-radius:7px;">🫀 Virtual bemor</button>
-            <button type="button" onclick="window.medgenSurgery.start()" style="padding:7px 11px;background:#047857;color:#fff;border:0;border-radius:7px;">🩺 Jarrohlik</button>
-          </div>
-          <div id="surgery-flow-root" style="display:none;max-height:38vh;overflow:auto;padding:8px 12px;background:#070d17;"></div>
-          <div id="local-skeleton-viewport" style="width:100%;height:75vh;min-height:480px;position:relative;flex:1;background:#050a14;">
+          <nav id="medgen-mode-tabs" role="tablist" aria-label="MedGen anatomiya rejimlari" style="display:flex;gap:8px;flex-wrap:wrap;padding:10px 12px;background:#0b1220;border-bottom:1px solid #1e293b;">
+            <button type="button" role="tab" aria-selected="true" data-medgen-mode="anatomy" onclick="window.switchMedGenMode('anatomy')" style="flex:1;min-width:130px;padding:11px 14px;background:#0e7490;color:#fff;border:1px solid #22d3ee;border-radius:9px;font-weight:700;cursor:pointer;">🦴 3D Skelet / Quiz</button>
+            <button type="button" role="tab" aria-selected="false" data-medgen-mode="patient" onclick="window.switchMedGenMode('patient')" style="flex:1;min-width:130px;padding:11px 14px;background:#172334;color:#cbd5e1;border:1px solid #334155;border-radius:9px;font-weight:700;cursor:pointer;">🫀 Virtual bemor</button>
+            <button type="button" role="tab" aria-selected="false" data-medgen-mode="surgery" onclick="window.switchMedGenMode('surgery')" style="flex:1;min-width:130px;padding:11px 14px;background:#172334;color:#cbd5e1;border:1px solid #334155;border-radius:9px;font-weight:700;cursor:pointer;">🩺 Jarrohlik</button>
+          </nav>
+          <section id="medgen-anatomy-panel" data-medgen-panel="anatomy" style="display:flex;flex:1;min-height:0;flex-direction:column;">
+            <div id="quiz-status-bar" role="status" aria-live="polite" style="display:flex;align-items:center;min-height:42px;padding:8px 14px;background:#101b2b;color:#cbd5e1;font-size:13px;">O‘yinni boshlash uchun 3D skeletdagi suyakni tanlang.</div>
+            <div id="local-skeleton-viewport" style="width:100%;height:100%;min-height:480px;position:relative;flex:1;background:#050a14;">
             <div id="local-skeleton-status" style="position:absolute;top:12px;left:12px;color:#38bdf8;font:13px sans-serif;z-index:10;background:rgba(15,23,42,.85);padding:6px 12px;border-radius:6px;">Yuklanmoqda...</div>
             <div id="medgen-bone-info" style="position:absolute;right:12px;bottom:12px;width:min(320px,calc(100% - 24px));z-index:12;background:rgba(15,23,42,.94);border:1px solid #334155;border-radius:12px;padding:14px;color:#e2e8f0;font-family:Arial,sans-serif;box-shadow:0 12px 30px rgba(0,0,0,.4);pointer-events:none;">
                <div id="medgen-bone-latin" style="font-size:15px;font-weight:700;color:#38bdf8;">Suyakni tanlang</div>
@@ -2626,9 +2626,21 @@ document.addEventListener("DOMContentLoaded", function () {
                <div id="medgen-bone-desc" style="font-size:12px;line-height:1.5;color:#cbd5e1;margin-top:7px;">Skeletdagi suyak ustiga bosing.</div>
              </div>
              <div id="local-canvas-box" style="width:100%;height:100%;"></div>
-          </div>
+            </div>
+          </section>
+          <section id="patient-sim-root" data-medgen-panel="patient" style="display:none;flex:1;min-height:0;overflow:auto;padding:clamp(18px,4vw,42px);background:radial-gradient(circle at top,#123047,#07111f 65%);color:#e2e8f0;">
+            <div style="max-width:900px;margin:0 auto;border:1px solid #28506a;border-radius:18px;padding:clamp(20px,4vw,36px);background:rgba(8,20,34,.88);">
+              <div style="font-size:42px;margin-bottom:12px;">🫀</div>
+              <h2 style="margin:0 0 10px;font-size:clamp(24px,4vw,34px);">Virtual bemor simulyatori</h2>
+              <p style="color:#b8c9d8;line-height:1.65;">Bemor holatini kuzating, hayotiy ko‘rsatkichlarni baholang va o‘quv klinik vaziyatida qarorlar qabul qiling.</p>
+              <p style="font-size:13px;color:#fbbf24;">Ta’limiy simulyatsiya. Natijalar haqiqiy bemorga tashxis yoki davolash tavsiyasi emas.</p>
+              <button type="button" onclick="window.medgenPatient.start('anaphylaxis')" style="margin-top:12px;padding:13px 20px;background:#0e7490;color:#fff;border:0;border-radius:10px;font-weight:700;font-size:15px;cursor:pointer;">Simulyatsiyani boshlash →</button>
+            </div>
+          </section>
+          <section id="surgery-flow-root" data-medgen-panel="surgery" style="display:none;flex:1;min-height:0;overflow:auto;padding:clamp(18px,4vw,42px);background:radial-gradient(circle at top,#12382f,#07111f 65%);"></section>
         </div>`;
       document.body.appendChild(overlay);
+      if(typeof window.switchMedGenMode==='function') window.switchMedGenMode('anatomy');
       document.getElementById('close-medgen-skeleton').addEventListener('click',function(){overlay.style.display='none';});
       overlay.addEventListener('click',function(e){if(e.target===overlay)overlay.style.display='none';});
       document.addEventListener('keydown',function(e){if(e.key==='Escape'&&overlay.style.display!=='none')overlay.style.display='none';});
