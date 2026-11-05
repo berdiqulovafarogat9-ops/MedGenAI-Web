@@ -2580,82 +2580,88 @@ document.addEventListener("DOMContentLoaded", function () {
 <script src="anatomy-3d.js?v=1"></script>
 
 
-<!-- ======================================================== -->
-<!-- MEDGEN AI: 3D SKELETON BULLETPROOF LOADER               -->
-<!-- ======================================================== -->
+<!-- MEDGEN AI: THREE.JS + DRACO SKELETON VIEWER -->
+<script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/controls/OrbitControls.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/loaders/DRACOLoader.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/loaders/GLTFLoader.js"></script>
 <script>
 (function() {
-  // Load model-viewer once; custom element upgrades when the module is ready.
-  if (!document.getElementById('mv-core-script')) {
-    const s = document.createElement('script');
-    s.id = 'mv-core-script';
-    s.type = 'module';
-    s.src = 'https://ajax.googleapis.com/ajax/libs/model-viewer/3.4.0/model-viewer.min.js';
-    document.head.appendChild(s);
-  }
-
   function bindSkeletonButtons() {
     document.querySelectorAll('button').forEach(function(btn) {
-      const label = (btn.innerText || btn.textContent || '');
+      const label = btn.innerText || btn.textContent || '';
       if (label.includes('3D Inson Skelet') && !btn.dataset.medgenSkeletonBound) {
         btn.dataset.medgenSkeletonBound = '1';
         btn.addEventListener('click', function(e) {
-          e.preventDefault();
-          e.stopPropagation();
-          window.openMedGenSkeleton();
+          e.preventDefault(); e.stopPropagation(); window.openMedGenSkeleton();
         }, true);
       }
     });
   }
-
   bindSkeletonButtons();
-  const observer = new MutationObserver(bindSkeletonButtons);
-  observer.observe(document.documentElement, { childList: true, subtree: true });
+  new MutationObserver(bindSkeletonButtons).observe(document.documentElement,{childList:true,subtree:true});
 
   window.openMedGenSkeleton = function() {
-    let overlay = document.getElementById('medgen-dynamic-skeleton-overlay');
-    if (!overlay) {
-      overlay = document.createElement('div');
-      overlay.id = 'medgen-dynamic-skeleton-overlay';
-      overlay.style.cssText = 'position:fixed;top:0;left:0;width:100vw;height:100vh;background:rgba(2,6,23,.94);z-index:9999999;display:flex;justify-content:center;align-items:center;backdrop-filter:blur(6px);-webkit-backdrop-filter:blur(6px);';
-      overlay.innerHTML = `
-        <div style="position:relative;width:95%;max-width:900px;height:85vh;background:#080d14;border:1px solid #1e293b;border-radius:16px;display:flex;flex-direction:column;overflow:hidden;box-shadow:0 25px 60px rgba(0,0,0,.9);">
-          <div style="display:flex;justify-content:space-between;align-items:center;padding:14px 20px;background:#0f172a;border-bottom:1px solid #1e293b;">
-            <div style="display:flex;align-items:center;gap:8px;"><span style="font-size:18px;">🦴</span><span style="color:#38bdf8;font-weight:bold;font-family:sans-serif;font-size:15px;">MedGen AI • To‘liq Inson Skeleti (3D)</span></div>
-            <button type="button" id="close-medgen-skeleton" style="background:#ef4444;color:#fff;border:none;padding:6px 16px;border-radius:8px;cursor:pointer;font-weight:bold;font-size:13px;">✕ Yopish</button>
-          </div>
-          <div style="width: 100%; height: 75vh; min-height: 500px; position: relative; background: radial-gradient(circle, #0f172a 0%, #030712 100%);">
-            <model-viewer
-              src="/models/full_skeleton.glb"
-              alt="MedGen AI Inson Skeleti"
-              camera-controls
-              touch-action="pan-y"
-              auto-rotate
-              auto-rotate-delay="0"
-              rotation-per-second="20deg"
-              bounds="tight"
-              camera-orbit="auto auto auto"
-              min-camera-orbit="auto auto auto"
-              max-camera-orbit="auto auto auto"
-              shadow-intensity="1.5"
-              exposure="1.2"
-              style="width: 100%; height: 75vh; min-height: 480px; background: radial-gradient(circle, #0f172a 0%, #030712 100%); outline: none;"
-            >
-            </model-viewer>
-          </div>
-        </div>`;
+    let overlay=document.getElementById('medgen-dynamic-skeleton-overlay');
+    if(!overlay) {
+      overlay=document.createElement('div');
+      overlay.id='medgen-dynamic-skeleton-overlay';
+      overlay.style.cssText='position:fixed;inset:0;width:100vw;height:100vh;background:rgba(2,6,23,.96);z-index:9999999;display:flex;align-items:center;justify-content:center;padding:10px;box-sizing:border-box;';
+      overlay.innerHTML='<div style="position:relative;width:100%;max-width:1000px;height:92vh;background:#080d14;border:1px solid #1e293b;border-radius:16px;display:flex;flex-direction:column;overflow:hidden;"><div style="display:flex;justify-content:space-between;align-items:center;padding:12px 16px;background:#0f172a;color:#38bdf8;font:bold 15px sans-serif;">🦴 MedGen AI • To‘liq Inson Skeleti (3D)<button type="button" id="close-medgen-skeleton" style="background:#ef4444;color:white;border:0;padding:8px 14px;border-radius:8px;">✕ Yopish</button></div><div id="medgen-3d-box" style="width:100%;height:75vh;min-height:480px;position:relative;flex:1;background:radial-gradient(circle,#0f172a 0%,#030712 100%);"><div id="medgen-3d-status" style="position:absolute;top:15px;left:15px;color:#38bdf8;font:14px sans-serif;z-index:3;background:rgba(15,23,42,.85);padding:7px 12px;border-radius:6px;">Model yuklanmoqda...</div><div id="medgen-canvas-target" style="width:100%;height:100%;"></div></div></div>';
       document.body.appendChild(overlay);
-      document.getElementById('close-medgen-skeleton').addEventListener('click', function() {
-        overlay.style.display = 'none';
-      });
-      overlay.addEventListener('click', function(e) {
-        if (e.target === overlay) overlay.style.display = 'none';
-      });
+      document.getElementById('close-medgen-skeleton').addEventListener('click',function(){overlay.style.display='none';});
+      overlay.addEventListener('click',function(e){if(e.target===overlay)overlay.style.display='none';});
+      const container=document.getElementById('medgen-canvas-target');
+      const status=document.getElementById('medgen-3d-status');
+      if(!window.THREE || !THREE.GLTFLoader || !THREE.DRACOLoader || !THREE.OrbitControls) {
+        status.textContent='3D kutubxonalari yuklanmadi. Sahifani yangilang va internetni tekshiring.'; return;
+      }
+      const scene=new THREE.Scene();
+      const camera=new THREE.PerspectiveCamera(38,1,0.01,1000);
+      const renderer=new THREE.WebGLRenderer({antialias:true,alpha:true});
+      renderer.setPixelRatio(Math.min(window.devicePixelRatio||1,2));
+      renderer.outputEncoding=THREE.sRGBEncoding;
+      container.appendChild(renderer.domElement);
+      const controls=new THREE.OrbitControls(camera,renderer.domElement);
+      controls.enableDamping=true; controls.dampingFactor=0.06;
+      controls.autoRotate=true; controls.autoRotateSpeed=1.5;
+      scene.add(new THREE.HemisphereLight(0xffffff,0x334155,1.35));
+      const key=new THREE.DirectionalLight(0xffffff,1.8);key.position.set(4,8,6);scene.add(key);
+      const fill=new THREE.DirectionalLight(0x38bdf8,0.8);fill.position.set(-5,1,-5);scene.add(fill);
+      function resize(){const w=Math.max(container.clientWidth,1),h=Math.max(container.clientHeight,1);camera.aspect=w/h;camera.updateProjectionMatrix();renderer.setSize(w,h,false);}
+      if(window.ResizeObserver)new ResizeObserver(resize).observe(container);else window.addEventListener('resize',resize);
+      resize();
+      const draco=new THREE.DRACOLoader();
+      draco.setDecoderPath('https://www.gstatic.com/draco/versioned/decoders/1.5.6/');
+      draco.setDecoderConfig({type:'js'});
+      const loader=new THREE.GLTFLoader();loader.setDRACOLoader(draco);
+      loader.load('/models/full_skeleton.glb',function(gltf){
+        const model=gltf.scene;model.updateMatrixWorld(true);
+        const box=new THREE.Box3().setFromObject(model);
+        if(box.isEmpty()){status.textContent='Model geometriyasi topilmadi.';return;}
+        const size=box.getSize(new THREE.Vector3());
+        const center=box.getCenter(new THREE.Vector3());
+        const maxDim=Math.max(size.x,size.y,size.z);
+        if(!Number.isFinite(maxDim)||maxDim<=0){status.textContent='Model o‘lchamini aniqlab bo‘lmadi.';return;}
+        model.position.sub(center);
+        model.scale.setScalar(1.8/maxDim);
+        scene.add(model);model.updateMatrixWorld(true);
+        const fitted=new THREE.Box3().setFromObject(model);
+        const sphere=fitted.getBoundingSphere(new THREE.Sphere());
+        const radius=Math.max(sphere.radius,0.01);
+        controls.target.set(0,0,0);
+        const distance=(radius/Math.sin(THREE.MathUtils.degToRad(camera.fov/2)))*1.3;
+        camera.position.set(0,0,distance);camera.near=Math.max(distance/1000,0.001);camera.far=Math.max(distance*100,100);
+        camera.lookAt(0,0,0);camera.updateProjectionMatrix();
+        controls.minDistance=radius*.35;controls.maxDistance=radius*12;controls.update();
+        status.textContent='Skelet tayyor! Barmoq bilan aylantiring va yaqinlashtiring.';
+        draco.dispose();
+      },function(xhr){if(xhr.total)status.textContent='Model yuklanmoqda: '+Math.round(xhr.loaded/xhr.total*100)+'%';},function(err){console.error('Three.js GLB xatosi:',err);status.textContent='Model yuklanmadi. GLB/Draco yoki tarmoq xatosi.';});
+      function animate(){requestAnimationFrame(animate);controls.update();renderer.render(scene,camera);}animate();
     }
-    overlay.style.display = 'flex';
+    overlay.style.display='flex';
   };
 })();
 </script>
-
 </body>
 </html>
