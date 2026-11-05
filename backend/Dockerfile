@@ -16,6 +16,7 @@ RUN python -c "from rdkit import Chem; from rdkit.Chem import Draw; d=Draw.MolDr
 COPY main.py .
 COPY knowledge_engine.py .
 COPY phase1_academy_ext.py .
+COPY medical_chemistry_ext.py .
 
 EXPOSE 8000
 
