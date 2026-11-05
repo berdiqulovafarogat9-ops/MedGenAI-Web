@@ -1714,7 +1714,7 @@ def leaderboard_top(user=Depends(get_current_user)):
     top = _sql("SELECT display_name, university, course_number, total_score, solved_cases_count FROM student_leaderboard ORDER BY total_score DESC, solved_cases_count DESC, updated_at ASC LIMIT 50")
     mine = _sql("SELECT display_name, university, course_number, total_score, solved_cases_count FROM student_leaderboard WHERE username=%s", (user["username"],), "one")
     return {
-        "metric": "Faollik ochkolari: klinik simulyatorni yakunlash uchun (har keys kuniga bir marta). Bu klinik bilim bahosi emas.",
+        "metric": "Faollik ochkolari: klinik keys va myologiya testlari (har mushak uchun bir marta +10). Bu klinik bilim bahosi emas.",
         "top": top, "me": mine, "joined": bool(mine),
     }
 
@@ -1726,10 +1726,11 @@ def leaderboard_join(data: LeaderboardJoin, user=Depends(get_current_user)):
     name = re.sub(r"\s+", " ", data.display_name).strip()[:40]
     if len(name) < 2:
         raise HTTPException(status_code=400, detail="Display name is too short.")
-    _sql("""INSERT INTO student_leaderboard(username, display_name, university, course_number, consent_at)
-            VALUES (%s,%s,%s,%s,NOW())
+    _sql("""INSERT INTO student_leaderboard(username, display_name, university, course_number, total_score, consent_at)
+            VALUES (%s,%s,%s,%s,
+                    (SELECT COALESCE(SUM(points),0) FROM myology_attempts WHERE username=%s AND is_correct=TRUE), NOW())
             ON CONFLICT (username) DO UPDATE SET display_name=EXCLUDED.display_name, university=EXCLUDED.university, course_number=EXCLUDED.course_number, updated_at=NOW()""",
-         (user["username"], name, data.university.strip(), data.course_number), None)
+         (user["username"], name, data.university.strip(), data.course_number, user["username"]), None)
     return {"joined": True}
 
 
@@ -5748,10 +5749,8 @@ def myology_exam_submit(data: MyologyExamSubmitRequest, user=Depends(get_current
         awarded = bool(row)
         if awarded:
             _sql("""UPDATE student_leaderboard
-                    SET total_score = total_score + 10,
-                        solved_cases_count = (SELECT COUNT(DISTINCT muscle_id) FROM myology_attempts WHERE username=%s AND is_correct=TRUE),
-                        updated_at = NOW()
-                    WHERE username=%s""", (username, username), None)
+                    SET total_score = total_score + 10, updated_at = NOW()
+                    WHERE username=%s""", (username,), None)
     else:
         _sql("""INSERT INTO myology_attempts(username,muscle_id,question_id,selected_index,is_correct,points)
                 VALUES (%s,%s,%s,%s,FALSE,0)""",
