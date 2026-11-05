@@ -1545,7 +1545,7 @@ ACADEMY_YEARS = [
     (4, "4-kurs: Klinik fanlar"), (5, "5-kurs: Gospital va shoshilinch fanlar"), (6, "6-kurs: Gospital va shoshilinch fanlar"),
 ]
 ACADEMY_SUBJECTS = [
-    (1, "Normal anatomiya", "ANAT-101"), (1, "Gistologiya", "HIST-102"), (1, "Tibbiy biologiya va kimyo", "BIOL-103"), (1, "Lotin tili", "LAT-104"),
+    (1, "Normal anatomiya", "ANAT-101"), (1, "Gistologiya", "HIST-102"), (1, "Tibbiy biologiya va kimyo", "BIOL-103"), (1, "Tibbiy kimyo (1-semestr)", "CHEM-SAMPI-1"), (1, "Lotin tili", "LAT-104"),
     (2, "Fiziologiya", "PHYS-201"), (2, "Biokimyo", "BIOC-202"), (2, "Patologik anatomiya va fiziologiya", "PATH-203"), (2, "Mikrobiologiya", "MICR-204"),
     (3, "Umumiy xirurgiya", "SURG-301"), (3, "Ichki kasalliklar propedevtikasi", "PROP-302"), (3, "Farmakologiya", "PHAR-303"),
     (4, "Nevrologiya", "NEUR-401"), (4, "Travmatologiya", "TRAU-402"), (4, "Urologiya", "UROL-403"), (4, "Pediatriya", "PEDI-404"),
@@ -5132,6 +5132,7 @@ ACADEMY_COURSES = {
             ("Histology", "Gistologiya", "tissue structure"),
             ("Physiology", "Fiziologiya", "normal body function"),
             ("Biochemistry", "Biokimyo", "molecular processes of life"),
+            ("Medical Chemistry", "Tibbiy kimyo", "medical chemistry, biomolecules, buffers and clinical chemical reactions"),
             ("Genetics", "Genetika", "genes and inheritance"),
             ("Microbiology", "Mikrobiologiya", "microorganisms and infection"),
             ("Immunology", "Immunologiya", "immune system"),
