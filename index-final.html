@@ -5,10 +5,11 @@
 
 <meta http-equiv="Content-Security-Policy"
 content="default-src 'self';
-script-src 'self' 'unsafe-inline' https://cdnjs.cloudflare.com https://cdn.jsdelivr.net https://3dmol.csb.pitt.edu https://www.gstatic.com;
+script-src 'self' 'unsafe-inline' https://cdnjs.cloudflare.com https://cdn.jsdelivr.net https://3dmol.csb.pitt.edu https://www.gstatic.com https://ajax.googleapis.com;
 style-src 'self' 'unsafe-inline';
 connect-src 'self' https:;
-img-src 'self' data:;
+worker-src 'self' blob:;
+img-src 'self' data: blob: https:;
 object-src 'none';
 base-uri 'self';
 frame-ancestors 'none'">
@@ -16,6 +17,7 @@ frame-ancestors 'none'">
 <meta name="viewport" content="width=device-width,initial-scale=1">
 
 <title>MedGen AI — Global Biomedical AI Platform</title>
+<script type="module" src="https://ajax.googleapis.com/ajax/libs/model-viewer/3.4.0/model-viewer.min.js"></script>
 <link rel="stylesheet" href="styles.css">
 
 <style>
@@ -2578,12 +2580,29 @@ document.addEventListener("DOMContentLoaded", function () {
 <script src="anatomy-3d.js?v=1"></script>
 
 
-<div id="skeleton-modal" style="display:none;position:fixed;inset:0;background:rgba(0,0,0,0.9);z-index:999999;justify-content:center;align-items:center;">
-  <div style="position:relative;width:95%;max-width:950px;height:85vh;background:#080d14;border-radius:12px;overflow:hidden;display:flex;flex-direction:column;">
-    <div style="display:flex;justify-content:flex-end;padding:10px 15px;background:#0f172a;">
-      <button type="button" onclick="document.getElementById('skeleton-modal').style.display='none'" style="background:#ef4444;color:white;border:none;padding:6px 14px;border-radius:6px;cursor:pointer;font-weight:bold;">✕ Yopish</button>
+<!-- MedGen AI: isolated 3D skeleton modal using Google's model-viewer -->
+<div id="skeleton-modal-box" style="display:none;position:fixed;inset:0;background:rgba(2,6,23,0.95);z-index:999999;justify-content:center;align-items:center;backdrop-filter:blur(5px);">
+  <div style="position:relative;width:94%;max-width:900px;height:82vh;background:#080d14;border:1px solid #1e293b;border-radius:14px;display:flex;flex-direction:column;overflow:hidden;">
+    <div style="display:flex;justify-content:space-between;align-items:center;padding:12px 18px;background:#0f172a;border-bottom:1px solid #1e293b;">
+      <span style="color:#38bdf8;font-weight:bold;font-family:sans-serif;font-size:14px;">🦴 Inson Skeleti (3D Interaktiv Model — 1.6 MB)</span>
+      <button type="button" onclick="document.getElementById('skeleton-modal-box').style.display='none'" style="background:#ef4444;color:white;border:none;padding:6px 14px;border-radius:6px;cursor:pointer;font-weight:bold;">✕ Yopish</button>
     </div>
-    <iframe title="3D Inson Skeleti" src="/skeleton-viewer.html" style="flex:1;border:none;width:100%;height:100%;"></iframe>
+    <div style="flex:1;width:100%;height:100%;background:radial-gradient(circle,#0f172a 0%,#050a14 100%);">
+      <model-viewer
+        src="https://dbkxgbeisgyjilflkneq.supabase.co/storage/v1/object/public/models/full_skeleton.glb"
+        alt="MedGen AI Inson Skeleti"
+        camera-controls
+        touch-action="pan-y"
+        auto-rotate
+        auto-rotate-delay="1000"
+        rotation-per-second="15deg"
+        shadow-intensity="1.5"
+        shadow-softness="0.8"
+        exposure="1.2"
+        style="width:100%;height:100%;outline:none;">
+        <div slot="poster" style="display:flex;justify-content:center;align-items:center;height:100%;color:#38bdf8;font-family:sans-serif;">Model yuklanmoqda...</div>
+      </model-viewer>
+    </div>
   </div>
 </div>
 </body>
