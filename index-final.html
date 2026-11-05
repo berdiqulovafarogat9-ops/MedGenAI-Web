@@ -2665,7 +2665,8 @@ document.addEventListener("DOMContentLoaded", function () {
         controls.enableDamping=true;
         controls.dampingFactor=0.06;
         controls.autoRotate=true;
-        controls.autoRotateSpeed=1.5;
+        controls.autoRotateSpeed=1.0;
+        controls.addEventListener('start',()=>{controls.autoRotate=false;});
         // Studiya uslubidagi yumshoq yorug‘lik va relyef soyalari.
         renderer.shadowMap.enabled=true;
         renderer.shadowMap.type=THREE.PCFSoftShadowMap;
@@ -2747,11 +2748,11 @@ document.addEventListener("DOMContentLoaded", function () {
             const fittedSphere=fittedBox.getBoundingSphere(new THREE.Sphere());
             const radius=Math.max(fittedSphere.radius,0.01);
             const fitDistance=radius/Math.sin(THREE.Math.degToRad(camera.fov/2))*1.2;
-            const distance=Math.max(3.2,fitDistance);
-            camera.position.set(0,0,distance);
+            const distance=3.8;
+            camera.position.set(0,0.2,3.8);
             camera.lookAt(0,0,0);
             camera.near=Math.max(distance/1000,0.001);
-            camera.far=Math.max(distance*100,100);
+            camera.far=Math.max(Math.max(distance,fitDistance)*100,100);
             camera.updateProjectionMatrix();
             controls.target.set(0,0,0);
             controls.minDistance=radius*0.35;
