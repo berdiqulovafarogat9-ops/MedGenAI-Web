@@ -24,8 +24,8 @@
         {id:'fluid',label:'IV kirish va izotonik kristalloidni ko‘rib chiqish',kind:'good',effect:{hr:-9,sys:18,spo2:0,rr:-2},points:20},
         {id:'antihistamine',label:'Faqat antigistamin berib, adrenalinni kechiktirish',kind:'bad',effect:{hr:12,sys:-12,spo2:-4,rr:4},points:-15}
       ]},
-    {id:'mi',name:'Miokard infarkti (ST elevatsiyasi)',start:{hr:110,sys:90,dia:60,spo2:93,rr:24},ecg:'stemi',
-      clues:['Ko‘krak ortida bosuvchi og‘riq','Sovuq ter va ko‘ngil aynishi','EKGda ST segment elevatsiyasi'],
+    {id:'mi',name:'O‘tkir miokard infarkti (STEMI)',start:{hr:110,sys:90,dia:60,spo2:91,rr:24},ecg:'stemi',
+      clues:['58 yoshli bemor: to‘sh ortida kuchli bosuvchi og‘riq','Og‘riq chap qo‘l va jag‘ga tarqaladi, sovuq ter','12-kanalli EKGda ST segment elevatsiyasi'],
       diagnosis:['Anafilaktik shok','ST elevatsiyali miokard infarkti','Og‘ir pnevmoniya'],correct:1,
       actions:[
         {id:'call',label:'Shoshilinch yordam / reperfuziya yo‘lini faollashtirish',kind:'critical',effect:{hr:-4,sys:2,spo2:0,rr:-1},points:30},
