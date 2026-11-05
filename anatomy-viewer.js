@@ -161,7 +161,12 @@
   }
 
   function mount(root) {
-    if (!root || root.querySelector('#medgenAnatomyTool')) return;
+    if (!root) return;
+    const existing = document.getElementById('medgenAnatomyTool');
+    if (existing) {
+      if (existing.parentElement !== root) root.appendChild(existing);
+      return;
+    }
     const section = document.createElement('section');
     section.id = 'medgenAnatomyTool';
     section.className = 'academy-stat';
@@ -182,12 +187,13 @@
   }
   function watch() {
     const attach = () => {
-      const academyRoot = document.getElementById('academyV2Root');
       const studentRoot = document.getElementById('studentTool');
-      // Mount in the rendered Academy root when available; otherwise use the
-      // visible legacy Student workspace so the viewer is never hidden behind
-      // an Academy root that has not yet been initialized.
-      const root = academyRoot || (studentRoot && !studentRoot.classList.contains('hidden') ? studentRoot : null);
+      const studentVisible = studentRoot && !studentRoot.classList.contains('hidden');
+      const phase1Panel = studentVisible ? studentRoot.querySelector('#phase1AcademyPanel') : null;
+      const academyRoot = document.getElementById('academyV2Root');
+      // Prefer the exact Academy panel shown in the Student workspace.
+      // A hidden/stale academyV2Root must never capture the viewer.
+      const root = phase1Panel || (studentVisible ? studentRoot : (academyRoot && !academyRoot.closest('.hidden') ? academyRoot : null));
       if (root) mount(root);
     };
     attach();
