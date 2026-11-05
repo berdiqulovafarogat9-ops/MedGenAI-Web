@@ -88,6 +88,7 @@
       body.appendChild(el("h3", "margin:6px 0 8px;font-size:18px;color:#e8f0f6", data.subject.name));
       if (!data.topics.length) body.appendChild(el("p", MUTED, "Bu fan uchun mavzular hali qo'shilmagan."));
       data.topics.forEach(function (t) {
+      if (code === 'BIO-SAMPI-1' && window.medgenBio && typeof window.medgenBio.mount === 'function') window.medgenBio.mount(body);
         var b = el("button", BTN2 + ";display:block;width:100%", t.order_number + ". " + t.title);
         b.onclick = function () { showTopic(t.id, code).catch(function (e) { msg.textContent = e.message; }); };
         body.appendChild(b);
