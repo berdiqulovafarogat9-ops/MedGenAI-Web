@@ -14,9 +14,9 @@
       this.scene = null; this.camera = null; this.renderer = null;
       this.controls = null; this.model = null; this.selected = null;
       this.frame = 0; this.resizeObserver = null; this.pointerStart = null;
-      this.status = host.querySelector('#medgenAnatomyStatus');
-      this.canvas = host.querySelector('#medgenAnatomyCanvas');
-      this.name = host.querySelector('#medgenAnatomyName');
+      this.status = host.querySelector('#skeleton-status-label');
+      this.canvas = host.querySelector('#skeleton-canvas-box');
+      this.name = host.querySelector('#skeleton-name-label');
       this.raycaster = new THREE.Raycaster();
       this.pointer = new THREE.Vector2();
     }
@@ -160,37 +160,12 @@
     }
   }
 
-  function mount(root) {
-    if (!root) return;
-    const existing = document.getElementById('medgenAnatomyTool');
-    if (existing) {
-      if (existing.parentElement !== root) root.appendChild(existing);
-      return;
-    }
-    const section = document.createElement('section');
-    section.id = 'medgenAnatomyTool';
-    section.className = 'academy-stat';
-    section.style.cssText = 'display:grid;gap:12px;margin-top:16px;';
-    section.innerHTML = '<div style="display:flex;gap:10px;align-items:center;justify-content:space-between;flex-wrap:wrap"><div><b>🦴 3D Anatomiya laboratoriyasi</b><p class="muted" style="margin:5px 0">Inson skeleti — aylantiring, yaqinlashtiring va suyaklarni tanlang.</p></div><button type="button" id="medgenAnatomyToggle" class="primary">3D modelni ochish</button></div><div id="medgenAnatomyPanel" hidden><div id="medgenAnatomyCanvas" style="height:min(68vh,620px);min-height:360px;width:100%;border-radius:12px;overflow:hidden;background:#080d14;touch-action:pan-y"></div><div id="medgenAnatomyStatus" role="status" aria-live="polite" style="padding:10px 2px">Model tayyor.</div><b id="medgenAnatomyName" aria-live="polite">Hozircha suyak tanlanmagan</b><p class="muted" style="font-size:12px">Eslatma: model ta’limiy vizualizatsiya uchun. Anatomik nomlar GLB faylidagi mesh nomlariga bog‘liq.</p></div>';
-    root.appendChild(section);
-    section.querySelector('#medgenAnatomyToggle').addEventListener('click', () => {
-      const panel = section.querySelector('#medgenAnatomyPanel');
-      const opening = panel.hidden;
-      panel.hidden = !opening;
-      section.querySelector('#medgenAnatomyToggle').textContent = opening ? '3D modelni yopish' : '3D modelni ochish';
-      if (opening && !activeViewer) {
-        activeViewer = new AnatomyViewer(section);
-        activeViewer.init();
-      } else if (opening && activeViewer) activeViewer.resize();
-      else if (!opening && activeViewer) { activeViewer.dispose(); activeViewer = null; }
-    });
-  }
   let anatomyModal = null;
   let buttonObserver = null;
 
-  function closeAnatomyModal() {
+  function closeSkeletonModal() {
     if (!anatomyModal) return;
-    document.removeEventListener('keydown', onAnatomyKeydown);
+    document.removeEventListener('keydown', onSkeletonKeydown);
     if (activeViewer) {
       activeViewer.dispose();
       activeViewer = null;
@@ -199,11 +174,11 @@
     anatomyModal = null;
   }
 
-  function onAnatomyKeydown(event) {
-    if (event.key === 'Escape') closeAnatomyModal();
+  function onSkeletonKeydown(event) {
+    if (event.key === 'Escape') closeSkeletonModal();
   }
 
-  function openAnatomyModal() {
+  function openSkeletonModal() {
     if (anatomyModal) {
       anatomyModal.style.display = 'flex';
       if (activeViewer) activeViewer.resize();
@@ -211,56 +186,58 @@
     }
 
     anatomyModal = document.createElement('div');
-    anatomyModal.id = 'anatomy-modal';
-    anatomyModal.style.cssText = 'position:fixed;inset:0;width:100vw;height:100vh;background:rgba(0,0,0,.88);z-index:2147483000;display:flex;justify-content:center;align-items:center;padding:12px;box-sizing:border-box;';
-    anatomyModal.innerHTML = '<div role="dialog" aria-modal="true" aria-label="3D Inson skeleti" style="position:relative;width:92%;max-width:900px;height:80vh;min-height:420px;background:#080d14;border:1px solid #1e293b;border-radius:14px;overflow:hidden;display:flex;flex-direction:column;box-sizing:border-box"><div style="display:flex;justify-content:space-between;align-items:center;gap:12px;padding:12px 20px;background:#0f172a;border-bottom:1px solid #1e293b;flex-shrink:0"><span id="medgenAnatomyStatus" role="status" aria-live="polite" style="color:#38bdf8;font-weight:bold;font-size:15px">3D kutubxonalar tekshirilmoqda…</span><button type="button" id="close-anatomy-btn" style="background:#ef4444;color:white;border:0;padding:7px 14px;border-radius:6px;cursor:pointer;font-weight:bold;flex-shrink:0">✕ Yopish</button></div><div id="medgenAnatomyCanvas" style="flex:1;min-height:0;width:100%;position:relative;overflow:hidden;touch-action:none"></div><div style="padding:8px 14px;background:#0f172a;color:#cbd5e1;font-size:13px"><b id="medgenAnatomyName">Model tayyorlanmoqda…</b><div>Modelni aylantirish va yaqinlashtirish mumkin. Suyakni tanlash uchun ustiga bosing.</div></div></div>';
+    anatomyModal.id = 'skeleton-modal-wrap';
+    anatomyModal.style.cssText = 'display:flex;position:fixed;inset:0;background:rgba(2,6,23,.92);z-index:2147483000;justify-content:center;align-items:center;backdrop-filter:blur(4px);padding:12px;box-sizing:border-box;';
+    anatomyModal.innerHTML = '<div role="dialog" aria-modal="true" aria-label="3D Inson skeleti" style="position:relative;width:95%;max-width:950px;height:85vh;min-height:420px;background:#080d14;border:1px solid #1e293b;border-radius:14px;overflow:hidden;display:flex;flex-direction:column;box-shadow:0 20px 50px rgba(0,0,0,.8)"><div style="display:flex;justify-content:space-between;align-items:center;padding:12px 18px;background:#0f172a;border-bottom:1px solid #1e293b;gap:12px;flex-shrink:0"><span id="skeleton-status-label" role="status" aria-live="polite" style="color:#38bdf8;font-weight:600;font-size:14px;font-family:sans-serif">Skelet yuklanmoqda…</span><button type="button" id="btn-close-skeleton" style="background:#ef4444;color:#fff;border:0;padding:6px 14px;border-radius:6px;cursor:pointer;font-weight:bold">✕ Yopish</button></div><div id="skeleton-canvas-box" style="flex:1;min-height:0;width:100%;height:100%;position:relative;overflow:hidden;touch-action:none"></div><div style="padding:8px 14px;background:#0f172a;color:#cbd5e1;font-size:13px"><b id="skeleton-name-label">Model tayyorlanmoqda…</b><div>Modelni barmoq bilan aylantiring va yaqinlashtiring. Suyakni tanlash uchun ustiga bosing.</div></div></div>';
 
     document.body.appendChild(anatomyModal);
-    anatomyModal.querySelector('#close-anatomy-btn').addEventListener('click', closeAnatomyModal);
+    anatomyModal.querySelector('#btn-close-skeleton').addEventListener('click', closeSkeletonModal);
     anatomyModal.addEventListener('click', (event) => {
-      if (event.target === anatomyModal) closeAnatomyModal();
+      if (event.target === anatomyModal) closeSkeletonModal();
     });
-    document.addEventListener('keydown', onAnatomyKeydown);
+    document.addEventListener('keydown', onSkeletonKeydown);
 
     if (!window.THREE || !THREE.GLTFLoader || !THREE.DRACOLoader || !THREE.OrbitControls) {
-      anatomyModal.querySelector('#medgenAnatomyStatus').textContent = '3D kutubxonalar yuklanmadi. Sahifani yangilang.';
+      anatomyModal.querySelector('#skeleton-status-label').textContent = '3D kutubxonalar yuklanmadi. Sahifani yangilang.';
       return;
     }
     try {
       activeViewer = new AnatomyViewer(anatomyModal);
       activeViewer.init();
     } catch (error) {
-      console.error('MedGen anatomy viewer initialization failed:', error);
-      anatomyModal.querySelector('#medgenAnatomyStatus').textContent = '3D viewer ishga tushmadi: ' + (error.message || 'noma’lum xato');
+      console.error('MedGen skeleton viewer initialization failed:', error);
+      anatomyModal.querySelector('#skeleton-status-label').textContent = 'Viewer ishga tushmadi: ' + (error.message || 'noma’lum xato');
     }
   }
 
   window.medgenAnatomyModal = {
-    open: openAnatomyModal,
-    close: closeAnatomyModal
+    open: openSkeletonModal,
+    close: closeSkeletonModal
   };
 
-  function bindAnatomyButton() {
-    const bind = () => {
-      const button = document.getElementById('open-anatomy-btn');
-      if (!button || button.dataset.anatomyBound === '1') return;
-      button.dataset.anatomyBound = '1';
+  function bindSkeletonButton() {
+    const button = document.getElementById('btn-open-skeleton');
+    if (button && button.dataset.skeletonBound !== '1') {
+      button.dataset.skeletonBound = '1';
       button.addEventListener('click', (event) => {
         event.preventDefault();
-        openAnatomyModal();
+        openSkeletonModal();
       });
-    };
-    bind();
+    }
+  }
+
+  function watchSkeletonButton() {
+    bindSkeletonButton();
     if (!buttonObserver) {
-      buttonObserver = new MutationObserver(bind);
+      buttonObserver = new MutationObserver(bindSkeletonButton);
       buttonObserver.observe(document.documentElement, { childList: true, subtree: true });
     }
   }
 
   if (document.readyState === 'loading') {
-    document.addEventListener('DOMContentLoaded', bindAnatomyButton, { once: true });
+    document.addEventListener('DOMContentLoaded', watchSkeletonButton, { once: true });
   } else {
-    bindAnatomyButton();
+    watchSkeletonButton();
   }
   window.MedGenAnatomyViewer = AnatomyViewer;
 })();
