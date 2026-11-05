@@ -85,10 +85,15 @@ async function loadQuestion(root){
 }
 function draw(root){if(state.tab==='molecule')drawMolecule(root);else if(state.tab==='lab')drawLab(root);else drawTest(root)}
 function scan(){
- const panel=document.getElementById('academyPanel');if(!panel)return;
- const obs=new MutationObserver(()=>{const t=(panel.innerText||'').toLowerCase();if(t.includes('tibbiy kimyo')||t.includes('medical chemistry')||t.includes('chem-sampi-1'))render(panel)});
- obs.observe(panel,{childList:true,subtree:true,characterData:true});
- const t=(panel.innerText||'').toLowerCase();if(t.includes('tibbiy kimyo')||t.includes('medical chemistry')||t.includes('chem-sampi-1'))render(panel);
+ const attached=new WeakSet();
+ const attach=panel=>{
+  if(!panel||attached.has(panel))return;attached.add(panel);
+  const check=()=>{const t=(panel.innerText||'').toLowerCase();if(t.includes('tibbiy kimyo')||t.includes('medical chemistry')||t.includes('chem-sampi-1'))render(panel)};
+  new MutationObserver(check).observe(panel,{childList:true,subtree:true,characterData:true});check();
+ };
+ const find=()=>{const panel=document.getElementById('academyPanel');if(panel)attach(panel)};
+ find();
+ new MutationObserver(find).observe(document.body,{childList:true,subtree:true});
 }
 if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',scan,{once:true});else scan();
 })();
