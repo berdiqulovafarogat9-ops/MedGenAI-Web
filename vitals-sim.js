@@ -243,6 +243,9 @@
             case_id: sim.def.id, diagnosis: picked ? parseInt(picked.value, 10) : -1,
             actions: sim.log, tab_switches: penalty
           });
+          if (typeof window.submitStudentScore === "function") {
+            await window.submitStudentScore(rep.score, "Patient_" + sim.def.id);
+          }
           showReport(rep);
         } catch (e) { submit.disabled = false; alertBox.style.background = "#b00020"; flash(e.message); }
       };
