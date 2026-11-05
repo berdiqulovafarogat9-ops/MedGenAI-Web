@@ -113,6 +113,26 @@
       body.appendChild(el("h3", "margin:6px 0 8px;font-size:18px;color:#e8f0f6", data.topic.title));
       body.appendChild(el("div", "white-space:pre-wrap;font-size:14px;line-height:1.55;color:#dbe7f0", data.topic.summary_md || ""));
       data.resources.forEach(function (r) {
+        if (r.resource_type === "virtual_case" && r.metadata && Array.isArray(r.metadata.quiz)) {
+          r.metadata.quiz.forEach(function (q) {
+            var card = el("div", "margin:12px 0;padding:14px;border:1px solid #31566a;border-radius:12px;background:#102333");
+            card.appendChild(el("div", "font-weight:700;color:#56dcc0;margin-bottom:8px", r.title || "Virtual klinik keys"));
+            card.appendChild(el("div", "font-size:14px;line-height:1.5;margin-bottom:10px", q.question || "Savol"));
+            var feedback = el("div", "font-size:13px;line-height:1.5;margin-top:8px;color:#a9c3d0", "");
+            (q.options || []).forEach(function (option, index) {
+              var choice = el("button", BTN2 + ";display:block;width:100%;margin:5px 0", String.fromCharCode(65 + index) + ". " + option);
+              choice.onclick = function () {
+                card.querySelectorAll("button").forEach(function (button) { button.disabled = true; });
+                var correct = Number(q.correct) === index;
+                feedback.style.setProperty("color", correct ? "#56dcc0" : "#ff9b9b", "important");
+                feedback.textContent = (correct ? "✓ To‘g‘ri javob. " : "✗ Noto‘g‘ri. To‘g‘ri javob: " + ((q.options || [])[Number(q.correct)] || "") + ". ") + (q.explanation || "");
+              };
+              card.appendChild(choice);
+            });
+            card.appendChild(feedback);
+            body.appendChild(card);
+          });
+        }
         if (r.resource_type === "model_3d" && window.MedGenAnatomy && /^https:\/\//i.test(r.resource_url)) {
           var v = el("button", BTN2, "3D ko'rish: " + r.title);
           v.onclick = function () { window.MedGenAnatomy.open(r.resource_url, r.title); };
