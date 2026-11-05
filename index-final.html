@@ -2580,6 +2580,19 @@ document.addEventListener("DOMContentLoaded", function () {
 <script src="anatomy-3d.js?v=1"></script>
 
 
+<style id="medgen-myology-ui">
+#medgen-muscle-tools{position:absolute;left:10px;top:52px;z-index:30;width:min(290px,42vw);max-height:calc(100% - 70px);overflow:auto;padding:10px;border:1px solid #256477;border-radius:12px;background:rgba(3,15,28,.94);color:#e2e8f0;font:12px/1.45 Arial,sans-serif;box-shadow:0 10px 28px rgba(0,0,0,.35);pointer-events:auto}
+.mg-muscle-title{font-size:14px;font-weight:800;color:#67e8f9;margin-bottom:4px}.mg-muscle-intro{font-size:11px;color:#a9c5d4;margin:4px 0 8px}
+#medgen-muscle-list{display:grid;grid-template-columns:1fr;gap:4px;max-height:180px;overflow:auto}
+.mg-muscle-button{width:100%;text-align:left;border:1px solid #29465a;border-radius:7px;padding:6px 8px;background:#10283b;color:#dbeafe;font-size:11px;cursor:pointer}
+.mg-muscle-button[aria-pressed="true"]{border-color:#22d3ee;background:#164e63;color:#fff}
+#medgen-muscle-passport{display:none;margin-top:9px;padding:9px;border-radius:9px;border:1px solid #35546a;background:rgba(15,23,42,.98)}
+.mg-muscle-head{border-bottom:1px solid #3b6478;padding-bottom:7px;margin-bottom:7px}.mg-muscle-group{font-size:10px;text-transform:uppercase;color:#67e8f9;font-weight:700}.mg-muscle-head h3{font-size:15px;margin:3px 0;color:#fff}.mg-muscle-latin{font-style:italic;color:#a5b4c7}
+.mg-muscle-field{margin:7px 0}.mg-muscle-field strong{color:#fbbf24;font-size:11px}.mg-muscle-field p{margin:2px 0;color:#d1dbe7;font-size:11px}
+.mg-muscle-note{font-size:10px;color:#fbbf24;border-top:1px solid #475569;padding-top:6px;margin:8px 0 0}
+@media(max-width:600px){#medgen-muscle-tools{width:min(235px,48vw);left:5px;top:48px;padding:7px;max-height:calc(100% - 58px)}.mg-muscle-button{font-size:10px;padding:5px}.mg-muscle-field p{font-size:10px}}
+</style>
+<script src="/anatomy-muscles.js?v=1"></script>
 <!-- MEDGEN AI: SELF-HOSTED THREE.JS + DRACO VIEWER -->
 <script src="/vendor/three.min.js"></script>
 <script src="/vendor/OrbitControls.js"></script>
@@ -2741,6 +2754,7 @@ document.addEventListener("DOMContentLoaded", function () {
             scene.add(model);
             model.updateMatrixWorld(true);
             window.loadedSkeletonModel=model;
+            if(window.medgenMuscles) window.medgenMuscles.mount(box,THREE,scene);
 
             // Modelning nisbatiga qarab kamera masofasini hisoblash:
             // 3.2 minimal masofa, uzun skeletlarda esa to‘liq sig‘adigan masofa.
@@ -2888,6 +2902,14 @@ document.addEventListener("DOMContentLoaded", function () {
                pointer.x=((event.clientX-rect.left)/rect.width)*2-1;
                pointer.y=-((event.clientY-rect.top)/rect.height)*2+1;
                raycaster.setFromCamera(pointer,camera);
+               if(window.medgenMuscleMarkerGroup){
+                 const muscleHits=raycaster.intersectObjects(window.medgenMuscleMarkerGroup.children,false);
+                 if(muscleHits.length){
+                   const muscleKey=muscleHits[0].object.userData.muscleKey;
+                   if(window.medgenMuscles) window.medgenMuscles.show(muscleKey);
+                   return;
+                 }
+               }
                const hits=raycaster.intersectObject(window.loadedSkeletonModel,true);
                if(!hits.length)return;
                const clicked=hits[0].object;
