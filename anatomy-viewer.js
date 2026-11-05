@@ -5,7 +5,7 @@
 (function () {
   'use strict';
   const MODEL_URL = 'https://dbkxgbeisgyjilflkneq.supabase.co/storage/v1/object/public/models/full_skeleton.glb';
-  const DECODER_PATH = 'https://www.gstatic.com/draco/v1/decoders/';
+  const DECODER_PATH = 'https://www.gstatic.com/draco/versioned/decoders/1.5.6/';
   let activeViewer = null;
 
   class AnatomyViewer {
