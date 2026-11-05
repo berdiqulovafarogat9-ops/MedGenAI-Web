@@ -2639,11 +2639,23 @@ document.addEventListener("DOMContentLoaded", function () {
         controls.dampingFactor=0.06;
         controls.autoRotate=true;
         controls.autoRotateSpeed=1.5;
-        scene.add(new THREE.HemisphereLight(0xffffff,0x334155,1.2));
-        const keyLight=new THREE.DirectionalLight(0xffffff,1.6);
-        keyLight.position.set(5,10,7);scene.add(keyLight);
-        const fillLight=new THREE.DirectionalLight(0x38bdf8,0.65);
-        fillLight.position.set(-5,-2,-5);scene.add(fillLight);
+        // Studiya uslubidagi yumshoq yorug‘lik va relyef soyalari.
+        renderer.shadowMap.enabled=true;
+        renderer.shadowMap.type=THREE.PCFSoftShadowMap;
+        scene.add(new THREE.AmbientLight(0xddeeff,0.5));
+
+        const keyLight=new THREE.DirectionalLight(0xffffff,1.4);
+        keyLight.position.set(4,7,5);
+        keyLight.castShadow=true;
+        keyLight.shadow.mapSize.set(2048,2048);
+        keyLight.shadow.camera.near=0.1;
+        keyLight.shadow.camera.far=30;
+        keyLight.shadow.bias=-0.0002;
+        scene.add(keyLight);
+
+        const rimLight=new THREE.DirectionalLight(0x38bdf8,0.7);
+        rimLight.position.set(-4,-2,-3);
+        scene.add(rimLight);
 
         function resize() {
           const w=Math.max(box.clientWidth,1),h=Math.max(box.clientHeight,1);
@@ -2667,11 +2679,17 @@ document.addEventListener("DOMContentLoaded", function () {
             const model=gltf.scene;
             model.traverse((child)=>{
               if(child.isMesh){
-                const materials=Array.isArray(child.material)?child.material:[child.material];
-                materials.filter(Boolean).forEach((material)=>{
-                  material.side=THREE.DoubleSide;
-                  material.needsUpdate=true;
+                const makeBoneMaterial=()=>new THREE.MeshStandardMaterial({
+                  color:0xede8d5,
+                  roughness:0.55,
+                  metalness:0.05,
+                  side:THREE.DoubleSide
                 });
+                child.material=Array.isArray(child.material)
+                  ? child.material.map(()=>makeBoneMaterial())
+                  : makeBoneMaterial();
+                child.castShadow=true;
+                child.receiveShadow=true;
               }
             });
 
