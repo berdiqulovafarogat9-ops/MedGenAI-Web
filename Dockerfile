@@ -4,6 +4,7 @@ RUN apk add --no-cache curl \
  && mkdir -p /usr/share/nginx/html/models /usr/share/nginx/html/vendor \
  && curl -fLsS --retry 3 --retry-delay 2 "https://dbkxgbeisgyjilflkneq.supabase.co/storage/v1/object/public/models/full_skeleton.glb" -o /usr/share/nginx/html/models/full_skeleton.glb \
  && echo "fa91ad49eef6463ff3df2b38219aa70b40e58dfc227421ae2b41329ac137c304  /usr/share/nginx/html/models/full_skeleton.glb" | sha256sum -c - \
+ && cp /usr/share/nginx/html/models/full_skeleton.glb /usr/share/nginx/html/models/thoracic_spine.glb \
  && curl -fLsS --retry 3 --retry-delay 2 "https://cdn.jsdelivr.net/npm/three@0.128.0/build/three.min.js" -o /usr/share/nginx/html/vendor/three.min.js \
  && curl -fLsS --retry 3 --retry-delay 2 "https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/controls/OrbitControls.js" -o /usr/share/nginx/html/vendor/OrbitControls.js \
  && curl -fLsS --retry 3 --retry-delay 2 "https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/loaders/GLTFLoader.js" -o /usr/share/nginx/html/vendor/GLTFLoader.js \
