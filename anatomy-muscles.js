@@ -61,9 +61,59 @@
       const section=el('section',{class:'mg-muscle-field'});
       section.append(el('strong',{},label),el('p',{},value)); panel.append(section);
     });
-    panel.append(el('p',{class:'mg-muscle-note'},'O‘quv ma’lumoti. Mushak markerining hozirgi joyi skelet modeli uchun taxminiy ko‘rsatkich; aniq topografiya maxsus mushaklar modeli bilan tekshiriladi.'));
+    panel.append(el('p',{class:'mg-muscle-note'},'O‘quv ma’lumoti. Markerlar skelet modeli uchun navigatsion ko‘rsatkich; mushaklarning haqiqiy 3D geometriyasi alohida model talab qiladi.'));
+    const testButton=el('button',{type:'button',class:'mg-myology-test-button'},'🎯 Ushbu mushak bo‘yicha test topshirish');
+    const testBox=el('div',{class:'mg-myology-test','aria-live':'polite'});
+    testButton.addEventListener('click',()=>startMyologyTest(key,testBox,testButton));
+    panel.append(testButton,testBox);
     panel.style.display='block';
     document.querySelectorAll('[data-muscle-key]').forEach(b=>b.setAttribute('aria-pressed',String(b.dataset.muscleKey===key)));
+  }
+
+  const API_BASE=()=>window.MEDGEN_API_BASE||'https://medgenai-web-1.onrender.com/api/v1';
+  async function myologyApi(path,options={}){
+    const headers=Object.assign({'Content-Type':'application/json'},options.headers||{});
+    const token=sessionStorage.getItem('medgen_access_token')||'';
+    if(token) headers.Authorization='Bearer '+token;
+    const response=await fetch(API_BASE()+path,Object.assign({},options,{headers}));
+    const data=await response.json().catch(()=>({detail:'Server javobini o‘qib bo‘lmadi.'}));
+    if(!response.ok) throw new Error(data.detail||'Test xizmatida xatolik.');
+    return data;
+  }
+  function startMyologyTest(key,box,button){
+    box.innerHTML='';
+    button.disabled=true;
+    const loading=el('p',{class:'mg-myology-status'},'Klinik vaziyat yuklanmoqda…');
+    box.append(loading);
+    myologyApi('/myology/exam/'+encodeURIComponent(key)).then(question=>{
+      box.innerHTML='';
+      box.append(el('div',{class:'mg-myology-case'},question.scenario));
+      const choices=el('div',{class:'mg-myology-options'});
+      question.options.forEach((option,index)=>{
+        const choice=el('button',{type:'button',class:'mg-myology-option'},String.fromCharCode(65+index)+'. '+option);
+        choice.addEventListener('click',async()=>{
+          choices.querySelectorAll('button').forEach(b=>b.disabled=true);
+          try{
+            const result=await myologyApi('/myology/exam/submit',{method:'POST',body:JSON.stringify({muscle_id:key,question_id:question.question_id,selected_index:index})});
+            const status=el('div',{class:'mg-myology-result '+(result.correct?'is-correct':'is-wrong')});
+            status.append(el('strong',{},result.correct?(result.awarded?'To‘g‘ri! +10 ball':'To‘g‘ri! Bu mushak uchun +10 ball avval olingan.'):'Noto‘g‘ri javob. 0 ball.'));
+            status.append(el('p',{},result.explanation));
+            status.append(el('p',{},'Myologiya bo‘yicha jami ball: '+result.total_myology_points));
+            if(result.leaderboard_joined) status.append(el('p',{},'Umumiy reyting balli: '+result.leaderboard_total));
+            else status.append(el('p',{},'Ball saqlandi. Ommaviy reytingda ko‘rinish uchun Reyting bo‘limida rozilik bilan qo‘shiling.'));
+            box.append(status);
+          }catch(error){
+            box.append(el('p',{class:'mg-myology-status is-wrong'},error.message));
+            choices.querySelectorAll('button').forEach(b=>b.disabled=false);
+          }
+        });
+        choices.append(choice);
+      });
+      box.append(choices);
+    }).catch(error=>{
+      box.innerHTML='';
+      box.append(el('p',{class:'mg-myology-status is-wrong'},error.message+' (Hisobga kirganingizni tekshiring.)'));
+    }).finally(()=>{button.disabled=false;});
   }
 
   function mount(container, THREE, scene) {
@@ -83,11 +133,28 @@
       list.append(btn);
     });
 
-    const markerGroup=new THREE.Group(); markerGroup.name='MedGen provisional muscle markers';
+    const markerGroup=new THREE.Group(); markerGroup.name='MedGen compact myology pins';
+    const PRECISE_POSITIONS={
+      m_pectoralis_major:[0.08,0.35,0.12],
+      m_rectus_abdominis:[0.0,0.05,0.11],
+      m_deltoideus:[0.24,0.42,0.02],
+      m_quadriceps_femoris:[0.11,-0.42,0.09],
+      m_triceps_surae:[0.09,-0.85,-0.06],
+      m_masseter:[0.07,0.62,0.06]
+    };
+    const pinGeometry=new THREE.SphereGeometry(0.018,16,16);
+    const pinMaterial=new THREE.MeshBasicMaterial({color:0xffffff});
+    const ringGeometry=new THREE.RingGeometry(0.024,0.03,32);
+    const ringMaterial=new THREE.MeshBasicMaterial({color:0x38bdf8,transparent:true,opacity:0.9,side:THREE.DoubleSide,depthWrite:false});
     MARKERS.forEach(([key,label,x,y,z])=>{
-      const dot=new THREE.Mesh(new THREE.SphereGeometry(0.025,12,10),new THREE.MeshBasicMaterial({color:0x22d3ee,depthTest:false}));
-      dot.position.set(x,y,z); dot.renderOrder=1000; dot.userData.muscleKey=key; dot.userData.label=label;
-      markerGroup.add(dot);
+      const pos=PRECISE_POSITIONS[key]||[x,y,z];
+      const pin=new THREE.Mesh(pinGeometry,pinMaterial);
+      pin.position.set(pos[0],pos[1],pos[2]);
+      pin.userData.muscleKey=key; pin.userData.label=label; pin.renderOrder=1001;
+      const ring=new THREE.Mesh(ringGeometry,ringMaterial);
+      ring.position.copy(pin.position);
+      ring.userData.muscleKey=key; ring.userData.label=label; ring.userData.isMuscleRing=true; ring.renderOrder=1000;
+      markerGroup.add(ring,pin);
     });
     markerGroup.visible=true;
     window.medgenMuscleMarkerGroup=markerGroup;
