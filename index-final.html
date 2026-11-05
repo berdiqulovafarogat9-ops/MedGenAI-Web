@@ -2826,10 +2826,33 @@ document.addEventListener("DOMContentLoaded", function () {
                clicked.material=highlight;
                const rawName=(clicked.name||'Noma’lum suyak').replace(/[_-]+/g,' ');
                 if(window.medgenAnatomyQuiz)window.medgenAnatomyQuiz.checkSelection(rawName);
-               const normalized=rawName.toLowerCase();
+               const normalized=rawName.toLowerCase().replace(/[_.-]+/g,' ').replace(/\\s+/g,' ').trim();
+               const BONE_ALIASES={
+                 'hip bone':'Pelvis','hip':'Pelvis','coxal':'Pelvis','os coxae':'Pelvis','ilium':'Pelvis','ischium':'Pelvis','pubis':'Pelvis',
+                 'skull':'Cranium','cranium':'Cranium','calvaria':'Parietal',
+                 'rib':'Rib','costa':'Rib','sternal rib':'Rib',
+                 'vertebra':'Vertebra','spine':'Spine','vertebral':'Vertebra','cervical vertebra':'Cervical','thoracic vertebra':'Thoracic','lumbar vertebra':'Lumbar',
+                 'frontal bone':'Frontal','os frontale':'Frontal','parietal bone':'Parietal','os parietale':'Parietal',
+                 'temporal bone':'Temporal','os temporale':'Temporal','occipital bone':'Occipital','os occipitale':'Occipital',
+                 'sphenoid bone':'Sphenoid','os sphenoidale':'Sphenoid','ethmoid bone':'Ethmoid','os ethmoidale':'Ethmoid',
+                 'mandibula':'Mandible','lower jaw':'Mandible','maxilla':'Maxilla','upper jaw':'Maxilla',
+                 'zygomatic bone':'Zygomatic','os zygomaticum':'Zygomatic','nasal bone':'Nasal','os nasale':'Nasal',
+                 'clavicula':'Clavicle','collarbone':'Clavicle','scapula':'Scapula','shoulder blade':'Scapula',
+                 'humerus':'Humerus','radius':'Radius','ulna':'Ulna','sternum':'Sternum',
+                 'sacrum':'Sacrum','os sacrum':'Sacrum','femur':'Femur','patella':'Patella','tibia':'Tibia','fibula':'Fibula'
+               };
                let matched=null;
                for(const key of Object.keys(BONE_DICTIONARY)){
                  if(normalized.includes(key.toLowerCase())){matched=BONE_DICTIONARY[key];break;}
+               }
+               if(!matched){
+                 const aliases=Object.keys(BONE_ALIASES).sort((a,b)=>b.length-a.length);
+                 for(const alias of aliases){
+                   if(normalized.includes(alias)){
+                     const target=BONE_ALIASES[alias];
+                     if(BONE_DICTIONARY[target]){matched=BONE_DICTIONARY[target];break;}
+                   }
+                 }
                }
                if(matched){
                  boneLatin.textContent=matched.la;
