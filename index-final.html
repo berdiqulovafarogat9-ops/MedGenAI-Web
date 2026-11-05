@@ -2587,12 +2587,24 @@ document.addEventListener("DOMContentLoaded", function () {
 .mg-muscle-button{width:100%;text-align:left;border:1px solid #29465a;border-radius:7px;padding:6px 8px;background:#10283b;color:#dbeafe;font-size:11px;cursor:pointer}
 .mg-muscle-button[aria-pressed="true"]{border-color:#22d3ee;background:#164e63;color:#fff}
 #medgen-muscle-passport{display:none;margin-top:9px;padding:9px;border-radius:9px;border:1px solid #35546a;background:rgba(15,23,42,.98)}
+#medgen-muscle-passport{max-height:480px;overflow-y:auto;overscroll-behavior:contain}
+.mg-myology-test-button{width:100%;margin-top:10px;padding:9px 10px;border:1px solid #0e7490;border-radius:9px;background:linear-gradient(135deg,#164e63,#0f3448);color:#ecfeff;font-weight:700;font-size:12px;cursor:pointer}
+.mg-myology-test-button:disabled{opacity:.6;cursor:wait}
+.mg-myology-test{margin-top:9px}
+.mg-myology-case{padding:9px;border:1px solid #36566b;border-radius:8px;background:#0b2032;color:#f1f5f9;font-size:12px;line-height:1.5}
+.mg-myology-options{display:grid;gap:6px;margin-top:8px}
+.mg-myology-option{padding:8px;text-align:left;border:1px solid #35546a;border-radius:7px;background:#132d42;color:#e2e8f0;font-size:11px;cursor:pointer}
+.mg-myology-option:disabled{opacity:.65;cursor:default}
+.mg-myology-result,.mg-myology-status{margin-top:8px;padding:9px;border-radius:8px;font-size:11px;line-height:1.45}
+.mg-myology-result p{margin:5px 0 0}
+.mg-myology-result.is-correct{border:1px solid #15803d;background:#052e24;color:#dcfce7}
+.mg-myology-result.is-wrong,.mg-myology-status.is-wrong{border:1px solid #b45309;background:#422006;color:#fef3c7}
 .mg-muscle-head{border-bottom:1px solid #3b6478;padding-bottom:7px;margin-bottom:7px}.mg-muscle-group{font-size:10px;text-transform:uppercase;color:#67e8f9;font-weight:700}.mg-muscle-head h3{font-size:15px;margin:3px 0;color:#fff}.mg-muscle-latin{font-style:italic;color:#a5b4c7}
 .mg-muscle-field{margin:7px 0}.mg-muscle-field strong{color:#fbbf24;font-size:11px}.mg-muscle-field p{margin:2px 0;color:#d1dbe7;font-size:11px}
 .mg-muscle-note{font-size:10px;color:#fbbf24;border-top:1px solid #475569;padding-top:6px;margin:8px 0 0}
 @media(max-width:600px){#medgen-muscle-tools{width:min(235px,48vw);left:5px;top:48px;padding:7px;max-height:calc(100% - 58px)}.mg-muscle-button{font-size:10px;padding:5px}.mg-muscle-field p{font-size:10px}}
 </style>
-<script src="/anatomy-muscles.js?v=2"></script>
+<script src="/anatomy-muscles.js?v=3"></script>
 <!-- MEDGEN AI: SELF-HOSTED THREE.JS + DRACO VIEWER -->
 <script src="/vendor/three.min.js"></script>
 <script src="/vendor/OrbitControls.js"></script>
@@ -2955,7 +2967,7 @@ document.addEventListener("DOMContentLoaded", function () {
             status.textContent='Modelni ochishda xatolik. Konsol va Draco dekoder yo‘lini tekshiring.';
           }
         );
-        function animate(){requestAnimationFrame(animate);controls.update();renderer.render(scene,camera);}
+        function animate(){requestAnimationFrame(animate);controls.update();if(window.medgenMuscleMarkerGroup){window.medgenMuscleMarkerGroup.children.forEach(marker=>{if(marker.userData&&marker.userData.isMuscleRing)marker.lookAt(camera.position);});}renderer.render(scene,camera);}
         animate();
       } catch(error) {
         console.error('MedGen 3D viewer xatosi:',error);
