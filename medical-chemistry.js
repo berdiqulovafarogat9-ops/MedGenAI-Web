@@ -31,7 +31,7 @@ function css(){
  #medgenChem button.active{background:#155a83;border-color:#5ab8ff}#medgenChem .chem-grid{display:grid;grid-template-columns:minmax(0,1.2fr) minmax(220px,.8fr);gap:14px}
  #medgenChem .chem-card{background:rgba(255,255,255,.045);border:1px solid rgba(255,255,255,.1);border-radius:14px;padding:14px;min-width:0}
  #medgenChem .chem-stage{height:270px;perspective:700px;display:grid;place-items:center;overflow:hidden;background:radial-gradient(ellipse,rgba(54,124,176,.22),transparent 68%);border-radius:12px}
- #medgenChem .chem-stage canvas{display:block;width:100%;height:100%;touch-action:pan-y}
+ #medgenChem .chem-stage canvas{display:block;width:100%;height:100%;touch-action:none}
  #medgenChem .chem-stage{touch-action:pan-y}
  #medgenChem .chem-atom:focus{outline:3px solid #62c7ff;z-index:3}
  #medgenChem .chem-note{color:#b8cbe0;font-size:13px;line-height:1.5}#medgenChem .chem-lab-tube{height:145px;width:90px;margin:16px auto 10px;border:4px solid #a8d3ec;border-top:0;border-radius:0 0 22px 22px;position:relative;overflow:hidden;background:#ffffff12}
@@ -44,7 +44,7 @@ function css(){
 function cleanAcademyBlocks(host){
  const labels=new Set(['guided practice','application exercise','integration exercise']);
  host.querySelectorAll('h1,h2,h3,h4,h5,h6,strong,b,summary').forEach(node=>{
-  const label=(node.textContent||'').trim().toLowerCase().replace(/\\s+/g,' ');
+  const label=(node.textContent||'').trim().toLowerCase().replace(/\s+/g,' ');
   if(!labels.has(label))return;
   const card=node.parentElement;
   if(card&&card!==host&&card.textContent.length<1800)card.remove();else node.remove();
