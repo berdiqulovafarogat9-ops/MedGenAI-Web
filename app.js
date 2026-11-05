@@ -4803,6 +4803,11 @@ if (document.readyState === "loading") {
       <div class="student-hero">
         <div>
           <p class="eyebrow">PHASE 1 • MEDICAL ACADEMY</p>
+          <div style="margin:15px 0;">
+            <button type="button" onclick="window.medgenAnatomyModal.open()" style="background:#10b981;color:white;padding:12px 20px;border-radius:8px;font-weight:bold;border:none;cursor:pointer;display:flex;align-items:center;gap:8px;">
+              💀 3D Inson Skeleti (Interactive 3D Viewer)
+            </button>
+          </div>
           <h2>To‘liq akademik profil va o‘quv tizimi</h2>
           <p class="muted">Har bir fan: <b>Nazariya → Mashq → Quiz → Case → Imtihon</b>. Kurs o‘tishi 3 ta savol bilan belgilanmaydi.</p>
         </div>
