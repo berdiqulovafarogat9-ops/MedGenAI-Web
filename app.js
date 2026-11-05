@@ -6089,7 +6089,10 @@ async function renderAlphaFold3D(){
  };
  if(!window.medgenAnatomyQuiz)window.medgenAnatomyQuiz={
   active:false,targetKey:null,score:0,asked:0,questions:[
-   {key:"Frontal",name:"Peshona suyagi (Os frontale)"},{key:"Parietal",name:"Tepa suyagi (Os parietale)"},{key:"Temporal",name:"Chakka suyagi (Os temporale)"},{key:"Occipital",name:"Ensa suyagi (Os occipitale)"},{key:"Mandible",name:"Pastki jag‘ suyagi (Mandibula)"},{key:"Rib",name:"Qovurg‘a (Costae)"},{key:"Sternum",name:"To‘sh suyagi (Sternum)"},{key:"Femur",name:"Son suyagi (Femur)"},{key:"Pelvis",name:"Chanoq suyagi (Pelvis)"}
+   {key:"Frontal",name:"Peshona suyagi (Os frontale)"},{key:"Parietal",name:"Tepa suyagi (Os parietale)"},{key:"Temporal",name:"Chakka suyagi (Os temporale)"},{key:"Occipital",name:"Ensa suyagi (Os occipitale)"},{key:"Sphenoid",name:"Ponasimon suyak (Os sphenoidale)"},{key:"Ethmoid",name:"G‘alvirsimon suyak (Os ethmoidale)"},{key:"Mandible",name:"Pastki jag‘ suyagi (Mandibula)"},{key:"Maxilla",name:"Yuqori jag‘ suyagi (Maxilla)"},{key:"Zygomatic",name:"Yonoq suyagi (Os zygomaticum)"},{key:"Nasal",name:"Burun suyagi (Os nasale)"},
+   {key:"Sternum",name:"To‘sh suyagi (Sternum)"},{key:"Rib",name:"Qovurg‘a (Costa)"},{key:"Cervical",name:"Bo‘yin umurtqalari (Vertebrae cervicales)"},{key:"Thoracic",name:"Ko‘krak umurtqalari (Vertebrae thoracicae)"},{key:"Lumbar",name:"Bel umurtqalari (Vertebrae lumbales)"},{key:"Sacrum",name:"Dumg‘aza suyagi (Os sacrum)"},
+   {key:"Clavicle",name:"O‘mrov suyagi (Clavicula)"},{key:"Scapula",name:"Kurak suyagi (Scapula)"},{key:"Humerus",name:"Yelka suyagi (Humerus)"},{key:"Radius",name:"Nur suyagi (Radius)"},{key:"Ulna",name:"Tirsak suyagi (Ulna)"},
+   {key:"Pelvis",name:"Chanoq suyagi (Os coxae)"},{key:"Femur",name:"Son suyagi (Femur)"},{key:"Patella",name:"Tizza qopqog‘i (Patella)"},{key:"Tibia",name:"Katta boldir suyagi (Tibia)"},{key:"Fibula",name:"Kichik boldir suyagi (Fibula)"}
   ],
   start:function(){this.active=true;this.score=0;this.asked=0;this.nextQuestion();},
   stop:function(){this.active=false;this.targetKey=null;},
