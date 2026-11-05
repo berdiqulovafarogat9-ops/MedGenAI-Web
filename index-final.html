@@ -2761,27 +2761,41 @@ document.addEventListener("DOMContentLoaded", function () {
              status.textContent='Skelet tayyor! Suyakni tanlang yoki barmoq bilan aylantiring.';
              dracoLoader.dispose();
              const BONE_DICTIONARY={
-               Cranium:{uz:'Kalla suyagi',la:'Cranium',desc:'Miya qutisi va yuz skeletini o‘z ichiga oladi.'},
-               Skull:{uz:'Kalla suyagi',la:'Cranium',desc:'Miya va sezgi a’zolarini himoya qiluvchi suyaklar majmuasi.'},
-               Frontal:{uz:'Peshona suyagi',la:'Os frontale',desc:'Miya qutisining oldingi devori va ko‘z kosasi tomini hosil qiladi.'},
+               // Bosh va yuz suyaklari
+               Frontal:{uz:'Peshona suyagi',la:'Os frontale',desc:'Miya qutisining old devori va ko‘z kosasi tomini hosil qiladi.'},
                Parietal:{uz:'Tepa suyagi',la:'Os parietale',desc:'Kalla gumbazining yuqori-yon devorlarini hosil qiluvchi juft suyak.'},
-               Temporal:{uz:'Chakka suyagi',la:'Os temporale',desc:'Eshituv va muvozanat a’zolari bilan bog‘liq murakkab juft suyak.'},
-               Occipital:{uz:'Ensa suyagi',la:'Os occipitale',desc:'Kallaning orqa devori; katta ensa teshigi shu yerda joylashgan.'},
-               Mandible:{uz:'Pastki jag‘ suyagi',la:'Mandibula',desc:'Kallaning yagona harakatchan suyagi, chaynov apparati asosi.'},
-               Maxilla:{uz:'Yuqori jag‘ suyagi',la:'Maxilla',desc:'Yuz skeletining markaziy qismini tashkil qiluvchi juft suyak.'},
-               Rib:{uz:'Qovurg‘a',la:'Costa',desc:'Ko‘krak qafasini hosil qilib, yurak va o‘pkani himoya qiladi.'},
+               Temporal:{uz:'Chakka suyagi',la:'Os temporale',desc:'Eshituv va muvozanat a’zolari joylashgan murakkab juft suyak.'},
+               Occipital:{uz:'Ensa suyagi',la:'Os occipitale',desc:'Kallaning orqa devorini hosil qiladi; katta ensa teshigi shu yerda.'},
+               Sphenoid:{uz:'Ponasimon suyak',la:'Os sphenoidale',desc:'Kalla asosining markazida joylashgan, kapalak shaklidagi suyak.'},
+               Ethmoid:{uz:'G‘alvirsimon suyak',la:'Os ethmoidale',desc:'Burun bo‘shlig‘i va ko‘z kosasining medial devorini hosil qilishda qatnashadi.'},
+               Mandible:{uz:'Pastki jag‘ suyagi',la:'Mandibula',desc:'Kallaning yagona harakatchan suyagi; chaynov apparatining asosiy qismi.'},
+               Maxilla:{uz:'Yuqori jag‘ suyagi',la:'Maxilla',desc:'Yuz skeletining markaziy qismini va qattiq tanglayning bir qismini hosil qiladi.'},
+               Zygomatic:{uz:'Yonoq suyagi',la:'Os zygomaticum',desc:'Yonoq relyefi va yonoq ravog‘ining shakllanishida qatnashadi.'},
+               Nasal:{uz:'Burun suyagi',la:'Os nasale',desc:'Burun ko‘prigining suyak asosini hosil qiluvchi juft suyak.'},
+               // Gavda va ko‘krak qafasi
                Sternum:{uz:'To‘sh suyagi',la:'Sternum',desc:'Ko‘krak qafasining oldingi devori o‘rtasidagi yassi suyak.'},
-               Spine:{uz:'Umurtqa pog‘onasi',la:'Columna vertebralis',desc:'Gavdaning asosiy tayanch o‘qi.'},
-               Vertebra:{uz:'Umurtqa',la:'Vertebra',desc:'Umurtqa pog‘onasi segmenti.'},
-               Pelvis:{uz:'Chanoq suyagi',la:'Pelvis',desc:'Gavda og‘irligini pastki oyoqlarga uzatuvchi tayanch suyak halqasi.'},
-               Femur:{uz:'Son suyagi',la:'Os femoris',desc:'Inson tanasidagi eng uzun va baquvvat naysimon suyak.'},
-               Tibia:{uz:'Katta boldir suyagi',la:'Tibia',desc:'Boldirning ichki tomonidagi asosiy yuk ko‘taruvchi suyak.'},
-               Fibula:{uz:'Kichik boldir suyagi',la:'Fibula',desc:'Boldirning lateral qismidagi ingichka suyak.'},
+               Rib:{uz:'Qovurg‘a',la:'Costa',desc:'12 juft qovurg‘a ko‘krak qafasini hosil qilib, yurak va o‘pkani himoya qiladi.'},
+               Cervical:{uz:'Bo‘yin umurtqalari',la:'Vertebrae cervicales',desc:'7 ta bo‘yin umurtqasi; C1 — atlas, C2 — axis.'},
+               Thoracic:{uz:'Ko‘krak umurtqalari',la:'Vertebrae thoracicae',desc:'12 ta ko‘krak umurtqasi qovurg‘alar bilan tutashadi.'},
+               Lumbar:{uz:'Bel umurtqalari',la:'Vertebrae lumbales',desc:'5 ta yirik bel umurtqasi tana og‘irligini ko‘tarishda qatnashadi.'},
+               Sacrum:{uz:'Dumg‘aza suyagi',la:'Os sacrum',desc:'O‘zaro birikkan 5 ta dumg‘aza umurtqasidan hosil bo‘ladi.'},
+               // Yelka kamari va qo‘l
+               Clavicle:{uz:'O‘mrov suyagi',la:'Clavicula',desc:'Yelka kamarini to‘sh suyagi bilan bog‘lovchi S-simon suyak.'},
+               Scapula:{uz:'Kurak suyagi',la:'Scapula',desc:'Ko‘krak qafasining orqa tomonida joylashgan yassi juft suyak.'},
                Humerus:{uz:'Yelka suyagi',la:'Humerus',desc:'Qo‘lning yuqori qismidagi uzun naysimon suyak.'},
-               Radius:{uz:'Nur suyagi',la:'Radius',desc:'Bilakning bosh barmoq tomonidagi suyagi.'},
-               Ulna:{uz:'Tirsak suyagi',la:'Ulna',desc:'Bilakning jimjiloq tomonidagi suyagi.'},
-               Clavicle:{uz:'O‘mrov suyagi',la:'Clavicula',desc:'Qo‘lni ko‘krak qafasiga tutashtiruvchi S-simon suyak.'},
-               Scapula:{uz:'Kurak suyagi',la:'Scapula',desc:'Ko‘krak qafasining orqa devoridagi yassi juft suyak.'}
+               Radius:{uz:'Nur suyagi',la:'Radius',desc:'Bilakning bosh barmoq tomonida joylashgan suyak.'},
+               Ulna:{uz:'Tirsak suyagi',la:'Ulna',desc:'Bilakning jimjiloq tomonida joylashgan suyak.'},
+               // Chanoq va oyoq
+               Pelvis:{uz:'Chanoq suyagi',la:'Os coxae',desc:'Yonbosh, quymich va qov suyaklarining birikmasidan tashkil topadi.'},
+               Femur:{uz:'Son suyagi',la:'Femur',desc:'Inson tanasidagi eng uzun va eng baquvvat suyak.'},
+               Patella:{uz:'Tizza qopqog‘i',la:'Patella',desc:'Tizza oldida joylashgan eng katta sesamasimon suyak.'},
+               Tibia:{uz:'Katta boldir suyagi',la:'Tibia',desc:'Boldirning medial tomonidagi asosiy yuk ko‘taruvchi suyak.'},
+               Fibula:{uz:'Kichik boldir suyagi',la:'Fibula',desc:'Boldirning lateral tomonidagi ingichka suyak.'},
+               // Model fayllarida uchrashi mumkin bo‘lgan umumiy nomlar
+               Cranium:{uz:'Kalla suyagi',la:'Cranium',desc:'Miya qutisi va yuz skeletini o‘z ichiga oluvchi suyaklar majmuasi.'},
+               Skull:{uz:'Kalla suyagi',la:'Cranium',desc:'Miya va sezgi a’zolarini himoya qiluvchi kalla suyaklari majmuasi.'},
+               Spine:{uz:'Umurtqa pog‘onasi',la:'Columna vertebralis',desc:'Bo‘yin, ko‘krak, bel, dumg‘aza va dum umurtqalaridan tashkil topgan tayanch o‘qi.'},
+               Vertebra:{uz:'Umurtqa',la:'Vertebra',desc:'Umurtqa pog‘onasining alohida suyak segmenti.'}
              };
              const raycaster=new THREE.Raycaster();
              const pointer=new THREE.Vector2();
