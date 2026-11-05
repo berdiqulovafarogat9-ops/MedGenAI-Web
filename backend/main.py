@@ -7472,3 +7472,61 @@ def review_opportunity(identifier: str, publish: bool, user=Depends(get_current_
         opportunities_store[identifier] = previous
         raise
     return {'item':updated}
+
+
+# =========================================================
+# MEDGEN DRUG DISCOVERY — CURATED TARGETS + RDKit/Meeko PREP
+# =========================================================
+try:
+    from .targets_database import CANCER_HIV_TARGETS, get_target, list_targets
+    from .docking_pipeline import prepare_ligand_from_smiles
+except ImportError:
+    from targets_database import CANCER_HIV_TARGETS, get_target, list_targets
+    from docking_pipeline import prepare_ligand_from_smiles
+
+
+class DrugDiscoveryLigandPrepareRequest(BaseModel):
+    smiles: str = Field(min_length=1, max_length=2000)
+    ligand_name: str = Field(default="drug_candidate", max_length=80)
+
+
+def _require_drug_discovery_role(user):
+    role = str(user.get("role") or "").strip().lower().replace("-", "_").replace(" ", "_")
+    allowed = {"researcher", "pharma", "bioinformatician", "biotech", "company",
+               "super_admin", "admin", "owner", "founder", "ceo"}
+    if role not in allowed and str(user.get("username", "")).casefold() != str(ADMIN_USERNAME).casefold():
+        raise HTTPException(status_code=403, detail="Drug Discovery laboratoriyasi uchun Researcher, Pharma yoki Super Admin ruxsati kerak.")
+
+
+@app.get("/api/v1/drug-discovery/targets")
+def drug_discovery_targets(user=Depends(get_current_user)):
+    _require_drug_discovery_role(user)
+    return {"status": "ok", "targets": list_targets(),
+            "notice": "PDB ID biologik targetni belgilaydi; receptor PDBQT va docking grid alohida tayyorlanib tekshirilishi shart."}
+
+
+@app.get("/api/v1/drug-discovery/targets/{target_id}")
+def drug_discovery_target_detail(target_id: str, user=Depends(get_current_user)):
+    _require_drug_discovery_role(user)
+    try:
+        return {"status": "ok", "target": get_target(target_id)}
+    except KeyError:
+        raise HTTPException(status_code=404, detail="Target katalogda topilmadi.")
+
+
+@app.post("/api/v1/drug-discovery/prepare-ligand")
+def drug_discovery_prepare_ligand(data: DrugDiscoveryLigandPrepareRequest, user=Depends(get_current_user)):
+    _require_drug_discovery_role(user)
+    try:
+        pdbqt = prepare_ligand_from_smiles(data.smiles, data.ligand_name)
+    except (ValueError, RuntimeError) as exc:
+        raise HTTPException(status_code=422, detail=str(exc))
+    return {
+        "status": "prepared",
+        "ligand_name": data.ligand_name,
+        "smiles": data.smiles,
+        "format": "PDBQT",
+        "pdbqt": pdbqt,
+        "engine_compatibility": "AutoDock Vina",
+        "note": "Ligand RDKit ETKDGv3/MMFF94 va Meeko orqali tayyorlandi. Bu faqat ligand; receptor PDBQT alohida tayyorlanishi kerak."
+    }
