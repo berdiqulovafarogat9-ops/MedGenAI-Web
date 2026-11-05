@@ -23,7 +23,8 @@
     if (text !== undefined) n.textContent = text;
     return n;
   }
-  var activeEmbeddedClose = null;\n  var CARD = "background:#0d1a26;color:#e8f0f6;border:1px solid #24394d;border-radius:18px;padding:16px;width:min(96vw,640px);max-height:94vh;overflow:auto;font-family:system-ui,sans-serif";
+  var activeEmbeddedClose = null;
+  var CARD = "background:#0d1a26;color:#e8f0f6;border:1px solid #24394d;border-radius:18px;padding:16px;width:min(96vw,640px);max-height:94vh;overflow:auto;font-family:system-ui,sans-serif";
   var BTN = "padding:10px 14px;border:0;border-radius:10px;background:#56dcc0;color:#06231d;font-weight:700;font-size:14px;margin:4px 4px 4px 0";
   var BTN2 = "padding:9px 12px;border:1px solid #24394d;border-radius:10px;background:#13222f;color:#cfe0ec;font-size:13px;margin:4px 4px 4px 0;text-align:left";
   var TILE = "flex:1;min-width:120px;background:#06101a;border:1px solid #1d3042;border-radius:12px;padding:8px";
@@ -38,6 +39,7 @@
 
   function open(targetRoot, caseKey) {
     var embedded = !!(targetRoot && targetRoot.nodeType === 1);
+    if (embedded && activeEmbeddedClose) activeEmbeddedClose();
     var overlay = embedded ? null : el("div", "position:fixed;inset:0;background:rgba(0,0,0,.75);display:flex;align-items:center;justify-content:center;z-index:99999");
     var embeddedCardStyle = CARD.replace("width:min(96vw,640px);max-height:94vh;", "width:100%;max-height:none;") + ";box-sizing:border-box";
     var card = el("div", embedded ? embeddedCardStyle : CARD);
