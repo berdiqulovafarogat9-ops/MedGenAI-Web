@@ -1518,7 +1518,7 @@ def _dodo_hmac_match(secret: str, raw: bytes, wid: str, ts: str, sigs: str) -> b
 # Keyed by username (TEXT): this platform does not use Supabase Auth.
 # =========================================================
 ACADEMY_TABLES = ["academic_years", "subjects", "topics", "topic_resources", "clinical_simulation_cases",
-                  "student_leaderboard", "leaderboard_awards", "certificates"]
+                  "student_leaderboard", "leaderboard_awards", "certificates", "myology_attempts"]
 ACADEMY_SCHEMA_SQL = """
 CREATE TABLE IF NOT EXISTS academic_years (id SERIAL PRIMARY KEY, year_number INT NOT NULL UNIQUE, title TEXT NOT NULL);
 CREATE TABLE IF NOT EXISTS subjects (id UUID PRIMARY KEY DEFAULT gen_random_uuid(), academic_year_id INT REFERENCES academic_years(id) ON DELETE CASCADE, name TEXT NOT NULL, code TEXT NOT NULL UNIQUE, icon_url TEXT);
@@ -1528,11 +1528,13 @@ CREATE TABLE IF NOT EXISTS clinical_simulation_cases (id UUID PRIMARY KEY DEFAUL
 CREATE TABLE IF NOT EXISTS student_leaderboard (username TEXT PRIMARY KEY, display_name TEXT NOT NULL, university TEXT, course_number INT, total_score INT NOT NULL DEFAULT 0, solved_cases_count INT NOT NULL DEFAULT 0, consent_at TIMESTAMPTZ NOT NULL, updated_at TIMESTAMPTZ NOT NULL DEFAULT NOW());
 CREATE TABLE IF NOT EXISTS leaderboard_awards (username TEXT NOT NULL, case_id TEXT NOT NULL, award_date DATE NOT NULL DEFAULT CURRENT_DATE, points INT NOT NULL, PRIMARY KEY (username, case_id, award_date));
 CREATE TABLE IF NOT EXISTS certificates (id UUID PRIMARY KEY DEFAULT gen_random_uuid(), username TEXT NOT NULL, certificate_code TEXT UNIQUE NOT NULL, holder_name TEXT NOT NULL, title TEXT NOT NULL, issued_by TEXT, issue_date DATE NOT NULL DEFAULT CURRENT_DATE, revoked BOOLEAN NOT NULL DEFAULT FALSE);
+CREATE TABLE IF NOT EXISTS myology_attempts (id BIGSERIAL PRIMARY KEY, username TEXT NOT NULL, muscle_id TEXT NOT NULL, question_id TEXT NOT NULL, selected_index INT NOT NULL, is_correct BOOLEAN NOT NULL, points INT NOT NULL DEFAULT 0, created_at TIMESTAMPTZ NOT NULL DEFAULT NOW());
+CREATE UNIQUE INDEX IF NOT EXISTS myology_one_award_per_muscle ON myology_attempts(username, muscle_id) WHERE is_correct = TRUE;
 DO $$
 DECLARE t TEXT; has_anon BOOLEAN;
 BEGIN
   SELECT EXISTS (SELECT 1 FROM pg_roles WHERE rolname = 'anon') INTO has_anon;
-  FOREACH t IN ARRAY ARRAY['academic_years','subjects','topics','topic_resources','clinical_simulation_cases','student_leaderboard','leaderboard_awards','certificates'] LOOP
+  FOREACH t IN ARRAY ARRAY['academic_years','subjects','topics','topic_resources','clinical_simulation_cases','student_leaderboard','leaderboard_awards','certificates','myology_attempts'] LOOP
     EXECUTE format('ALTER TABLE %I ENABLE ROW LEVEL SECURITY', t);
     IF has_anon THEN EXECUTE format('REVOKE ALL ON %I FROM anon, authenticated', t); END IF;
   END LOOP;
@@ -5679,6 +5681,87 @@ class AcademyModuleScoreRequest(BaseModel):
     score: int = Field(ge=0, le=100)
     module: str = Field(min_length=1, max_length=80)
     completed_at: datetime | None = None
+
+class MyologyExamSubmitRequest(BaseModel):
+    muscle_id: str = Field(min_length=3, max_length=80)
+    question_id: str = Field(min_length=3, max_length=120)
+    selected_index: int = Field(ge=0, le=5)
+
+# ---------------- Myology clinical exam bank ----------------
+# One curated, answer-hidden clinical question per muscle passport.
+MYOLOGY_EXAM_BANK = {
+    "m_pectoralis_major": ("Ko‘krak og‘rig‘i sababli emas, balki yelkasini tanasiga yaqinlashtirish va ichkariga burishda kuchsizlik kuzatilgan bemorda qaysi mushak faoliyati tekshiriladi?", ["M. deltoideus", "M. pectoralis major", "M. supraspinatus", "M. trapezius"], 1, "M. pectoralis major yelkani adduksiya va medial rotatsiya qiladi."),
+    "m_pectoralis_minor": ("Kurak suyagi oldinga-pastga tortilishi zaiflashgan bemorda qaysi mushakni tekshirish kerak?", ["M. pectoralis minor", "M. latissimus dorsi", "M. rhomboideus major", "M. deltoideus"], 0, "M. pectoralis minor kurakni oldinga va pastga tortadi."),
+    "m_intercostales_externi": ("Nafas olish paytida qovurg‘alarni ko‘tarish harakati sust. Qaysi mushaklar inspiratsiyada yordam beradi?", ["Mm. intercostales externi", "Mm. intercostales interni", "M. rectus abdominis", "M. transversus abdominis"], 0, "Tashqi qovurg‘alararo mushaklar qovurg‘alarni ko‘tarib inspiratsiyaga yordam beradi."),
+    "m_intercostales_interni": ("Majburiy nafas chiqarishda qovurg‘alarni tushirish zaiflashgan. Qaysi mushaklar suyaklararo qismida shu vazifani bajaradi?", ["Mm. intercostales externi", "Mm. intercostales interni", "Diaphragma", "M. sternocleidomastoideus"], 1, "Ichki qovurg‘alararo mushaklarning suyaklararo qismi majburiy ekspiratsiyada qatnashadi."),
+    "diaphragma": ("Bemor chuqur nafas olganda diafragma qisqarishi natijasida qaysi o‘zgarish yuz beradi?", ["Gumbaz yuqoriga ko‘tariladi", "Ko‘krak bo‘shlig‘i hajmi kamayadi", "Diafragma yassilanib ko‘krak hajmi ortadi", "Qovurg‘alar pastga tushadi"], 2, "Diafragma qisqarganda gumbazi yassilanadi va ko‘krak bo‘shlig‘i hajmi ortadi."),
+    "m_obliquus_externus_abdominis": ("Bemor gavdasini chapga burishda qiynaladi. O‘ng tashqi qiyshiq qorin mushagi bir tomonlama qisqarganda gavdani qaysi tomonga buradi?", ["O‘ngga", "Chapga", "Faqat oldinga bukadi", "Umuman rotatsiya qilmaydi"], 1, "Tashqi qiyshiq mushak bir tomonlama qisqarganda gavdani qarama-qarshi tomonga buradi."),
+    "m_obliquus_internus_abdominis": ("Bemor gavdasini o‘ng tomonga burishda kuchsizlik sezadi. O‘ng ichki qiyshiq mushakning asosiy rotatsion ta’siri qaysi?", ["Qarama-qarshi tomonga buradi", "O‘z tomoniga buradi", "Faqat yozadi", "Sonni uzoqlashtiradi"], 1, "Ichki qiyshiq mushak bir tomonlama qisqarganda gavdani o‘z tomoniga buradi."),
+    "m_transversus_abdominis": ("Bel sohasida gavda barqarorligi pasaygan. Qaysi chuqur qorin mushagi qorin devorini taranglab, intraabdominal bosimni oshiradi?", ["M. rectus abdominis", "M. transversus abdominis", "M. psoas major", "M. sartorius"], 1, "M. transversus abdominis qorin devorini taranglaydi va gavda barqarorligiga yordam beradi."),
+    "m_rectus_abdominis": ("Bemor yotgan holatdan o‘tirishga o‘tganda gavdasini oldinga bukishda qiynaladi. Qaysi mushak zararlanishi ehtimol?", ["M. rectus abdominis", "M. latissimus dorsi", "M. gluteus maximus", "M. trapezius"], 0, "M. rectus abdominis gavdani oldinga bukadi."),
+    "m_trapezius": ("Yelka kamari tushib qolgan va kurakni ko‘tarish qiyin. Qaysi mushak hamda nerv tekshiriladi?", ["M. deltoideus — n. axillaris", "M. trapezius — n. accessorius", "M. biceps brachii — n. musculocutaneus", "M. serratus anterior — n. thoracicus longus"], 1, "Trapetsiyasimon mushakning motor innervatsiyasi n. accessorius (XI) orqali."),
+    "m_latissimus_dorsi": ("Bemor turnikda tortilish va qo‘l bilan gavdani yuqoriga tortishda qiynaladi. Qaysi mushak muhim?", ["M. latissimus dorsi", "M. supraspinatus", "M. tibialis anterior", "M. orbicularis oris"], 0, "M. latissimus dorsi yelkani yozadi, adduksiya va medial rotatsiya qiladi; ko‘tarilishda qatnashadi."),
+    "m_erector_spinae": ("Uzoq tik turishda gavdani tik ushlab turish qiyinlashgan. Qaysi mushaklar guruhi umurtqa pog‘onasini yozadi?", ["Mm. erector spinae", "Mm. intercostales interni", "Mm. scaleni", "Mm. pectorales"], 0, "Umurtqa tiklovchi mushaklar ikki tomonlama qisqarib umurtqa pog‘onasini yozadi."),
+    "m_deltoideus": ("Bemor qo‘lini yon tomonga 15–90 daraja oralig‘ida ko‘tarolmaydi; yelka lateral yuzasida sezgi ham pasaygan. Qaysi nerv zararlangan bo‘lishi mumkin?", ["N. radialis", "N. axillaris", "N. medianus", "N. ulnaris"], 1, "M. deltoideus n. axillaris (C5–C6) bilan innervatsiyalanadi."),
+    "m_biceps_brachii": ("Bemor tirsakni bukish va bilakni supinatsiya qilishda kuchsizlik sezadi. Qaysi mushak va nerv mos keladi?", ["M. triceps brachii — n. radialis", "M. biceps brachii — n. musculocutaneus", "M. deltoideus — n. axillaris", "M. pronator teres — n. medianus"], 1, "Biceps tirsakni bukadi va bilakni supinatsiya qiladi; n. musculocutaneus bilan innervatsiyalanadi."),
+    "m_triceps_brachii": ("Bemor tirsak bo‘g‘imida bilakni yozishda qiynaladi. Qaysi nerv shikastlanishi ehtimol?", ["N. radialis", "N. medianus", "N. femoralis", "N. obturatorius"], 0, "M. triceps brachii tirsakni yozadi va n. radialis bilan innervatsiyalanadi."),
+    "m_gluteus_maximus": ("Bemor zinadan ko‘tarilish va o‘tirgan joyidan turishda qiynaladi. Qaysi mushakning kuchi tekshiriladi?", ["M. gluteus maximus", "M. gluteus minimus", "M. gracilis", "M. tibialis posterior"], 0, "Katta dumba mushagi sonni chanoq-son bo‘g‘imida yozadi; zinadan chiqishda muhim."),
+    "m_quadriceps_femoris": ("Tizza refleksi pasaygan, bemor tizzasini faol yozolmaydi. Qaysi nerv-mushak juftligi tekshiriladi?", ["N. tibialis — hamstrings", "N. femoralis — m. quadriceps femoris", "N. obturatorius — adductors", "N. fibularis — peroneals"], 1, "Quadriceps tizzani yozadi va n. femoralis (L2–L4) bilan innervatsiyalanadi."),
+    "m_triceps_surae": ("Bemor oyoq uchida tura olmaydi va plantar fleksiyada kuchsizlik bor. Qaysi nerv zararlanishi mumkin?", ["N. femoralis", "N. tibialis", "N. obturatorius", "N. axillaris"], 1, "Triceps surae oyoq panjasini plantar fleksiyaga keltiradi; n. tibialis bilan innervatsiyalanadi."),
+    "m_sternocleidomastoideus": ("Bemor boshini chapga burishda qiynaladi. Boshni qarama-qarshi tomonga buruvchi o‘ng mushak qaysi?", ["Chap m. sternocleidomastoideus", "O‘ng m. sternocleidomastoideus", "M. masseter", "M. temporalis"], 1, "Bir tomonlama qisqargan sternocleidomastoideus yuzni qarama-qarshi tomonga buradi."),
+    "m_masseter": ("Chaynash vaqtida pastki jag‘ni ko‘tarish kuchsiz. Qaysi mushak va nerv tarmog‘i muhim?", ["M. masseter — V3", "M. buccinator — VII", "M. orbicularis oris — VII", "M. platysma — VII"], 0, "Masseter pastki jag‘ni ko‘taradi; motor innervatsiyasi n. mandibularis (V3) orqali."),
+    "m_temporalis": ("Bemor jag‘ini yopish va orqaga tortishda qiynaladi. Qaysi chaynov mushagi retraksiyani bajaradi?", ["M. temporalis", "M. buccinator", "M. orbicularis oris", "M. sternocleidomastoideus"], 0, "Chakka mushagining orqa tolalari pastki jag‘ni retraksiya qiladi."),
+    "m_pterygoideus_lateralis": ("Og‘izni ochish va pastki jag‘ni oldinga surish qiyinlashgan. Qaysi mushak zararlanishi mumkin?", ["M. pterygoideus lateralis", "M. masseter", "M. temporalis", "M. orbicularis oris"], 0, "Lateral qanotsimon mushak jag‘ni oldinga suradi va og‘izni ochishda yordam beradi."),
+    "m_orbicularis_oris": ("Bemor lablarini mahkam yopa olmaydi, hushtak chalish qiyin. Qaysi mushak zararlangan?", ["M. buccinator", "M. orbicularis oris", "M. masseter", "M. temporalis"], 1, "Og‘izning aylana mushagi lablarni yopadi va oldinga cho‘zadi."),
+    "m_buccinator": ("Bemor ovqatni chaynash paytida lunj ichida ushlab turolmaydi. Qaysi mushak funksiyasi buzilgan?", ["M. buccinator", "M. deltoideus", "M. pectoralis minor", "M. quadriceps femoris"], 0, "Lunj mushagi ovqatni tishlarning chaynash yuzalarida ushlab turadi.")
+}
+
+class MyologyExamSubmitRequest(BaseModel):
+    muscle_id: str = Field(min_length=3, max_length=80)
+    question_id: str = Field(min_length=3, max_length=120)
+    selected_index: int = Field(ge=0, le=5)
+
+@app.get("/api/v1/myology/exam/{muscle_id}")
+def myology_exam_question(muscle_id: str, user=Depends(get_current_user)):
+    item = MYOLOGY_EXAM_BANK.get(muscle_id)
+    if not item:
+        raise HTTPException(status_code=404, detail="Bu mushak uchun test topilmadi.")
+    question_id = "myology:" + muscle_id
+    return {"question_id": question_id, "muscle_id": muscle_id, "scenario": item[0], "options": item[1]}
+
+@app.post("/api/v1/myology/exam/submit")
+def myology_exam_submit(data: MyologyExamSubmitRequest, user=Depends(get_current_user)):
+    item = MYOLOGY_EXAM_BANK.get(data.muscle_id)
+    if not item or data.question_id != "myology:" + data.muscle_id:
+        raise HTTPException(status_code=400, detail="Test savoli mos emas.")
+    if data.selected_index >= len(item[1]):
+        raise HTTPException(status_code=400, detail="Javob varianti noto‘g‘ri.")
+    correct = data.selected_index == item[2]
+    username = user["username"]
+    awarded = False
+    if correct:
+        row = _sql("""INSERT INTO myology_attempts(username,muscle_id,question_id,selected_index,is_correct,points)
+                      VALUES (%s,%s,%s,%s,TRUE,10)
+                      ON CONFLICT (username,muscle_id) WHERE is_correct = TRUE DO NOTHING
+                      RETURNING id""",
+                   (username, data.muscle_id, data.question_id, data.selected_index), "one")
+        awarded = bool(row)
+        if awarded:
+            _sql("""UPDATE student_leaderboard
+                    SET total_score = total_score + 10,
+                        solved_cases_count = (SELECT COUNT(DISTINCT muscle_id) FROM myology_attempts WHERE username=%s AND is_correct=TRUE),
+                        updated_at = NOW()
+                    WHERE username=%s""", (username, username), None)
+    else:
+        _sql("""INSERT INTO myology_attempts(username,muscle_id,question_id,selected_index,is_correct,points)
+                VALUES (%s,%s,%s,%s,FALSE,0)""",
+             (username, data.muscle_id, data.question_id, data.selected_index), None)
+    total = _sql("SELECT COALESCE(SUM(points),0) AS points FROM myology_attempts WHERE username=%s AND is_correct=TRUE", (username,), "one")
+    joined = _sql("SELECT total_score FROM student_leaderboard WHERE username=%s", (username,), "one")
+    return {"correct": correct, "awarded": awarded, "points_awarded": 10 if awarded else 0,
+            "total_myology_points": int((total or {}).get("points", 0)),
+            "leaderboard_joined": bool(joined), "leaderboard_total": int(joined["total_score"]) if joined else None,
+            "explanation": item[3], "already_earned": bool(correct and not awarded)}
 
 @app.get("/api/v1/academy/profile")
 def academy_get_profile(user=Depends(get_current_user)):
