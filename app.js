@@ -6087,7 +6087,13 @@ async function renderAlphaFold3D(){
   checkSelection:function(name){if(!this.active||!this.targetKey)return;this.asked++;var ok=String(name||"").toLowerCase().includes(this.targetKey.toLowerCase());var b=document.getElementById("quiz-status-bar");if(ok){this.score+=10;if(b)b.textContent="To‘g‘ri! +10 ball · Jami: "+this.score;var self=this;setTimeout(function(){if(self.active)self.nextQuestion();},1200);}else if(b)b.textContent="Xato. Qayta urinib ko‘ring · Ball: "+this.score;}
  };
  // Klinik simulyatorning mavjud, tekshiriladigan engine'ini ishlatadi.
- window.medgenPatient=window.medgenPatient||{start:function(){if(typeof window.medgenOpenVitalsSimulation==="function")return window.medgenOpenVitalsSimulation();var b=document.getElementById("vitalsBtn");if(b)return b.click();alert("Virtual bemor moduli yuklanmoqda. Sahifani yangilang.");}};
+ window.medgenPatient=window.medgenPatient||{start:function(caseId){
+  var root=document.getElementById("patient-sim-root");
+  if(root&&typeof window.medgenOpenVitalsSimulationEmbedded==="function")return window.medgenOpenVitalsSimulationEmbedded(root,caseId||"anaphylaxis");
+  if(typeof window.medgenOpenVitalsSimulation==="function")return window.medgenOpenVitalsSimulation(null,caseId||"anaphylaxis");
+  var b=document.getElementById("vitalsBtn");if(b)return b.click();
+  alert("Virtual bemor moduli yuklanmoqda. Sahifani yangilang.");
+ }};
  window.medgenSurgery={
   step:0,
   steps:[
