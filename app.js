@@ -6076,15 +6076,26 @@ async function renderAlphaFold3D(){
 
 /* MEDGEN AI B/C/D educational modules */
 (function(){
+ if(!window.submitStudentScore)window.submitStudentScore=async function(score,moduleName){
+  const token=sessionStorage.getItem("medgen_access_token");
+  const apiBase=(window.MEDGEN_API_BASE||"https://medgenai-web-1.onrender.com/api/v1").replace(/\\/$/,"");
+  try{
+   const res=await fetch(apiBase+"/academy/score",{method:"POST",headers:{"Content-Type":"application/json","Authorization":"Bearer "+token},body:JSON.stringify({score:Number(score),module:String(moduleName||"Learning module"),completed_at:new Date().toISOString()})});
+   const data=await res.json().catch(()=>({}));
+   if(!res.ok)throw new Error(data.detail||("HTTP "+res.status));
+   alert("Ball saqlandi! +"+Number(score)+" ball reytingingizga qo‘shildi.");
+   return data;
+  }catch(err){console.error("Ball saqlashda xatolik:",err);return null;}
+ };
  if(!window.medgenAnatomyQuiz)window.medgenAnatomyQuiz={
-  active:false,targetKey:null,score:0,asked:0,
-  questions:[
+  active:false,targetKey:null,score:0,asked:0,questions:[
    {key:"Frontal",name:"Peshona suyagi (Os frontale)"},{key:"Parietal",name:"Tepa suyagi (Os parietale)"},{key:"Temporal",name:"Chakka suyagi (Os temporale)"},{key:"Occipital",name:"Ensa suyagi (Os occipitale)"},{key:"Mandible",name:"Pastki jag‘ suyagi (Mandibula)"},{key:"Rib",name:"Qovurg‘a (Costae)"},{key:"Sternum",name:"To‘sh suyagi (Sternum)"},{key:"Femur",name:"Son suyagi (Femur)"},{key:"Pelvis",name:"Chanoq suyagi (Pelvis)"}
   ],
   start:function(){this.active=true;this.score=0;this.asked=0;this.nextQuestion();},
   stop:function(){this.active=false;this.targetKey=null;},
-  nextQuestion:function(){var q=this.questions[Math.floor(Math.random()*this.questions.length)];this.targetKey=q.key;var b=document.getElementById("quiz-status-bar");if(b)b.textContent="Toping: "+q.name+" · Ball: "+this.score;},
-  checkSelection:function(name){if(!this.active||!this.targetKey)return;this.asked++;var ok=String(name||"").toLowerCase().includes(this.targetKey.toLowerCase());var b=document.getElementById("quiz-status-bar");if(ok){this.score+=10;if(b)b.textContent="To‘g‘ri! +10 ball · Jami: "+this.score;var self=this;setTimeout(function(){if(self.active)self.nextQuestion();},1200);}else if(b)b.textContent="Xato. Qayta urinib ko‘ring · Ball: "+this.score;}
+  nextQuestion:function(){var q=this.questions[Math.floor(Math.random()*this.questions.length)];this.targetKey=q.key;var b=document.getElementById("quiz-status-bar");if(b)b.textContent="Toping: "+q.name+" · Ball: "+this.score+" · "+this.asked+"/10 urinish";},
+  finish:function(){if(!this.active)return;this.active=false;this.targetKey=null;var finalScore=Math.max(0,Math.min(100,this.score));var b=document.getElementById("quiz-status-bar");if(b)b.textContent="Quiz yakunlandi! Natija: "+finalScore+"/100 · 10 urinish.";if(typeof window.submitStudentScore==="function")window.submitStudentScore(finalScore,"3D Quiz");},
+  checkSelection:function(name){if(!this.active||!this.targetKey)return;this.asked++;var ok=String(name||"").toLowerCase().includes(this.targetKey.toLowerCase());var b=document.getElementById("quiz-status-bar");if(ok){this.score+=10;if(b)b.textContent="To‘g‘ri! +10 ball · Jami: "+this.score;}else if(b)b.textContent="Xato. Keyingi suyakni toping · Ball: "+this.score;if(this.asked>=10){var self=this;setTimeout(function(){self.finish();},900);return;}if(ok){var self=this;setTimeout(function(){if(self.active)self.nextQuestion();},1200);}else this.nextQuestion();}
  };
  // Klinik simulyatorning mavjud, tekshiriladigan engine'ini ishlatadi.
  window.medgenPatient=window.medgenPatient||{start:function(caseId){
