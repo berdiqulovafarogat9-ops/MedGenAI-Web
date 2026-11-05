@@ -4,7 +4,7 @@
   'use strict';
   if(!window.submitStudentScore)window.submitStudentScore=async function(score,moduleName){
     const token=sessionStorage.getItem('medgen_access_token');
-    const apiBase=(window.MEDGEN_API_BASE||'https://medgenai-web-1.onrender.com/api/v1').replace(/\\/$/,'');
+    const apiBase=(window.MEDGEN_API_BASE||'https://medgenai-web-1.onrender.com/api/v1').replace(/\/$/,'');
     try{
       const response=await fetch(apiBase+'/academy/score',{method:'POST',headers:{'Content-Type':'application/json','Authorization':'Bearer '+token},body:JSON.stringify({score:Number(score),module:String(moduleName||'Learning module'),completed_at:new Date().toISOString()})});
       const data=await response.json().catch(()=>({}));
@@ -116,7 +116,7 @@
     const box=$('#vpLeaderboard'); if(!box)return;
     const token=sessionStorage.getItem('medgen_access_token');
     if(!token){box.textContent='Reyting uchun MedGen AI hisobingizga kiring.';return;}
-    const apiBase=(window.MEDGEN_API_BASE||'https://medgenai-web-1.onrender.com/api/v1'); const api=apiBase.endsWith('/')?apiBase.slice(0,-1):apiBase;
+    const apiBase=(window.MEDGEN_API_BASE||'https://medgenai-web-1.onrender.com/api/v1').replace(/\/$/,'');
     box.textContent='Reyting yuklanmoqda…';
     try{
       const response=await fetch(api+'/academy/virtual-patient/leaderboard?limit=10',{headers:{'Authorization':'Bearer '+token}});
@@ -131,7 +131,7 @@
     const box=$('#vpServerSaveStatus'); if(!box)return;
     const token=sessionStorage.getItem('medgen_access_token');
     if(!token){box.textContent='Serverga saqlanmadi: tizimga kirish tokeni topilmadi. Natija ushbu qurilmada saqlandi.';return;}
-    const apiBase=(window.MEDGEN_API_BASE||'https://medgenai-web-1.onrender.com/api/v1'); const api=apiBase.endsWith('/')?apiBase.slice(0,-1):apiBase;
+    const apiBase=(window.MEDGEN_API_BASE||'https://medgenai-web-1.onrender.com/api/v1').replace(/\/$/,'');
     try{
       const response=await fetch(api+'/academy/virtual-patient/result',{method:'POST',headers:{'Content-Type':'application/json','Authorization':'Bearer '+token},body:JSON.stringify(record)});
       const data=await response.json().catch(()=>({}));
