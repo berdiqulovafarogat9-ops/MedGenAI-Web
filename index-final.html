@@ -16,6 +16,12 @@ frame-ancestors 'none'">
 <meta name="viewport" content="width=device-width,initial-scale=1">
 
 <title>MedGen AI — Global Biomedical AI Platform</title>
+<!-- Three.js dependencies: loaded in order before page scripts -->
+<script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/controls/OrbitControls.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/loaders/DRACOLoader.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/loaders/GLTFLoader.js"></script>
+
 
 <link rel="stylesheet" href="styles.css">
 
@@ -2578,11 +2584,6 @@ document.addEventListener("DOMContentLoaded", function () {
 <script src="anatomy-quiz.js?v=1"></script>
 <script src="anatomy-3d.js?v=1"></script>
 
-<!-- Three.js dependencies for the inline skeleton viewer -->
-<script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
-<script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/controls/OrbitControls.js"></script>
-<script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/loaders/DRACOLoader.js"></script>
-<script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/loaders/GLTFLoader.js"></script>
 
 <!-- MedGen AI: self-contained 3D skeleton viewer -->
 <div id="modal-skeleton-viewport" style="display:none;position:fixed;inset:0;background:rgba(5,10,20,.95);z-index:9999999;justify-content:center;align-items:center;">
@@ -2596,18 +2597,13 @@ document.addEventListener("DOMContentLoaded", function () {
 </div>
 <script>
 (function(){
-  window.openSkeletonViewer=function(){
+  function start3DViewer(){
     const modal=document.getElementById('modal-skeleton-viewport');
     const container=document.getElementById('skelet-canvas-area');
     const info=document.getElementById('skelet-info-txt');
     if(!modal||!container||!info){alert('3D viewer oynasi HTML ichida topilmadi.');return;}
-    modal.style.display='flex';
     if(window._skeletonSceneInited){
       if(window._skeletonResize) window._skeletonResize();
-      return;
-    }
-    if(!window.THREE||!THREE.OrbitControls||!THREE.GLTFLoader||!THREE.DRACOLoader){
-      info.textContent='Three.js kutubxonasi yuklanmadi. Internet/CDN ulanishini tekshiring.';
       return;
     }
     window._skeletonSceneInited=true;
@@ -2673,6 +2669,37 @@ document.addEventListener("DOMContentLoaded", function () {
       info.textContent='3D viewer ishga tushmadi: '+error.message;
       window._skeletonSceneInited=false;
     }
+  }
+  function ensureThreeAndInit(){
+    const statusLabel=document.querySelector('#skelet-info-txt, #anatomy-modal-label');
+    let attempts=0;
+    if(window._skeletonLibraryCheck){clearInterval(window._skeletonLibraryCheck);}
+    window._skeletonLibraryCheck=setInterval(function(){
+      attempts++;
+      if(typeof window.THREE!=='undefined' && window.THREE.GLTFLoader && window.THREE.DRACOLoader && window.THREE.OrbitControls){
+        clearInterval(window._skeletonLibraryCheck);
+        window._skeletonLibraryCheck=null;
+        if(statusLabel)statusLabel.innerText='Model yuklanmoqda (1.6 MB)...';
+        start3DViewer();
+      }else if(attempts>=30){
+        clearInterval(window._skeletonLibraryCheck);
+        window._skeletonLibraryCheck=null;
+        if(statusLabel)statusLabel.innerText='Kutubxona yuklanmadi. Internet/CDN ulanishini tekshirib, qayta urinib ko‘ring.';
+      }else if(statusLabel){
+        statusLabel.innerText='3D kutubxonalar tayyorlanmoqda...';
+      }
+    },150);
+  }
+  window.openSkeletonViewer=function(){
+    const modal=document.getElementById('modal-skeleton-viewport');
+    const info=document.getElementById('skelet-info-txt');
+    if(!modal||!info){alert('3D viewer oynasi HTML ichida topilmadi.');return;}
+    modal.style.display='flex';
+    if(window._skeletonSceneInited){
+      if(window._skeletonResize)window._skeletonResize();
+      return;
+    }
+    ensureThreeAndInit();
   };
 })();
 </script>
