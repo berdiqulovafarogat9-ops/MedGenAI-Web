@@ -66,7 +66,7 @@
     document.querySelectorAll('[data-muscle-key]').forEach(b=>b.setAttribute('aria-pressed',String(b.dataset.muscleKey===key)));
   }
 
-  function mount(container, THREE) {
+  function mount(container, THREE, scene) {
     if (!container || !THREE || container.dataset.musclesMounted) return;
     container.dataset.musclesMounted='1';
     const wrap=el('div',{id:'medgen-muscle-tools'});
@@ -91,8 +91,8 @@
     });
     markerGroup.visible=true;
     window.medgenMuscleMarkerGroup=markerGroup;
-    if(window.medgenMuscleScene) window.medgenMuscleScene.add(markerGroup);
-    window.medgenMuscles={dictionary:MUSCLES,markers:MARKERS,show:showPassport,mount};
+    if(scene) scene.add(markerGroup);
+    window.medgenMuscles={dictionary:MUSCLES,markers:MARKERS,show:showPassport,mount,markerGroup};
   }
 
   window.medgenMuscles={dictionary:MUSCLES,markers:MARKERS,show:showPassport,mount};
