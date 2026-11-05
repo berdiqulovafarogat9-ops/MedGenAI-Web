@@ -2814,19 +2814,17 @@ document.addEventListener("DOMContentLoaded", function () {
                'sacrum':'Sacrum','os sacrum':'Sacrum','femur':'Femur','patella':'Patella','tibia':'Tibia','fibula':'Fibula'
              };
              function normalizeBoneName(value){
-               return String(value||'').toLowerCase().replace(/[_\\-]+/g,' ').replace(/[^a-z0-9\\s]/g,' ').replace(/\\s+/g,' ').trim();
+               return String(value||'').toLowerCase().replace(/[_-]+/g,' ').replace(/[^a-z0-9\\s]/g,' ').replace(/\\s+/g,' ').trim();
              }
              function resolveBoneName(raw){
-               const normalized=normalizeBoneName(raw);
+               const normalized=' '+normalizeBoneName(raw)+' ';
                const aliases=Object.keys(BONE_ALIASES).sort((a,b)=>b.length-a.length);
                for(const alias of aliases){
-                 const escaped=alias.replace(/[.*+?^{}()|[\\]\\\\]/g,'\\\\$&');
-                 if(new RegExp('(^|\\\\s)'+escaped+'(\\\\s|$)','i').test(normalized)) return BONE_ALIASES[alias];
+                 if(normalized.includes(' '+normalizeBoneName(alias)+' ')) return BONE_ALIASES[alias];
                }
                const keys=Object.keys(BONE_DICTIONARY).sort((a,b)=>b.length-a.length);
                for(const key of keys){
-                 const k=normalizeBoneName(key);
-                 if(k && new RegExp('(^|\\\\s)'+k.replace(/[.*+?^{}()|[\\]\\\\]/g,'\\\\$&')+'(\\\\s|$)','i').test(normalized)) return key;
+                 if(normalized.includes(' '+normalizeBoneName(key)+' ')) return key;
                }
                return null;
              }
