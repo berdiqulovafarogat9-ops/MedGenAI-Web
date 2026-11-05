@@ -6072,3 +6072,32 @@ async function renderAlphaFold3D(){
     setTimeout(enforceRoleHome, 0);
   }
 })();
+
+
+/* MEDGEN AI B/C/D educational modules */
+(function(){
+ if(!window.medgenAnatomyQuiz)window.medgenAnatomyQuiz={
+  active:false,targetKey:null,score:0,asked:0,
+  questions:[
+   {key:"Frontal",name:"Peshona suyagi (Os frontale)"},{key:"Parietal",name:"Tepa suyagi (Os parietale)"},{key:"Temporal",name:"Chakka suyagi (Os temporale)"},{key:"Occipital",name:"Ensa suyagi (Os occipitale)"},{key:"Mandible",name:"Pastki jag‘ suyagi (Mandibula)"},{key:"Rib",name:"Qovurg‘a (Costae)"},{key:"Sternum",name:"To‘sh suyagi (Sternum)"},{key:"Femur",name:"Son suyagi (Femur)"},{key:"Pelvis",name:"Chanoq suyagi (Pelvis)"}
+  ],
+  start:function(){this.active=true;this.score=0;this.asked=0;this.nextQuestion();},
+  stop:function(){this.active=false;this.targetKey=null;},
+  nextQuestion:function(){var q=this.questions[Math.floor(Math.random()*this.questions.length)];this.targetKey=q.key;var b=document.getElementById("quiz-status-bar");if(b)b.textContent="Toping: "+q.name+" · Ball: "+this.score;},
+  checkSelection:function(name){if(!this.active||!this.targetKey)return;this.asked++;var ok=String(name||"").toLowerCase().includes(this.targetKey.toLowerCase());var b=document.getElementById("quiz-status-bar");if(ok){this.score+=10;if(b)b.textContent="To‘g‘ri! +10 ball · Jami: "+this.score;var self=this;setTimeout(function(){if(self.active)self.nextQuestion();},1200);}else if(b)b.textContent="Xato. Qayta urinib ko‘ring · Ball: "+this.score;}
+ };
+ // Klinik simulyatorning mavjud, tekshiriladigan engine'ini ishlatadi.
+ window.medgenPatient=window.medgenPatient||{start:function(){if(typeof window.medgenOpenVitalsSimulation==="function")return window.medgenOpenVitalsSimulation();var b=document.getElementById("vitalsBtn");if(b)return b.click();alert("Virtual bemor moduli yuklanmoqda. Sahifani yangilang.");}};
+ window.medgenSurgery={
+  step:0,
+  steps:[
+   {title:"1. Operatsiyaga tayyorgarlik va xavfsizlik",tool:"Sterillik, antiseptika va jamoa tekshiruvi",goal:"Bemor identifikatsiyasi, rozilik, allergiya va xavfsizlik tekshiruvlarini ko‘rib chiqing."},
+   {title:"2. Operatsion sohaga kirish tamoyillari",tool:"Jarrohlik asboblari bilan tanishish",goal:"Qorin devori anatomik qatlamlarini virtual modelda farqlang."},
+   {title:"3. Anatomik qatlamlarni ajratish",tool:"Anatomik disseksiya vositalari",goal:"To‘qimalar anatomiyasi va ehtiyotkor muomala tamoyillarini o‘rganing."},
+   {title:"4. Appendiks anatomiyasi",tool:"Virtual anatomiya modeli",goal:"Appendiks, ko‘richak va atrof tuzilmalar joylashuvini aniqlang."},
+   {title:"5. Yakunlash va operatsiyadan keyingi nazorat",tool:"Tikuv materiallari va monitoring",goal:"Yopish, gemostaz va operatsiyadan keyingi kuzatuv tamoyillarini takrorlang."}
+  ],
+  start:function(){this.step=0;this.render();},
+  render:function(){var root=document.getElementById("surgery-flow-root");if(!root)return;root.style.display="block";var q=this.steps[this.step];root.innerHTML='<div style="background:#090d16;border:1px solid #334155;border-radius:12px;padding:14px;color:#e2e8f0;font:14px system-ui"><b style="color:#38bdf8">Jarrohlik simulyatori — appendektomiya</b><p><b>'+q.title+'</b></p><p style="color:#a7f3d0">O‘quv vositalari: '+q.tool+'</p><p>'+q.goal+'</p><p style="font-size:11px;color:#fbbf24">Faqat ta’limiy simulyatsiya. Haqiqiy operatsiya bo‘yicha ko‘rsatma emas.</p><button id="medgen-surgery-next" type="button" style="padding:8px 12px;background:#10b981;color:white;border:0;border-radius:7px">'+(this.step===this.steps.length-1?'Yakunlash':'Keyingi bosqich →')+'</button> <button id="medgen-surgery-close" type="button" style="padding:8px 12px;background:#334155;color:white;border:0;border-radius:7px">Yopish</button></div>';var self=this;document.getElementById("medgen-surgery-next").onclick=function(){if(self.step<self.steps.length-1){self.step++;self.render();}else root.innerHTML='<div style="padding:14px;color:#10b981;font-weight:700">O‘quv ssenariysi yakunlandi.</div>';};document.getElementById("medgen-surgery-close").onclick=function(){root.style.display="none";};}
+ };
+})();
