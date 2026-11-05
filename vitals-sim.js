@@ -250,5 +250,6 @@
     b.addEventListener("click", open);
     logout.parentNode.insertBefore(b, logout);
   }
+  window.medgenOpenVitalsSimulation = open;
   if (document.readyState === "loading") document.addEventListener("DOMContentLoaded", init); else init();
 })();
