@@ -5760,7 +5760,7 @@ def myology_exam_submit(data: MyologyExamSubmitRequest, user=Depends(get_current
     return {"correct": correct, "awarded": awarded, "points_awarded": 10 if awarded else 0,
             "total_myology_points": int((total or {}).get("points", 0)),
             "leaderboard_joined": bool(joined), "leaderboard_total": int(joined["total_score"]) if joined else None,
-            "explanation": item[3], "already_earned": bool(correct and not awarded)}
+            "explanation": item[3], "correct_option": item[1][item[2]], "already_earned": bool(correct and not awarded)}
 
 @app.get("/api/v1/academy/profile")
 def academy_get_profile(user=Depends(get_current_user)):
