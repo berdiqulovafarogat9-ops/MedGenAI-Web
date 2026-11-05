@@ -5675,6 +5675,11 @@ class AcademyAssessmentSubmitRequest(BaseModel):
     assessment_type: str
     answers: dict[str, int]
 
+class AcademyModuleScoreRequest(BaseModel):
+    score: int = Field(ge=0, le=100)
+    module: str = Field(min_length=1, max_length=80)
+    completed_at: datetime | None = None
+
 @app.get("/api/v1/academy/profile")
 def academy_get_profile(user=Depends(get_current_user)):
     return {"status": "ok", "profile": _academy_profile(user["username"])}
@@ -5962,6 +5967,42 @@ def academy_submit_assessment(data: AcademyAssessmentSubmitRequest, user=Depends
         score = round(correct * 100 / total) if total else 0
     record = _save_academy_assessment(user["username"], data.course, data.subject_id, data.assessment_type, score)
     return {"status": "recorded", "score": score, "passed": score >= 70, "total": total, "progress": record}
+
+@app.post("/api/v1/academy/score")
+@app.post("/api/academy/score")
+def academy_save_module_score(data: AcademyModuleScoreRequest, user=Depends(get_current_user)):
+    """Persist completed interactive-module points on the authenticated learner profile."""
+    username = user["username"]
+    profile = user_profiles.setdefault(username, {})
+    scores = profile.setdefault("academy_module_scores", [])
+    record = {
+        "score": int(data.score),
+        "module": data.module.strip(),
+        "completed_at": (data.completed_at or datetime.now(timezone.utc)).astimezone(timezone.utc).isoformat(),
+    }
+    scores.insert(0, record)
+    del scores[100:]
+    try:
+        _db_save()
+    except Exception:
+        if scores and scores[0] is record:
+            scores.pop(0)
+        if not scores:
+            profile.pop("academy_module_scores", None)
+        raise
+    return {
+        "status": "saved",
+        "score": record["score"],
+        "module": record["module"],
+        "total_points": sum(int(item.get("score", 0)) for item in scores),
+        "attempts": len(scores),
+        "completed_at": record["completed_at"],
+    }
+
+@app.get("/api/v1/academy/scores")
+def academy_module_scores(user=Depends(get_current_user)):
+    scores = user_profiles.get(user["username"], {}).get("academy_module_scores", [])
+    return {"status": "ok", "total_points": sum(int(item.get("score", 0)) for item in scores), "attempts": len(scores), "items": scores[:50]}
 
 @app.get("/api/v1/academy/dashboard")
 def academy_dashboard(user=Depends(get_current_user)):
