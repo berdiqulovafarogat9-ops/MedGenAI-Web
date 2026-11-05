@@ -1835,7 +1835,7 @@ VITALS_CASES = {
         "title": "1-keys: Anafilaktik shok",
         "level": "Shoshilinch",
         "story": "45 yoshli bemor, hasharot chaqqanidan 5 daqiqa o'tib: yuz va lab shishi, nafas qisilishi, bosimning keskin tushishi.",
-        "init": {"hr": 135, "sbp": 70, "dbp": 40, "spo2": 88, "rr": 28},
+        "init": {"hr": 138, "sbp": 70, "dbp": 40, "spo2": 88, "rr": 28},
         "ecg": "normal",
         "worsen": {"hr": 0.05, "sbp": -0.3, "dbp": -0.2, "spo2": -0.03, "rr": 0.02},
         "actions": [
