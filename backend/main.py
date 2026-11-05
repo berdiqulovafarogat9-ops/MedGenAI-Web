@@ -7330,6 +7330,16 @@ except ImportError:
         phase1_academy_ext = None
 
 
+# Medical Chemistry assessment extension (additive and backward-compatible).
+try:
+    from . import medical_chemistry_ext
+except ImportError:
+    try:
+        import medical_chemistry_ext
+    except ModuleNotFoundError:
+        medical_chemistry_ext = None
+
+
 # Restore persisted application state after every Render process start.
 # Keep this at module end so all in-memory stores are defined before loading.
 # =========================================================
