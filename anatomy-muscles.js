@@ -98,6 +98,7 @@
             const status=el('div',{class:'mg-myology-result '+(result.correct?'is-correct':'is-wrong')});
             status.append(el('strong',{},result.correct?(result.awarded?'To‘g‘ri! +10 ball':'To‘g‘ri! Bu mushak uchun +10 ball avval olingan.'):'Noto‘g‘ri javob. 0 ball.'));
             status.append(el('p',{},result.explanation));
+            if(!result.correct) status.append(el('p',{},'To‘g‘ri javob: '+result.correct_option));
             status.append(el('p',{},'Myologiya bo‘yicha jami ball: '+result.total_myology_points));
             if(result.leaderboard_joined) status.append(el('p',{},'Umumiy reyting balli: '+result.leaderboard_total));
             else status.append(el('p',{},'Ball saqlandi. Ommaviy reytingda ko‘rinish uchun Reyting bo‘limida rozilik bilan qo‘shiling.'));
