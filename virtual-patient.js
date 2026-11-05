@@ -2,6 +2,17 @@
    Educational simulation only; not a clinical decision-support system. */
 (() => {
   'use strict';
+  if(!window.submitStudentScore)window.submitStudentScore=async function(score,moduleName){
+    const token=sessionStorage.getItem('medgen_access_token');
+    const apiBase=(window.MEDGEN_API_BASE||'https://medgenai-web-1.onrender.com/api/v1').replace(/\\/$/,'');
+    try{
+      const response=await fetch(apiBase+'/academy/score',{method:'POST',headers:{'Content-Type':'application/json','Authorization':'Bearer '+token},body:JSON.stringify({score:Number(score),module:String(moduleName||'Learning module'),completed_at:new Date().toISOString()})});
+      const data=await response.json().catch(()=>({}));
+      if(!response.ok)throw new Error(data.detail||('HTTP '+response.status));
+      alert('Ball saqlandi! +'+Number(score)+' ball reytingingizga qo‘shildi.');
+      return data;
+    }catch(err){console.error('Ball saqlashda xatolik:',err);return null;}
+  };
   const CASES = [
     {id:'anaphylaxis', name:'Anafilaktik shok', start:{hr:135,sys:70,dia:40,spo2:88,rr:30}, ecg:'shock',
       clues:['Yangi dori/ovqatdan keyin boshlangan','Eshakemi va yuz/lab shishi','Hansirash, arterial gipotenziya'],
@@ -127,6 +138,7 @@
       if(!response.ok)throw new Error(data.detail||('HTTP '+response.status));
       box.textContent='✅ Serverga saqlandi · natija ID: '+data.result_id+'. Reyting jadvaliga yozildi.';
       box.dataset.saved='true';
+      if(typeof window.submitStudentScore==='function')await window.submitStudentScore(record.score,'Virtual Bemor');
     }catch(err){box.textContent='Serverga saqlash amalga oshmadi ('+String(err.message||err)+'). Natija hozircha faqat ushbu qurilmada saqlandi.';box.dataset.saved='false';}
   }
   function stop(){if(ticker){clearInterval(ticker);ticker=null}if(raf){cancelAnimationFrame(raf);raf=null}}
