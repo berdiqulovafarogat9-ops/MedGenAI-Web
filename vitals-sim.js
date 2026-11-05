@@ -36,11 +36,18 @@
       - 0.25 * g(f, 0.25, 0.012) + (st ? 0.22 : 0) * g(f, 0.31, 0.05) + 0.30 * g(f, 0.47, 0.06);
   }
 
-  function open() {
-    var overlay = el("div", "position:fixed;inset:0;background:rgba(0,0,0,.75);display:flex;align-items:center;justify-content:center;z-index:99999");
-    var card = el("div", CARD);
-    overlay.appendChild(card);
-    document.body.appendChild(overlay);
+  function open(targetRoot, caseKey) {
+    var embedded = !!(targetRoot && targetRoot.nodeType === 1);
+    var overlay = embedded ? null : el("div", "position:fixed;inset:0;background:rgba(0,0,0,.75);display:flex;align-items:center;justify-content:center;z-index:99999");
+    var embeddedCardStyle = CARD.replace("width:min(96vw,640px);max-height:94vh;", "width:100%;max-height:none;") + ";box-sizing:border-box";
+    var card = el("div", embedded ? embeddedCardStyle : CARD);
+    if (embedded) {
+      targetRoot.innerHTML = "";
+      targetRoot.appendChild(card);
+    } else {
+      overlay.appendChild(card);
+      document.body.appendChild(overlay);
+    }
     var sim = null, timer = null, raf = null, penalty = 0, lastPenaltyAt = 0, running = false;
     var alertBox = el("div", "display:none;background:#b00020;color:#fff;font-weight:700;padding:10px;border-radius:10px;margin-bottom:8px");
     card.appendChild(alertBox);
@@ -51,9 +58,13 @@
       if (raf) cancelAnimationFrame(raf);
       document.removeEventListener("visibilitychange", onVis);
       window.removeEventListener("blur", onBlur);
-      overlay.remove();
+      if (embedded) {
+        targetRoot.innerHTML = '<div style="max-width:900px;margin:0 auto;text-align:center;padding:36px 18px;color:#e2e8f0"><h3>Virtual bemor simulyatori</h3><p style="color:#a8bacb">Simulyatsiya yopildi.</p><button type="button" onclick="window.medgenPatient.start(\'anaphylaxis\')" style="padding:12px 18px;background:#0e7490;color:#fff;border:0;border-radius:9px;font-weight:700">Qayta boshlash</button></div>';
+      } else if (overlay) {
+        overlay.remove();
+      }
     }
-    overlay.addEventListener("click", function (e) { if (e.target === overlay && !running) closeAll(); });
+    if (overlay) overlay.addEventListener("click", function (e) { if (e.target === overlay && !running) closeAll(); });
 
     function flash(text) {
       alertBox.textContent = text; alertBox.style.display = "block";
@@ -77,6 +88,15 @@
       card.appendChild(list);
       var close = el("button", BTN2 + ";width:100%;text-align:center", "Yopish"); close.onclick = closeAll; card.appendChild(close);
       call("/clinical/vitals/cases").then(function (data) {
+        if (caseKey) {
+          var selectedCase = data.cases.find(function (item) { return item.id === caseKey; });
+          if (!selectedCase) {
+            list.appendChild(el("p", "color:#ff8a8a", "So‘ralgan klinik keys topilmadi: " + caseKey));
+            return;
+          }
+          start(selectedCase);
+          return;
+        }
         data.cases.forEach(function (c) {
           var box = el("div", "border:1px solid #24394d;border-radius:12px;padding:10px;margin:8px 0");
           box.appendChild(el("div", "font-weight:700", c.title + " · " + c.level));
@@ -251,5 +271,9 @@
     logout.parentNode.insertBefore(b, logout);
   }
   window.medgenOpenVitalsSimulation = open;
+  window.medgenOpenVitalsSimulationEmbedded = function (root, caseId) {
+    if (!root || root.nodeType !== 1) throw new Error("Virtual bemor paneli topilmadi.");
+    open(root, caseId || "anaphylaxis");
+  };
   if (document.readyState === "loading") document.addEventListener("DOMContentLoaded", init); else init();
 })();
