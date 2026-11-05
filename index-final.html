@@ -2798,11 +2798,14 @@ document.addEventListener("DOMContentLoaded", function () {
                Vertebra:{uz:'Umurtqa',la:'Vertebra',desc:'Umurtqa pog‘onasining alohida suyak segmenti.'}
              };
              const BONE_ALIASES={
-               'hip bone':'Pelvis','hip':'Pelvis','coxal':'Pelvis','os coxae':'Pelvis','coxal bone':'Pelvis',
+               'hip bone':'Pelvis','hip':'Pelvis','hips':'Pelvis','coxal':'Pelvis','os coxae':'Pelvis','coxal bone':'Pelvis',
                'ilium':'Pelvis','ischium':'Pelvis','pubis':'Pelvis','pelvic bone':'Pelvis','pelvis':'Pelvis',
-               'skull':'Cranium','cranium':'Cranium','calvaria':'Parietal',
-               'rib':'Rib','costa':'Rib','costae':'Rib',
-               'vertebra':'Vertebra','spine':'Spine','vertebral':'Vertebra',
+               'skull':'Cranium','cranium':'Cranium','head bone':'Cranium','calvaria':'Parietal',
+               'rib':'Rib','ribs':'Rib','costa':'Rib','costae':'Rib',
+               'vertebra':'Vertebra','vertebrae':'Vertebra','spine':'Spine','vertebral':'Vertebra',
+               'c1':'Cervical','c2':'Cervical','c3':'Cervical','c4':'Cervical','c5':'Cervical','c6':'Cervical','c7':'Cervical',
+               't1':'Thoracic','t2':'Thoracic','t3':'Thoracic','t4':'Thoracic','t5':'Thoracic','t6':'Thoracic','t7':'Thoracic','t8':'Thoracic','t9':'Thoracic','t10':'Thoracic','t11':'Thoracic','t12':'Thoracic',
+               'l1':'Lumbar','l2':'Lumbar','l3':'Lumbar','l4':'Lumbar','l5':'Lumbar',
                'cervical vertebra':'Cervical','thoracic vertebra':'Thoracic','lumbar vertebra':'Lumbar',
                'frontal bone':'Frontal','os frontale':'Frontal','parietal bone':'Parietal','os parietale':'Parietal',
                'temporal bone':'Temporal','os temporale':'Temporal','occipital bone':'Occipital','os occipitale':'Occipital',
@@ -2880,7 +2883,17 @@ document.addEventListener("DOMContentLoaded", function () {
                  node=node.parent;
                }
                const rawName=names.join(' ');
-               const matchedKey=window.medgenApp.resolveBone(rawName);
+               // Mesh nomi turlicha bo‘lishi mumkin: avval butun node zanjiri,
+               // so‘ng har bir ancestor alohida tekshiriladi.
+               let matchedKey=window.medgenApp.resolveBone(rawName);
+               if(!matchedKey){
+                 for(const candidate of names){
+                   matchedKey=window.medgenApp.resolveBone(candidate);
+                   if(matchedKey)break;
+                 }
+               }
+               const infoText=document.getElementById('medgen-bone-desc');
+               if(!matchedKey && infoText) infoText.textContent='Model obyekt nomi: '+(rawName||'Noma’lum')+'. Bu nom anatomik lug‘atga hali qo‘shilmagan.';
                if(window.medgenAnatomyQuiz)window.medgenAnatomyQuiz.checkSelection(matchedKey||rawName);
              },{passive:true});
           },
