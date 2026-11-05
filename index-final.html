@@ -2797,12 +2797,60 @@ document.addEventListener("DOMContentLoaded", function () {
                Spine:{uz:'Umurtqa pog‘onasi',la:'Columna vertebralis',desc:'Bo‘yin, ko‘krak, bel, dumg‘aza va dum umurtqalaridan tashkil topgan tayanch o‘qi.'},
                Vertebra:{uz:'Umurtqa',la:'Vertebra',desc:'Umurtqa pog‘onasining alohida suyak segmenti.'}
              };
+             const BONE_ALIASES={
+               'hip bone':'Pelvis','hip':'Pelvis','coxal':'Pelvis','os coxae':'Pelvis','coxal bone':'Pelvis',
+               'ilium':'Pelvis','ischium':'Pelvis','pubis':'Pelvis','pelvic bone':'Pelvis','pelvis':'Pelvis',
+               'skull':'Cranium','cranium':'Cranium','calvaria':'Parietal',
+               'rib':'Rib','costa':'Rib','costae':'Rib',
+               'vertebra':'Vertebra','spine':'Spine','vertebral':'Vertebra',
+               'cervical vertebra':'Cervical','thoracic vertebra':'Thoracic','lumbar vertebra':'Lumbar',
+               'frontal bone':'Frontal','os frontale':'Frontal','parietal bone':'Parietal','os parietale':'Parietal',
+               'temporal bone':'Temporal','os temporale':'Temporal','occipital bone':'Occipital','os occipitale':'Occipital',
+               'sphenoid bone':'Sphenoid','os sphenoidale':'Sphenoid','ethmoid bone':'Ethmoid','os ethmoidale':'Ethmoid',
+               'mandibula':'Mandible','lower jaw':'Mandible','maxilla':'Maxilla','upper jaw':'Maxilla',
+               'zygomatic bone':'Zygomatic','os zygomaticum':'Zygomatic','nasal bone':'Nasal','os nasale':'Nasal',
+               'clavicula':'Clavicle','collarbone':'Clavicle','scapula':'Scapula','shoulder blade':'Scapula',
+               'humerus':'Humerus','radius':'Radius','ulna':'Ulna','sternum':'Sternum',
+               'sacrum':'Sacrum','os sacrum':'Sacrum','femur':'Femur','patella':'Patella','tibia':'Tibia','fibula':'Fibula'
+             };
+             function normalizeBoneName(value){
+               return String(value||'').toLowerCase().replace(/[_\\-]+/g,' ').replace(/[^a-z0-9\\s]/g,' ').replace(/\\s+/g,' ').trim();
+             }
+             function resolveBoneName(raw){
+               const normalized=normalizeBoneName(raw);
+               const aliases=Object.keys(BONE_ALIASES).sort((a,b)=>b.length-a.length);
+               for(const alias of aliases){
+                 const escaped=alias.replace(/[.*+?^{}()|[\\]\\\\]/g,'\\\\$&');
+                 if(new RegExp('(^|\\\\s)'+escaped+'(\\\\s|$)','i').test(normalized)) return BONE_ALIASES[alias];
+               }
+               const keys=Object.keys(BONE_DICTIONARY).sort((a,b)=>b.length-a.length);
+               for(const key of keys){
+                 const k=normalizeBoneName(key);
+                 if(k && new RegExp('(^|\\\\s)'+k.replace(/[.*+?^{}()|[\\]\\\\]/g,'\\\\$&')+'(\\\\s|$)','i').test(normalized)) return key;
+               }
+               return null;
+             }
+             window.medgenApp=window.medgenApp||{};
+             window.medgenApp.resolveBone=function(rawName){
+               const key=resolveBoneName(rawName);
+               const info=key&&BONE_DICTIONARY[key];
+               const latin=document.getElementById('medgen-bone-latin');
+               const uzbek=document.getElementById('medgen-bone-uzbek');
+               const desc=document.getElementById('medgen-bone-desc');
+               if(info){
+                 if(latin)latin.textContent=info.la;
+                 if(uzbek)uzbek.textContent=info.uz;
+                 if(desc)desc.textContent=info.desc;
+                 return key;
+               }
+               if(latin)latin.textContent='Model nomi: '+String(rawName||'Noma’lum');
+               if(uzbek)uzbek.textContent='Suyak nomi lug‘atda topilmadi';
+               if(desc)desc.textContent='3D modeldagi obyekt nomi lug‘at bilan mos kelmadi.';
+               return null;
+             };
              const raycaster=new THREE.Raycaster();
              const pointer=new THREE.Vector2();
              const canvas=renderer.domElement;
-             const boneLatin=document.getElementById('medgen-bone-latin');
-             const boneUzbek=document.getElementById('medgen-bone-uzbek');
-             const boneDesc=document.getElementById('medgen-bone-desc');
              let selectedMesh=null,selectedOriginalMaterial=null,pointerStart=null;
              canvas.addEventListener('pointerdown',(event)=>{pointerStart={x:event.clientX,y:event.clientY};},{passive:true});
              canvas.addEventListener('pointerup',(event)=>{
@@ -2820,49 +2868,22 @@ document.addEventListener("DOMContentLoaded", function () {
                if(selectedMesh&&selectedOriginalMaterial)selectedMesh.material=selectedOriginalMaterial;
                selectedMesh=clicked;
                selectedOriginalMaterial=clicked.material;
-               const highlight=Array.isArray(clicked.material)?clicked.material.map(mat=>mat.clone()):clicked.material.clone();
-               if(Array.isArray(highlight))highlight.forEach(mat=>mat.color.setHex(0x10b981));
-               else highlight.color.setHex(0x10b981);
-               clicked.material=highlight;
-               const rawName=(clicked.name||'Noma’lum suyak').replace(/[_-]+/g,' ');
-                if(window.medgenAnatomyQuiz)window.medgenAnatomyQuiz.checkSelection(rawName);
-               const normalized=rawName.toLowerCase().replace(/[_.-]+/g,' ').replace(/\\s+/g,' ').trim();
-               const BONE_ALIASES={
-                 'hip bone':'Pelvis','hip':'Pelvis','coxal':'Pelvis','os coxae':'Pelvis','ilium':'Pelvis','ischium':'Pelvis','pubis':'Pelvis',
-                 'skull':'Cranium','cranium':'Cranium','calvaria':'Parietal',
-                 'rib':'Rib','costa':'Rib','sternal rib':'Rib',
-                 'vertebra':'Vertebra','spine':'Spine','vertebral':'Vertebra','cervical vertebra':'Cervical','thoracic vertebra':'Thoracic','lumbar vertebra':'Lumbar',
-                 'frontal bone':'Frontal','os frontale':'Frontal','parietal bone':'Parietal','os parietale':'Parietal',
-                 'temporal bone':'Temporal','os temporale':'Temporal','occipital bone':'Occipital','os occipitale':'Occipital',
-                 'sphenoid bone':'Sphenoid','os sphenoidale':'Sphenoid','ethmoid bone':'Ethmoid','os ethmoidale':'Ethmoid',
-                 'mandibula':'Mandible','lower jaw':'Mandible','maxilla':'Maxilla','upper jaw':'Maxilla',
-                 'zygomatic bone':'Zygomatic','os zygomaticum':'Zygomatic','nasal bone':'Nasal','os nasale':'Nasal',
-                 'clavicula':'Clavicle','collarbone':'Clavicle','scapula':'Scapula','shoulder blade':'Scapula',
-                 'humerus':'Humerus','radius':'Radius','ulna':'Ulna','sternum':'Sternum',
-                 'sacrum':'Sacrum','os sacrum':'Sacrum','femur':'Femur','patella':'Patella','tibia':'Tibia','fibula':'Fibula'
-               };
-               let matched=null;
-               for(const key of Object.keys(BONE_DICTIONARY)){
-                 if(normalized.includes(key.toLowerCase())){matched=BONE_DICTIONARY[key];break;}
+               if(clicked.material){
+                 const highlight=Array.isArray(clicked.material)?clicked.material.map(mat=>mat.clone()):clicked.material.clone();
+                 if(Array.isArray(highlight))highlight.forEach(mat=>{if(mat.color)mat.color.setHex(0x10b981);});
+                 else if(highlight.color)highlight.color.setHex(0x10b981);
+                 clicked.material=highlight;
                }
-               if(!matched){
-                 const aliases=Object.keys(BONE_ALIASES).sort((a,b)=>b.length-a.length);
-                 for(const alias of aliases){
-                   if(normalized.includes(alias)){
-                     const target=BONE_ALIASES[alias];
-                     if(BONE_DICTIONARY[target]){matched=BONE_DICTIONARY[target];break;}
-                   }
-                 }
+               // Mesh nomi "1" bo‘lsa ham parent nomlarini qo‘shib tekshiramiz.
+               const names=[];
+               let node=clicked;
+               while(node){
+                 if(node.name)names.push(node.name);
+                 node=node.parent;
                }
-               if(matched){
-                 boneLatin.textContent=matched.la;
-                 boneUzbek.textContent=matched.uz;
-                 boneDesc.textContent=matched.desc;
-               }else{
-                 boneLatin.textContent='Model nomi: '+rawName;
-                 boneUzbek.textContent='Suyak nomi lug‘atda topilmadi';
-                 boneDesc.textContent='Ushbu 3D obyekt nomi model faylida boshqacha berilgan bo‘lishi mumkin.';
-               }
+               const rawName=names.join(' ');
+               const matchedKey=window.medgenApp.resolveBone(rawName);
+               if(window.medgenAnatomyQuiz)window.medgenAnatomyQuiz.checkSelection(matchedKey||rawName);
              },{passive:true});
           },
           (xhr)=>{
