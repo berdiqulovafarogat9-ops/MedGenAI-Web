@@ -185,6 +185,37 @@
       else if (!opening && activeViewer) { activeViewer.dispose(); activeViewer = null; }
     });
   }
+  let anatomyModal = null;
+  function openAnatomyModal() {
+    if (anatomyModal) {
+      anatomyModal.hidden = false;
+      if (activeViewer) activeViewer.resize();
+      return;
+    }
+    const modal = document.createElement('div');
+    modal.id = 'medgenAnatomyModal';
+    modal.style.cssText = 'position:fixed;inset:0;z-index:99999;background:rgba(2,6,12,.94);display:flex;align-items:center;justify-content:center;padding:12px;';
+    modal.innerHTML = '<div role="dialog" aria-modal="true" aria-label="3D Inson skeleti" style="width:min(1100px,100%);max-height:96vh;overflow:auto;background:#101b2b;border:1px solid #334155;border-radius:16px;padding:14px;color:#e5edf7;box-shadow:0 20px 70px #000"><div style="display:flex;justify-content:space-between;align-items:center;gap:12px;margin-bottom:10px"><div><b style="font-size:18px">💀 3D Inson Skeleti</b><p style="margin:4px 0;color:#9fb0c4">Modelni aylantiring, yaqinlashtiring va suyakni tanlang.</p></div><button type="button" id="medgenAnatomyModalClose" style="background:#334155;color:white;border:0;border-radius:8px;padding:10px 14px;font-weight:bold">✕ Yopish</button></div><div id="medgenAnatomyCanvas" style="height:min(70vh,680px);min-height:360px;width:100%;border-radius:12px;overflow:hidden;background:#080d14;touch-action:pan-y"></div><div id="medgenAnatomyStatus" role="status" aria-live="polite" style="padding:10px 2px">Model tayyorlanmoqda…</div><b id="medgenAnatomyName" aria-live="polite">Hozircha suyak tanlanmagan</b></div>';
+    document.body.appendChild(modal);
+    anatomyModal = modal;
+    modal.querySelector('#medgenAnatomyModalClose').addEventListener('click', closeAnatomyModal);
+    modal.addEventListener('click', (event) => { if (event.target === modal) closeAnatomyModal(); });
+    document.addEventListener('keydown', anatomyEscape);
+    activeViewer = new AnatomyViewer(modal);
+    activeViewer.init();
+  }
+  function anatomyEscape(event) {
+    if (event.key === 'Escape') closeAnatomyModal();
+  }
+  function closeAnatomyModal() {
+    if (!anatomyModal) return;
+    document.removeEventListener('keydown', anatomyEscape);
+    if (activeViewer) { activeViewer.dispose(); activeViewer = null; }
+    anatomyModal.remove();
+    anatomyModal = null;
+  }
+  window.medgenAnatomyModal = { open: openAnatomyModal, close: closeAnatomyModal };
+
   function watch() {
     const attach = () => {
       const studentRoot = document.getElementById('studentTool');
@@ -200,7 +231,7 @@
     const observer = new MutationObserver(attach);
     observer.observe(document.body, { childList: true, subtree: true, attributes: true, attributeFilter: ['class'] });
   }
-  if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', watch, { once: true });
-  else watch();
+  // The Academy header contains a static button; its click opens the modal above.
+  // Keep the legacy inline mount disabled to avoid duplicate entry points.
   window.MedGenAnatomyViewer = AnatomyViewer;
 })();
