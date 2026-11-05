@@ -6153,12 +6153,7 @@ window.switchMedGenMode = function(mode) {
     }
   }
 
-  if (mode === "patient") {
-    // The patient panel is shown first; the existing clinical engine then opens.
-    if (typeof window.medgenPatient?.start === "function") {
-      window.medgenPatient.start("anaphylaxis");
-    }
-  }
+  // Patient simulation starts only when the learner presses its blue start button.
 
   // Recalculate the WebGL viewport after returning to the anatomy tab.
   if (mode === "anatomy") {
