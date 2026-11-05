@@ -182,12 +182,17 @@
   }
   function watch() {
     const attach = () => {
-      const root = document.getElementById('academyV2Root');
+      const academyRoot = document.getElementById('academyV2Root');
+      const studentRoot = document.getElementById('studentTool');
+      // Mount in the rendered Academy root when available; otherwise use the
+      // visible legacy Student workspace so the viewer is never hidden behind
+      // an Academy root that has not yet been initialized.
+      const root = academyRoot || (studentRoot && !studentRoot.classList.contains('hidden') ? studentRoot : null);
       if (root) mount(root);
     };
     attach();
     const observer = new MutationObserver(attach);
-    observer.observe(document.body, { childList: true, subtree: true });
+    observer.observe(document.body, { childList: true, subtree: true, attributes: true, attributeFilter: ['class'] });
   }
   if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', watch, { once: true });
   else watch();
