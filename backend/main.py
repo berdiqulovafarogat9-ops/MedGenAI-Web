@@ -1857,10 +1857,10 @@ VITALS_CASES = {
         "diagnosis_explain": "Teri shishi, nafas qisilishi va tez bosim tushishi allergik reaktsiyaning tipik belgilari.",
     },
     "mi": {
-        "title": "2-keys: Miokard infarkti",
+        "title": "2-keys: O'tkir miokard infarkti (STEMI)",
         "level": "Shoshilinch",
-        "story": "58 yoshli bemor, 40 daqiqadan beri ko'krakda siquvchi og'riq, sovuq ter. EKGda ST-segment ko'tarilishi ko'rinmoqda.",
-        "init": {"hr": 110, "sbp": 90, "dbp": 60, "spo2": 95, "rr": 20},
+        "story": "58 yoshli bemor: to'sh ortida kuchli bosuvchi og'riq chap qo'l va jag'ga tarqaladi, sovuq ter. 12-kanalli EKGda ST-segment elevatsiyasi.",
+        "init": {"hr": 110, "sbp": 90, "dbp": 60, "spo2": 91, "rr": 24},
         "ecg": "st_elev",
         "worsen": {"hr": 0.02, "sbp": -0.15, "dbp": -0.1, "spo2": -0.02, "rr": 0.0},
         "actions": [
