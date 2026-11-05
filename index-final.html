@@ -2613,7 +2613,12 @@ document.addEventListener("DOMContentLoaded", function () {
           </div>
           <div id="local-skeleton-viewport" style="width:100%;height:75vh;min-height:480px;position:relative;flex:1;background:#050a14;">
             <div id="local-skeleton-status" style="position:absolute;top:12px;left:12px;color:#38bdf8;font:13px sans-serif;z-index:10;background:rgba(15,23,42,.85);padding:6px 12px;border-radius:6px;">Yuklanmoqda...</div>
-            <div id="local-canvas-box" style="width:100%;height:100%;"></div>
+            <div id="medgen-bone-info" style="position:absolute;right:12px;bottom:12px;width:min(320px,calc(100% - 24px));z-index:12;background:rgba(15,23,42,.94);border:1px solid #334155;border-radius:12px;padding:14px;color:#e2e8f0;font-family:Arial,sans-serif;box-shadow:0 12px 30px rgba(0,0,0,.4);pointer-events:none;">
+               <div id="medgen-bone-latin" style="font-size:15px;font-weight:700;color:#38bdf8;">Suyakni tanlang</div>
+               <div id="medgen-bone-uzbek" style="font-size:14px;font-weight:600;margin-top:4px;">Lotincha va o‘zbekcha nomi shu yerda chiqadi</div>
+               <div id="medgen-bone-desc" style="font-size:12px;line-height:1.5;color:#cbd5e1;margin-top:7px;">Skeletdagi suyak ustiga bosing.</div>
+             </div>
+             <div id="local-canvas-box" style="width:100%;height:100%;"></div>
           </div>
         </div>`;
       document.body.appendChild(overlay);
@@ -2712,6 +2717,7 @@ document.addEventListener("DOMContentLoaded", function () {
             }
             scene.add(model);
             model.updateMatrixWorld(true);
+            window.loadedSkeletonModel=model;
 
             // Modelning nisbatiga qarab kamera masofasini hisoblash:
             // 3.2 minimal masofa, uzun skeletlarda esa to‘liq sig‘adigan masofa.
@@ -2729,9 +2735,74 @@ document.addEventListener("DOMContentLoaded", function () {
             controls.minDistance=radius*0.35;
             controls.maxDistance=radius*12;
             controls.update();
-
-            status.textContent='Skelet tayyor! Barmoq bilan aylantiring.';
-            dracoLoader.dispose();
+             status.textContent='Skelet tayyor! Suyakni tanlang yoki barmoq bilan aylantiring.';
+             dracoLoader.dispose();
+             const BONE_DICTIONARY={
+               Cranium:{uz:'Kalla suyagi',la:'Cranium',desc:'Miya qutisi va yuz skeletini o‘z ichiga oladi.'},
+               Skull:{uz:'Kalla suyagi',la:'Cranium',desc:'Miya va sezgi a’zolarini himoya qiluvchi suyaklar majmuasi.'},
+               Frontal:{uz:'Peshona suyagi',la:'Os frontale',desc:'Miya qutisining oldingi devori va ko‘z kosasi tomini hosil qiladi.'},
+               Parietal:{uz:'Tepa suyagi',la:'Os parietale',desc:'Kalla gumbazining yuqori-yon devorlarini hosil qiluvchi juft suyak.'},
+               Temporal:{uz:'Chakka suyagi',la:'Os temporale',desc:'Eshituv va muvozanat a’zolari bilan bog‘liq murakkab juft suyak.'},
+               Occipital:{uz:'Ensa suyagi',la:'Os occipitale',desc:'Kallaning orqa devori; katta ensa teshigi shu yerda joylashgan.'},
+               Mandible:{uz:'Pastki jag‘ suyagi',la:'Mandibula',desc:'Kallaning yagona harakatchan suyagi, chaynov apparati asosi.'},
+               Maxilla:{uz:'Yuqori jag‘ suyagi',la:'Maxilla',desc:'Yuz skeletining markaziy qismini tashkil qiluvchi juft suyak.'},
+               Rib:{uz:'Qovurg‘a',la:'Costa',desc:'Ko‘krak qafasini hosil qilib, yurak va o‘pkani himoya qiladi.'},
+               Sternum:{uz:'To‘sh suyagi',la:'Sternum',desc:'Ko‘krak qafasining oldingi devori o‘rtasidagi yassi suyak.'},
+               Spine:{uz:'Umurtqa pog‘onasi',la:'Columna vertebralis',desc:'Gavdaning asosiy tayanch o‘qi.'},
+               Vertebra:{uz:'Umurtqa',la:'Vertebra',desc:'Umurtqa pog‘onasi segmenti.'},
+               Pelvis:{uz:'Chanoq suyagi',la:'Pelvis',desc:'Gavda og‘irligini pastki oyoqlarga uzatuvchi tayanch suyak halqasi.'},
+               Femur:{uz:'Son suyagi',la:'Os femoris',desc:'Inson tanasidagi eng uzun va baquvvat naysimon suyak.'},
+               Tibia:{uz:'Katta boldir suyagi',la:'Tibia',desc:'Boldirning ichki tomonidagi asosiy yuk ko‘taruvchi suyak.'},
+               Fibula:{uz:'Kichik boldir suyagi',la:'Fibula',desc:'Boldirning lateral qismidagi ingichka suyak.'},
+               Humerus:{uz:'Yelka suyagi',la:'Humerus',desc:'Qo‘lning yuqori qismidagi uzun naysimon suyak.'},
+               Radius:{uz:'Nur suyagi',la:'Radius',desc:'Bilakning bosh barmoq tomonidagi suyagi.'},
+               Ulna:{uz:'Tirsak suyagi',la:'Ulna',desc:'Bilakning jimjiloq tomonidagi suyagi.'},
+               Clavicle:{uz:'O‘mrov suyagi',la:'Clavicula',desc:'Qo‘lni ko‘krak qafasiga tutashtiruvchi S-simon suyak.'},
+               Scapula:{uz:'Kurak suyagi',la:'Scapula',desc:'Ko‘krak qafasining orqa devoridagi yassi juft suyak.'}
+             };
+             const raycaster=new THREE.Raycaster();
+             const pointer=new THREE.Vector2();
+             const canvas=renderer.domElement;
+             const boneLatin=document.getElementById('medgen-bone-latin');
+             const boneUzbek=document.getElementById('medgen-bone-uzbek');
+             const boneDesc=document.getElementById('medgen-bone-desc');
+             let selectedMesh=null,selectedOriginalMaterial=null,pointerStart=null;
+             canvas.addEventListener('pointerdown',(event)=>{pointerStart={x:event.clientX,y:event.clientY};},{passive:true});
+             canvas.addEventListener('pointerup',(event)=>{
+               if(!pointerStart)return;
+               const moved=Math.hypot(event.clientX-pointerStart.x,event.clientY-pointerStart.y);
+               pointerStart=null;
+               if(moved>8||!window.loadedSkeletonModel)return;
+               const rect=canvas.getBoundingClientRect();
+               pointer.x=((event.clientX-rect.left)/rect.width)*2-1;
+               pointer.y=-((event.clientY-rect.top)/rect.height)*2+1;
+               raycaster.setFromCamera(pointer,camera);
+               const hits=raycaster.intersectObject(window.loadedSkeletonModel,true);
+               if(!hits.length)return;
+               const clicked=hits[0].object;
+               if(selectedMesh&&selectedOriginalMaterial)selectedMesh.material=selectedOriginalMaterial;
+               selectedMesh=clicked;
+               selectedOriginalMaterial=clicked.material;
+               const highlight=Array.isArray(clicked.material)?clicked.material.map(mat=>mat.clone()):clicked.material.clone();
+               if(Array.isArray(highlight))highlight.forEach(mat=>mat.color.setHex(0x10b981));
+               else highlight.color.setHex(0x10b981);
+               clicked.material=highlight;
+               const rawName=(clicked.name||'Noma’lum suyak').replace(/[_-]+/g,' ');
+               const normalized=rawName.toLowerCase();
+               let matched=null;
+               for(const key of Object.keys(BONE_DICTIONARY)){
+                 if(normalized.includes(key.toLowerCase())){matched=BONE_DICTIONARY[key];break;}
+               }
+               if(matched){
+                 boneLatin.textContent=matched.la;
+                 boneUzbek.textContent=matched.uz;
+                 boneDesc.textContent=matched.desc;
+               }else{
+                 boneLatin.textContent='Model nomi: '+rawName;
+                 boneUzbek.textContent='Suyak nomi lug‘atda topilmadi';
+                 boneDesc.textContent='Ushbu 3D obyekt nomi model faylida boshqacha berilgan bo‘lishi mumkin.';
+               }
+             },{passive:true});
           },
           (xhr)=>{
             if(xhr.lengthComputable){
