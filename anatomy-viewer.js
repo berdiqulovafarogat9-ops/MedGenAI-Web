@@ -161,7 +161,6 @@
   }
 
   let anatomyModal = null;
-  let buttonObserver = null;
 
   function closeSkeletonModal() {
     if (!anatomyModal) return;
@@ -215,29 +214,16 @@
     close: closeSkeletonModal
   };
 
-  function bindSkeletonButton() {
-    const button = document.getElementById('btn-open-skeleton');
-    if (button && button.dataset.skeletonBound !== '1') {
-      button.dataset.skeletonBound = '1';
-      button.addEventListener('click', (event) => {
-        event.preventDefault();
-        openSkeletonModal();
-      });
-    }
-  }
+  // Event delegation works even when the Academy dashboard creates the button later.
+  document.addEventListener('click', (event) => {
+    const button = event.target && event.target.closest
+      ? event.target.closest('#btn-open-skeleton')
+      : null;
+    if (!button) return;
+    event.preventDefault();
+    event.stopPropagation();
+    openSkeletonModal();
+  }, true);
 
-  function watchSkeletonButton() {
-    bindSkeletonButton();
-    if (!buttonObserver) {
-      buttonObserver = new MutationObserver(bindSkeletonButton);
-      buttonObserver.observe(document.documentElement, { childList: true, subtree: true });
-    }
-  }
-
-  if (document.readyState === 'loading') {
-    document.addEventListener('DOMContentLoaded', watchSkeletonButton, { once: true });
-  } else {
-    watchSkeletonButton();
-  }
   window.MedGenAnatomyViewer = AnatomyViewer;
 })();
