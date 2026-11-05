@@ -23,7 +23,7 @@
     if (text !== undefined) n.textContent = text;
     return n;
   }
-  var CARD = "background:#0d1a26;color:#e8f0f6;border:1px solid #24394d;border-radius:18px;padding:16px;width:min(96vw,640px);max-height:94vh;overflow:auto;font-family:system-ui,sans-serif";
+  var activeEmbeddedClose = null;\n  var CARD = "background:#0d1a26;color:#e8f0f6;border:1px solid #24394d;border-radius:18px;padding:16px;width:min(96vw,640px);max-height:94vh;overflow:auto;font-family:system-ui,sans-serif";
   var BTN = "padding:10px 14px;border:0;border-radius:10px;background:#56dcc0;color:#06231d;font-weight:700;font-size:14px;margin:4px 4px 4px 0";
   var BTN2 = "padding:9px 12px;border:1px solid #24394d;border-radius:10px;background:#13222f;color:#cfe0ec;font-size:13px;margin:4px 4px 4px 0;text-align:left";
   var TILE = "flex:1;min-width:120px;background:#06101a;border:1px solid #1d3042;border-radius:12px;padding:8px";
@@ -59,11 +59,13 @@
       document.removeEventListener("visibilitychange", onVis);
       window.removeEventListener("blur", onBlur);
       if (embedded) {
+        if (activeEmbeddedClose === closeAll) activeEmbeddedClose = null;
         targetRoot.innerHTML = '<div style="max-width:900px;margin:0 auto;text-align:center;padding:36px 18px;color:#e2e8f0"><h3>Virtual bemor simulyatori</h3><p style="color:#a8bacb">Simulyatsiya yopildi.</p><button type="button" onclick="window.medgenPatient.start(\'anaphylaxis\')" style="padding:12px 18px;background:#0e7490;color:#fff;border:0;border-radius:9px;font-weight:700">Qayta boshlash</button></div>';
       } else if (overlay) {
         overlay.remove();
       }
     }
+    if (embedded) activeEmbeddedClose = closeAll;
     if (overlay) overlay.addEventListener("click", function (e) { if (e.target === overlay && !running) closeAll(); });
 
     function flash(text) {
@@ -110,6 +112,14 @@
     var hud, tiles = {}, canvas, actionsBox, logBox, endBox;
     function start(c) {
       card.innerHTML = ""; card.appendChild(alertBox);
+      var caseMenu = el("div", "display:flex;gap:8px;flex-wrap:wrap;margin:0 0 12px");
+      var case1 = el("button", "padding:7px 11px;background:#1e293b;color:#38bdf8;border:1px solid #38bdf8;border-radius:7px;font-weight:700;cursor:pointer;font-size:12px", "1-keys: Anafilaktik shok");
+      case1.type = "button";
+      case1.onclick = function () { if (window.medgenPatient) window.medgenPatient.start("anaphylaxis"); else open(targetRoot, "anaphylaxis"); };
+      var case2 = el("button", "padding:7px 11px;background:#1e293b;color:#f59e0b;border:1px solid #f59e0b;border-radius:7px;font-weight:700;cursor:pointer;font-size:12px", "2-keys: Miokard infarkti (STEMI)");
+      case2.type = "button";
+      case2.onclick = function () { if (window.medgenPatient) window.medgenPatient.start("mi"); else open(targetRoot, "mi"); };
+      caseMenu.appendChild(case1); caseMenu.appendChild(case2); card.appendChild(caseMenu);
       card.appendChild(el("h3", "margin:0 0 4px;font-size:18px", c.title));
       card.appendChild(el("p", "color:#8fa3b5;font-size:13px;margin:0 0 8px", c.story));
       hud = el("div", "display:flex;gap:8px;align-items:center;justify-content:space-between;margin-bottom:6px;font-size:13px");
