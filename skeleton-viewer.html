@@ -1,0 +1,106 @@
+<!DOCTYPE html>
+<html lang="uz">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>3D Skeleton Viewer</title>
+  <style>
+    body { margin: 0; background: #050a14; overflow: hidden; font-family: sans-serif; }
+    #canvas-container { width: 100vw; height: 100vh; position: absolute; top: 0; left: 0; }
+    #label {
+      position: absolute; top: 15px; left: 15px; z-index: 10;
+      background: rgba(15, 23, 42, 0.85); color: #38bdf8;
+      padding: 8px 16px; border-radius: 8px; border: 1px solid #1e293b;
+      font-size: 14px; pointer-events: none;
+    }
+  </style>
+  <script src="https://unpkg.com/three@0.128.0/build/three.min.js"></script>
+  <script src="https://unpkg.com/three@0.128.0/examples/js/controls/OrbitControls.js"></script>
+  <script src="https://unpkg.com/three@0.128.0/examples/js/loaders/DRACOLoader.js"></script>
+  <script src="https://unpkg.com/three@0.128.0/examples/js/loaders/GLTFLoader.js"></script>
+</head>
+<body>
+  <div id="label">Skelet yuklanmoqda (1.6 MB)...</div>
+  <div id="canvas-container"></div>
+  <script>
+    const container = document.getElementById('canvas-container');
+    const label = document.getElementById('label');
+    const scene = new THREE.Scene();
+    const camera = new THREE.PerspectiveCamera(45, window.innerWidth / window.innerHeight, 0.1, 1000);
+    camera.position.set(0, 1.2, 2.8);
+    const renderer = new THREE.WebGLRenderer({ antialias: true, alpha: true });
+    renderer.setSize(window.innerWidth, window.innerHeight);
+    renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
+    renderer.outputEncoding = THREE.sRGBEncoding;
+    container.appendChild(renderer.domElement);
+    const controls = new THREE.OrbitControls(camera, renderer.domElement);
+    controls.enableDamping = true;
+    controls.target.set(0, 0.9, 0);
+    scene.add(new THREE.AmbientLight(0xffffff, 0.85));
+    const light1 = new THREE.DirectionalLight(0xffffff, 1.4);
+    light1.position.set(4, 8, 5);
+    scene.add(light1);
+    const light2 = new THREE.DirectionalLight(0x38bdf8, 0.6);
+    light2.position.set(-4, -2, -4);
+    scene.add(light2);
+    const dracoLoader = new THREE.DRACOLoader();
+    dracoLoader.setDecoderPath('https://www.gstatic.com/draco/versioned/decoders/1.5.6/');
+    const loader = new THREE.GLTFLoader();
+    loader.setDRACOLoader(dracoLoader);
+    let skeleton = null;
+    loader.load(
+      'https://dbkxgbeisgyjilflkneq.supabase.co/storage/v1/object/public/models/full_skeleton.glb',
+      (gltf) => {
+        skeleton = gltf.scene;
+        skeleton.traverse((child) => {
+          if (child.isMesh && child.material) {
+            child.material.roughness = 0.6;
+            child.material.metalness = 0.1;
+          }
+        });
+        const box = new THREE.Box3().setFromObject(skeleton);
+        skeleton.position.sub(box.getCenter(new THREE.Vector3()));
+        skeleton.position.y += 0.85;
+        scene.add(skeleton);
+        label.innerText = "Skelet tayyor. Barmoq bilan aylantiring yoki suyakni bosing!";
+      },
+      (xhr) => {
+        if (xhr.lengthComputable) label.innerText = `Yuklanmoqda: ${Math.round((xhr.loaded / xhr.total) * 100)}%`;
+      },
+      (err) => {
+        console.error(err);
+        label.innerText = "Model yuklashda xatolik yuz berdi.";
+      }
+    );
+    const raycaster = new THREE.Raycaster();
+    const mouse = new THREE.Vector2();
+    let prevMesh = null, prevMat = null;
+    window.addEventListener('pointerdown', (e) => {
+      mouse.x = (e.clientX / window.innerWidth) * 2 - 1;
+      mouse.y = -(e.clientY / window.innerHeight) * 2 + 1;
+      raycaster.setFromCamera(mouse, camera);
+      if (!skeleton) return;
+      const hits = raycaster.intersectObjects(skeleton.children, true);
+      if (hits.length > 0) {
+        if (prevMesh && prevMat) prevMesh.material = prevMat;
+        prevMesh = hits[0].object;
+        prevMat = prevMesh.material;
+        prevMesh.material = prevMesh.material.clone();
+        prevMesh.material.color.setHex(0x10b981);
+        label.innerHTML = `Tanlandi: <strong>${prevMesh.name.replace(/_/g, ' ')}</strong>`;
+      }
+    });
+    window.addEventListener('resize', () => {
+      camera.aspect = window.innerWidth / window.innerHeight;
+      camera.updateProjectionMatrix();
+      renderer.setSize(window.innerWidth, window.innerHeight);
+    });
+    function animate() {
+      requestAnimationFrame(animate);
+      controls.update();
+      renderer.render(scene, camera);
+    }
+    animate();
+  </script>
+</body>
+</html>
