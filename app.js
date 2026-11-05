@@ -6078,7 +6078,7 @@ async function renderAlphaFold3D(){
 (function(){
  if(!window.submitStudentScore)window.submitStudentScore=async function(score,moduleName){
   const token=sessionStorage.getItem("medgen_access_token");
-  const apiBase=(window.MEDGEN_API_BASE||"https://medgenai-web-1.onrender.com/api/v1").replace(/\\/$/,"");
+  const apiBase=(window.MEDGEN_API_BASE||"https://medgenai-web-1.onrender.com/api/v1").replace(/\/$/,"");
   try{
    const res=await fetch(apiBase+"/academy/score",{method:"POST",headers:{"Content-Type":"application/json","Authorization":"Bearer "+token},body:JSON.stringify({score:Number(score),module:String(moduleName||"Learning module"),completed_at:new Date().toISOString()})});
    const data=await res.json().catch(()=>({}));
