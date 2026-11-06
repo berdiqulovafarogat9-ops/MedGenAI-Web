@@ -6654,6 +6654,7 @@ def _execute_prepared_docking(data: PreparedDockingRequest, user, *, persist=Tru
         )
         engine.dock(exhaustiveness=int(data.exhaustiveness), n_poses=int(data.n_poses))
         energies = engine.energies(n_poses=int(data.n_poses))
+        poses_pdbqt = engine.poses(n_poses=int(data.n_poses))
         poses = []
         for row in energies:
             values = [float(x) for x in row]
@@ -6667,7 +6668,7 @@ def _execute_prepared_docking(data: PreparedDockingRequest, user, *, persist=Tru
         result = {
             "status": "completed", "module": "Drug Discovery", "workflow": "molecular_docking",
             "target": data.target, "ligand_smiles": data.ligand_smiles,
-            "engine": "AutoDock Vina", "poses": poses,
+            "engine": "AutoDock Vina", "poses": poses, "poses_pdbqt": poses_pdbqt,
             "box": {"center": [data.center_x,data.center_y,data.center_z], "size": [data.size_x,data.size_y,data.size_z]},
             "parameters": {"exhaustiveness": data.exhaustiveness, "n_poses": data.n_poses},
             "user": user["username"], "completed_at": now,
