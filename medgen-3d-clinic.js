@@ -51,6 +51,12 @@
           this.patientBounds=size;
           var faceY=size.y*.5-.12,frontZ=size.z*.5+.08;
           var mask=this.scene.getObjectByName("medgen-oxygen-mask"); if(mask){mask.position.set(0,faceY,frontZ+.08);}
+          var faceWorld=patient.localToWorld(new THREE.Vector3(0,faceY,frontZ+.08));
+          var oxygenCurve=new THREE.CatmullRomCurve3([new THREE.Vector3(1.8,.92,.45),new THREE.Vector3(1.25,1.15,.35),new THREE.Vector3(.55,1.05,.1),faceWorld.clone()]);
+          this.scene.add(new THREE.Mesh(new THREE.TubeGeometry(oxygenCurve,28,.01,7,false),new THREE.MeshStandardMaterial({color:0xbdeaff,transparent:true,opacity:.5,roughness:.2})));
+          var armWorld=patient.localToWorld(new THREE.Vector3(-.32,size.y*.1,frontZ));
+          var ivCurve=new THREE.CatmullRomCurve3([new THREE.Vector3(-1.45,1.65,-.2),new THREE.Vector3(-1.2,1.25,-.15),new THREE.Vector3(-.8,1.0,-.12),armWorld.clone()]);
+          this.scene.add(new THREE.Mesh(new THREE.TubeGeometry(ivCurve,28,.008,6,false),new THREE.MeshStandardMaterial({color:0x9bd5ed,transparent:true,opacity:.52,roughness:.2})));
         },undefined,err=>{console.error("MedGen patient GLB load failed",err);if(this.wrapper)this.wrapper.querySelector("[data-patient-load-error]")?.remove();});
         // Oxygen mask and tubing are attached to the patient's face-side.
         var maskMat=new THREE.MeshStandardMaterial({color:0xc7f0ff,transparent:true,opacity:.3,roughness:.12,side:THREE.DoubleSide,depthWrite:false});
