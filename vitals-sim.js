@@ -299,15 +299,19 @@
             var r=clinicRenderer.domElement.getBoundingClientRect();pt.x=(ev.clientX-r.left)/r.width*2-1;pt.y=-(ev.clientY-r.top)/r.height*2+1;ray.setFromCamera(pt,cam);
             var hit=ray.intersectObjects(targets,false)[0];if(!hit){flash("Anatomik nishonni tanlang.");return;}
             var z=hit.object.userData.zone,id=null;
+            if(chosen==="head"&&z==="face"){showResult("BOSH / BO‘YIN: yuz ko‘karishi, lab-til shishi va yuqori nafas yo‘li torayishi ko‘rinadi. Stridor/bo‘g‘ilish — xavf belgisi. O‘quv simulyatsiyasi.");return;}
+            if(chosen==="stethoscope"&&z==="chest"){showResult("STETOSKOP — o‘pka: diffuz ekspirator hushtaksimon xirillashlar va havo kirishi pasayishi mumkin. Matnli simulyatsiya.");return;}
             if(chosen==="epi"&&z==="thigh")id="epi_thigh";
             if(chosen==="oxygen"&&z==="face")id="oxygen_high";
             if(chosen==="iv"&&z==="arm")id="crystalloid_bolus";
-            if(chosen==="monitor"&&z==="chest")id="monitor";
-            if(chosen==="stethoscope"&&z==="chest"){flash("Auskultatsiya natijasi klinik ko‘rik panelida.");return;}
-            if(!id){flash("Asbob va anatomik nishon mos emas.");return;}
+            if(!id){flash("Tanlangan asbob uchun mos hotspotni bosing.");return;}
             var result=sim.act(id);if(!result.ok){flash("Bu harakat bajarilgan yoki keys tugagan.");return;}
             actionsBox.querySelectorAll("button[data-id]").forEach(function(b){if(b.dataset.id===id){b.disabled=true;b.style.opacity=".45";}});
-            logBox.appendChild(el("div","","["+sim.s+" s] "+result.label+" · 3D nishon: "+z));render();
+            logBox.appendChild(el("div","","["+sim.s+" s] "+result.label+" · 3D nishon: "+z));
+            if(id==="epi_thigh")showResult("Adrenalin IM sonning old-yon qismiga yuborildi. Monitor simulyatsion javobni ko‘rsatadi; vitallar keyingi simulyatsiya ticklarida yangilanadi.");
+            else if(id==="crystalloid_bolus")showResult("IV periferik kirish va kristalloid bolus bajarildi (simulyatsiya).");
+            else showResult("Kislorod berish bosqichi bajarildi (simulyatsiya).");
+            render();
           });
         } catch(err){console.error("3D Virtual Clinic",err);clinic.appendChild(el("p","color:#fca5a5;font-size:12px","3D sahna ochilmadi. Harakatlar ro‘yxati orqali davom eting."));}
       }
