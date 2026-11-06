@@ -215,8 +215,23 @@
           var tank=new THREE.Mesh(new THREE.CylinderGeometry(.13,.13,.85,16),new THREE.MeshStandardMaterial({color:0x2f9b78,metalness:.25}));tank.position.set(1.75,.48,.25);sc.add(tank);
           var tankTop=new THREE.Mesh(new THREE.CylinderGeometry(.055,.09,.14,12),metal);tankTop.position.set(1.75,.96,.25);sc.add(tankTop);
           roomBox(3,.06,.05,0,2.35,-1.15,metal);
+          // Room architecture and clinical storage
+          roomBox(7,3.2,.12,0,1.55,-2.25,new THREE.MeshStandardMaterial({color:0x263c4b,roughness:.95}));
+          roomBox(1.5,.75,.42,-2.15,.62,-1.45,new THREE.MeshStandardMaterial({color:0xc5d0d7,roughness:.7}));
+          roomBox(1.5,.08,.44,-2.15,1.04,-1.45,metal);
+          roomBox(.08,.65,.08,-2.82,.68,-1.2,metal);
+          roomBox(.08,.65,.08,-1.48,.68,-1.2,metal);
+          // Emergency trolley and defibrillator
+          roomBox(.68,.18,.42,-1.65,.32,.85,metal);
+          [ [-1.9,.12,.68],[-1.4,.12,.68],[-1.9,.12,1.02],[-1.4,.12,1.02] ].forEach(function(p){var wh=new THREE.Mesh(new THREE.CylinderGeometry(.065,.065,.05,12),dark);wh.rotation.x=Math.PI/2;wh.position.set(p[0],p[1],p[2]);sc.add(wh);});
+          roomBox(.34,.28,.25,-1.65,.58,.85,dark);
+          roomBox(.28,.2,.025,-1.65,.6,.72,new THREE.MeshBasicMaterial({color:0x153c3a}));
+          // Wall-mounted oxygen outlet and room light panels
+          roomBox(.22,.18,.08,1.8,1.85,-2.12,new THREE.MeshStandardMaterial({color:0x3ba6a0,metalness:.2}));
+          roomBox(1.2,.045,.35,0,2.8,-.8,new THREE.MeshStandardMaterial({color:0xe6f1f5,emissive:0x52616b,emissiveIntensity:.45}));
+          var roomLight=new THREE.PointLight(0xd8efff,1.2,7);roomLight.position.set(0,2.6,1.2);sc.add(roomLight);
           var skin=new THREE.MeshStandardMaterial({color:0xc58d73}), gown=new THREE.MeshStandardMaterial({color:0x16758a});
-          var patient=new THREE.Group(); patient.position.y=0.1; sc.add(patient);
+          var patient=new THREE.Group(); patient.rotation.z=-Math.PI/2; patient.scale.setScalar(0.58); patient.position.set(-0.05,0.59,-0.45); sc.add(patient);
           function part(g,m,x,y,z,sx,sy,sz){var o=new THREE.Mesh(g,m);o.position.set(x,y,z);o.scale.set(sx,sy,sz);patient.add(o);return o;}
           part(new THREE.SphereGeometry(.23,20,16),skin,0,1.65,0,1,1.1,.9);
           part(new THREE.CylinderGeometry(.35,.42,.9,20),gown,0,.95,0,1,1,.7);
