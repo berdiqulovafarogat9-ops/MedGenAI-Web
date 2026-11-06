@@ -19,6 +19,8 @@ COPY phase1_academy_ext.py .
 COPY medical_chemistry_ext.py .
 COPY targets_database.py .
 COPY docking_pipeline.py .
+COPY receptor_pipeline.py .
+RUN mkdir -p /app/targets
 
 EXPOSE 8000
 
