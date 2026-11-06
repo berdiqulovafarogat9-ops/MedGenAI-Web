@@ -194,6 +194,27 @@
           sc.add(new THREE.HemisphereLight(0xffffff,0x334455,2));
           var light=new THREE.DirectionalLight(0xffffff,2); light.position.set(3,5,4); sc.add(light);
           var floor=new THREE.Mesh(new THREE.PlaneGeometry(10,10),new THREE.MeshStandardMaterial({color:0x142b3b})); floor.rotation.x=-Math.PI/2; sc.add(floor);
+          // Emergency-room props: bed, monitor, IV stand and oxygen cylinder.
+          var metal=new THREE.MeshStandardMaterial({color:0x9aaab5,metalness:.55,roughness:.35});
+          var dark=new THREE.MeshStandardMaterial({color:0x17232d,roughness:.6});
+          var mattress=new THREE.MeshStandardMaterial({color:0xd7e1e8,roughness:.9});
+          function roomBox(w,h,d,x,y,z,mat){var q=new THREE.Mesh(new THREE.BoxGeometry(w,h,d),mat);q.position.set(x,y,z);sc.add(q);return q;}
+          roomBox(2.25,.16,1.05,0,.18,-.45,metal); roomBox(2.1,.18,.98,0,.34,-.45,mattress);
+          [-.95,.95].forEach(function(x){roomBox(.08,.72,.08,x,.45,-.45,metal);});
+          roomBox(.08,.28,1.02,-1.04,.62,-.45,metal); roomBox(.08,.28,1.02,1.04,.62,-.45,metal);
+          // bedside monitor and ECG display
+          roomBox(.48,.42,.12,1.35,1.45,-.2,dark);
+          var screenMat=new THREE.MeshBasicMaterial({color:0x062b27});
+          roomBox(.42,.34,.025,1.35,1.46,-.125,screenMat);
+          var monitorStand=new THREE.Mesh(new THREE.CylinderGeometry(.035,.035,.72,10),metal);monitorStand.position.set(1.35,.95,-.2);sc.add(monitorStand);
+          roomBox(.42,.06,.3,1.35,.57,-.2,metal);
+          // IV pole with fluid bag
+          var pole=new THREE.Mesh(new THREE.CylinderGeometry(.018,.025,2.05,10),metal);pole.position.set(-1.45,1.03,-.35);sc.add(pole);
+          roomBox(.22,.3,.12,-1.45,1.78,-.35,new THREE.MeshStandardMaterial({color:0x9bd5ed,transparent:true,opacity:.72}));
+          // oxygen cylinder and regulator
+          var tank=new THREE.Mesh(new THREE.CylinderGeometry(.13,.13,.85,16),new THREE.MeshStandardMaterial({color:0x2f9b78,metalness:.25}));tank.position.set(1.75,.48,.25);sc.add(tank);
+          var tankTop=new THREE.Mesh(new THREE.CylinderGeometry(.055,.09,.14,12),metal);tankTop.position.set(1.75,.96,.25);sc.add(tankTop);
+          roomBox(3,.06,.05,0,2.35,-1.15,metal);
           var skin=new THREE.MeshStandardMaterial({color:0xc58d73}), gown=new THREE.MeshStandardMaterial({color:0x16758a});
           var patient=new THREE.Group(); patient.position.y=0.1; sc.add(patient);
           function part(g,m,x,y,z,sx,sy,sz){var o=new THREE.Mesh(g,m);o.position.set(x,y,z);o.scale.set(sx,sy,sz);patient.add(o);return o;}
