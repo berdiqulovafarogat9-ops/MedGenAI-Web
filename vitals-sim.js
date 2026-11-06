@@ -217,11 +217,11 @@
                 try {
           var sc=new THREE.Scene(); sc.background=new THREE.Color(0x071521);
           var cam=new THREE.PerspectiveCamera(38,1,0.1,100); cam.position.set(0,1.8,2.2); cam.lookAt(0,1.0,0);
-          clinicRenderer=new THREE.WebGLRenderer({antialias:true}); clinicRenderer.setPixelRatio(Math.min(window.devicePixelRatio||1,1.5)); view3.appendChild(clinicRenderer.domElement);
+          clinicRenderer=new THREE.WebGLRenderer({antialias:true,alpha:false}); clinicRenderer.setPixelRatio(Math.min(window.devicePixelRatio||1,1.5)); clinicRenderer.shadowMap.enabled=true; clinicRenderer.shadowMap.type=THREE.PCFSoftShadowMap; clinicRenderer.outputEncoding=THREE.sRGBEncoding; clinicRenderer.toneMapping=THREE.ACESFilmicToneMapping; clinicRenderer.toneMappingExposure=1.05; view3.appendChild(clinicRenderer.domElement);
           clinicRenderer.domElement.style.cssText="width:100%;height:100%;display:block";
           sc.add(new THREE.HemisphereLight(0xffffff,0x334455,2));
-          var light=new THREE.DirectionalLight(0xffffff,2); light.position.set(3,5,4); sc.add(light);
-          var floor=new THREE.Mesh(new THREE.PlaneGeometry(10,10),new THREE.MeshStandardMaterial({color:0x142b3b})); floor.rotation.x=-Math.PI/2; sc.add(floor);
+          var light=new THREE.DirectionalLight(0xfff2e6,2.2); light.position.set(-2,5,3); light.castShadow=true; light.shadow.mapSize.set(1024,1024); sc.add(light); var fillLight=new THREE.DirectionalLight(0x9bc9e8,.75); fillLight.position.set(3,2,-2); sc.add(fillLight);
+          var floor=new THREE.Mesh(new THREE.PlaneGeometry(10,10),new THREE.MeshStandardMaterial({color:0x263b49,roughness:.94})); floor.rotation.x=-Math.PI/2; floor.receiveShadow=true; sc.add(floor);
           // Emergency-room props: bed, monitor, IV stand and oxygen cylinder.
           var metal=new THREE.MeshStandardMaterial({color:0x9aaab5,metalness:.55,roughness:.35});
           var dark=new THREE.MeshStandardMaterial({color:0x17232d,roughness:.6});
@@ -262,7 +262,7 @@
           var roomLight=new THREE.PointLight(0xd8efff,1.2,7);roomLight.position.set(0,2.6,1.2);sc.add(roomLight);
           // Patient GLB: supplied CDN model, with a procedural fallback if the CDN is unreachable.
           var patient=new THREE.Group(); patient.rotation.z=-Math.PI/2; patient.scale.setScalar(0.58); patient.position.set(-0.05,0.59,-0.45); sc.add(patient);
-          var skinMats=[],patientModel=null,patientChest=null,faceMesh=null,recoveryStarted=0,recoveryFrom=new THREE.Color(0x94a3b8),recoveryTo=new THREE.Color(0xfbcfe8);
+          var skinMats=[],patientModel=null,patientChest=null,faceMesh=null,chestBaseRotation=null,chestBaseScale=null,recoveryStarted=0,recoveryFrom=new THREE.Color(0x94a3b8),recoveryTo=new THREE.Color(0xfbcfe8);
           var gownFallback=new THREE.MeshStandardMaterial({color:0x16758a});
           function addProceduralPatient(){
             var skin=new THREE.MeshStandardMaterial({color:0x94a3b8});
@@ -276,14 +276,14 @@
           loader.load("https://raw.githubusercontent.com/mrdoob/three.js/master/examples/models/gltf/Xbot.glb",function(gltf){
             if(!clinicRenderer)return;
             patientModel=gltf.scene; patientModel.scale.setScalar(1);
-            patientModel.traverse(function(node){if(!node.isMesh)return;node.castShadow=true;node.frustumCulled=false;
+            patientModel.traverse(function(node){if(!node.isMesh)return;node.castShadow=true;node.receiveShadow=true;node.frustumCulled=false;
               var n=(node.name||"").toLowerCase();
               if(n.indexOf("head")>=0||n.indexOf("face")>=0){faceMesh=node;var mats=Array.isArray(node.material)?node.material:[node.material];mats.forEach(function(m){if(m&&m.color){m.color.setHex(0x94a3b8);skinMats.push(m);}});}
               if(n.indexOf("chest")>=0||n.indexOf("spine2")>=0||n.indexOf("torso")>=0)patientChest=node;
               if(node.material){var mats2=Array.isArray(node.material)?node.material:[node.material];mats2.forEach(function(m){if(m&&m.color&&((m.name||"").toLowerCase().indexOf("skin")>=0))skinMats.push(m);});}
             });
             patient.add(patientModel);
-            if(!patientChest){patientChest=patientModel.getObjectByName("mixamorigSpine2")||patientModel.getObjectByName("Spine2")||patientModel;}
+            if(!patientChest){patientChest=patientModel.getObjectByName("mixamorigSpine2")||patientModel.getObjectByName("mixamorigSpine1")||patientModel.getObjectByName("Spine2")||patientModel.getObjectByName("Spine1")||patientModel.getObjectByName("spine_02")||patientModel.getObjectByName("Chest")||null;} if(patientChest){chestBaseRotation=patientChest.rotation.x;chestBaseScale=patientChest.scale.z;}
             clinicRenderer.render(sc,cam);
           },undefined,function(err){console.warn("Patient GLB CDN failed; using procedural model",err);addProceduralPatient();});
           // IV fluid bag, drip chamber and clear oxygen mask.
@@ -296,7 +296,7 @@
           mark("face",0,1.65,.2,0x38bdf8);mark("chest",0,1.02,.29,0xfbbf24);mark("arm",-.48,.48,.12,0x34d399);mark("thigh",.2,.25,.12,0xfb7185);
           function clinicAnimate(){if(!clinicRenderer)return;clinicRaf=requestAnimationFrame(clinicAnimate);
             var breath=1+Math.sin(Date.now()/1000*Math.max(.2,sim.state.rr/60)*Math.PI*2)*.012;
-            if(patientChest){patientChest.userData.baseScaleX=patientChest.userData.baseScaleX||patientChest.scale.x;patientChest.scale.x=patientChest.userData.baseScaleX*breath;}
+            if(patientChest){if(chestBaseRotation!==null)patientChest.rotation.x=chestBaseRotation+Math.sin(Date.now()/1000*Math.max(.2,sim.state.rr/60)*Math.PI*2)*.012;else if(chestBaseScale!==null)patientChest.scale.z=chestBaseScale*breath;}
             if(recoveryStarted&&skinMats.length){var t=Math.min(1,(Date.now()-recoveryStarted)/3000),col=recoveryFrom.clone().lerp(recoveryTo,t);skinMats.forEach(function(m){if(m&&m.color)m.color.copy(col);});}
             clinicRenderer.render(sc,cam);
           }
@@ -324,7 +324,7 @@
             var r=clinicRenderer.domElement.getBoundingClientRect();pt.x=(ev.clientX-r.left)/r.width*2-1;pt.y=-(ev.clientY-r.top)/r.height*2+1;ray.setFromCamera(pt,cam);
             var hit=ray.intersectObjects(targets,false)[0];if(!hit){flash("Anatomik nishonni tanlang.");return;}
             var z=hit.object.userData.zone,id=null;
-            if(chosen==="head"&&z==="face"){if(headMesh){headMesh.material.color.setHex(0x6b9cae);headMesh.scale.set(1.18,1.2,1.08);}showResult("BOSH / BO‘YIN: yuz ko‘karishi, lab-til shishi va yuqori nafas yo‘li torayishi ko‘rinadi. Stridor/bo‘g‘ilish — xavf belgisi. O‘quv simulyatsiyasi.");return;}
+            if(chosen==="head"&&z==="face"){if(faceMesh&&faceMesh.material){var fm=Array.isArray(faceMesh.material)?faceMesh.material:[faceMesh.material];fm.forEach(function(m){if(m&&m.color)m.color.setHex(0x6b9cae);});}showResult("BOSH / BO‘YIN: yuz ko‘karishi, lab-til shishi va yuqori nafas yo‘li torayishi ko‘rinadi. Stridor/bo‘g‘ilish — xavf belgisi. O‘quv simulyatsiyasi.");return;}
             if(chosen==="stethoscope"&&z==="chest"){showResult("STETOSKOP — o‘pka: diffuz ekspirator hushtaksimon xirillashlar va havo kirishi pasayishi mumkin. Matnli simulyatsiya.");return;}
             if(chosen==="epi"&&z==="thigh")id="epi_thigh";
             if(chosen==="oxygen"&&z==="face")id="oxygen_high";
@@ -333,7 +333,7 @@
             var result=sim.act(id);if(!result.ok){flash("Bu harakat bajarilgan yoki keys tugagan.");return;}
             actionsBox.querySelectorAll("button[data-id]").forEach(function(b){if(b.dataset.id===id){b.disabled=true;b.style.opacity=".45";}});
             logBox.appendChild(el("div","","["+sim.s+" s] "+result.label+" · 3D nishon: "+z));
-            if(id==="epi_thigh"){recoveryStarted=Date.now();showResult("Adrenalin IM sonning old-yon qismiga yuborildi. Teri rangi 3 soniyada sog‘lomroq tusga o‘tadi; monitor simulyatsion javobni ko‘rsatadi.");}
+            if(id==="epi_thigh"){recoveryStarted=Date.now();showResult("Adrenalin IM sonning old-yon qismiga yuborildi. Yuz terisi rangi 3 soniya davomida asta-sekin o‘zgaradi; bu klinik natija emas, vizual simulyatsiya.");}
             else if(id==="crystalloid_bolus")showResult("IV periferik kirish va kristalloid bolus bajarildi (simulyatsiya).");
             else {if(id==="oxygen_high")recoveryStarted=Date.now();showResult("Kislorod berish bosqichi bajarildi (simulyatsiya).");}
             render();
