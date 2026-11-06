@@ -36,7 +36,7 @@
           var initial=new THREE.Box3().setFromObject(this.patientModel),initialSize=initial.getSize(new THREE.Vector3());
           if(initialSize.x>initialSize.y*1.2)this.patientModel.rotation.z=Math.PI/2;
           var bounds=new THREE.Box3().setFromObject(this.patientModel),size=bounds.getSize(new THREE.Vector3()),center=bounds.getCenter(new THREE.Vector3());
-          this.patientModel.position.sub(center);
+          this.patientModel.position.sub(center); patient.add(this.patientModel); this.scene.updateMatrixWorld(true);
           this.patientModel.traverse(node=>{if(!node.isMesh)return;node.castShadow=true;node.receiveShadow=true;node.frustumCulled=false;
             if(node.geometry&&node.geometry.attributes&&node.geometry.attributes.position){
               var geom=node.geometry.clone(),attr=geom.attributes.position,base=new Float32Array(attr.array),weights=new Float32Array(attr.count);
@@ -46,12 +46,11 @@
               node.geometry=geom;this.breathMeshes.push({geometry:geom,base:base,weights:weights,axis:localAxis});
             }
           });
-          patient.add(this.patientModel);
           this.patientChest=this.patientModel.getObjectByName("Chest")||this.patientModel.getObjectByName("Torso")||null;
           if(this.patientChest){this.chestBaseRotation=this.patientChest.rotation.x;this.chestBaseScale=this.patientChest.scale.z;}
           this.patientBounds=size;
           var faceY=size.y*.5-.12,frontZ=size.z*.5+.08;
-          var mask=this.scene.getObjectByName("medgen-oxygen-mask"); if(mask){mask.position.set(-.05-.9*faceY,.62+frontZ,-.25);}
+          var mask=this.scene.getObjectByName("medgen-oxygen-mask"); if(mask){mask.position.set(0,faceY,frontZ+.08);}
         },undefined,err=>{console.error("MedGen patient GLB load failed",err);if(this.wrapper)this.wrapper.querySelector("[data-patient-load-error]")?.remove();});
         // Oxygen mask and tubing are attached to the patient's face-side.
         var maskMat=new THREE.MeshStandardMaterial({color:0xc7f0ff,transparent:true,opacity:.3,roughness:.12,side:THREE.DoubleSide,depthWrite:false});
