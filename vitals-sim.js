@@ -228,6 +228,7 @@
           var mattress=new THREE.MeshStandardMaterial({color:0xd7e1e8,roughness:.9});
           function roomBox(w,h,d,x,y,z,mat){var q=new THREE.Mesh(new THREE.BoxGeometry(w,h,d),mat);q.position.set(x,y,z);sc.add(q);return q;}
           roomBox(2.25,.16,1.05,0,.18,-.45,metal); roomBox(2.1,.18,.98,0,.34,-.45,mattress);
+          roomBox(1.9,.035,.86,0,.455,-.45,new THREE.MeshStandardMaterial({color:0xf1f5f9,roughness:1})); roomBox(.48,.12,.55,-.78,.51,-.45,new THREE.MeshStandardMaterial({color:0xe7edf2,roughness:1}));
           [-.95,.95].forEach(function(x){roomBox(.08,.72,.08,x,.45,-.45,metal);});
           roomBox(.08,.28,1.02,-1.04,.62,-.45,metal); roomBox(.08,.28,1.02,1.04,.62,-.45,metal);
           // bedside monitor and ECG display
@@ -292,6 +293,12 @@
             mark("face",0,faceY,frontZ+.015,0x38bdf8);mark("chest",0,chestY,frontZ,0xfbbf24);
             mark("arm",-.34,chestY-.08,frontZ,0x34d399);mark("thigh",.2,thighY,frontZ,0xfb7185);
             mask.position.set(0,faceY,frontZ+.08);
+            var faceWorld=patient.localToWorld(new THREE.Vector3(0,faceY,frontZ+.08));
+            var oxygenCurve=new THREE.CatmullRomCurve3([new THREE.Vector3(1.75,.9,.25),new THREE.Vector3(1.25,1.25,.35),new THREE.Vector3(.65,1.2,.15),faceWorld.clone()]);
+            var oxygenTube=new THREE.Mesh(new THREE.TubeGeometry(oxygenCurve,32,.012,7,false),new THREE.MeshStandardMaterial({color:0xbdeaff,transparent:true,opacity:.55,roughness:.2}));sc.add(oxygenTube);
+            var armWorld=patient.localToWorld(new THREE.Vector3(-.34,chestY-.08,frontZ));
+            var ivCurve=new THREE.CatmullRomCurve3([new THREE.Vector3(-1.45,1.62,-.35),new THREE.Vector3(-1.25,1.35,-.25),new THREE.Vector3(-.85,1.05,-.2),armWorld.clone()]);
+            var ivTube=new THREE.Mesh(new THREE.TubeGeometry(ivCurve,28,.009,6,false),new THREE.MeshStandardMaterial({color:0x9bd5ed,transparent:true,opacity:.55,roughness:.2}));sc.add(ivTube);
             clinicRenderer.render(sc,cam);
           },undefined,function(err){console.error("Patient GLB CDN failed",err);clinic.appendChild(el("p","color:#fca5a5;font-size:12px","Inson modeli yuklanmadi. Internet ulanishini tekshiring; geometrik maneken bilan almashtirilmadi."));});
           // IV fluid bag, drip chamber and clear oxygen mask.
