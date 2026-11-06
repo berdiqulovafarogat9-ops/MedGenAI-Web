@@ -263,15 +263,6 @@
           // Patient GLB: supplied CDN model, with a procedural fallback if the CDN is unreachable.
           var patient=new THREE.Group(); patient.rotation.z=-Math.PI/2; patient.scale.setScalar(0.58); patient.position.set(-0.05,0.59,-0.45); sc.add(patient);
           var skinMats=[],patientModel=null,patientChest=null,faceMesh=null,chestBaseRotation=null,chestBaseScale=null,recoveryStarted=0,recoveryFrom=new THREE.Color(0x94a3b8),recoveryTo=new THREE.Color(0xfbcfe8);
-          var gownFallback=new THREE.MeshStandardMaterial({color:0x16758a});
-          function addProceduralPatient(){
-            var skin=new THREE.MeshStandardMaterial({color:0x94a3b8});
-            function part(g,m,x,y,z,sx,sy,sz){var o=new THREE.Mesh(g,m);o.position.set(x,y,z);o.scale.set(sx,sy,sz);patient.add(o);return o;}
-            faceMesh=part(new THREE.SphereGeometry(.23,16,12),skin,0,1.65,0,1,1.1,.9);skinMats.push(skin);
-            patientChest=part(new THREE.SphereGeometry(.42,12,10),gownFallback,0,.98,0,.82,1.05,.62);
-            part(new THREE.CylinderGeometry(.07,.09,.8,8),skin,-.48,.95,0,1,1,1);part(new THREE.CylinderGeometry(.07,.09,.8,8),skin,.48,.95,0,1,1,1);
-            part(new THREE.CylinderGeometry(.12,.09,.85,10),gownFallback,-.2,.25,0,1,1,1);part(new THREE.CylinderGeometry(.12,.09,.85,10),gownFallback,.2,.25,0,1,1,1);
-          }
           var loader=new THREE.GLTFLoader();
           loader.load("https://raw.githubusercontent.com/mrdoob/three.js/master/examples/models/gltf/Xbot.glb",function(gltf){
             if(!clinicRenderer)return;
@@ -285,7 +276,7 @@
             patient.add(patientModel);
             if(!patientChest){patientChest=patientModel.getObjectByName("mixamorigSpine2")||patientModel.getObjectByName("mixamorigSpine1")||patientModel.getObjectByName("Spine2")||patientModel.getObjectByName("Spine1")||patientModel.getObjectByName("spine_02")||patientModel.getObjectByName("Chest")||null;} if(patientChest){chestBaseRotation=patientChest.rotation.x;chestBaseScale=patientChest.scale.z;}
             clinicRenderer.render(sc,cam);
-          },undefined,function(err){console.warn("Patient GLB CDN failed; using procedural model",err);addProceduralPatient();});
+          },undefined,function(err){console.error("Patient GLB CDN failed",err);clinic.appendChild(el("p","color:#fca5a5;font-size:12px","Inson modeli yuklanmadi. Internet ulanishini tekshiring; geometrik maneken bilan almashtirilmadi."));});
           // IV fluid bag, drip chamber and clear oxygen mask.
           var clearMat=new THREE.MeshStandardMaterial({color:0xbdeaff,transparent:true,opacity:.24,roughness:.12,metalness:0,depthWrite:false});
           var ivBag=new THREE.Mesh(new THREE.BoxGeometry(.2,.3,.09),clearMat);ivBag.position.set(-1.45,1.78,-.35);sc.add(ivBag);
