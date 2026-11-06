@@ -286,6 +286,14 @@
     logout.parentNode.insertBefore(b, logout);
   }
   window.medgenOpenVitalsSimulation = open;
+  // Bridge used by the existing 3D anatomy / Virtual patient workspace.
+  // Keep the simulation embedded in its panel when that panel is visible.
+  window.medgenPatient = window.medgenPatient || {};
+  window.medgenPatient.start = function (caseId) {
+    var root = document.getElementById("patient-sim-root");
+    var visible = !!(root && (root.offsetWidth || root.offsetHeight || root.getClientRects().length));
+    open(visible ? root : null, caseId || "anaphylaxis");
+  };
   window.medgenOpenVitalsSimulationEmbedded = function (root, caseId) {
     if (!root || root.nodeType !== 1) throw new Error("Virtual bemor paneli topilmadi.");
     open(root, caseId || "anaphylaxis");
