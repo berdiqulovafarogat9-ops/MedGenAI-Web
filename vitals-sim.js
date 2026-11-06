@@ -241,7 +241,6 @@
           roomBox(.42,.06,.3,1.35,.57,-.2,metal);
           // IV pole with fluid bag
           var pole=new THREE.Mesh(new THREE.CylinderGeometry(.018,.025,2.05,10),metal);pole.position.set(-1.45,1.03,-.35);sc.add(pole);
-          roomBox(.22,.3,.12,-1.45,1.78,-.35,new THREE.MeshStandardMaterial({color:0x9bd5ed,transparent:true,opacity:.72}));
           // oxygen cylinder and regulator
           var tank=new THREE.Mesh(new THREE.CylinderGeometry(.13,.13,.85,16),new THREE.MeshStandardMaterial({color:0x2f9b78,metalness:.25}));tank.position.set(1.75,.48,.25);sc.add(tank);
           var tankTop=new THREE.Mesh(new THREE.CylinderGeometry(.055,.09,.14,12),metal);tankTop.position.set(1.75,.96,.25);sc.add(tankTop);
