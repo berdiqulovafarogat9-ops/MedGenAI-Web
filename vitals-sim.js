@@ -263,7 +263,7 @@
           var skin=new THREE.MeshStandardMaterial({color:0xc58d73}), gown=new THREE.MeshStandardMaterial({color:0x16758a});
           var patient=new THREE.Group(); patient.rotation.z=-Math.PI/2; patient.scale.setScalar(0.58); patient.position.set(-0.05,0.59,-0.45); sc.add(patient);
           function part(g,m,x,y,z,sx,sy,sz){var o=new THREE.Mesh(g,m);o.position.set(x,y,z);o.scale.set(sx,sy,sz);patient.add(o);return o;}
-          part(new THREE.SphereGeometry(.23,20,16),skin,0,1.65,0,1,1.1,.9);
+          var headMesh=part(new THREE.SphereGeometry(.23,20,16),skin,0,1.65,0,1,1.1,.9);
           part(new THREE.CylinderGeometry(.35,.42,.9,20),gown,0,.95,0,1,1,.7);
           part(new THREE.CylinderGeometry(.07,.09,.8,12),skin,-.48,.95,0,1,1,1);
           part(new THREE.CylinderGeometry(.07,.09,.8,12),skin,.48,.95,0,1,1,1);
@@ -273,7 +273,7 @@
           var targets=[];
           function mark(zone,x,y,z,sx,sy,sz,color){var o=new THREE.Mesh(new THREE.SphereGeometry(.2,16,12),new THREE.MeshBasicMaterial({color:color,transparent:true,opacity:.38}));o.position.set(x,y,z);o.scale.set(sx,sy,sz);o.userData.zone=zone;patient.add(o);targets.push(o);}
           mark("face",0,1.66,.16,1.2,1.2,.8,0x38bdf8); mark("chest",0,1.02,.25,1.5,1.1,.6,0xfbbf24);
-          mark("arm",-.48,.95,.06,1.2,2,1,0x34d399); mark("thigh",.2,.25,.08,1.4,2,1,0xfb7185);
+          mark("arm",-.48,.48,.08,1.0,1.5,1,0x34d399); mark("thigh",.2,.25,.08,1.4,2,1,0xfb7185);
           // Live bedside monitor: same simulated vitals and ECG rhythm as the HUD.
           clinicSync=function(v){
             if(!clinicRenderer)return;
@@ -299,7 +299,7 @@
             var r=clinicRenderer.domElement.getBoundingClientRect();pt.x=(ev.clientX-r.left)/r.width*2-1;pt.y=-(ev.clientY-r.top)/r.height*2+1;ray.setFromCamera(pt,cam);
             var hit=ray.intersectObjects(targets,false)[0];if(!hit){flash("Anatomik nishonni tanlang.");return;}
             var z=hit.object.userData.zone,id=null;
-            if(chosen==="head"&&z==="face"){showResult("BOSH / BO‘YIN: yuz ko‘karishi, lab-til shishi va yuqori nafas yo‘li torayishi ko‘rinadi. Stridor/bo‘g‘ilish — xavf belgisi. O‘quv simulyatsiyasi.");return;}
+            if(chosen==="head"&&z==="face"){if(headMesh){headMesh.material.color.setHex(0x6b9cae);headMesh.scale.set(1.18,1.2,1.08);}showResult("BOSH / BO‘YIN: yuz ko‘karishi, lab-til shishi va yuqori nafas yo‘li torayishi ko‘rinadi. Stridor/bo‘g‘ilish — xavf belgisi. O‘quv simulyatsiyasi.");return;}
             if(chosen==="stethoscope"&&z==="chest"){showResult("STETOSKOP — o‘pka: diffuz ekspirator hushtaksimon xirillashlar va havo kirishi pasayishi mumkin. Matnli simulyatsiya.");return;}
             if(chosen==="epi"&&z==="thigh")id="epi_thigh";
             if(chosen==="oxygen"&&z==="face")id="oxygen_high";
