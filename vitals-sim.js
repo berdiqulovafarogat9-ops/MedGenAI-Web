@@ -343,6 +343,7 @@
       clearInterval(timer); cancelAnimationFrame(raf);
       if (clinicResizeObserver) clinicResizeObserver.disconnect();
       if (clinicRenderer) { clinicRenderer.dispose(); clinicRenderer.domElement.remove(); clinicRenderer = null; }
+      clinicSync = null;
       document.removeEventListener("visibilitychange", onVis);
       window.removeEventListener("blur", onBlur);
       actionsBox.querySelectorAll("button").forEach(function (b) { b.disabled = true; });
