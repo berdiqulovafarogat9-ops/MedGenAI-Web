@@ -115,13 +115,21 @@
     function start(c) {
       card.innerHTML = ""; card.appendChild(alertBox);
       var caseMenu = el("div", "display:flex;gap:8px;flex-wrap:wrap;margin:0 0 12px");
-      var case1 = el("button", "padding:7px 11px;background:#1e293b;color:#38bdf8;border:1px solid #38bdf8;border-radius:7px;font-weight:700;cursor:pointer;font-size:12px", "1-keys: Anafilaktik shok");
-      case1.type = "button";
-      case1.onclick = function () { if (window.medgenPatient) window.medgenPatient.start("anaphylaxis"); else open(targetRoot, "anaphylaxis"); };
-      var case2 = el("button", "padding:7px 11px;background:#1e293b;color:#f59e0b;border:1px solid #f59e0b;border-radius:7px;font-weight:700;cursor:pointer;font-size:12px", "2-keys: Miokard infarkti (STEMI)");
-      case2.type = "button";
-      case2.onclick = function () { if (window.medgenPatient) window.medgenPatient.start("mi"); else open(targetRoot, "mi"); };
-      caseMenu.appendChild(case1); caseMenu.appendChild(case2); card.appendChild(caseMenu);
+      [
+        ["anaphylaxis", "1-keys: Anafilaksiya"],
+        ["mi", "2-keys: STEMI"],
+        ["pneumonia", "3-keys: Pnevmoniya"],
+        ["anaphylaxis_jasur", "4-keys: Jasur — anafilaksiya"]
+      ].forEach(function (entry, index) {
+        var b = el("button", "padding:7px 11px;background:#1e293b;color:" + (index === 3 ? "#fb7185" : "#38bdf8") + ";border:1px solid #334155;border-radius:7px;font-weight:700;cursor:pointer;font-size:12px", entry[1]);
+        b.type = "button";
+        b.onclick = function () {
+          if (window.medgenPatient) window.medgenPatient.start(entry[0]);
+          else open(targetRoot, entry[0]);
+        };
+        caseMenu.appendChild(b);
+      });
+      card.appendChild(caseMenu);
       card.appendChild(el("h3", "margin:0 0 4px;font-size:18px", c.title));
       card.appendChild(el("p", "color:#8fa3b5;font-size:13px;margin:0 0 8px", c.story));
       hud = el("div", "display:flex;gap:8px;align-items:center;justify-content:space-between;margin-bottom:6px;font-size:13px");
