@@ -190,7 +190,7 @@
       }
       if (viewer && posesPdbqt) {
         if (dockedLigandModel) { try { viewer.removeModel(dockedLigandModel); } catch (_) {} }
-        dockedLigandModel = viewer.addModel(posesPdbqt, "pdbqt");
+        dockedLigandModel = viewer.addModel(posesPdbqt, "pdb");
         if (dockedLigandModel && typeof dockedLigandModel.setStyle === "function") dockedLigandModel.setStyle({}, { stick: { colorscheme: "Jmol" } });
         viewer.zoomTo();
         viewer.render();
