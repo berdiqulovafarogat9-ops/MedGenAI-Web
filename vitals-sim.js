@@ -51,11 +51,14 @@
       document.body.appendChild(overlay);
     }
     var sim = null, timer = null, raf = null, penalty = 0, lastPenaltyAt = 0, running = false, clinicSync = null;
+    var genericClinicMounted = false;
     var alertBox = el("div", "display:none;background:#b00020;color:#fff;font-weight:700;padding:10px;border-radius:10px;margin-bottom:8px");
     card.appendChild(alertBox);
 
     function closeAll() {
       running = false;
+      if (genericClinicMounted && window.medgen3DClinic) window.medgen3DClinic.dispose();
+      genericClinicMounted = false;
       if (timer) clearInterval(timer);
       if (raf) cancelAnimationFrame(raf);
       if (clinicResizeObserver) clinicResizeObserver.disconnect();
@@ -153,6 +156,18 @@
         t.appendChild(lbl); t.appendChild(val); row.appendChild(t); tiles[k] = val;
       });
       card.appendChild(row);
+
+      // Generic 3D patient room for the standard clinical cases. Jasur has a dedicated interactive scene below.
+      if (c.id !== "anaphylaxis_jasur" && window.medgen3DClinic && window.THREE) {
+        var genericClinic = el("div", "margin:10px 0;padding:10px;border:1px solid #28465c;border-radius:14px;background:#071521");
+        genericClinic.appendChild(el("div", "font-weight:800;color:#67e8f9;margin-bottom:6px", "3D VIRTUAL CLINIC"));
+        genericClinic.appendChild(el("div", "font-size:12px;color:#9fb5c7;margin-bottom:8px", "Bemor modeli va nafas harakati vitallar simulyatsiyasiga bog‘langan. Jihozlar vizual o‘quv maketidir."));
+        var genericWrap=el("div","width:100%;height:280px;border-radius:10px;overflow:hidden;background:#071521");
+        genericWrap.id="medgen-3d-patient-"+Date.now();
+        genericClinic.appendChild(genericWrap);
+        card.appendChild(genericClinic);
+        genericClinicMounted=!!window.medgen3DClinic.mount3DScene(genericWrap.id);
+      }
 
       actionsBox = el("div", "margin:6px 0");
       card.appendChild(el("div", "font-size:13px;color:#8fa3b5;margin-top:6px", "Harakatlar (har biri bir marta):"));
@@ -358,6 +373,7 @@
       tiles.spo2.textContent = Math.round(s.spo2); tiles.spo2.style.color = bad(s.spo2 >= 94);
       tiles.rr.textContent = Math.round(s.rr); tiles.rr.style.color = bad(s.rr >= 12 && s.rr <= 20);
       if (clinicSync) clinicSync(s);
+      if (genericClinicMounted && window.medgen3DClinic) window.medgen3DClinic.updateVitals(s);
       updateHud();
     }
     function updateHud() {
@@ -369,6 +385,8 @@
 
     function finish() {
       running = false;
+      if (genericClinicMounted && window.medgen3DClinic) window.medgen3DClinic.dispose();
+      genericClinicMounted = false;
       clearInterval(timer); cancelAnimationFrame(raf);
       if (clinicResizeObserver) clinicResizeObserver.disconnect();
       if (clinicRenderer) { clinicRenderer.dispose(); clinicRenderer.domElement.remove(); clinicRenderer = null; }
