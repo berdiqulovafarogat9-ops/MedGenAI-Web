@@ -23,9 +23,10 @@ def get_or_prepare_receptor(pdb_id: str) -> str:
     output = TARGET_DIR / f"{pdb_id}.pdbqt"
     raw_path = TARGET_DIR / f"{pdb_id}.raw.pdb"
     clean_path = TARGET_DIR / f"{pdb_id}.clean.pdb"
+    marker = TARGET_DIR / f"{pdb_id}.cleaned-v1.ok"
 
-    # Reuse only a non-empty PDBQT created from the current cleaner pipeline.
-    if output.is_file() and output.stat().st_size > 500:
+    # Older cache files may contain unfiltered crystallographic hetero residues.
+    if output.is_file() and output.stat().st_size > 500 and marker.is_file():
         return output.read_text(encoding="utf-8")
 
     request = Request(
@@ -83,4 +84,5 @@ def get_or_prepare_receptor(pdb_id: str) -> str:
     if not any(line.startswith(("ATOM", "HETATM")) for line in pdbqt_text.splitlines()):
         output.unlink(missing_ok=True)
         raise RuntimeError(f"{pdb_id}: Meeko PDBQT chiqishida atomlar topilmadi.")
+    marker.write_text("cleaned-standard-amino-acids; meeko-allow_bad_res", encoding="utf-8")
     return pdbqt_text
