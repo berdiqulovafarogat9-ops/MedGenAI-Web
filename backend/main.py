@@ -6622,6 +6622,7 @@ class ScientificPipelineRequest(BaseModel):
 
 @app.post("/api/v1/docking/run")
 def run_prepared_docking(data: PreparedDockingRequest, user=Depends(get_current_user)):
+    _require_drug_discovery_role(user)
     return _execute_prepared_docking(data, user)
 
 
