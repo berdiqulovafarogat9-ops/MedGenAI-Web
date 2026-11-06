@@ -50,12 +50,8 @@
           </section>
         </div>
         <section class="mgdd-card mgdd-receptor">
-          <h3>Receptor tayyorlash va docking parametrlari</h3>
-          <p class="mgdd-warning">PDB strukturani ko‘rish receptor PDBQT tayyorlash bilan bir xil emas. Bu versiyada receptor PDBQT faylini Meeko/AutoDock vositasi bilan alohida tayyorlab, yuklang. Oddiy PDB fayli PDBQT o‘rnini bosa olmaydi.</p>
-          <label for="mgdd-receptor-file">Receptor PDBQT fayli</label>
-          <input id="mgdd-receptor-file" type="file" accept=".pdbqt,.txt">
-          <label for="mgdd-receptor">Receptor PDBQT matni</label>
-          <textarea id="mgdd-receptor" rows="7" spellcheck="false" placeholder="Tayyorlangan receptor .pdbqt faylini tanlang yoki matnini joylang"></textarea>
+          <h3>Avtomatik receptor va docking parametrlari</h3>
+          <p class="mgdd-note">Receptor PDB strukturasi RCSB’dan serverga olinadi va Meeko orqali backend/targets/{PDB_ID}.pdbqt sifatida avtomatik tayyorlanadi. Qo‘lda fayl yuklash talab qilinmaydi.</p>
           <div class="mgdd-params">
             <label>Markaz X (Å)<input id="mgdd-cx" type="number" step="any"></label>
             <label>Markaz Y (Å)<input id="mgdd-cy" type="number" step="any"></label>
@@ -66,7 +62,7 @@
             <label>Exhaustiveness<input id="mgdd-exhaust" type="number" min="1" max="64" value="8"></label>
             <label>Pozalar<input id="mgdd-poses" type="number" min="1" max="20" value="3"></label>
           </div>
-          <button id="mgdd-run" type="button" class="mgdd-primary">⚡ Haqiqiy AutoDock Vina docking</button>
+          <button id="mgdd-run" type="button" class="mgdd-primary" hidden>⚡ AutoDock Vina orqali bog‘lanish energiyasini hisoblash</button>
           <div id="mgdd-status" role="status" aria-live="polite" class="mgdd-status">Avval target va ligandni tanlang.</div>
         </section>
         <section class="mgdd-card">
@@ -79,7 +75,6 @@
     byId("mgdd-target").addEventListener("change", () => selectTarget(byId("mgdd-target").value));
     byId("mgdd-prepare").addEventListener("click", prepareLigand);
     byId("mgdd-run").addEventListener("click", runDocking);
-    byId("mgdd-receptor-file").addEventListener("change", loadReceptorFile);
   }
 
   async function loadTargets() {
@@ -89,7 +84,7 @@
       const select = byId("mgdd-target");
       select.innerHTML = targets.map(t => `<option value="${esc(t.target_id)}">${esc(t.pdb_id)} — ${esc(t.target_name)}</option>`).join("");
       if (targets.length) await selectTarget(targets[0].target_id);
-      setStatus("Targetlar katalogi yuklandi. Receptor PDBQT ni tayyorlab, dockingni boshlashingiz mumkin.");
+      setStatus("Targetlar katalogi yuklandi. Receptor serverda avtomatik tayyorlanadi.");
     } catch (error) {
       setStatus("Target katalogini yuklab bo‘lmadi: " + error.message, true);
     }
@@ -137,18 +132,6 @@
     }
   }
 
-  async function loadReceptorFile(event) {
-    const file = event.target.files && event.target.files[0];
-    if (!file) return;
-    if (!/\.pdbqt$|\.txt$/i.test(file.name)) {
-      setStatus("Faqat receptor .pdbqt faylini tanlang. Oddiy .pdb fayli bu bosqichga mos emas.", true);
-      event.target.value = "";
-      return;
-    }
-    byId("mgdd-receptor").value = await file.text();
-    setStatus("Receptor PDBQT fayli yuklandi: " + file.name);
-  }
-
   async function prepareLigand() {
     const button = byId("mgdd-prepare");
     const smiles = byId("mgdd-smiles").value.trim();
@@ -159,7 +142,8 @@
       const data = await api("/drug-discovery/prepare-ligand", { method: "POST", body: JSON.stringify({ smiles, ligand_name: "medgen_candidate" }) });
       byId("mgdd-ligand-pdbqt").value = data.pdbqt || "";
       byId("mgdd-ligand-status").textContent = "PDBQT tayyor. " + data.engine_compatibility + " uchun ligand.";
-      setStatus("Ligand serverda RDKit + Meeko orqali tayyorlandi.");
+      byId("mgdd-run").hidden = false;
+      setStatus("Ligand PDBQT tayyor. Endi AutoDock Vina hisoblashini boshlashingiz mumkin.");
     } catch (error) {
       byId("mgdd-ligand-status").textContent = error.message;
       setStatus("Ligand tayyorlashda xatolik.", true);
@@ -170,8 +154,7 @@
     const targetId = byId("mgdd-target").value;
     const target = targets.find(t => t.target_id === targetId);
     const ligand = byId("mgdd-ligand-pdbqt").value.trim();
-    const receptor = byId("mgdd-receptor").value.trim();
-    if (!target || !ligand || !receptor) return setStatus("Target, ligand PDBQT va receptor PDBQT uchalasi kerak.", true);
+    if (!target || !ligand) return setStatus("Target va ligand PDBQT tayyor bo‘lishi kerak.", true);
     const num = id => Number(byId("mgdd-" + id).value);
     const params = { center_x:num("cx"), center_y:num("cy"), center_z:num("cz"), size_x:num("sx"), size_y:num("sy"), size_z:num("sz"), exhaustiveness:num("exhaust"), n_poses:num("poses") };
     if (Object.values(params).some(v => !Number.isFinite(v)) || ["cx","cy","cz"].some(k => byId("mgdd-"+k).value.trim() === "")) return setStatus("Docking markazi X/Y/Z va barcha parametrlarni to‘ldiring.", true);
@@ -180,13 +163,14 @@
     setStatus("AutoDock Vina hisoblayapti…");
     byId("mgdd-results").textContent = "Hisoblash bajarilmoqda…";
     try {
-      const data = await api("/docking/run", { method: "POST", body: JSON.stringify({ target: target.target_id + " / " + target.pdb_id, ligand_smiles: byId("mgdd-smiles").value.trim(), receptor_pdbqt: receptor, ligand_pdbqt: ligand, ...params }) });
+      const data = await api("/docking/run", { method: "POST", body: JSON.stringify({ target: target.target_id + " / " + target.pdb_id, target_id: target.target_id, ligand_smiles: byId("mgdd-smiles").value.trim(), ligand_pdbqt: ligand, ...params }) });
       const poses = data.result && data.result.poses || data.poses || [];
       const posesPdbqt = data.result && data.result.poses_pdbqt;
+      const hbondEstimate = data.result && data.result.hbond_contacts_estimate;
       if (!poses.length) {
         byId("mgdd-results").textContent = JSON.stringify(data, null, 2);
       } else {
-        byId("mgdd-results").innerHTML = poses.map((pose, i) => `<article class="mgdd-pose"><b>Pose ${i+1}</b><strong>${esc(pose.affinity_kcal_mol)} kcal/mol</strong><small>Intermolecular: ${esc(pose.intermolecular_energy_kcal_mol)} · Intramolecular: ${esc(pose.intramolecular_energy_kcal_mol)}</small></article>`).join("");
+        byId("mgdd-results").innerHTML = `<p><b>Taxminiy polar / H-bond kontaktlari:</b> ${hbondEstimate == null ? "hisoblanmadi" : esc(hbondEstimate) + " (masofa mezoni; burchak tekshiruvisiz)"}</p>` + poses.map((pose, i) => `<article class="mgdd-pose"><b>Pose ${i+1}</b><strong>${esc(pose.affinity_kcal_mol)} kcal/mol</strong><small>Intermolecular: ${esc(pose.intermolecular_energy_kcal_mol)} · Intramolecular: ${esc(pose.intramolecular_energy_kcal_mol)}</small></article>`).join("");
       }
       if (viewer && posesPdbqt) {
         if (dockedLigandModel) { try { viewer.removeModel(dockedLigandModel); } catch (_) {} }
