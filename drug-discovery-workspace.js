@@ -7,6 +7,7 @@
   const headers = () => ({ "Content-Type": "application/json", "Authorization": "Bearer " + token() });
   let targets = [];
   let viewer = null;
+  let dockedLigandModel = null;
   let mounted = false;
 
   async function api(path, options) {
@@ -181,12 +182,20 @@
     try {
       const data = await api("/docking/run", { method: "POST", body: JSON.stringify({ target: target.target_id + " / " + target.pdb_id, ligand_smiles: byId("mgdd-smiles").value.trim(), receptor_pdbqt: receptor, ligand_pdbqt: ligand, ...params }) });
       const poses = data.result && data.result.poses || data.poses || [];
+      const posesPdbqt = data.result && data.result.poses_pdbqt;
       if (!poses.length) {
         byId("mgdd-results").textContent = JSON.stringify(data, null, 2);
       } else {
         byId("mgdd-results").innerHTML = poses.map((pose, i) => `<article class="mgdd-pose"><b>Pose ${i+1}</b><strong>${esc(pose.affinity_kcal_mol)} kcal/mol</strong><small>Intermolecular: ${esc(pose.intermolecular_energy_kcal_mol)} · Intramolecular: ${esc(pose.intramolecular_energy_kcal_mol)}</small></article>`).join("");
       }
-      setStatus("Vina hisoblash tugadi. Natija tajriba bilan tasdiqlanishi shart.");
+      if (viewer && posesPdbqt) {
+        if (dockedLigandModel) { try { viewer.removeModel(dockedLigandModel); } catch (_) {} }
+        dockedLigandModel = viewer.addModel(posesPdbqt, "pdbqt");
+        if (dockedLigandModel && typeof dockedLigandModel.setStyle === "function") dockedLigandModel.setStyle({}, { stick: { colorscheme: "Jmol" } });
+        viewer.zoomTo();
+        viewer.render();
+      }
+      setStatus(posesPdbqt ? "Vina hisoblash tugadi; ligand pozalari 3D strukturaga qo‘shildi. Natija tajriba bilan tasdiqlanishi shart." : "Vina hisoblash tugadi. 3D pose ma’lumoti qaytmadi; natija tajriba bilan tasdiqlanishi shart.");
     } catch (error) {
       byId("mgdd-results").textContent = error.message;
       setStatus("Docking bajarilmadi: " + error.message, true);
