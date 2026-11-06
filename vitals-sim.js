@@ -232,7 +232,7 @@
           // Clinical bed details: adjustable frame, padded rails, casters and brake pedals.
           roomBox(1.82,.09,.72,0,.12,-.45,dark);
           [-.78,.78].forEach(function(x){[-.78,.02].forEach(function(z){var leg=new THREE.Mesh(new THREE.CylinderGeometry(.035,.045,.32,12),metal);leg.position.set(x,.02,z-.45);sc.add(leg);var wheel=new THREE.Mesh(new THREE.TorusGeometry(.065,.018,8,18),dark);wheel.rotation.y=Math.PI/2;wheel.position.set(x,.035,z-.45);sc.add(wheel);});});
-          [-.99,.99].forEach(function(x){var rail=new THREE.Mesh(new THREE.CapsuleGeometry(.035,.82,4,8),metal);rail.rotation.x=Math.PI/2;rail.position.set(x,.72,-.45);sc.add(rail);[-.78,-.12,.2].forEach(function(z){var post=new THREE.Mesh(new THREE.CylinderGeometry(.018,.018,.2,8),metal);post.position.set(x,.61,z-.45);sc.add(post);});});
+          [-.99,.99].forEach(function(x){var rail=new THREE.Mesh(new THREE.CylinderGeometry(.035,.035,.82,12),metal);rail.rotation.x=Math.PI/2;rail.position.set(x,.72,-.45);sc.add(rail);[-.78,-.12,.2].forEach(function(z){var post=new THREE.Mesh(new THREE.CylinderGeometry(.018,.018,.2,8),metal);post.position.set(x,.61,z-.45);sc.add(post);});[-.86,-.04].forEach(function(z){var cap=new THREE.Mesh(new THREE.SphereGeometry(.035,10,8),metal);cap.position.set(x,.72,z-.45);sc.add(cap);});});
           roomBox(.1,.42,.96,-1.08,.54,-.45,metal); roomBox(.1,.42,.96,1.08,.54,-.45,metal);
           roomBox(.18,.1,.26,-1.18,.2,-.45,dark); roomBox(.18,.1,.26,1.18,.2,-.45,dark);
           // Mattress seam and folded white hospital sheet.
