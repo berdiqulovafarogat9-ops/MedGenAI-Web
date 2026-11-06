@@ -50,7 +50,7 @@
       overlay.appendChild(card);
       document.body.appendChild(overlay);
     }
-    var sim = null, timer = null, raf = null, penalty = 0, lastPenaltyAt = 0, running = false;
+    var sim = null, timer = null, raf = null, penalty = 0, lastPenaltyAt = 0, running = false, clinicSync = null;
     var alertBox = el("div", "display:none;background:#b00020;color:#fff;font-weight:700;padding:10px;border-radius:10px;margin-bottom:8px");
     card.appendChild(alertBox);
 
@@ -59,7 +59,7 @@
       if (timer) clearInterval(timer);
       if (raf) cancelAnimationFrame(raf);
       if (clinicResizeObserver) clinicResizeObserver.disconnect();
-      if (clinicRenderer) { clinicRenderer.dispose(); clinicRenderer.domElement.remove(); clinicRenderer = null; }
+      if (clinicRenderer) { clinicRenderer.dispose(); clinicRenderer.domElement.remove(); clinicRenderer = null; }\n      clinicSync = null;
       document.removeEventListener("visibilitychange", onVis);
       window.removeEventListener("blur", onBlur);
       if (embedded) {
@@ -204,7 +204,10 @@
           roomBox(.08,.28,1.02,-1.04,.62,-.45,metal); roomBox(.08,.28,1.02,1.04,.62,-.45,metal);
           // bedside monitor and ECG display
           roomBox(.48,.42,.12,1.35,1.45,-.2,dark);
-          var screenMat=new THREE.MeshBasicMaterial({color:0x062b27});
+          var monitorCanvas=document.createElement("canvas");monitorCanvas.width=512;monitorCanvas.height=320;
+          var monitorCtx=monitorCanvas.getContext("2d");
+          var monitorTexture=new THREE.CanvasTexture(monitorCanvas);
+          var screenMat=new THREE.MeshBasicMaterial({map:monitorTexture});
           roomBox(.42,.34,.025,1.35,1.46,-.125,screenMat);
           var monitorStand=new THREE.Mesh(new THREE.CylinderGeometry(.035,.035,.72,10),metal);monitorStand.position.set(1.35,.95,-.2);sc.add(monitorStand);
           roomBox(.42,.06,.3,1.35,.57,-.2,metal);
@@ -239,10 +242,28 @@
           part(new THREE.CylinderGeometry(.07,.09,.8,12),skin,.48,.95,0,1,1,1);
           part(new THREE.CylinderGeometry(.12,.09,.85,16),skin,-.2,.25,0,1,1,1);
           part(new THREE.CylinderGeometry(.12,.09,.85,16),skin,.2,.25,0,1,1,1);
+          var torsoMesh=patient.children[1];
           var targets=[];
           function mark(zone,x,y,z,sx,sy,sz,color){var o=new THREE.Mesh(new THREE.SphereGeometry(.2,16,12),new THREE.MeshBasicMaterial({color:color,transparent:true,opacity:.38}));o.position.set(x,y,z);o.scale.set(sx,sy,sz);o.userData.zone=zone;patient.add(o);targets.push(o);}
           mark("face",0,1.66,.16,1.2,1.2,.8,0x38bdf8); mark("chest",0,1.02,.25,1.5,1.1,.6,0xfbbf24);
           mark("arm",-.48,.95,.06,1.2,2,1,0x34d399); mark("thigh",.2,.25,.08,1.4,2,1,0xfb7185);
+          // Live bedside monitor: same simulated vitals and ECG rhythm as the HUD.
+          clinicSync=function(v){
+            if(!clinicRenderer)return;
+            var pulse=1+Math.sin(Date.now()/1000*Math.max(.5,v.rr/60)*Math.PI*2)*.018;
+            if(torsoMesh)torsoMesh.scale.y=.7*pulse;
+            monitorCtx.fillStyle="#03100f";monitorCtx.fillRect(0,0,512,320);
+            monitorCtx.fillStyle="#65f5d0";monitorCtx.font="bold 34px monospace";
+            monitorCtx.fillText("HR "+Math.round(v.hr),18,48);
+            monitorCtx.fillStyle="#f4d36b";monitorCtx.font="bold 28px monospace";
+            monitorCtx.fillText("BP "+Math.round(v.sbp)+"/"+Math.round(v.dbp),18,88);
+            monitorCtx.fillStyle="#71d8ff";monitorCtx.fillText("SpO2 "+Math.round(v.spo2)+"%",18,126);
+            monitorCtx.fillStyle="#b6f28b";monitorCtx.fillText("RR "+Math.round(v.rr)+"/min",18,164);
+            monitorCtx.strokeStyle="#47e7c1";monitorCtx.lineWidth=4;monitorCtx.beginPath();
+            for(var j=0;j<470;j++){var phase=(j/470*2.4)+(Date.now()/1000)*(v.hr/60)*2*Math.PI;var y=236-ecgValue(phase,c.ecg==="st_elev")*62;if(j===0)monitorCtx.moveTo(18+j,y);else monitorCtx.lineTo(18+j,y);}
+            monitorCtx.stroke();monitorTexture.needsUpdate=true;clinicRenderer.render(sc,cam);
+          };
+          clinicSync(sim.state);
           var ray=new THREE.Raycaster(),pt=new THREE.Vector2();
           function resize3(){var w=Math.max(view3.clientWidth,1),h=Math.max(view3.clientHeight,1);cam.aspect=w/h;cam.updateProjectionMatrix();clinicRenderer.setSize(w,h,false);clinicRenderer.render(sc,cam);}
           if(window.ResizeObserver){clinicResizeObserver=new ResizeObserver(resize3);clinicResizeObserver.observe(view3);} else window.addEventListener("resize",resize3);
@@ -306,6 +327,7 @@
       tiles.bp.textContent = Math.round(s.sbp) + "/" + Math.round(s.dbp); tiles.bp.style.color = bad(s.sbp >= 100 && s.dbp >= 60);
       tiles.spo2.textContent = Math.round(s.spo2); tiles.spo2.style.color = bad(s.spo2 >= 94);
       tiles.rr.textContent = Math.round(s.rr); tiles.rr.style.color = bad(s.rr >= 12 && s.rr <= 20);
+      if (clinicSync) clinicSync(s);
       updateHud();
     }
     function updateHud() {
