@@ -262,7 +262,7 @@
           var roomLight=new THREE.PointLight(0xd8efff,1.2,7);roomLight.position.set(0,2.6,1.2);sc.add(roomLight);
           // Patient GLB: supplied CDN model, with a procedural fallback if the CDN is unreachable.
           var patient=new THREE.Group(); patient.rotation.z=-Math.PI/2; patient.scale.setScalar(.9); patient.position.set(-0.05,.62,-.45); sc.add(patient);
-          var skinMats=[],patientModel=null,patientChest=null,faceMesh=null,faceTint=null,chestBaseRotation=null,chestBaseScale=null,recoveryStarted=0,recoveryFrom=new THREE.Color(0x94a3b8),recoveryTo=new THREE.Color(0xfbcfe8);
+          var skinMats=[],patientModel=null,patientChest=null,faceMesh=null,faceTint=null,chestBaseRotation=null,chestBaseScale=null,chestBreathMeshes=[],recoveryStarted=0,recoveryFrom=new THREE.Color(0x94a3b8),recoveryTo=new THREE.Color(0xfbcfe8);
           var loader=new THREE.GLTFLoader();
           loader.load("https://files.innerscene.com/library/daniel-3d-person-lying-flat-820f78f4/6d7b4ad3797154f4db48/daniel-lying-flat-3d-person.glb",function(gltf){
             if(!clinicRenderer)return;
@@ -271,15 +271,21 @@
             if(initialSize.x>initialSize.y*1.2)patientModel.rotation.z=Math.PI/2;
             var modelBounds=new THREE.Box3().setFromObject(patientModel),modelSize=modelBounds.getSize(new THREE.Vector3()),modelCenter=modelBounds.getCenter(new THREE.Vector3());
             patientModel.position.sub(modelCenter);
+            patient.add(patientModel); sc.updateMatrixWorld(true);
+            var faceY=modelSize.y*.5-.12, chestY=modelSize.y*.16, thighY=-modelSize.y*.27, frontZ=modelSize.z*.5+.035;
             patientModel.traverse(function(node){if(!node.isMesh)return;node.castShadow=true;node.receiveShadow=true;node.frustumCulled=false;
               var n=(node.name||"").toLowerCase();
               if(n.indexOf("head")>=0||n.indexOf("face")>=0){faceMesh=node;}
               if(n.indexOf("chest")>=0||n.indexOf("torso")>=0)patientChest=node;
+              if(node.geometry&&node.geometry.attributes&&node.geometry.attributes.position){
+                var geom=node.geometry.clone(),attr=geom.attributes.position,base=new Float32Array(attr.array),weights=new Float32Array(attr.count);
+                var origin=patient.localToWorld(new THREE.Vector3(0,0,0)),axisEnd=patient.localToWorld(new THREE.Vector3(0,0,1)),localOrigin=node.worldToLocal(origin.clone()),localAxis=node.worldToLocal(axisEnd.clone()).sub(localOrigin);
+                for(var vi=0;vi<attr.count;vi++){var vp=new THREE.Vector3(base[vi*3],base[vi*3+1],base[vi*3+2]);node.localToWorld(vp);patient.worldToLocal(vp);var dy=(vp.y-chestY)/(modelSize.y*.14),dx=vp.x/(modelSize.x*.25);weights[vi]=Math.exp(-.5*(dy*dy+dx*dx));}
+                node.geometry=geom;chestBreathMeshes.push({geometry:geom,base:base,weights:weights,axis:localAxis});
+              }
             });
-            patient.add(patientModel);
             if(!patientChest){patientChest=patientModel.getObjectByName("Chest")||patientModel.getObjectByName("Torso")||null;}
             if(patientChest){chestBaseRotation=patientChest.rotation.x;chestBaseScale=patientChest.scale.z;}
-            var faceY=modelSize.y*.5-.12, chestY=modelSize.y*.16, thighY=-modelSize.y*.27, frontZ=modelSize.z*.5+.035;
             if(faceMesh){var fb=new THREE.Box3().setFromObject(faceMesh),fc=fb.getCenter(new THREE.Vector3());patient.worldToLocal(fc);faceY=fc.y;frontZ=Math.max(frontZ,fc.z+.04);}
             faceTint=new THREE.Mesh(new THREE.SphereGeometry(.105,18,14),new THREE.MeshStandardMaterial({color:0x94a3b8,transparent:true,opacity:.28,roughness:.55,depthWrite:false}));
             faceTint.position.set(0,faceY,frontZ);faceTint.scale.set(.9,1.1,.42);patient.add(faceTint);
@@ -298,7 +304,7 @@
           // Hotspots are positioned from the loaded supine model bounds after GLB load.
           function clinicAnimate(){if(!clinicRenderer)return;clinicRaf=requestAnimationFrame(clinicAnimate);
             var breath=1+Math.sin(Date.now()/1000*Math.max(.2,sim.state.rr/60)*Math.PI*2)*.012;
-            if(patientChest){if(chestBaseRotation!==null)patientChest.rotation.x=chestBaseRotation+Math.sin(Date.now()/1000*Math.max(.2,sim.state.rr/60)*Math.PI*2)*.012;else if(chestBaseScale!==null)patientChest.scale.z=chestBaseScale*breath;}
+            var chestMotion=Math.sin(Date.now()/1000*Math.max(.2,sim.state.rr/60)*Math.PI*2)*.008;chestBreathMeshes.forEach(function(item){var a=item.geometry.attributes.position;for(var vi=0;vi<item.weights.length;vi++){var k=vi*3,w=item.weights[vi]*chestMotion;a.array[k]=item.base[k]+item.axis.x*w;a.array[k+1]=item.base[k+1]+item.axis.y*w;a.array[k+2]=item.base[k+2]+item.axis.z*w;}a.needsUpdate=true;}); if(patientChest){if(chestBaseRotation!==null)patientChest.rotation.x=chestBaseRotation+chestMotion*.7;else if(chestBaseScale!==null)patientChest.scale.z=chestBaseScale*(1+chestMotion);}
             if(faceTint&&recoveryStarted){var t=Math.min(1,(Date.now()-recoveryStarted)/3000),col=recoveryFrom.clone().lerp(recoveryTo,t);faceTint.material.color.copy(col);faceTint.material.opacity=.28*(1-t)+.06*t;}
             clinicRenderer.render(sc,cam);
           }
