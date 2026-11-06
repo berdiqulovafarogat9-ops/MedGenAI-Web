@@ -173,6 +173,57 @@
         actionsBox.appendChild(b);
       });
 
+      if (c.id === "anaphylaxis_jasur" && window.THREE && THREE.WebGLRenderer) {
+        var clinic = el("div", "margin:10px 0;padding:10px;border:1px solid #28465c;border-radius:14px;background:#071521");
+        clinic.appendChild(el("div", "font-weight:800;color:#67e8f9;margin-bottom:6px", "3D VIRTUAL CLINIC — Jasur"));
+        clinic.appendChild(el("div", "font-size:12px;color:#9fb5c7;margin-bottom:8px", "Asbobni tanlang, so‘ng mos anatomik nishonni bosing. Soddalashtirilgan o‘quv modeli."));
+        var tools3 = el("div", "display:flex;gap:6px;flex-wrap:wrap;margin-bottom:8px");
+        var view3 = el("div", "height:260px;width:100%;background:#06101b;border-radius:10px;overflow:hidden");
+        clinic.appendChild(tools3); clinic.appendChild(view3); actionsBox.parentNode.insertBefore(clinic, actionsBox);
+        var chosen = "epi";
+        [["epi","💉 Adrenalin IM"],["oxygen","🫁 Kislorod"],["iv","💧 IV suyuqlik"],["monitor","♡ Monitoring"]].forEach(function(t) {
+          var b=el("button",BTN2,t[1]); b.type="button"; b.onclick=function(){chosen=t[0];flash("Tanlandi: "+t[1]);}; tools3.appendChild(b);
+        });
+        try {
+          var sc=new THREE.Scene(); sc.background=new THREE.Color(0x071521);
+          var cam=new THREE.PerspectiveCamera(38,1,0.1,100); cam.position.set(3.6,2.3,5); cam.lookAt(0,1,0);
+          clinicRenderer=new THREE.WebGLRenderer({antialias:true}); clinicRenderer.setPixelRatio(Math.min(window.devicePixelRatio||1,1.5)); view3.appendChild(clinicRenderer.domElement);
+          clinicRenderer.domElement.style.cssText="width:100%;height:100%;display:block";
+          sc.add(new THREE.HemisphereLight(0xffffff,0x334455,2));
+          var light=new THREE.DirectionalLight(0xffffff,2); light.position.set(3,5,4); sc.add(light);
+          var floor=new THREE.Mesh(new THREE.PlaneGeometry(10,10),new THREE.MeshStandardMaterial({color:0x142b3b})); floor.rotation.x=-Math.PI/2; sc.add(floor);
+          var skin=new THREE.MeshStandardMaterial({color:0xc58d73}), gown=new THREE.MeshStandardMaterial({color:0x16758a});
+          var patient=new THREE.Group(); patient.position.y=0.1; sc.add(patient);
+          function part(g,m,x,y,z,sx,sy,sz){var o=new THREE.Mesh(g,m);o.position.set(x,y,z);o.scale.set(sx,sy,sz);patient.add(o);return o;}
+          part(new THREE.SphereGeometry(.23,20,16),skin,0,1.65,0,1,1.1,.9);
+          part(new THREE.CylinderGeometry(.35,.42,.9,20),gown,0,.95,0,1,1,.7);
+          part(new THREE.CylinderGeometry(.07,.09,.8,12),skin,-.48,.95,0,1,1,1);
+          part(new THREE.CylinderGeometry(.07,.09,.8,12),skin,.48,.95,0,1,1,1);
+          part(new THREE.CylinderGeometry(.12,.09,.85,16),skin,-.2,.25,0,1,1,1);
+          part(new THREE.CylinderGeometry(.12,.09,.85,16),skin,.2,.25,0,1,1,1);
+          var targets=[];
+          function mark(zone,x,y,z,sx,sy,sz,color){var o=new THREE.Mesh(new THREE.SphereGeometry(.2,16,12),new THREE.MeshBasicMaterial({color:color,transparent:true,opacity:.38}));o.position.set(x,y,z);o.scale.set(sx,sy,sz);o.userData.zone=zone;patient.add(o);targets.push(o);}
+          mark("face",0,1.66,.16,1.2,1.2,.8,0x38bdf8); mark("chest",0,1.02,.25,1.5,1.1,.6,0xfbbf24);
+          mark("arm",-.48,.95,.06,1.2,2,1,0x34d399); mark("thigh",.2,.25,.08,1.4,2,1,0xfb7185);
+          var ray=new THREE.Raycaster(),pt=new THREE.Vector2();
+          function resize3(){var w=Math.max(view3.clientWidth,1),h=Math.max(view3.clientHeight,1);cam.aspect=w/h;cam.updateProjectionMatrix();clinicRenderer.setSize(w,h,false);clinicRenderer.render(sc,cam);}
+          if(window.ResizeObserver){clinicResizeObserver=new ResizeObserver(resize3);clinicResizeObserver.observe(view3);} else window.addEventListener("resize",resize3);
+          resize3();
+          clinicRenderer.domElement.addEventListener("click",function(ev){
+            var r=clinicRenderer.domElement.getBoundingClientRect();pt.x=(ev.clientX-r.left)/r.width*2-1;pt.y=-(ev.clientY-r.top)/r.height*2+1;ray.setFromCamera(pt,cam);
+            var hit=ray.intersectObjects(targets,false)[0];if(!hit){flash("Anatomik nishonni tanlang.");return;}
+            var z=hit.object.userData.zone,id=null;
+            if(chosen==="epi"&&z==="thigh")id="epi_thigh";
+            if(chosen==="oxygen"&&z==="face")id="oxygen_high";
+            if(chosen==="iv"&&z==="arm")id="crystalloid_bolus";
+            if(chosen==="monitor"&&z==="chest")id="monitor";
+            if(!id){flash("Asbob va anatomik nishon mos emas.");return;}
+            var result=sim.act(id);if(!result.ok){flash("Bu harakat bajarilgan yoki keys tugagan.");return;}
+            actionsBox.querySelectorAll("button[data-id]").forEach(function(b){if(b.dataset.id===id){b.disabled=true;b.style.opacity=".45";}});
+            logBox.appendChild(el("div","","["+sim.s+" s] "+result.label+" · 3D nishon: "+z));render();
+          });
+        } catch(err){console.error("3D Virtual Clinic",err);clinic.appendChild(el("p","color:#fca5a5;font-size:12px","3D sahna ochilmadi. Harakatlar ro‘yxati orqali davom eting."));}
+      }
       penalty = 0; running = true; lastPenaltyAt = 0;
       document.addEventListener("visibilitychange", onVis);
       window.addEventListener("blur", onBlur);
