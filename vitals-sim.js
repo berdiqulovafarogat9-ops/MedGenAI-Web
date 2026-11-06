@@ -309,7 +309,7 @@
             var faceY=modelSize.y*.5-.12, chestY=modelSize.y*.16, thighY=-modelSize.y*.27, frontZ=modelSize.z*.5+.035;
             patientModel.traverse(function(node){if(!node.isMesh)return;node.castShadow=true;node.receiveShadow=true;node.frustumCulled=false;
               var n=(node.name||"").toLowerCase();
-              if(n.indexOf("head")>=0||n.indexOf("face")>=0){faceMesh=node;}
+              if(n.indexOf("head")>=0||n.indexOf("face")>=0){faceMesh=node;var headMats=Array.isArray(node.material)?node.material:[node.material];headMats.forEach(function(m){if(m&&m.color){m.color.setHex(0x94a3b8);skinMats.push(m);}});}
               if(n.indexOf("chest")>=0||n.indexOf("torso")>=0)patientChest=node;
               if(node.geometry&&node.geometry.attributes&&node.geometry.attributes.position){
                 var geom=node.geometry.clone(),attr=geom.attributes.position,base=new Float32Array(attr.array),weights=new Float32Array(attr.count);
@@ -349,7 +349,7 @@
           function clinicAnimate(){if(!clinicRenderer)return;clinicRaf=requestAnimationFrame(clinicAnimate);
             var breath=1+Math.sin(Date.now()/1000*Math.max(.2,sim.state.rr/60)*Math.PI*2)*.012;
             var chestMotion=Math.sin(Date.now()/1000*Math.max(.2,sim.state.rr/60)*Math.PI*2)*.008;chestBreathMeshes.forEach(function(item){var a=item.geometry.attributes.position;for(var vi=0;vi<item.weights.length;vi++){var k=vi*3,w=item.weights[vi]*chestMotion;a.array[k]=item.base[k]+item.axis.x*w;a.array[k+1]=item.base[k+1]+item.axis.y*w;a.array[k+2]=item.base[k+2]+item.axis.z*w;}a.needsUpdate=true;}); if(patientChest){if(chestBaseRotation!==null)patientChest.rotation.x=chestBaseRotation+chestMotion*.7;else if(chestBaseScale!==null)patientChest.scale.z=chestBaseScale*(1+chestMotion);}
-            if(faceTint&&recoveryStarted){var t=Math.min(1,(Date.now()-recoveryStarted)/3000),col=recoveryFrom.clone().lerp(recoveryTo,t);faceTint.material.color.copy(col);faceTint.material.opacity=.28*(1-t)+.06*t;}
+            if(recoveryStarted){var t=Math.min(1,(Date.now()-recoveryStarted)/3000),col=recoveryFrom.clone().lerp(recoveryTo,t);skinMats.forEach(function(m){if(m&&m.color)m.color.copy(col);});if(faceTint){faceTint.material.color.copy(col);faceTint.material.opacity=.28*(1-t)+.06*t;}}
             clinicRenderer.render(sc,cam);
           }
           clinicAnimate();          // Live bedside monitor: same simulated vitals and ECG rhythm as the HUD.
@@ -376,7 +376,7 @@
             var r=clinicRenderer.domElement.getBoundingClientRect();pt.x=(ev.clientX-r.left)/r.width*2-1;pt.y=-(ev.clientY-r.top)/r.height*2+1;ray.setFromCamera(pt,cam);
             var hit=ray.intersectObjects(targets,false)[0];if(!hit){flash("Anatomik nishonni tanlang.");return;}
             var z=hit.object.userData.zone,id=null;
-            if(chosen==="head"&&z==="face"){if(faceTint){faceTint.material.color.setHex(0x6b9cae);faceTint.material.opacity=.34;}showResult("BOSH / BO‘YIN: yuz ko‘karishi, lab-til shishi va yuqori nafas yo‘li torayishi ko‘rinadi. Stridor/bo‘g‘ilish — xavf belgisi. O‘quv simulyatsiyasi.");return;}
+            if(chosen==="head"&&z==="face"){if(faceTint){faceTint.material.color.setHex(0x6b9cae);faceTint.material.opacity=.34;}if(faceMesh&&faceMesh.material){var hm=Array.isArray(faceMesh.material)?faceMesh.material:[faceMesh.material];hm.forEach(function(m){if(m&&m.color)m.color.setHex(0x6b9cae);});}showResult("BOSH / BO‘YIN: yuz ko‘karishi, lab-til shishi va yuqori nafas yo‘li torayishi ko‘rinadi. Stridor/bo‘g‘ilish — xavf belgisi. O‘quv simulyatsiyasi.");return;}
             if(chosen==="stethoscope"&&z==="chest"){showResult("STETOSKOP — o‘pka: diffuz ekspirator hushtaksimon xirillashlar va havo kirishi pasayishi mumkin. Matnli simulyatsiya.");return;}
             if(chosen==="epi"&&z==="thigh")id="epi_thigh";
             if(chosen==="oxygen"&&z==="face")id="oxygen_high";
