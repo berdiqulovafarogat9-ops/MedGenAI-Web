@@ -6600,8 +6600,9 @@ def scientific_core_status(user=Depends(get_current_user)):
 
 class PreparedDockingRequest(BaseModel):
     target: str
+    target_id: str = ""
     ligand_smiles: str = ""
-    receptor_pdbqt: str
+    receptor_pdbqt: str = ""
     ligand_pdbqt: str
     center_x: float = Field(allow_inf_nan=False)
     center_y: float = Field(allow_inf_nan=False)
@@ -6629,8 +6630,19 @@ def run_prepared_docking(data: PreparedDockingRequest, user=Depends(get_current_
 def _execute_prepared_docking(data: PreparedDockingRequest, user, *, persist=True):
     if not VINA_AVAILABLE:
         raise HTTPException(status_code=503, detail="AutoDock Vina engine is not installed on this deployment.")
-    if not data.receptor_pdbqt.strip() or not data.ligand_pdbqt.strip():
-        raise HTTPException(status_code=400, detail="Prepared receptor and ligand PDBQT content are required.")
+    if not data.ligand_pdbqt.strip():
+        raise HTTPException(status_code=400, detail="Ligand PDBQT content is required.")
+    receptor_pdbqt = data.receptor_pdbqt.strip()
+    if not receptor_pdbqt:
+        target_id = str(data.target_id or "").strip()
+        if not target_id:
+            raise HTTPException(status_code=400, detail="target_id is required for automatic receptor preparation.")
+        try:
+            receptor_pdbqt = get_or_prepare_receptor(get_target(target_id)["pdb_id"])
+        except KeyError:
+            raise HTTPException(status_code=404, detail="Target katalogda topilmadi.")
+        except RuntimeError as exc:
+            raise HTTPException(status_code=503, detail=str(exc))
     if not all(0.0 < x <= 100.0 for x in [data.size_x, data.size_y, data.size_z]):
         raise HTTPException(status_code=400, detail="Docking box dimensions must be >0 and <=100 Å.")
     if not 1 <= data.exhaustiveness <= 64 or not 1 <= data.n_poses <= 20:
@@ -6641,7 +6653,7 @@ def _execute_prepared_docking(data: PreparedDockingRequest, user, *, persist=Tru
     try:
         receptor_file = tempfile.NamedTemporaryFile("w", suffix=".pdbqt", delete=False)
         ligand_file = tempfile.NamedTemporaryFile("w", suffix=".pdbqt", delete=False)
-        receptor_file.write(data.receptor_pdbqt)
+        receptor_file.write(receptor_pdbqt)
         ligand_file.write(data.ligand_pdbqt)
         receptor_file.close()
         ligand_file.close()
@@ -7482,9 +7494,11 @@ def review_opportunity(identifier: str, publish: bool, user=Depends(get_current_
 try:
     from .targets_database import CANCER_HIV_TARGETS, get_target, list_targets
     from .docking_pipeline import prepare_ligand_from_smiles
+    from .receptor_pipeline import get_or_prepare_receptor
 except ImportError:
     from targets_database import CANCER_HIV_TARGETS, get_target, list_targets
     from docking_pipeline import prepare_ligand_from_smiles
+    from receptor_pipeline import get_or_prepare_receptor
 
 
 class DrugDiscoveryLigandPrepareRequest(BaseModel):
@@ -7505,6 +7519,22 @@ def drug_discovery_targets(user=Depends(get_current_user)):
     _require_drug_discovery_role(user)
     return {"status": "ok", "targets": list_targets(),
             "notice": "PDB ID biologik targetni belgilaydi; receptor PDBQT va docking grid alohida tayyorlanib tekshirilishi shart."}
+
+
+@app.get("/api/v1/drug-discovery/targets/{target_id}/receptor")
+def drug_discovery_receptor(target_id: str, user=Depends(get_current_user)):
+    _require_drug_discovery_role(user)
+    try:
+        target = get_target(target_id)
+        pdbqt = get_or_prepare_receptor(target["pdb_id"])
+    except KeyError:
+        raise HTTPException(status_code=404, detail="Target katalogda topilmadi.")
+    except RuntimeError as exc:
+        raise HTTPException(status_code=503, detail=str(exc))
+    return {"status": "ready", "pdb_id": target["pdb_id"], "format": "PDBQT",
+            "cached_path": f"backend/targets/{target['pdb_id']}.pdbqt",
+            "receptor_pdbqt": pdbqt,
+            "note": "Receptor RCSB PDB va Meeko orqali serverda tayyorlandi."}
 
 
 @app.get("/api/v1/drug-discovery/targets/{target_id}")
