@@ -20,21 +20,28 @@
         this.renderer=new THREE.WebGLRenderer({canvas:canvas,antialias:true,alpha:false});
         this.renderer.setPixelRatio(Math.min(window.devicePixelRatio||1,1.5));
         this.scene.add(new THREE.HemisphereLight(0xffffff,0x334155,1.8));
-        var key=new THREE.DirectionalLight(0xffffff,1.6); key.position.set(3,6,4); this.scene.add(key);
+        var key=new THREE.DirectionalLight(0xfff2e6,2); key.position.set(-2,6,4); key.castShadow=true; key.shadow.mapSize.set(1024,1024); this.scene.add(key); var fill=new THREE.DirectionalLight(0x9bc9e8,.7); fill.position.set(3,2,-2); this.scene.add(fill);
         var floor=new THREE.Mesh(new THREE.PlaneGeometry(9,8),new THREE.MeshStandardMaterial({color:0x1e3445,roughness:.95}));
-        floor.rotation.x=-Math.PI/2; this.scene.add(floor);
+        floor.rotation.x=-Math.PI/2; floor.receiveShadow=true; this.scene.add(floor);
         var metal=new THREE.MeshStandardMaterial({color:0x94a3b8,metalness:.45,roughness:.4});
         var bed=new THREE.Mesh(new THREE.BoxGeometry(2.25,.16,1.05),metal); bed.position.set(0,.38,-.25); this.scene.add(bed);
         var mattress=new THREE.Mesh(new THREE.BoxGeometry(2.12,.13,.96),new THREE.MeshStandardMaterial({color:0xdbe5ec})); mattress.position.set(0,.52,-.25); this.scene.add(mattress);
-        var patient=new THREE.Group(); patient.position.set(-.05,.62,-.25); patient.rotation.z=-Math.PI/2; this.scene.add(patient);
-        var skin=new THREE.MeshStandardMaterial({color:0xc58d73}), gown=new THREE.MeshStandardMaterial({color:0x16758a});
-        function part(geo,mat,x,y,z,sx,sy,sz){var m=new THREE.Mesh(geo,mat);m.position.set(x,y,z);m.scale.set(sx,sy,sz);patient.add(m);return m;}
-        part(new THREE.SphereGeometry(.2,20,16),skin,0,1.48,0,1,1.1,.9);
-        this.patientChest=part(new THREE.SphereGeometry(.48,24,18),gown,0,.91,0,1,.82,.62);
-        part(new THREE.CylinderGeometry(.065,.085,.72,14),skin,-.43,.88,0,1,1,1);
-        part(new THREE.CylinderGeometry(.065,.085,.72,14),skin,.43,.88,0,1,1,1);
-        part(new THREE.CylinderGeometry(.11,.09,.72,16),gown,-.18,.25,0,1,1,1);
-        part(new THREE.CylinderGeometry(.11,.09,.72,16),gown,.18,.25,0,1,1,1);
+        // Textured humanoid GLB; do not substitute a geometric mannequin.
+        var patient=new THREE.Group(); patient.position.set(-.05,.62,-.25); patient.rotation.z=-Math.PI/2; patient.scale.setScalar(.58); this.scene.add(patient);
+        this.patientModel=null; this.patientChest=null; this.chestBaseRotation=null; this.chestBaseScale=null;
+        var loader=new THREE.GLTFLoader();
+        loader.load("https://raw.githubusercontent.com/mrdoob/three.js/master/examples/models/gltf/Xbot.glb",gltf=>{
+          if(!this.renderer)return;
+          this.patientModel=gltf.scene;
+          this.patientModel.traverse(node=>{if(node.isMesh){node.castShadow=true;node.receiveShadow=true;node.frustumCulled=false;}});
+          patient.add(this.patientModel);
+          this.patientChest=this.patientModel.getObjectByName("mixamorigSpine2")||this.patientModel.getObjectByName("mixamorigSpine1")||this.patientModel.getObjectByName("Spine2")||this.patientModel.getObjectByName("Spine1")||this.patientModel.getObjectByName("Chest")||null;
+          if(this.patientChest){this.chestBaseRotation=this.patientChest.rotation.x;this.chestBaseScale=this.patientChest.scale.z;}
+        },undefined,err=>{console.error("MedGen patient GLB load failed",err);if(this.wrapper)this.wrapper.querySelector("[data-patient-load-error]")?.remove();});
+        // Oxygen mask and tubing are attached to the patient's face-side.
+        var maskMat=new THREE.MeshStandardMaterial({color:0xc7f0ff,transparent:true,opacity:.3,roughness:.12,side:THREE.DoubleSide,depthWrite:false});
+        var mask=new THREE.Mesh(new THREE.SphereGeometry(.13,18,12,0,Math.PI*2,0,Math.PI/2),maskMat); mask.position.set(0,1.53,.22); mask.rotation.x=Math.PI/2; patient.add(mask);
+        var maskStrap=new THREE.Mesh(new THREE.TorusGeometry(.145,.008,6,32),new THREE.MeshStandardMaterial({color:0xb8cbd5,roughness:.7})); maskStrap.position.set(0,1.53,.11); patient.add(maskStrap);
         // Bedside monitor and IV/oxygen equipment are visual props, not functioning devices.
         var monitor=new THREE.Mesh(new THREE.BoxGeometry(.52,.42,.12),new THREE.MeshStandardMaterial({color:0x0b1720})); monitor.position.set(1.35,1.42,-.15); this.scene.add(monitor);
         var screen=new THREE.Mesh(new THREE.PlaneGeometry(.43,.31),new THREE.MeshBasicMaterial({color:0x063b37})); screen.position.set(1.35,1.42,-.08); this.scene.add(screen);
@@ -65,7 +72,7 @@
       if(!this.renderer)return;
       this.raf=requestAnimationFrame(()=>this.animate());
       this.phase+=Math.max(.025,this.rr/60*.055);
-      if(this.patientChest)this.patientChest.scale.y=.82+Math.sin(this.phase)*.045;
+      if(this.patientChest){if(this.chestBaseRotation!==null)this.patientChest.rotation.x=this.chestBaseRotation+Math.sin(this.phase)*.012;else if(this.chestBaseScale!==null)this.patientChest.scale.z=this.chestBaseScale*(1+Math.sin(this.phase)*.012);}
       this.renderer.render(this.scene,this.camera);
     }
     dispose() {
@@ -74,7 +81,7 @@
       if(this._resize)window.removeEventListener("resize",this._resize); this._resize=null;
       if(this.scene)this.scene.traverse(o=>{if(o.geometry)o.geometry.dispose();if(o.material){(Array.isArray(o.material)?o.material:[o.material]).forEach(m=>{if(m.map)m.map.dispose();m.dispose();});}});
       if(this.renderer){this.renderer.dispose();if(this.renderer.domElement.parentNode)this.renderer.domElement.remove();}
-      this.renderer=null;this.scene=null;this.camera=null;this.patientChest=null;this.wrapper=null;
+      this.renderer=null;this.scene=null;this.camera=null;this.patientChest=null;this.patientModel=null;this.chestBaseRotation=null;this.chestBaseScale=null;this.wrapper=null;
     }
   }
   window.medgen3DClinic=new MedGen3DClinic();
