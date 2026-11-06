@@ -1894,8 +1894,8 @@ VITALS_CASES = {
         "actions": [
             {"id": "o2", "label": "Kislorod (yuqori oqim, niqob)", "effects": {"spo2": 8, "rr": -5, "hr": -4}, "grade": "required",
              "explain": "Gipoksemiyani darhol tuzatish. Maqsad SpO2 94-98% (surunkali o'pka kasalida 88-92%)."},
-            {"id": "cxr", "label": "Ko'krak qafasi rentgenogrammasi", "effects": {}, "grade": "required",
-             "explain": "Infiltratsiyani tasdiqlaydi; pnevmoniya tashxisining asosiy vositalaridan."},
+            {"id": "cxr", "label": "Ko'krak qafasi rentgenogrammasi", "effects": {}, "grade": "neutral",
+             "explain": "Infiltratsiyani tasdiqlashga yordam beradi, ammo gipoksemiya va og'ir holatda kislorod hamda zarur davolashni rentgen uchun kechiktirmaslik kerak."},
             {"id": "abx", "label": "Empirik antibiotik (vena ichiga) + qon kulturasi", "effects": {"spo2": 3, "hr": -5, "rr": -4}, "grade": "required",
              "explain": "Jamiyatda orttirilgan og'ir pnevmoniyada tezkor empirik antibiotik; avval qon kulturasi olinadi."},
             {"id": "niv", "label": "Noinvaziv ventilatsiya (NIV)", "effects": {"spo2": 2, "rr": -3}, "grade": "neutral",
