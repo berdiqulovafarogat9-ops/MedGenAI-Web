@@ -261,34 +261,45 @@
           roomBox(1.2,.045,.35,0,2.8,-.8,new THREE.MeshStandardMaterial({color:0xe6f1f5,emissive:0x52616b,emissiveIntensity:.45}));
           var roomLight=new THREE.PointLight(0xd8efff,1.2,7);roomLight.position.set(0,2.6,1.2);sc.add(roomLight);
           // Patient GLB: supplied CDN model, with a procedural fallback if the CDN is unreachable.
-          var patient=new THREE.Group(); patient.rotation.z=-Math.PI/2; patient.scale.setScalar(0.58); patient.position.set(-0.05,0.59,-0.45); sc.add(patient);
-          var skinMats=[],patientModel=null,patientChest=null,faceMesh=null,chestBaseRotation=null,chestBaseScale=null,recoveryStarted=0,recoveryFrom=new THREE.Color(0x94a3b8),recoveryTo=new THREE.Color(0xfbcfe8);
+          var patient=new THREE.Group(); patient.rotation.z=-Math.PI/2; patient.scale.setScalar(.9); patient.position.set(-0.05,.62,-.45); sc.add(patient);
+          var skinMats=[],patientModel=null,patientChest=null,faceMesh=null,faceTint=null,chestBaseRotation=null,chestBaseScale=null,recoveryStarted=0,recoveryFrom=new THREE.Color(0x94a3b8),recoveryTo=new THREE.Color(0xfbcfe8);
           var loader=new THREE.GLTFLoader();
-          loader.load("https://raw.githubusercontent.com/mrdoob/three.js/master/examples/models/gltf/Xbot.glb",function(gltf){
+          loader.load("https://files.innerscene.com/library/daniel-3d-person-lying-flat-820f78f4/6d7b4ad3797154f4db48/daniel-lying-flat-3d-person.glb",function(gltf){
             if(!clinicRenderer)return;
-            patientModel=gltf.scene; patientModel.scale.setScalar(1);
+            patientModel=gltf.scene;
+            var initialBounds=new THREE.Box3().setFromObject(patientModel),initialSize=initialBounds.getSize(new THREE.Vector3());
+            if(initialSize.x>initialSize.y*1.2)patientModel.rotation.z=Math.PI/2;
+            var modelBounds=new THREE.Box3().setFromObject(patientModel),modelSize=modelBounds.getSize(new THREE.Vector3()),modelCenter=modelBounds.getCenter(new THREE.Vector3());
+            patientModel.position.sub(modelCenter);
             patientModel.traverse(function(node){if(!node.isMesh)return;node.castShadow=true;node.receiveShadow=true;node.frustumCulled=false;
               var n=(node.name||"").toLowerCase();
-              if(n.indexOf("head")>=0||n.indexOf("face")>=0){faceMesh=node;var mats=Array.isArray(node.material)?node.material:[node.material];mats.forEach(function(m){if(m&&m.color){m.color.setHex(0x94a3b8);skinMats.push(m);}});}
-              if(n.indexOf("chest")>=0||n.indexOf("spine2")>=0||n.indexOf("torso")>=0)patientChest=node;
-              if(node.material){var mats2=Array.isArray(node.material)?node.material:[node.material];mats2.forEach(function(m){if(m&&m.color&&((m.name||"").toLowerCase().indexOf("skin")>=0))skinMats.push(m);});}
+              if(n.indexOf("head")>=0||n.indexOf("face")>=0){faceMesh=node;}
+              if(n.indexOf("chest")>=0||n.indexOf("torso")>=0)patientChest=node;
             });
             patient.add(patientModel);
-            if(!patientChest){patientChest=patientModel.getObjectByName("mixamorigSpine2")||patientModel.getObjectByName("mixamorigSpine1")||patientModel.getObjectByName("Spine2")||patientModel.getObjectByName("Spine1")||patientModel.getObjectByName("spine_02")||patientModel.getObjectByName("Chest")||null;} if(patientChest){chestBaseRotation=patientChest.rotation.x;chestBaseScale=patientChest.scale.z;}
+            if(!patientChest){patientChest=patientModel.getObjectByName("Chest")||patientModel.getObjectByName("Torso")||null;}
+            if(patientChest){chestBaseRotation=patientChest.rotation.x;chestBaseScale=patientChest.scale.z;}
+            var faceY=modelSize.y*.5-.12, chestY=modelSize.y*.16, thighY=-modelSize.y*.27, frontZ=modelSize.z*.5+.035;
+            if(faceMesh){var fb=new THREE.Box3().setFromObject(faceMesh),fc=fb.getCenter(new THREE.Vector3());patient.worldToLocal(fc);faceY=fc.y;frontZ=Math.max(frontZ,fc.z+.04);}
+            faceTint=new THREE.Mesh(new THREE.SphereGeometry(.105,18,14),new THREE.MeshStandardMaterial({color:0x94a3b8,transparent:true,opacity:.28,roughness:.55,depthWrite:false}));
+            faceTint.position.set(0,faceY,frontZ);faceTint.scale.set(.9,1.1,.42);patient.add(faceTint);
+            mark("face",0,faceY,frontZ+.015,0x38bdf8);mark("chest",0,chestY,frontZ,0xfbbf24);
+            mark("arm",-.34,chestY-.08,frontZ,0x34d399);mark("thigh",.2,thighY,frontZ,0xfb7185);
+            mask.position.set(0,faceY,frontZ+.08);
             clinicRenderer.render(sc,cam);
           },undefined,function(err){console.error("Patient GLB CDN failed",err);clinic.appendChild(el("p","color:#fca5a5;font-size:12px","Inson modeli yuklanmadi. Internet ulanishini tekshiring; geometrik maneken bilan almashtirilmadi."));});
           // IV fluid bag, drip chamber and clear oxygen mask.
           var clearMat=new THREE.MeshStandardMaterial({color:0xbdeaff,transparent:true,opacity:.24,roughness:.12,metalness:0,depthWrite:false});
           var ivBag=new THREE.Mesh(new THREE.BoxGeometry(.2,.3,.09),clearMat);ivBag.position.set(-1.45,1.78,-.35);sc.add(ivBag);
           var drip=new THREE.Mesh(new THREE.CylinderGeometry(.025,.025,.18,8),new THREE.MeshStandardMaterial({color:0x9bd5ed,transparent:true,opacity:.55}));drip.position.set(-1.45,1.55,-.35);sc.add(drip);
-          var mask=new THREE.Mesh(new THREE.SphereGeometry(.13,12,8,0,Math.PI*2,0,Math.PI/2),new THREE.MeshStandardMaterial({color:0xc7f0ff,transparent:true,opacity:.28,side:THREE.DoubleSide,depthWrite:false}));mask.position.set(0,1.53,.25);mask.rotation.x=Math.PI/2;patient.add(mask);
+          var mask=new THREE.Mesh(new THREE.SphereGeometry(.13,16,10,0,Math.PI*2,0,Math.PI/2),new THREE.MeshStandardMaterial({color:0xc7f0ff,transparent:true,opacity:.3,side:THREE.DoubleSide,depthWrite:false,roughness:.1}));mask.position.set(0,1.53,.25);mask.rotation.x=Math.PI/2;patient.add(mask); var maskTube=new THREE.Mesh(new THREE.TorusGeometry(.16,.008,6,32),new THREE.MeshStandardMaterial({color:0xc7f0ff,transparent:true,opacity:.45}));maskTube.position.set(0,1.53,.12);patient.add(maskTube);
           var targets=[];
           function mark(zone,x,y,z,color){var o=new THREE.Mesh(new THREE.TorusGeometry(.105,.018,6,18),new THREE.MeshBasicMaterial({color:color,transparent:true,opacity:.9}));o.position.set(x,y,z);o.userData.zone=zone;patient.add(o);targets.push(o);}
-          mark("face",0,1.65,.2,0x38bdf8);mark("chest",0,1.02,.29,0xfbbf24);mark("arm",-.48,.48,.12,0x34d399);mark("thigh",.2,.25,.12,0xfb7185);
+          // Hotspots are positioned from the loaded supine model bounds after GLB load.
           function clinicAnimate(){if(!clinicRenderer)return;clinicRaf=requestAnimationFrame(clinicAnimate);
             var breath=1+Math.sin(Date.now()/1000*Math.max(.2,sim.state.rr/60)*Math.PI*2)*.012;
             if(patientChest){if(chestBaseRotation!==null)patientChest.rotation.x=chestBaseRotation+Math.sin(Date.now()/1000*Math.max(.2,sim.state.rr/60)*Math.PI*2)*.012;else if(chestBaseScale!==null)patientChest.scale.z=chestBaseScale*breath;}
-            if(recoveryStarted&&skinMats.length){var t=Math.min(1,(Date.now()-recoveryStarted)/3000),col=recoveryFrom.clone().lerp(recoveryTo,t);skinMats.forEach(function(m){if(m&&m.color)m.color.copy(col);});}
+            if(faceTint&&recoveryStarted){var t=Math.min(1,(Date.now()-recoveryStarted)/3000),col=recoveryFrom.clone().lerp(recoveryTo,t);faceTint.material.color.copy(col);faceTint.material.opacity=.28*(1-t)+.06*t;}
             clinicRenderer.render(sc,cam);
           }
           clinicAnimate();          // Live bedside monitor: same simulated vitals and ECG rhythm as the HUD.
@@ -315,7 +326,7 @@
             var r=clinicRenderer.domElement.getBoundingClientRect();pt.x=(ev.clientX-r.left)/r.width*2-1;pt.y=-(ev.clientY-r.top)/r.height*2+1;ray.setFromCamera(pt,cam);
             var hit=ray.intersectObjects(targets,false)[0];if(!hit){flash("Anatomik nishonni tanlang.");return;}
             var z=hit.object.userData.zone,id=null;
-            if(chosen==="head"&&z==="face"){if(faceMesh&&faceMesh.material){var fm=Array.isArray(faceMesh.material)?faceMesh.material:[faceMesh.material];fm.forEach(function(m){if(m&&m.color)m.color.setHex(0x6b9cae);});}showResult("BOSH / BO‘YIN: yuz ko‘karishi, lab-til shishi va yuqori nafas yo‘li torayishi ko‘rinadi. Stridor/bo‘g‘ilish — xavf belgisi. O‘quv simulyatsiyasi.");return;}
+            if(chosen==="head"&&z==="face"){if(faceTint){faceTint.material.color.setHex(0x6b9cae);faceTint.material.opacity=.34;}showResult("BOSH / BO‘YIN: yuz ko‘karishi, lab-til shishi va yuqori nafas yo‘li torayishi ko‘rinadi. Stridor/bo‘g‘ilish — xavf belgisi. O‘quv simulyatsiyasi.");return;}
             if(chosen==="stethoscope"&&z==="chest"){showResult("STETOSKOP — o‘pka: diffuz ekspirator hushtaksimon xirillashlar va havo kirishi pasayishi mumkin. Matnli simulyatsiya.");return;}
             if(chosen==="epi"&&z==="thigh")id="epi_thigh";
             if(chosen==="oxygen"&&z==="face")id="oxygen_high";
