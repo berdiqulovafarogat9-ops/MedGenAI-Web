@@ -184,6 +184,20 @@
         var view3 = el("div", "height:260px;width:100%;background:#06101b;border-radius:10px;overflow:hidden");
         clinic.appendChild(tools3); clinic.appendChild(view3); actionsBox.parentNode.insertBefore(clinic, actionsBox);
         var chosen = "epi";
+        var examPanel=el("div","margin-top:9px;padding:9px;border:1px solid #29465a;border-radius:10px;background:#0a1b28");
+        examPanel.appendChild(el("div","font-weight:800;color:#9fe7f4;margin-bottom:6px","Klinik ko‘rik va diagnostika — o‘quv rejimi"));
+        var examOut=el("div","font-size:12px;line-height:1.5;color:#c5d5e1;white-space:pre-wrap","ABCDE birlamchi baholashni boshlang. Natijalar simulyatsion.");
+        var examBtns=el("div","display:flex;flex-wrap:wrap;gap:5px;margin:7px 0");
+        examPanel.appendChild(examBtns);examPanel.appendChild(examOut);clinic.appendChild(examPanel);
+        function examButton(label,fn){var q=el("button",BTN2,label);q.type="button";q.onclick=fn;examBtns.appendChild(q);}
+        examButton("ABCDE ko‘rigi",function(){examOut.textContent="A — Airway: yuz/lab shishi va nafas yo‘li xavfi. | B — Breathing: RR "+Math.round(sim.state.rr)+"/min, SpO₂ "+Math.round(sim.state.spo2)+"%; xirillash/gipoksiya. | C — Circulation: HR "+Math.round(sim.state.hr)+"/min, BP "+Math.round(sim.state.sbp)+"/"+Math.round(sim.state.dbp)+" mmHg; shok belgilari. | D — Disability: hushyorlik pasaygan; AVPU/GCS baholang. | E — Exposure: chaqish joyi va teri belgilarini tekshiring.";});
+        examButton("Stetoskop: yurak",function(){chosen="stethoscope";examOut.textContent="Yurak auskultatsiyasi (simulyatsiya): taxikardiya. Ritm, yurak tonlari va perfuziyani tekshiring.";});
+        examButton("Stetoskop: o‘pka",function(){chosen="stethoscope";examOut.textContent="O‘pka auskultatsiyasi (simulyatsiya): diffuz ekspirator xirillash, havo kirishi pasayishi mumkin. Ikki tomonni solishtiring.";});
+        examButton("12-kanalli EKG",function(){examOut.textContent="Simulyatsion EKG: sinus taxikardiyasiga mos tez ritm. EKG anafilaksiyani tasdiqlamaydi; ABC va klinik belgilar ustuvor.";});
+        examButton("Qon gazlari",function(){examOut.textContent="Simulyatsion ABG: gipoksemiya ehtimoli. Bu laboratoriya o‘lchovi emas; SpO₂ va klinik holatni kuzating.";});
+        examButton("Laboratoriya",function(){examOut.textContent="Anafilaksiya tashxisi klinik. Serum triptaza keyinroq yordamchi bo‘lishi mumkin, ammo namuna adrenalinni kechiktirmaydi.";});
+        examButton("Yordam chaqirish",function(){examOut.textContent="Reanimatsiya jamoasi chaqirildi (o‘quv qaydi). ABCDE va monitoringni davom ettiring.";logBox.appendChild(el("div","","["+sim.s+" s] Reanimatsiya jamoasi chaqirildi"));});
+        examButton("Qayta baholash",function(){examOut.textContent="Qayta baholash: HR "+Math.round(sim.state.hr)+", BP "+Math.round(sim.state.sbp)+"/"+Math.round(sim.state.dbp)+", SpO₂ "+Math.round(sim.state.spo2)+"%, RR "+Math.round(sim.state.rr)+". Nafas yo‘li va klinik javobni tekshiring.";});
         [["epi","💉 Adrenalin IM"],["oxygen","🫁 Kislorod"],["iv","💧 IV suyuqlik"],["monitor","♡ Monitoring"]].forEach(function(t) {
           var b=el("button",BTN2,t[1]); b.type="button"; b.onclick=function(){chosen=t[0];flash("Tanlandi: "+t[1]);}; tools3.appendChild(b);
         });
@@ -277,6 +291,7 @@
             if(chosen==="oxygen"&&z==="face")id="oxygen_high";
             if(chosen==="iv"&&z==="arm")id="crystalloid_bolus";
             if(chosen==="monitor"&&z==="chest")id="monitor";
+            if(chosen==="stethoscope"&&z==="chest"){flash("Auskultatsiya natijasi klinik ko‘rik panelida.");return;}
             if(!id){flash("Asbob va anatomik nishon mos emas.");return;}
             var result=sim.act(id);if(!result.ok){flash("Bu harakat bajarilgan yoki keys tugagan.");return;}
             actionsBox.querySelectorAll("button[data-id]").forEach(function(b){if(b.dataset.id===id){b.disabled=true;b.style.opacity=".45";}});
