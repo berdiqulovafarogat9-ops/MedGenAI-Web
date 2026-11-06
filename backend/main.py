@@ -6621,6 +6621,30 @@ class ScientificPipelineRequest(BaseModel):
     ligand_smiles: str = ""
     workflow_type: str = "sequence_structure_screening"
 
+def _estimate_polar_contacts(receptor_pdbqt: str, ligand_pose_pdbqt: str):
+    """Approximate close N/O atom pairs; not a validated hydrogen-bond assignment."""
+    def atoms(payload):
+        found = []
+        for line in (payload or "").splitlines():
+            if not line.startswith(("ATOM", "HETATM")):
+                continue
+            try:
+                x, y, z = float(line[30:38]), float(line[38:46]), float(line[46:54])
+                atom_type = (line[77:79].strip() if len(line) >= 79 else line.split()[-1]).upper()
+                if atom_type in {"N", "NA", "O", "OA"}:
+                    found.append((x, y, z, atom_type))
+            except (ValueError, IndexError):
+                continue
+        return found
+    receptor_atoms, ligand_atoms = atoms(receptor_pdbqt), atoms(ligand_pose_pdbqt)
+    contacts = 0
+    for lx, ly, lz, _ in ligand_atoms:
+        for rx, ry, rz, _ in receptor_atoms:
+            if (lx-rx)**2 + (ly-ry)**2 + (lz-rz)**2 <= 3.5**2:
+                contacts += 1
+    return contacts
+
+
 @app.post("/api/v1/docking/run")
 def run_prepared_docking(data: PreparedDockingRequest, user=Depends(get_current_user)):
     _require_drug_discovery_role(user)
@@ -6678,10 +6702,14 @@ def _execute_prepared_docking(data: PreparedDockingRequest, user, *, persist=Tru
                        "best_pose_intramolecular_energy_kcal_mol"]
             poses.append(dict(zip(columns, values)))
         now = datetime.now(timezone.utc).isoformat()
+        first_pose = poses_pdbqt.split("ENDMDL", 1)[0] if isinstance(poses_pdbqt, str) else ""
+        hbond_contacts_estimate = _estimate_polar_contacts(receptor_pdbqt, first_pose) if first_pose else None
         result = {
             "status": "completed", "module": "Drug Discovery", "workflow": "molecular_docking",
             "target": data.target, "ligand_smiles": data.ligand_smiles,
             "engine": "AutoDock Vina", "poses": poses, "poses_pdbqt": poses_pdbqt,
+            "hbond_contacts_estimate": hbond_contacts_estimate,
+            "hbond_note": "Taxminiy N/O atom juftlari 3.5 Å ichida; donor/akseptor yo'nalishi va burchak tekshirilmagan, haqiqiy H-bond soni sifatida talqin qilinmasin.",
             "box": {"center": [data.center_x,data.center_y,data.center_z], "size": [data.size_x,data.size_y,data.size_z]},
             "parameters": {"exhaustiveness": data.exhaustiveness, "n_poses": data.n_poses},
             "user": user["username"], "completed_at": now,
