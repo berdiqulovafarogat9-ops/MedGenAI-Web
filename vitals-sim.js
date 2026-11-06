@@ -229,6 +229,16 @@
           function roomBox(w,h,d,x,y,z,mat){var q=new THREE.Mesh(new THREE.BoxGeometry(w,h,d),mat);q.position.set(x,y,z);sc.add(q);return q;}
           roomBox(2.25,.16,1.05,0,.18,-.45,metal); roomBox(2.1,.18,.98,0,.34,-.45,mattress);
           roomBox(1.9,.035,.86,0,.455,-.45,new THREE.MeshStandardMaterial({color:0xf1f5f9,roughness:1})); roomBox(.48,.12,.55,-.78,.51,-.45,new THREE.MeshStandardMaterial({color:0xe7edf2,roughness:1}));
+          // Clinical bed details: adjustable frame, padded rails, casters and brake pedals.
+          roomBox(1.82,.09,.72,0,.12,-.45,dark);
+          [-.78,.78].forEach(function(x){[-.78,.02].forEach(function(z){var leg=new THREE.Mesh(new THREE.CylinderGeometry(.035,.045,.32,12),metal);leg.position.set(x,.02,z-.45);sc.add(leg);var wheel=new THREE.Mesh(new THREE.TorusGeometry(.065,.018,8,18),dark);wheel.rotation.y=Math.PI/2;wheel.position.set(x,.035,z-.45);sc.add(wheel);});});
+          [-.99,.99].forEach(function(x){var rail=new THREE.Mesh(new THREE.CapsuleGeometry(.035,.82,4,8),metal);rail.rotation.x=Math.PI/2;rail.position.set(x,.72,-.45);sc.add(rail);[-.78,-.12,.2].forEach(function(z){var post=new THREE.Mesh(new THREE.CylinderGeometry(.018,.018,.2,8),metal);post.position.set(x,.61,z-.45);sc.add(post);});});
+          roomBox(.1,.42,.96,-1.08,.54,-.45,metal); roomBox(.1,.42,.96,1.08,.54,-.45,metal);
+          roomBox(.18,.1,.26,-1.18,.2,-.45,dark); roomBox(.18,.1,.26,1.18,.2,-.45,dark);
+          // Mattress seam and folded white hospital sheet.
+          var sheetMat=new THREE.MeshStandardMaterial({color:0xf8fafc,roughness:1});
+          roomBox(1.8,.018,.78,0,.465,-.45,sheetMat);
+
           [-.95,.95].forEach(function(x){roomBox(.08,.72,.08,x,.45,-.45,metal);});
           roomBox(.08,.28,1.02,-1.04,.62,-.45,metal); roomBox(.08,.28,1.02,1.04,.62,-.45,metal);
           // bedside monitor and ECG display
@@ -240,11 +250,28 @@
           roomBox(.42,.34,.025,1.35,1.46,-.125,screenMat);
           var monitorStand=new THREE.Mesh(new THREE.CylinderGeometry(.035,.035,.72,10),metal);monitorStand.position.set(1.35,.95,-.2);sc.add(monitorStand);
           roomBox(.42,.06,.3,1.35,.57,-.2,metal);
+          // Monitor controls, mounting arm, alarm speaker and patient lead cables.
+          [-.13,-.04,.05,.14].forEach(function(x){var key=new THREE.Mesh(new THREE.CylinderGeometry(.014,.014,.012,10),new THREE.MeshStandardMaterial({color:0x38bdf8,metalness:.2}));key.position.set(1.35+x,1.22,-.105);sc.add(key);});
+          var monitorArm=new THREE.Mesh(new THREE.CylinderGeometry(.025,.025,.32,10),metal);monitorArm.position.set(1.35,1.68,-.42);monitorArm.rotation.x=.35;sc.add(monitorArm);
+          var alarmLed=new THREE.Mesh(new THREE.SphereGeometry(.018,10,8),new THREE.MeshBasicMaterial({color:0x22c55e}));alarmLed.position.set(1.53,1.61,-.105);sc.add(alarmLed);
+          var leadMat=new THREE.MeshStandardMaterial({color:0x263746,roughness:.65});
+          [[1.2,1.25,-.1],[1.3,1.24,-.1],[1.4,1.24,-.1]].forEach(function(p){var cable=new THREE.Mesh(new THREE.TubeGeometry(new THREE.CatmullRomCurve3([new THREE.Vector3(p[0],p[1],p[2]),new THREE.Vector3(1.18,.92,-.05),new THREE.Vector3(.7,.78,-.05),new THREE.Vector3(.25,.8,-.1)]),16,.006,5,false),leadMat);sc.add(cable);});
+
           // IV pole with fluid bag
           var pole=new THREE.Mesh(new THREE.CylinderGeometry(.018,.025,2.05,10),metal);pole.position.set(-1.45,1.03,-.35);sc.add(pole);
+          var ivBase=new THREE.Mesh(new THREE.CylinderGeometry(.24,.24,.035,20),metal);ivBase.position.set(-1.45,.06,-.35);sc.add(ivBase);
+          for(var wi=0;wi<4;wi++){var ang=wi*Math.PI/2,cast=new THREE.Mesh(new THREE.CylinderGeometry(.018,.018,.28,8),metal);cast.rotation.z=Math.PI/2;cast.position.set(-1.45+Math.cos(ang)*.17,.06,-.35+Math.sin(ang)*.17);sc.add(cast);var caster=new THREE.Mesh(new THREE.TorusGeometry(.035,.012,6,12),dark);caster.rotation.y=Math.PI/2;caster.position.set(-1.45+Math.cos(ang)*.23,.04,-.35+Math.sin(ang)*.23);sc.add(caster);}
+          [-.12,.12].forEach(function(x){var hook=new THREE.Mesh(new THREE.TorusGeometry(.055,.009,6,12,Math.PI),metal);hook.position.set(-1.45+x,2.04,-.35);sc.add(hook);});
+
           // oxygen cylinder and regulator
           var tank=new THREE.Mesh(new THREE.CylinderGeometry(.13,.13,.85,16),new THREE.MeshStandardMaterial({color:0x2f9b78,metalness:.25}));tank.position.set(1.75,.48,.25);sc.add(tank);
           var tankTop=new THREE.Mesh(new THREE.CylinderGeometry(.055,.09,.14,12),metal);tankTop.position.set(1.75,.96,.25);sc.add(tankTop);
+          var gauge=new THREE.Mesh(new THREE.CylinderGeometry(.075,.075,.025,20),new THREE.MeshStandardMaterial({color:0xe5e7eb,metalness:.35}));gauge.rotation.x=Math.PI/2;gauge.position.set(1.75,1.08,.25);sc.add(gauge);
+          var gaugeFace=new THREE.Mesh(new THREE.CircleGeometry(.06,20),new THREE.MeshBasicMaterial({color:0xf8fafc}));gaugeFace.position.set(1.75,1.08,.265);sc.add(gaugeFace);
+          var gaugeNeedle=new THREE.Mesh(new THREE.BoxGeometry(.006,.045,.006),new THREE.MeshBasicMaterial({color:0xdc2626}));gaugeNeedle.position.set(1.75,1.09,.274);gaugeNeedle.rotation.z=-.5;sc.add(gaugeNeedle);
+          var flowTube=new THREE.Mesh(new THREE.CylinderGeometry(.025,.025,.22,10),new THREE.MeshStandardMaterial({color:0xdbeafe,transparent:true,opacity:.4}));flowTube.position.set(1.87,.94,.25);sc.add(flowTube);
+          var flowKnob=new THREE.Mesh(new THREE.SphereGeometry(.035,10,8),new THREE.MeshStandardMaterial({color:0xfbbf24,metalness:.2}));flowKnob.position.set(1.87,.83,.25);sc.add(flowKnob);
+
           roomBox(3,.06,.05,0,2.35,-1.15,metal);
           // Room architecture and clinical storage
           roomBox(7,3.2,.12,0,1.55,-2.25,new THREE.MeshStandardMaterial({color:0x263c4b,roughness:.95}));
@@ -257,6 +284,12 @@
           [ [-1.9,.12,.68],[-1.4,.12,.68],[-1.9,.12,1.02],[-1.4,.12,1.02] ].forEach(function(p){var wh=new THREE.Mesh(new THREE.CylinderGeometry(.065,.065,.05,12),dark);wh.rotation.x=Math.PI/2;wh.position.set(p[0],p[1],p[2]);sc.add(wh);});
           roomBox(.34,.28,.25,-1.65,.58,.85,dark);
           roomBox(.28,.2,.025,-1.65,.6,.72,new THREE.MeshBasicMaterial({color:0x153c3a}));
+          roomBox(.58,.12,.38,-1.65,.47,.85,new THREE.MeshStandardMaterial({color:0xe2e8f0,metalness:.15}));
+          [ .34,.48,.62 ].forEach(function(y){roomBox(.5,.012,.02,-1.65,y,.63,new THREE.MeshStandardMaterial({color:0x64748b}));});
+          [-1.9,-1.4].forEach(function(x){var wheel=new THREE.Mesh(new THREE.TorusGeometry(.055,.014,6,14),dark);wheel.position.set(x,.13,.85);sc.add(wheel);});
+          var defibScreen=new THREE.Mesh(new THREE.PlaneGeometry(.18,.1),new THREE.MeshBasicMaterial({color:0x14532d}));defibScreen.position.set(-1.65,.63,.715);sc.add(defibScreen);
+          var paddles=[-1.82,-1.48];paddles.forEach(function(x){var pad=new THREE.Mesh(new THREE.CylinderGeometry(.045,.045,.025,16),new THREE.MeshStandardMaterial({color:0x64748b,metalness:.5}));pad.position.set(x,.72,.82);sc.add(pad);});
+
           // Wall-mounted oxygen outlet and room light panels
           roomBox(.22,.18,.08,1.8,1.85,-2.12,new THREE.MeshStandardMaterial({color:0x3ba6a0,metalness:.2}));
           roomBox(1.2,.045,.35,0,2.8,-.8,new THREE.MeshStandardMaterial({color:0xe6f1f5,emissive:0x52616b,emissiveIntensity:.45}));
@@ -304,6 +337,10 @@
           // IV fluid bag, drip chamber and clear oxygen mask.
           var clearMat=new THREE.MeshStandardMaterial({color:0xbdeaff,transparent:true,opacity:.24,roughness:.12,metalness:0,depthWrite:false});
           var ivBag=new THREE.Mesh(new THREE.BoxGeometry(.2,.3,.09),clearMat);ivBag.position.set(-1.45,1.78,-.35);sc.add(ivBag);
+          var fluidFill=new THREE.Mesh(new THREE.BoxGeometry(.17,.18,.012),new THREE.MeshBasicMaterial({color:0x67c9ee,transparent:true,opacity:.34}));fluidFill.position.set(-1.45,1.72,-.295);sc.add(fluidFill);
+          var bagPort=new THREE.Mesh(new THREE.CylinderGeometry(.025,.025,.07,10),clearMat);bagPort.position.set(-1.45,1.58,-.35);sc.add(bagPort);
+          var clamp=new THREE.Mesh(new THREE.BoxGeometry(.05,.035,.025),new THREE.MeshStandardMaterial({color:0xfbbf24}));clamp.position.set(-1.45,1.48,-.35);sc.add(clamp);
+
           var drip=new THREE.Mesh(new THREE.CylinderGeometry(.025,.025,.18,8),new THREE.MeshStandardMaterial({color:0x9bd5ed,transparent:true,opacity:.55}));drip.position.set(-1.45,1.55,-.35);sc.add(drip);
           var mask=new THREE.Mesh(new THREE.SphereGeometry(.13,16,10,0,Math.PI*2,0,Math.PI/2),new THREE.MeshStandardMaterial({color:0xc7f0ff,transparent:true,opacity:.3,side:THREE.DoubleSide,depthWrite:false,roughness:.1}));mask.position.set(0,1.53,.25);mask.rotation.x=Math.PI/2;patient.add(mask); var maskTube=new THREE.Mesh(new THREE.TorusGeometry(.16,.008,6,32),new THREE.MeshStandardMaterial({color:0xc7f0ff,transparent:true,opacity:.45}));maskTube.position.set(0,1.53,.12);patient.add(maskTube);
           var targets=[];
