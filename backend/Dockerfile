@@ -17,6 +17,8 @@ COPY main.py .
 COPY knowledge_engine.py .
 COPY phase1_academy_ext.py .
 COPY medical_chemistry_ext.py .
+COPY targets_database.py .
+COPY docking_pipeline.py .
 
 EXPOSE 8000
 
