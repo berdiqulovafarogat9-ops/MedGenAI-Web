@@ -58,6 +58,8 @@
       running = false;
       if (timer) clearInterval(timer);
       if (raf) cancelAnimationFrame(raf);
+      if (clinicResizeObserver) clinicResizeObserver.disconnect();
+      if (clinicRenderer) { clinicRenderer.dispose(); clinicRenderer.domElement.remove(); clinicRenderer = null; }
       document.removeEventListener("visibilitychange", onVis);
       window.removeEventListener("blur", onBlur);
       if (embedded) {
@@ -280,6 +282,8 @@
     function finish() {
       running = false;
       clearInterval(timer); cancelAnimationFrame(raf);
+      if (clinicResizeObserver) clinicResizeObserver.disconnect();
+      if (clinicRenderer) { clinicRenderer.dispose(); clinicRenderer.domElement.remove(); clinicRenderer = null; }
       document.removeEventListener("visibilitychange", onVis);
       window.removeEventListener("blur", onBlur);
       actionsBox.querySelectorAll("button").forEach(function (b) { b.disabled = true; });
