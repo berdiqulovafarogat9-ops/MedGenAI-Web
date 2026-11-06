@@ -26,7 +26,7 @@ CANCER_HIV_TARGETS = {
         "rcsb_url": "https://www.rcsb.org/structure/1HSG",
         "pdb_download_url": "https://files.rcsb.org/download/1HSG.pdb",
     },
-    "EGFR_KINASE_MUTANT": {
+    "EGFR_KINASE_WT": {
         "pdb_id": "8A27",
         "disease": "EGFR bilan bog'liq o'smalar; strukturaviy tadqiqot",
         "target_name": "EGFR tirozin kinaza domeni",
