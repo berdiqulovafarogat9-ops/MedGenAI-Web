@@ -269,7 +269,7 @@
             var skin=new THREE.MeshStandardMaterial({color:0x94a3b8});
             function part(g,m,x,y,z,sx,sy,sz){var o=new THREE.Mesh(g,m);o.position.set(x,y,z);o.scale.set(sx,sy,sz);patient.add(o);return o;}
             faceMesh=part(new THREE.SphereGeometry(.23,16,12),skin,0,1.65,0,1,1.1,.9);skinMats.push(skin);
-            patientChest=part(new THREE.CapsuleGeometry(.32,.55,4,8),gownFallback,0,.98,0,1,.9,.65);
+            patientChest=part(new THREE.SphereGeometry(.42,12,10),gownFallback,0,.98,0,.82,1.05,.62);
             part(new THREE.CylinderGeometry(.07,.09,.8,8),skin,-.48,.95,0,1,1,1);part(new THREE.CylinderGeometry(.07,.09,.8,8),skin,.48,.95,0,1,1,1);
             part(new THREE.CylinderGeometry(.12,.09,.85,10),gownFallback,-.2,.25,0,1,1,1);part(new THREE.CylinderGeometry(.12,.09,.85,10),gownFallback,.2,.25,0,1,1,1);
           }
@@ -291,13 +291,13 @@
           var clearMat=new THREE.MeshStandardMaterial({color:0xbdeaff,transparent:true,opacity:.24,roughness:.12,metalness:0,depthWrite:false});
           var ivBag=new THREE.Mesh(new THREE.BoxGeometry(.2,.3,.09),clearMat);ivBag.position.set(-1.45,1.78,-.35);sc.add(ivBag);
           var drip=new THREE.Mesh(new THREE.CylinderGeometry(.025,.025,.18,8),new THREE.MeshStandardMaterial({color:0x9bd5ed,transparent:true,opacity:.55}));drip.position.set(-1.45,1.55,-.35);sc.add(drip);
-          var mask=new THREE.Mesh(new THREE.SphereGeometry(.13,12,8,0,Math.PI*2,0,Math.PI/2),new THREE.MeshStandardMaterial({color:0xc7f0ff,transparent:true,opacity:.28,side:THREE.DoubleSide,depthWrite:false}));mask.position.set(-.05,1.53,-.25);mask.rotation.x=Math.PI/2;sc.add(mask);
+          var mask=new THREE.Mesh(new THREE.SphereGeometry(.13,12,8,0,Math.PI*2,0,Math.PI/2),new THREE.MeshStandardMaterial({color:0xc7f0ff,transparent:true,opacity:.28,side:THREE.DoubleSide,depthWrite:false}));mask.position.set(0,1.53,.25);mask.rotation.x=Math.PI/2;patient.add(mask);
           var targets=[];
           function mark(zone,x,y,z,color){var o=new THREE.Mesh(new THREE.TorusGeometry(.105,.018,6,18),new THREE.MeshBasicMaterial({color:color,transparent:true,opacity:.9}));o.position.set(x,y,z);o.userData.zone=zone;patient.add(o);targets.push(o);}
           mark("face",0,1.65,.2,0x38bdf8);mark("chest",0,1.02,.29,0xfbbf24);mark("arm",-.48,.48,.12,0x34d399);mark("thigh",.2,.25,.12,0xfb7185);
           function clinicAnimate(){if(!clinicRenderer)return;clinicRaf=requestAnimationFrame(clinicAnimate);
             var breath=1+Math.sin(Date.now()/1000*Math.max(.2,sim.state.rr/60)*Math.PI*2)*.012;
-            if(patientChest){patientChest.scale.x=(patientChest.userData.baseScaleX||patientChest.scale.x)*breath;patientChest.userData.baseScaleX=patientChest.userData.baseScaleX||patientChest.scale.x;}
+            if(patientChest){patientChest.userData.baseScaleX=patientChest.userData.baseScaleX||patientChest.scale.x;patientChest.scale.x=patientChest.userData.baseScaleX*breath;}
             if(recoveryStarted&&skinMats.length){var t=Math.min(1,(Date.now()-recoveryStarted)/3000),col=recoveryFrom.clone().lerp(recoveryTo,t);skinMats.forEach(function(m){if(m&&m.color)m.color.copy(col);});}
             clinicRenderer.render(sc,cam);
           }
