@@ -6817,10 +6817,10 @@ class ScreeningLigand(BaseModel):
 
 class VirtualScreeningRequest(BaseModel):
     target: str = Field(max_length=200)
-    receptor_pdbqt: str = Field(max_length=5000000)
-    center_x: float = Field(allow_inf_nan=False)
-    center_y: float = Field(allow_inf_nan=False)
-    center_z: float = Field(allow_inf_nan=False)
+    receptor_pdbqt: str = Field(default="", max_length=5000000)
+    center_x: float = Field(default=16.0, allow_inf_nan=False)
+    center_y: float = Field(default=25.0, allow_inf_nan=False)
+    center_z: float = Field(default=4.0, allow_inf_nan=False)
     size_x: float = Field(default=20.0, gt=0, le=100, allow_inf_nan=False)
     size_y: float = Field(default=20.0, gt=0, le=100, allow_inf_nan=False)
     size_z: float = Field(default=20.0, gt=0, le=100, allow_inf_nan=False)
@@ -6889,7 +6889,24 @@ def screening_run(data: VirtualScreeningRequest, user=Depends(get_current_user))
     if len(data.ligands) > SCREENING_MAX_LIGANDS:
         raise HTTPException(status_code=400, detail=f"At most {SCREENING_MAX_LIGANDS} ligands per run.")
     if not data.receptor_pdbqt.strip():
-        raise HTTPException(status_code=400, detail="Prepared receptor PDBQT is required.")
+        target_label = str(data.target or "").strip().lower()
+        is_hiv_protease = any(term in target_label for term in ("hiv", "oiv", "1hsg", "protease"))
+        if not is_hiv_protease:
+            raise HTTPException(status_code=400, detail="Retseptor fayli berilmagan. Avtomatik retseptor hozircha HIV-1 proteaza (1HSG) uchun sozlangan.")
+        # Prefer a packaged receptor file; if absent, prepare and cache it from RCSB/Meeko.
+        receptor_path = os.path.join(str(TARGET_DIR), "1hsg_receptor.pdbqt")
+        try:
+            receptor_text = ""
+            if os.path.isfile(receptor_path) and os.path.getsize(receptor_path) > 500:
+                with open(receptor_path, "r", encoding="utf-8", errors="replace") as handle:
+                    receptor_text = handle.read()
+            if not receptor_text or not any(line.startswith(("ATOM", "HETATM")) for line in receptor_text.splitlines()):
+                receptor_text = get_or_prepare_receptor("1HSG")
+                with open(receptor_path, "w", encoding="utf-8") as handle:
+                    handle.write(receptor_text)
+            data.receptor_pdbqt = receptor_text
+        except Exception as exc:
+            raise HTTPException(status_code=503, detail=f"1HSG retseptorini avtomatik tayyorlab bo‘lmadi: {exc}")
     if not all(l.ligand_pdbqt.strip() or l.smiles.strip() for l in data.ligands):
         raise HTTPException(status_code=400, detail="Each ligand needs a SMILES string or a prepared PDBQT.")
     with _screening_lock:
