@@ -7549,11 +7549,11 @@ def review_opportunity(identifier: str, publish: bool, user=Depends(get_current_
 try:
     from .targets_database import CANCER_HIV_TARGETS, get_target, list_targets
     from .docking_pipeline import prepare_ligand_from_smiles
-    from .receptor_pipeline import get_or_prepare_receptor
+    from .receptor_pipeline import get_or_prepare_receptor, TARGET_DIR
 except ImportError:
     from targets_database import CANCER_HIV_TARGETS, get_target, list_targets
     from docking_pipeline import prepare_ligand_from_smiles
-    from receptor_pipeline import get_or_prepare_receptor
+    from receptor_pipeline import get_or_prepare_receptor, TARGET_DIR
 
 
 class DrugDiscoveryLigandPrepareRequest(BaseModel):
@@ -7617,3 +7617,23 @@ def drug_discovery_prepare_ligand(data: DrugDiscoveryLigandPrepareRequest, user=
         "engine_compatibility": "AutoDock Vina",
         "note": "Ligand RDKit ETKDGv3/MMFF94 va Meeko orqali tayyorlandi. Bu faqat ligand; receptor PDBQT alohida tayyorlanishi kerak."
     }
+
+
+# =========================================================
+# HIV LAB — REAL RDKit / MEEKO / AUTODOCK VINA ROUTER
+# =========================================================
+try:
+    from .hiv_discovery import create_hiv_router
+except ImportError:
+    from hiv_discovery import create_hiv_router
+
+app.include_router(create_hiv_router(
+    get_current_user=get_current_user,
+    role_guard=_require_drug_discovery_role,
+    vina_class=Vina if VINA_AVAILABLE else None,
+    vina_available=VINA_AVAILABLE,
+    prepare_ligand=prepare_ligand_from_smiles,
+    prepare_receptor=get_or_prepare_receptor,
+    polar_contact_estimator=_estimate_polar_contacts,
+    target_dir=TARGET_DIR,
+))
