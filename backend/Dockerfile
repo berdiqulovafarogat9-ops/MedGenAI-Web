@@ -21,6 +21,7 @@ COPY targets_database.py .
 COPY docking_pipeline.py .
 COPY receptor_pipeline.py .
 COPY receptor_cleaner.py .
+COPY hiv_discovery.py .
 RUN mkdir -p /app/targets
 
 EXPOSE 8000
