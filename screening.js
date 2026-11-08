@@ -52,11 +52,11 @@
     document.body.appendChild(overlay);
 
     card.appendChild(el("h3", "margin:0 0 6px;font-size:20px;color:#e8f0f6", "Virtual skrining (AutoDock Vina)"));
-    card.appendChild(el("p", "color:#8fa3b5;font-size:13px;margin:0 0 8px", "Retseptor va ligandlar tayyorlangan PDBQT formatida bo'lishi kerak. Natijalar hisoblash dalili, eksperimental tasdiq emas."));
+    card.appendChild(el("p", "color:#8fa3b5;font-size:13px;margin:0 0 8px", "HIV-1 proteaza (1HSG) uchun retseptor serverdan avtomatik olinadi; planshetdan fayl yuklash shart emas. Natijalar hisoblash dalili, eksperimental tasdiq emas."));
 
-    var target = el("input", FIELD); target.placeholder = "Nishon nomi (masalan, EGFR)"; card.appendChild(target);
+    var target = el("input", FIELD); target.placeholder = "Nishon nomi (masalan, HIV-1 Protease / 1HSG)"; target.value = "HIV-1 Protease (1HSG)"; card.appendChild(target);
 
-    card.appendChild(el("label", LBL, "Retseptor (.pdbqt)"));
+    card.appendChild(el("label", LBL, "Retseptor (.pdbqt, ixtiyoriy — server avtomatik tanlaydi)"));
     var rec = el("input", FIELD); rec.type = "file"; rec.accept = ".pdbqt,.txt"; card.appendChild(rec);
 
     card.appendChild(el("label", LBL, "Docking qutisi: markaz (x, y, z) va o'lcham (Å)"));
@@ -65,10 +65,13 @@
     ids.forEach(function (k, i) {
       var inp = el("input", FIELD); inp.type = "number"; inp.step = "any";
       inp.placeholder = (i < 3 ? "centr " : "o'lcham ") + ["x", "y", "z"][i % 3];
-      if (i >= 3) inp.value = "20";
+      if (i >= 3) inp.value = "20"; else inp.value = ["16.0", "25.0", "4.0"][i];
       inputs[k] = inp; grid.appendChild(inp);
     });
     card.appendChild(grid);
+    var gridNote = el("div", "font-size:12px;color:#56dcc0;margin-top:2px", "1HSG standart grid: markaz (16, 25, 4) Å · o‘lcham 20 × 20 × 20 Å"); card.appendChild(gridNote);
+    function applyHivDefaults() { var t = target.value.toLowerCase(); if (t.indexOf("hiv") !== -1 || t.indexOf("oiv") !== -1 || t.indexOf("1hsg") !== -1 || t.indexOf("protease") !== -1) { ["16.0","25.0","4.0","20","20","20"].forEach(function(v,i){ inputs[ids[i]].value = v; }); gridNote.textContent = "HIV-1 proteaza (1HSG): standart grid avtomatik qo‘llanmoqda."; } }
+    target.addEventListener("change", applyHivDefaults); target.addEventListener("input", applyHivDefaults);
 
     card.appendChild(el("label", LBL, "Ligandlar: SMILES (har qatorda bittadan: nom,SMILES yoki faqat SMILES)"));
     var smi = el("textarea", FIELD + ";min-height:80px;font-family:monospace"); smi.placeholder = "aspirin,CC(=O)OC1=CC=CC=C1C(=O)O\nibuprofen,CC(C)CC1=CC=C(C=C1)C(C)C(=O)O"; card.appendChild(smi);
@@ -127,14 +130,14 @@
       msg.textContent = "";
       try {
         if (!target.value.trim()) throw new Error("Nishon nomini kiriting.");
-        if (!rec.files.length) throw new Error("Retseptor faylini tanlang.");
+        // Receptor is selected automatically on the server; file upload is optional.
         var smilesLines = smi.value.split("\n").map(function (x) { return x.trim(); }).filter(Boolean);
         if (!ligs.files.length && !smilesLines.length) throw new Error("SMILES kiriting yoki ligand faylini tanlang.");
         var vals = {};
         ids.forEach(function (k) { vals[k] = parseFloat(inputs[k].value); });
         if (ids.some(function (k) { return !isFinite(vals[k]); })) throw new Error("Qutining barcha 6 qiymatini kiriting.");
         run.disabled = true; msg.textContent = "Fayllar o'qilmoqda...";
-        var receptor = await readText(rec.files[0]);
+        var receptor = rec.files.length ? await readText(rec.files[0]) : "";
         var list = smilesLines.map(function (line, idx) {
           var parts = line.split(",");
           var name = parts.length > 1 ? parts.shift().trim() : "ligand" + (idx + 1);
