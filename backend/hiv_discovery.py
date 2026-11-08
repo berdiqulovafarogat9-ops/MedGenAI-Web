@@ -61,6 +61,7 @@ class DockingResult(BaseModel):
     ligand_name: str
     affinity_kcal_mol: float
     poses: list
+    poses_pdbqt: str
     polar_contacts_estimate: int | None
     lipinski: LipinskiReport
     scientific_summary: str
@@ -223,6 +224,7 @@ def create_hiv_router(
             ligand_name=payload.name,
             affinity_kcal_mol=best,
             poses=poses,
+            poses_pdbqt=poses_pdbqt,
             polar_contacts_estimate=polar_contacts,
             lipinski=lipinski,
             scientific_summary=summary,
