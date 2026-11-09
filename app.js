@@ -5422,30 +5422,30 @@ async function loadSecurityCenter() {
       '<p class="session-security-note">'+esc(tx('sessionRevokeNote'))+'</p></section>';
   };
   const renderCards = d => {
-    const consent=d.consent_complete?'✅ Tasdiqlangan':'⚠️ Tasdiqlash kerak';
-    const identity=d.identity?.status==='PENDING_PROVIDER'?'🟡 Provayder kutilyapti':'⚪ Tasdiqlanmagan';
-    const loc=d.location?.label||[d.location?.country,d.location?.region,d.location?.district,d.location?.city].filter(Boolean).join(' · ')||'Kiritilmagan';
-    grid.innerHTML='<div class="security-card"><span>📜</span><strong>Roziliklar</strong><div>'+esc(consent)+'</div><small>Terms, Privacy, Data Processing va Research Disclaimer.</small><p><a href="/legal.html#terms" target="_blank" rel="noopener">Foydalanish shartlari</a></p><p><a href="/legal.html#privacy" target="_blank" rel="noopener">Maxfiylik siyosati</a></p><p><a href="/legal.html#data" target="_blank" rel="noopener">Ma’lumotlarni qayta ishlash</a></p><p><a href="/legal.html#medical" target="_blank" rel="noopener">Ilmiy/tibbiy ogohlantirish</a></p></div>'+
-      '<div class="security-card"><span>🪪</span><strong>Identifikatsiya</strong><div>'+esc(identity)+'</div><label>Usul<select id="identityMethod"><option value="DOCUMENT_PROVIDER">Hujjat provayderi</option><option value="PASSPORT_PROVIDER">Pasport provayderi</option><option value="NATIONAL_ID_PROVIDER">Milliy ID provayderi</option></select></label><small>So‘rov yuborish shaxsni avtomatik tasdiqlamaydi; haqiqiy tasdiqlash provayderga bog‘liq.</small><button id="identityStart" class="ghost small" type="button">Tasdiqlash so‘rovini yuborish</button></div>'+
-      '<div class="security-card"><span>🔐</span><strong>Hisob xavfsizligi</strong><div>'+Number(d.active_sessions||0)+' faol sessiya</div><small>Qurilmalar va faol kirishlarni quyida boshqaring.</small></div>'+
-      '<div class="security-card"><span>📍</span><strong>Joylashuv</strong><div>'+esc(loc)+'</div><small>Joylashuv faqat foydalanuvchi ruxsati bilan aniqlanadi.</small><button id="securityLocation" class="ghost small" type="button">Joylashuv ruxsatini tekshirish</button></div>'+
-      '<div class="security-card"><span>🛡️</span><strong>Maxfiylik</strong><div>Maxfiylik va ma’lumotlar</div><p><a href="/legal.html#privacy" target="_blank" rel="noopener">Maxfiylik siyosatini ochish</a></p></div>'+
-      '<div class="security-card"><span>🔑</span><strong>Parol va sessiyalar</strong><div>Hisobni himoyalash</div><small>Begona yoki eski qurilmalardagi sessiyalarni tugating.</small></div>'+
+    const consent=d.consent_complete?'✅ '+tx('consentConfirmed'):'⚠️ '+tx('consentNeeded');
+    const identity=d.identity?.status==='PENDING_PROVIDER'?'🟡 '+tx('identityPending'):'⚪ '+tx('identityUnverified');
+    const loc=d.location?.label||[d.location?.country,d.location?.region,d.location?.district,d.location?.city].filter(Boolean).join(' · ')||tx('locationNotProvided');
+    grid.innerHTML='<div class="security-card"><span>📜</span><strong>'+esc(tx('consentsTitle'))+'</strong><div>'+esc(consent)+'</div><small>'+esc(tx('consentHelp'))+'</small><p><a href="/legal.html#terms" target="_blank" rel="noopener">'+esc(tx('termsLabel'))+'</a></p><p><a href="/legal.html#privacy" target="_blank" rel="noopener">'+esc(tx('privacyLabel'))+'</a></p><p><a href="/legal.html#data" target="_blank" rel="noopener">'+esc(tx('dataProcessingLabel'))+'</a></p><p><a href="/legal.html#medical" target="_blank" rel="noopener">'+esc(tx('medicalDisclaimerLabel'))+'</a></p></div>'+
+      '<div class="security-card"><span>🪪</span><strong>'+esc(tx('identityTitle'))+'</strong><div>'+esc(identity)+'</div><label>'+esc(tx('methodLabel'))+'<select id="identityMethod"><option value="DOCUMENT_PROVIDER">'+esc(tx('documentProvider'))+'</option><option value="PASSPORT_PROVIDER">'+esc(tx('passportProvider'))+'</option><option value="NATIONAL_ID_PROVIDER">'+esc(tx('nationalIdProvider'))+'</option></select></label><small>'+esc(tx('identityHelp'))+'</small><button id="identityStart" class="ghost small" type="button">'+esc(tx('requestVerification'))+'</button></div>'+
+      '<div class="security-card"><span>🔐</span><strong>'+esc(tx('accountSecurityTitle'))+'</strong><div>'+Number(d.active_sessions||0)+' '+esc(tx('activeSessionsCount'))+'</div><small>'+esc(tx('sessionHelp'))+'</small></div>'+
+      '<div class="security-card"><span>📍</span><strong>'+esc(tx('locationTitle'))+'</strong><div>'+esc(loc)+'</div><small>'+esc(tx('locationHelpCard'))+'</small><button id="securityLocation" class="ghost small" type="button">'+esc(tx('checkLocationPermission'))+'</button></div>'+
+      '<div class="security-card"><span>🛡️</span><strong>'+esc(tx('privacyTitle'))+'</strong><div>'+esc(tx('privacySummary'))+'</div><p><a href="/legal.html#privacy" target="_blank" rel="noopener">'+esc(tx('openPrivacy'))+'</a></p></div>'+
+      '<div class="security-card"><span>🔑</span><strong>'+esc(tx('passwordSessionsTitle'))+'</strong><div>'+esc(tx('protectAccount'))+'</div><small>'+esc(tx('revokeOldSessions'))+'</small></div>'+
       renderSessions(d.sessions||[]);
-    $('identityStart')?.addEventListener('click',async()=>{try{const x=await api('/security/identity/request',{method:'POST',body:JSON.stringify({method:$('identityMethod')?.value||'DOCUMENT_PROVIDER'})});$('securityStatus').textContent='🟡 '+(x.identity?.note||'Identifikatsiya so‘rovi yuborildi.');}catch(e){$('securityStatus').textContent='❌ '+e.message;}});
+    $('identityStart')?.addEventListener('click',async()=>{try{const x=await api('/security/identity/request',{method:'POST',body:JSON.stringify({method:$('identityMethod')?.value||'DOCUMENT_PROVIDER'})});$('securityStatus').textContent='🟡 '+(x.identity?.note||tx('identityRequestSent'));}catch(e){$('securityStatus').textContent='❌ '+e.message;}});
     $('securityLocation')?.addEventListener('click',()=>detectProfileLocation(true));
     grid.querySelectorAll('[data-session-revoke]').forEach(button=>button.addEventListener('click',async()=>{
       const id=button.dataset.sessionRevoke;
-      if(!id||!window.confirm('Tanlangan qurilmadagi sessiyani tugatishni tasdiqlaysizmi?'))return;
-      button.disabled=true;button.textContent='Tugatilmoqda…';
+      if(!id||!window.confirm(tx('confirmRevokeSession')))return;
+      button.disabled=true;button.textContent=tx('revokeInProgress');
       try{await api('/auth/sessions/'+encodeURIComponent(id),{method:'DELETE'});await loadSecurityCenter();}
-      catch(error){button.disabled=false;button.textContent='Sessiyani tugatish';$('securityStatus').textContent='❌ '+error.message;}
+      catch(error){button.disabled=false;button.textContent=tx('revokeSession');$('securityStatus').textContent='❌ '+error.message;}
     }));
     $('terminateOtherSessions')?.addEventListener('click',async()=>{
-      if(!window.confirm('Joriy qurilmadan tashqari barcha sessiyalar tugatiladi. Davom etasizmi?'))return;
-      const button=$('terminateOtherSessions');if(button){button.disabled=true;button.textContent='Tugatilmoqda…';}
+      if(!window.confirm(tx('confirmTerminateOthers')))return;
+      const button=$('terminateOtherSessions');if(button){button.disabled=true;button.textContent=tx('terminateInProgress');}
       try{await api('/auth/sessions/terminate-others',{method:'POST'});await loadSecurityCenter();}
-      catch(error){if(button){button.disabled=false;button.textContent='Barcha boshqa qurilmalardan chiqish';}$('securityStatus').textContent='❌ '+error.message;}
+      catch(error){if(button){button.disabled=false;button.textContent=tx('terminateOthers');}$('securityStatus').textContent='❌ '+error.message;}
     });
   };
   grid.innerHTML='<div class="status">'+esc(tx('securityLoading'))+'</div>';
@@ -5454,7 +5454,7 @@ async function loadSecurityCenter() {
     renderCards({...d,sessions:sessionData.sessions||[]});
     const status=$('securityStatus');if(status)status.textContent='';
   } catch(error) {
-    const status=$('securityStatus');if(status)status.textContent='Sessiyalarni serverdan yuklash amalga oshmadi: '+error.message;
+    const status=$('securityStatus');if(status)status.textContent=tx('sessionLoadFailed')+' '+error.message;
     grid.innerHTML='<div class="security-card"><strong>Faol sessiyalar</strong><p>Haqiqiy sessiya ro‘yxati hozircha yuklanmadi. Qayta urinib ko‘ring.</p><button type="button" class="ghost small" id="retrySessions">Qayta yuklash</button></div>';
     $('retrySessions')?.addEventListener('click',loadSecurityCenter);
   }
