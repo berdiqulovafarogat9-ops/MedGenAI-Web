@@ -1364,6 +1364,7 @@ async function openProfile() {
       state.user.profile = p;
       state.user.profile_complete = isProfileComplete(p);
     }
+    syncAcademicProfileVisibility();
 
     if (status) status.textContent = '';
   } catch (e) {
@@ -1373,7 +1374,7 @@ async function openProfile() {
 
 function isProfileComplete(p) {
   if (!p) return false;
-  let role = String(p.role || state.user?.role || state.user?.user_role || '').trim().toLowerCase().replace(/[\s-]+/g, '_');
+  const role = profileAccountRoleKey(p);
   if (!(String(p.full_name || '').trim() && String(p.email || '').trim() && String(p.country || '').trim() && String(p.region || '').trim() && String(p.city || '').trim() && String(p.district || '').trim() && Number.isInteger(Number(p.birth_year)) && Number(p.birth_year) >= 1900 && Number(p.birth_year) <= 2100 && Number.isInteger(Number(p.birth_month)) && Number(p.birth_month) >= 1 && Number(p.birth_month) <= 12 && Number.isInteger(Number(p.birth_day)) && Number(p.birth_day) >= 1 && Number(p.birth_day) <= 31)) return false;
   if (role === 'student') {
     const ap = p.academic_profile || {};
@@ -1481,7 +1482,7 @@ async function saveProfile() {
       avatar: savedAvatar
     };
 
-    const role = typeof roleKey === 'function' ? roleKey() : String(state.user?.role || '').toLowerCase();
+    const role = profileAccountRoleKey(state.user?.profile || {});
     if (!payload.full_name || !payload.email || !payload.country || !payload.region ||
         payload.birth_year === null || payload.birth_month === null || payload.birth_day === null) {
       throw new Error('Profilni to‘liq to‘ldiring: ism, email, mamlakat, hudud va tug‘ilgan sana majburiy.');
@@ -4166,16 +4167,18 @@ function getLocalRole(){
   const u=state.user?.username||'';
   try{return JSON.parse(localStorage.getItem('medgen_role_'+u)||'null');}catch(_){return null;}
 }
-function profileAccountRoleKey(){
-  const normalize = value => String(value || '').trim().toLowerCase().replace(/[\\s-]+/g, '_');
+function profileAccountRoleKey(profile = state.user?.profile || {}){
+  const normalize = value => String(value || '').trim().toLowerCase().replace(/[\s-]+/g, '_');
   const authRole = normalize(state.user?.role || state.user?.user_role || state.user?.type);
-  const profileRole = normalize(state.user?.profile?.role || state.user?.metadata?.role);
+  const profileRole = normalize(profile?.role || state.user?.metadata?.role);
+  const localRole = normalize(getLocalRole()?.key);
   const aliases = {super_admin:'admin',superadmin:'admin',founder:'admin',ceo:'admin',owner:'admin'};
   if (aliases[authRole] || authRole === 'admin') return 'admin';
+  if (MEDGEN_ROLES[authRole] && authRole !== 'student') return authRole;
   if (profileRole && profileRole !== 'student') return aliases[profileRole] || profileRole;
-  if (MEDGEN_ROLES[authRole]) return authRole;
-  const localRole = normalize(getLocalRole()?.key);
-  return aliases[localRole] || (MEDGEN_ROLES[localRole] ? localRole : 'student');
+  if (MEDGEN_ROLES[localRole] && localRole !== 'student' && localRole !== 'admin') return localRole;
+  if (profileRole === 'student' || authRole === 'student' || localRole === 'student') return 'student';
+  return 'student';
 }
 function syncAcademicProfileVisibility(){
   const section = $('academicProfileSection');
