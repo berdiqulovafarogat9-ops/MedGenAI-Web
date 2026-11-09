@@ -243,7 +243,7 @@ frame-ancestors 'none'">
 
     <span
       class="private-tag"
-      data-i18n="privateDevelopment">
+      data-i18n="title">
       PRIVATE • DEVELOPMENT
     </span>
 
@@ -259,7 +259,7 @@ frame-ancestors 'none'">
       Welcome back
     </div>
 
-    <h1 data-i18n="signInTitle">
+    <h1 data-i18n="signin">
       Sign in
     </h1>
 
@@ -318,7 +318,7 @@ frame-ancestors 'none'">
         class="primary"
         type="submit"
         onclick="event.preventDefault(); const s=document.getElementById('loginStatus'); if (typeof window.login === 'function') { window.login(); } else if (s) { s.textContent='Frontend xatosi: login moduli yuklanmagan. Sahifani yangilang yoki keyinroq qayta urinib ko‘ring.'; }"
-        data-i18n="signIn">
+        data-i18n="signin">
         Sign in
       </button>
 
@@ -1308,17 +1308,19 @@ window.addEventListener("error", function (event) {
 
 (function () {
 
-  const translations = {
+  const I18N = {
 
     en: {
 
       globalPlatform: "GLOBAL BIOMEDICAL AI PLATFORM",
+      title: "CLINICAL SIMULATION PLATFORM",
 
       privateDevelopment: "PRIVATE • DEVELOPMENT",
       privateResearch: "PRIVATE RESEARCH PLATFORM",
 
       welcome: "Welcome back",
       signInTitle: "Sign in",
+      signin: "Sign in",
 
       loginDescription:
         "Global Biomedical AI Platform — registration is available.",
@@ -1599,6 +1601,7 @@ window.addEventListener("error", function (event) {
 
       globalPlatform:
         "GLOBAL BIOMEDIKAL AI PLATFORMASI",
+      title: "KLINIK SIMULYATSIYA PLATFORMASI",
 
       privateDevelopment:
         "SHAXSIY • ISHLAB CHIQISH",
@@ -1611,6 +1614,7 @@ window.addEventListener("error", function (event) {
 
       signInTitle:
         "Tizimga kirish",
+      signin: "Tizimga kirish",
 
       loginDescription:
         "Global Biomedikal AI Platformasi — ro‘yxatdan o‘tish mavjud.",
@@ -1894,6 +1898,7 @@ window.addEventListener("error", function (event) {
 
       globalPlatform:
         "ГЛОБАЛЬНАЯ БИОМЕДИЦИНСКАЯ AI-ПЛАТФОРМА",
+      title: "КЛИНИЧЕСКАЯ СИМУЛЯЦИОННАЯ ПЛАТФОРМА",
 
       privateDevelopment:
         "ЧАСТНАЯ • РАЗРАБОТКА",
@@ -1906,6 +1911,7 @@ window.addEventListener("error", function (event) {
 
       signInTitle:
         "Войти",
+      signin: "Войти",
 
       loginDescription:
         "Global Biomedical AI Platform — регистрация доступна.",
@@ -2190,7 +2196,7 @@ window.addEventListener("error", function (event) {
   function translatePage(language) {
 
     const dictionary =
-      translations[language] || translations.en;
+      I18N[language] || I18N.en;
 
     document.documentElement.lang = language;
 
@@ -2248,8 +2254,13 @@ window.addEventListener("error", function (event) {
   window.translatePage = translatePage;
   window.medgenText = function(key) {
     const language = localStorage.getItem("medgen_language") || "uz";
-    return translations[language]?.[key] || translations.en?.[key] || key;
+    return I18N[language]?.[key] || I18N.en?.[key] || key;
   };
+
+  function applyAuthLanguage(lang) {
+    translatePage(I18N[lang] ? lang : 'uz');
+  }
+  window.applyAuthLanguage = applyAuthLanguage;
 
   function initializeLanguage() {
 
@@ -2278,7 +2289,7 @@ window.addEventListener("error", function (event) {
         "change",
         function () {
 
-          translatePage(this.value);
+          applyAuthLanguage(this.value);
 
           if (dashboardSelector) {
             dashboardSelector.value =
@@ -2312,7 +2323,7 @@ window.addEventListener("error", function (event) {
     }
 
 
-    translatePage(saved);
+    applyAuthLanguage(saved);
 
   }
 
@@ -2546,7 +2557,7 @@ document.addEventListener("DOMContentLoaded", function () {
   const esc=s=>String(s??'').replace(/[&<>"']/g,m=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[m]));
   const lang=()=>localStorage.getItem('medgen_language')||'uz';
   const ft=(k)=>FINAL_I18N[lang()]?.[k]||FINAL_I18N.en[k]||k;
-  const moduleLabel=(m)=>(typeof translations!=='undefined'&&translations?.[m]?.[lang()])||m;
+  const moduleLabel=(m)=>(typeof I18N!=='undefined'&&I18N?.[m]?.[lang()])||m;
   const roleLabel=(k)=>ROLE_I18N[lang()]?.[k]||ROLE_I18N.en[k]||k;
   function dashboard(){return document.getElementById('dashboardView')}
   function hideAll(){['roleDashboard','moduleDirectory','workspace','educationPreferencePanel','securityCenter','userDirectoryDashboard','adminDashboard','supportCenter','aiCenter','communityCenter'].forEach(id=>document.getElementById(id)?.classList.add('hidden'))}
@@ -2796,6 +2807,7 @@ document.addEventListener("DOMContentLoaded", function () {
 
 <script src="ux.js?v=20261019"></script>
 <script src="opportunities.js?v=20261020"></script>
+<script src="notice.js?v=2"></script>
 <script src="virtual-patient.js?v=20261025-cstage"></script>\n
 <!-- Load viewer as a same-origin script after Three.js dependencies -->
 
