@@ -371,6 +371,7 @@ frame-ancestors 'none'">
 
     <button id="medgenMenuBtn" class="ghost menu-button" type="button">☰ Menyu</button>
     <button id="profileBtn" class="ghost" type="button">Profilim</button>
+    <button id="topbarTariffBtn" class="ghost" type="button">Tarif</button>
     <label class="theme-control" for="appearanceSelector"><span>Ko‘rinish</span><select id="appearanceSelector" aria-label="Ko‘rinish"><option value="light">Kunduzgi</option><option value="dark">Tungi</option></select></label>
     <select id="languageSelector">
 
@@ -3067,5 +3068,13 @@ document.addEventListener("DOMContentLoaded", function () {
 </script>
 <script src="academy-uzbek-localizer.js?v=1"></script>
 <script src="patch-cabinet.js?v=3"></script>
+<!-- Subscription / Pricing modal -->
+<div id="tariffModal" class="subscription-overlay hidden" aria-hidden="true" role="dialog" aria-modal="true" aria-labelledby="tariffModalTitle">
+  <section class="subscription-dialog">
+    <header class="subscription-header"><div><p class="subscription-eyebrow">MEDGEN AI · ACCOUNT</p><h2 id="tariffModalTitle">Tarif va obuna</h2></div><button id="tariffModalClose" class="ghost" type="button" aria-label="Yopish">✕</button></header>
+    <div id="tariffModalContent"><p class="subscription-muted">Obuna ma’lumotlari yuklanmoqda…</p></div>
+    <p id="subscriptionActionStatus" class="subscription-notice" aria-live="polite"></p>
+  </section>
+</div>
 </body>
 </html>
