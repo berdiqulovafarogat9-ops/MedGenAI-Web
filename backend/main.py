@@ -6850,6 +6850,20 @@ def _screening_worker(job_id: str, data: VirtualScreeningRequest, user: dict) ->
                 )
                 res = _execute_prepared_docking(req, user, persist=False)
                 entry["affinity_kcal_mol"] = res["result"]["poses"][0]["affinity_kcal_mol"]
+                if lig.smiles.strip():
+                    mol = Chem.MolFromSmiles(lig.smiles.strip())
+                    if mol is not None:
+                        mw = float(Descriptors.MolWt(mol))
+                        logp = float(Descriptors.MolLogP(mol))
+                        hbd = int(Lipinski.NumHDonors(mol))
+                        hba = int(Lipinski.NumHAcceptors(mol))
+                        violations = sum((mw > 500.0, logp > 5.0, hbd > 5, hba > 10))
+                        entry["lipinski"] = {
+                            "mw": round(mw, 2), "logp": round(logp, 2),
+                            "hbd": hbd, "hba": hba, "violations": int(violations),
+                            "is_drug_like": violations == 0,
+                            "engine": "RDKit"
+                        }
             except HTTPException as exc:
                 entry["error"] = str(exc.detail)[:200]
             except ValueError as exc:
