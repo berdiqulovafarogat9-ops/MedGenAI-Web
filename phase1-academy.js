@@ -17,26 +17,32 @@ function ensureShell(){
  host.appendChild(root);
  const s=document.createElement('style');s.textContent='.academy-v2{display:grid;gap:14px}.academy-v2 .academy-stat{padding:15px;border:1px solid rgba(255,255,255,.1);border-radius:14px;background:rgba(255,255,255,.035)}.academy-v2 .academy-subjects{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:10px}.academy-v2 .academy-subject{padding:15px;text-align:left;border:1px solid rgba(255,255,255,.1);border-radius:14px;background:rgba(255,255,255,.035);color:inherit;cursor:pointer}.academy-v2 .academy-subject small{display:block;opacity:.6;margin-top:6px}.academy-v2 .academy-panel{padding:16px;border:1px solid rgba(255,255,255,.12);border-radius:15px}.academy-v2 .academy-actions{display:flex;flex-wrap:wrap;gap:8px;margin:12px 0}.academy-v2 button{border:1px solid rgba(255,255,255,.13);border-radius:9px;background:rgba(255,255,255,.06);color:inherit;padding:9px 12px;cursor:pointer}.academy-v2 button.primary{background:rgba(80,150,255,.18)}.academy-v2 .q{padding:13px;margin:10px 0;border:1px solid rgba(255,255,255,.1);border-radius:12px}.academy-v2 label{display:block;padding:7px;cursor:pointer}.academy-v2 .pass{opacity:.95}.academy-v2 .weak{opacity:.7}@media(max-width:650px){.academy-v2 .academy-subjects{grid-template-columns:1fr}}';document.head.appendChild(s);return root;
 }
-let dashboard=null;
+let dashboard=null,selectedCourse=null;
+function renderSubjects(){
+ const host=$('academySubjects');if(!host||!dashboard)return;
+ const course=(dashboard.courses||[]).find(x=>Number(x.year)===Number(selectedCourse));
+ const subjects=course?.subjects||((Number(selectedCourse)===Number(dashboard.course))?dashboard.subjects:[]);
+ host.innerHTML='<section class="academy-stat"><b>Bosqich 1: Kurs tanlash</b><div class="academy-actions">'+(dashboard.courses||[{year:dashboard.course,title:dashboard.course_title}]).map(c=>'<button type="button" class="academy-course '+(Number(c.year)===Number(selectedCourse)?'primary':'')+'" data-course="'+Number(c.year)+'">'+esc(c.title)+'</button>').join('')+'</div></section><section><h4>Bosqich 2: Fan tanlash</h4><div class="academy-subjects">'+subjects.map(s=>'<button class="academy-subject" data-sub="'+esc(s.id)+'"><b>'+esc(s.name)+'</b><small>'+esc(s.objective||'Fanni ochish')+'</small></button>').join('')+'</div></section>';
+ host.querySelectorAll('[data-course]').forEach(btn=>btn.onclick=()=>{selectedCourse=Number(btn.dataset.course);renderSubjects();$('academyPanel')?.classList.add('hidden')});
+ host.querySelectorAll('[data-sub]').forEach(btn=>btn.onclick=()=>openSubject(btn.dataset.sub));
+}
 async function render(){
  const root=ensureShell();if(!root)return;
  try{
   dashboard=await api('/academy/dashboard');
   const profile=dashboard.academic_profile||{};
-  $('academySummary').innerHTML='<div class="academy-stat"><b>'+esc(dashboard.course_title)+'</b><br>Progress: <strong>'+esc(dashboard.overall_progress)+'%</strong><br><small>'+esc(profile.university||'University not set')+' • '+esc(profile.major||'Major not set')+' • '+esc(profile.group||'Group not set')+'</small></div>';
-  const host=$('academySubjects');
-  host.className='academy-subjects';
-  host.innerHTML=dashboard.subjects.map(s=>'<button class="academy-subject" data-sub="'+esc(s.id)+'"><b>'+esc(s.name)+'</b><small>'+esc(s.completed_assessments.length)+' / 5 assessments passed</small><small>'+esc(s.objective)+'</small></button>').join('');
-  host.querySelectorAll('[data-sub]').forEach(b=>b.onclick=()=>openSubject(b.dataset.sub));
+  if(selectedCourse===null || !(dashboard.courses||[]).some(c=>Number(c.year)===Number(selectedCourse))) selectedCourse=Number(dashboard.course);
+  $('academySummary').innerHTML='<div class="academy-stat"><b>Yagona o‘quv yo‘li</b><br><small>'+esc(profile.university||'Universitet tanlanmagan')+' • '+esc(profile.major||'Yo‘nalish tanlanmagan')+' • '+esc(profile.group||'Guruh tanlanmagan')+'</small></div>';
+  renderSubjects();
  }catch(e){$('academySummary').innerHTML='<div class="academy-stat">Academy yuklanmadi: '+esc(e.message)+'</div>'}
 }
 async function openSubject(id){
  const p=$('academyPanel');if(!p)return;p.classList.remove('hidden');p.className='academy-panel';
- const course=dashboard.course;
+ const course=Number(selectedCourse||dashboard.course);
  try{
   const d=await api('/academy/subject/'+course+'/'+encodeURIComponent(id));
   const s=d.subject, m=d.modules;
-  p.innerHTML='<button id="academyBack">← Fanlar</button><h4>📘 '+esc(s.name)+'</h4><p class="muted">'+esc(s.objective)+'</p><div class="academy-actions">'+['theory','practice','quiz','case','exam'].map(x=>'<button class="academy-act" data-type="'+x+'">'+x.toUpperCase()+'</button>').join('')+'</div><div id="academyLessonList"></div><div id="academyAssessment"></div>';
+  p.innerHTML='<button id="academyBack">← Fanlar</button><h4>📘 '+esc(s.name)+'</h4><p class="muted">'+esc(s.objective)+'</p><h5>Bosqich 3: Fanning ichki ishchi maydoni</h5><div class="academy-actions">'+['theory','practice','quiz','case','exam'].map(x=>'<button class="academy-act" data-type="'+x+'">'+({theory:'Nazariya',practice:'3D / Laboratoriya',quiz:'Test',case:'Klinik keys',exam:'Imtihon'}[x])+'</button>').join('')+'</div><div id="academyLessonList"></div><div id="academyAssessment"></div>;
   $('academyBack').onclick=()=>{p.classList.add('hidden');window.scrollTo({top:0,behavior:'smooth'})};
   const lessons=[...(m.theory||[]),...(m.practice||[])];
   $('academyLessonList').innerHTML='<h5>O‘quv materiallari</h5>'+lessons.map(x=>'<div class="academy-stat"><b>'+esc(x.title||x.task||x.objective||x.id)+'</b><p>'+esc(x.task||x.objective||'Mavzuni o‘rganing va tegishli baholashni bajaring.')+'</p></div>').join('');
