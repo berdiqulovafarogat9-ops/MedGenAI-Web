@@ -835,24 +835,71 @@
     function showReport(r) {
       if (epicrisisScoreLabel) epicrisisScoreLabel.textContent = "Baho: " + r.score + " / 100 ball";
       card.innerHTML = "";
-      card.appendChild(el("h3", "margin:0 0 6px;font-size:20px", "Klinik hisobot: " + r.title));
-      card.appendChild(el("div", "font-size:34px;font-weight:800;color:#56dcc0", r.score + " / 100"));
-      var b = r.breakdown;
-      card.appendChild(el("p", "color:#8fa3b5;font-size:13px;margin:6px 0",
-        "Majburiy harakatlar: " + b.required_done + "/" + b.required_total + " · Tashxis: " + (b.diagnosis_correct ? "to'g'ri" : "noto'g'ri") +
-        " · Barqarorlashuv: " + (r.stabilized ? r.stabilized_at_s + " s" : "yo'q") + " · Tab jarimasi: -" + b.tab_penalty));
-      r.audit.forEach(function (a) {
-        var color = a.type === "harm" || a.type === "missed" ? "#ffb3b3" : a.type === "tab" || a.type === "duplicate" ? "#f6c85f" : "#cfe0ec";
-        var item = el("div", "border-left:3px solid " + color + ";padding:6px 10px;margin:8px 0;font-size:13px");
-        var head = (a.t !== null && a.t !== undefined ? "[" + a.t + " s] " : "") + a.action;
-        item.appendChild(el("div", "font-weight:700;color:" + color, head));
-        item.appendChild(el("div", "color:#dbe7f0", a.text));
-        card.appendChild(item);
+      card.style.setProperty("height","100vh","important");
+      card.style.setProperty("max-height","100vh","important");
+      card.style.setProperty("overflow-y","auto","important");
+      card.style.setProperty("background","#07111d","important");
+      card.style.setProperty("color","#e5edf5","important");
+      var style = el("style","");
+      style.textContent = `
+        .mg-report{width:min(980px,calc(100% - 32px));margin:26px auto 40px;box-sizing:border-box;font-family:system-ui,sans-serif}
+        .mg-report-head{display:flex;align-items:flex-start;justify-content:space-between;gap:16px;padding:22px;border:1px solid #25465a;border-radius:18px;background:linear-gradient(135deg,#102b3b,#0b1725)}
+        .mg-report-kicker{font-size:11px;font-weight:800;letter-spacing:.12em;color:#67e8f9;text-transform:uppercase}
+        .mg-report-score{font-size:clamp(38px,7vw,62px);font-weight:900;line-height:1;color:#56dcc0;white-space:nowrap}
+        .mg-report-sub{color:#9fb3c5;font-size:13px;line-height:1.6;margin-top:10px}
+        .mg-report-grid{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:10px;margin:14px 0}
+        .mg-report-stat{padding:14px;border:1px solid #20384b;border-radius:12px;background:#0d1c2a;min-width:0}
+        .mg-report-stat small{display:block;color:#8fa8bb;font-size:11px;margin-bottom:6px}
+        .mg-report-stat strong{font-size:18px;color:#e5edf5;overflow-wrap:anywhere}
+        .mg-report-section{margin-top:18px;padding:18px;border:1px solid #20384b;border-radius:14px;background:#0b1825}
+        .mg-report-section h4{margin:0 0 12px;font-size:14px;color:#b8eaf4}
+        .mg-report-audit{display:grid;grid-template-columns:1fr;gap:8px}
+        .mg-report-event{padding:11px 13px;border-left:3px solid #94a3b8;border-radius:7px;background:#101f2d;font-size:13px;line-height:1.5}
+        .mg-report-actions{display:flex;flex-wrap:wrap;gap:9px;margin-top:18px}
+        .mg-report-actions button{padding:11px 17px;border:1px solid #31536a;border-radius:9px;background:#123044;color:#e5f3fa;font-weight:700;cursor:pointer}
+        @media(max-width:620px){.mg-report{width:calc(100% - 20px);margin:12px auto 28px}.mg-report-head{padding:16px;flex-direction:column}.mg-report-grid{grid-template-columns:repeat(2,minmax(0,1fr))}.mg-report-section{padding:13px}}
+      `;
+      card.appendChild(style);
+      var wrap=el("div","");wrap.className="mg-report";
+      var head=el("section","");head.className="mg-report-head";
+      var intro=el("div","");
+      intro.appendChild(el("div","", "KLINIK SIMULYATSIYA · YAKUNIY NATIJA"));
+      intro.lastChild.className="mg-report-kicker";
+      intro.appendChild(el("h2","font-size:clamp(20px,3vw,28px);margin:8px 0 0;color:#f1f7fb","Klinik hisobot: "+r.title));
+      intro.appendChild(el("div","",r.disclaimer||"Ta’limiy simulyatsiya natijasi."));
+      intro.lastChild.className="mg-report-sub";
+      head.appendChild(intro);
+      head.appendChild(el("div","",String(r.score)+"<span style='font-size:18px;color:#9fb3c5'> / 100</span>"));
+      head.lastChild.className="mg-report-score";
+      wrap.appendChild(head);
+      var b=r.breakdown||{};
+      var stats=el("div","");stats.className="mg-report-grid";
+      [[ "Majburiy harakatlar",String(b.required_done??0)+"/"+String(b.required_total??0)],
+       ["Tashxis",b.diagnosis_correct?"To‘g‘ri":"Noto‘g‘ri"],
+       ["Barqarorlashuv",r.stabilized?(String(r.stabilized_at_s)+" soniya"):"Yo‘q"],
+       ["Tab jarimasi","-"+String(b.tab_penalty??0)]].forEach(function(item){
+        var box=el("div","");box.className="mg-report-stat";
+        box.appendChild(el("small","",item[0]));box.appendChild(el("strong","",item[1]));stats.appendChild(box);
       });
-      card.appendChild(el("p", "color:#8fa3b5;font-size:12px;margin-top:10px", r.disclaimer));
-      card.appendChild(el("p", "color:#8fa3b5;font-size:12px", "Ball faollik reytingiga qo'shiladi (keys kuniga bir marta)."));
-      var again = el("button", BTN2, "Yana urinish"); again.onclick = showStart; card.appendChild(again);
-      var close = el("button", BTN2, "Yopish"); close.onclick = closeAll; card.appendChild(close);
+      wrap.appendChild(stats);
+      var section=el("section","");section.className="mg-report-section";
+      section.appendChild(el("h4","","Klinik harakatlar jurnali"));
+      var audit=el("div","");audit.className="mg-report-audit";
+      (Array.isArray(r.audit)?r.audit:[]).forEach(function(a){
+        var color=a.type==="harm"||a.type==="missed"?"#fb7185":a.type==="tab"||a.type==="duplicate"?"#fbbf24":"#56dcc0";
+        var item=el("div","");item.className="mg-report-event";item.style.borderLeftColor=color;
+        item.appendChild(el("strong","color:"+color,(a.t!==null&&a.t!==undefined?"["+a.t+" s] ":"")+(a.action||"Harakat")));
+        item.appendChild(el("div","color:#d5e2ec;margin-top:3px",a.text||""));
+        audit.appendChild(item);
+      });
+      if(!audit.childElementCount)audit.appendChild(el("div","color:#9fb3c5;font-size:13px","Audit hodisalari mavjud emas."));
+      section.appendChild(audit);wrap.appendChild(section);
+      wrap.appendChild(el("p","color:#91a6b8;font-size:12px;line-height:1.6;margin:14px 2px","Ball faollik reytingiga qo‘shiladi (keys kuniga bir marta)."));
+      var actions=el("div","");actions.className="mg-report-actions";
+      var again=el("button","","Yana urinish");again.onclick=showStart;actions.appendChild(again);
+      var close=el("button","","Yopish");close.onclick=closeAll;actions.appendChild(close);
+      wrap.appendChild(actions);card.appendChild(wrap);
+      card.scrollTop=0;
     }
 
     showStart();
