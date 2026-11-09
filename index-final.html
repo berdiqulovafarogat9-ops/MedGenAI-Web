@@ -188,6 +188,7 @@ frame-ancestors 'none'">
 </style>
 
   <link rel="stylesheet" href="/clinical-3dock-override.css?v=1">
+<style id="medgen-single-academy-catalog">#moduleDirectory{display:none!important}</style>
 </head>
 
 <body>
@@ -371,7 +372,6 @@ frame-ancestors 'none'">
 
     <button id="medgenMenuBtn" class="ghost menu-button" type="button">☰ Menyu</button>
     <button id="profileBtn" class="ghost" type="button">Profilim</button>
-    <button id="topbarTariffBtn" class="ghost" type="button">Tarif</button>
     <label class="theme-control" for="appearanceSelector"><span>Ko‘rinish</span><select id="appearanceSelector" aria-label="Ko‘rinish"><option value="light">Kunduzgi</option><option value="dark">Tungi</option></select></label>
     <select id="languageSelector">
 
@@ -2230,6 +2230,7 @@ window.addEventListener("error", function (event) {
   <div class="modal-card">
     <button id="profileClose" class="modal-close">×</button>
     <h2 data-i18n="myProfile">Mening profilim</h2>
+    <button id="profileTariffBtn" class="ghost" type="button">Tarif va maqom</button>
     <div class="avatar-editor"><img id="profileAvatarPreview" class="profile-avatar" alt="Profil rasmi"><button id="profileAvatarUpload" type="button" class="ghost profile-upload-btn" data-i18n="uploadPhoto">Rasm yuklash</button><input id="profileAvatar" type="file" accept="image/png,image/jpeg,image/webp" style="display:none"><button id="profileAvatarRemove" type="button" class="ghost" data-i18n="removePhoto">Rasmni o‘chirish</button></div>
     <p class="muted" data-i18n="profilePhotoHelp">Bu ma’lumotlarni siz o‘zingiz kiritasiz. MedGen AI siz haqingizda avtomatik ravishda shaxsiy ma’lumot bilmaydi.</p>
     <label><span data-i18n="fullName">To‘liq ism</span><input id="profileFullName" data-i18n-placeholder="fullNamePlaceholder" placeholder="Ism Familiya"></label>
@@ -2656,7 +2657,6 @@ document.addEventListener("DOMContentLoaded", function () {
 <script src="reports-pdf.js?v=1"></script>
 <script src="screening.js?v=6"></script>
 <script src="notice.js?v=1"></script>
-<script src="academy-plus.js?v=1"></script>
 <script src="vitals-core.js?v=1"></script>
 <script src="medgen-3d-clinic.js?v=9"></script>
 <script src="vitals-3d.js?v=6"></script>
