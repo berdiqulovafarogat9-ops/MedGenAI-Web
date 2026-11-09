@@ -6470,7 +6470,7 @@ window.switchMedGenMode = function(mode) {
     const expiry=user?.subscription_expires_at ?? billing?.subscription_expires_at ?? null;
     const name=admin ? 'Cheksiz / Enterprise' : (planNames[plan] || 'Free');
     if(admin){
-      root.innerHTML='<div class="subscription-current"><span class="subscription-eyebrow">HISOB MAQOMI</span><h3>Maqom: Enterprise</h3><p class="subscription-state">Cheksiz tizim boshqaruvi</p><p class="subscription-muted">SUPER_ADMIN vakolati serverdagi autentifikatsiya rolingiz bilan tasdiqlangan.</p></div>';
+      root.innerHTML='<div class="subscription-current"><span class="subscription-eyebrow">HISOB MAQOMI</span><h3>Maqom: Cheksiz / Enterprise</h3><p class="subscription-state">Cheksiz tizim boshqaruvi</p><p class="subscription-muted">SUPER_ADMIN vakolati serverdagi autentifikatsiya rolingiz bilan tasdiqlangan.</p></div>';
       return;
     }
     const statusLabel=statusNames[status] || 'Noma’lum';
