@@ -147,11 +147,11 @@
     var scrubs=new T.MeshStandardMaterial({color:0x167c83,roughness:.88});
     var skin=new T.MeshStandardMaterial({color:0xc99578,roughness:.9});
     function staffPart(geo,mat,x,y,z,sx,sy,sz){var m=new T.Mesh(geo,mat);m.position.set(x,y,z);m.scale.set(sx,sy,sz);m.castShadow=true;staff.add(m);return m;}
-    staffPart(new T.CapsuleGeometry(.22,.62,5,10),scrubs,0,1.02,0,1,1,.72);
+    staffPart(new T.CylinderGeometry(.22,.22,.62,18),scrubs,0,1.02,0,1,1,.72);
     staffPart(new T.SphereGeometry(.16,18,14),skin,0,1.62,.015,1,1,1);
     staffPart(new T.BoxGeometry(.10,.24,.025),white,0,1.12,.17,1,1,1);
     [-1,1].forEach(function(side){
-      var arm=staffPart(new T.CapsuleGeometry(.075,.43,4,8),scrubs,side*.29,1.05,.02,1,1,1);arm.rotation.z=side*.24;
+      var arm=staffPart(new T.CylinderGeometry(.075,.075,.43,12),scrubs,side*.29,1.05,.02,1,1,1);arm.rotation.z=side*.24;
       staffPart(new T.SphereGeometry(.065,12,10),skin,side*.36,.76,.07,1,1,1);
       staffPart(new T.CylinderGeometry(.07,.085,.72,12),dark,side*.12,.36,0,1,1,1);
       staffPart(new T.BoxGeometry(.16,.08,.30),dark,side*.12,.055,.06,1,1,1);
