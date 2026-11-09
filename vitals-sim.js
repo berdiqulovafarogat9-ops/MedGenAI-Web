@@ -328,6 +328,7 @@
         examItem("🧪","ABG","Arterial qon gazlari",function(){showResult("ABG — ushbu keysda laboratoriya natijasi alohida serverdan olinmaydi. Simulyatsiya ko‘rsatkichlarini klinik kontekstda baholang.");});
         examItem("📈","EKG","12-kanalli elektrokardiografiya",function(){showResult("Mavjud monitor EKGsi simulyatsion ritmni ko‘rsatadi. 12-kanalli diagnostik EKG yozuvi bu keysda alohida yaratilmagan.");});
         examItem("🩻","Rentgen","Ko‘krak qafasi rentgeni",function(){showResult("Rentgen tasviri ushbu keys uchun ulanmagan; tasvir yoki radiologik xulosa mavjud emas.");});
+        examItem("🖥️","UZI — o‘quv maketi","Portativ ultratovush apparati",function(){showResult("UZI apparati 3D sahnada ko‘rsatilgan. Ekrandagi tasvir dekorativ o‘quv maketi; bemorga tegishli real ultratovush tekshiruvi yoki diagnostik xulosa emas.");});
                 try {
           var sc=new THREE.Scene(); sc.background=new THREE.Color(0x071521);
           var cam=new THREE.PerspectiveCamera(38,1,0.1,100); cam.position.set(0,1.8,2.2); cam.lookAt(0,1.0,0);
@@ -648,7 +649,7 @@
         var paneDialog=el("div","");paneDialog.className="fc-pane";paneDialog.id="fc-pane-dialog";
         paneDialog.appendChild(el("h4","","Bemor bilan muloqot"));
         if(dialogueCard)paneDialog.appendChild(dialogueCard);
-        function tab(key,label,icon){var b=el("button","",icon+"  "+label);b.type="button";b.className="fc-v-tab"+(key==="intervene"?" active":"");b.onclick=function(){[paneIntervene,paneInvestigate,paneAudit,paneHandoff].forEach(function(p){p.classList.toggle("active",p.id==="fc-pane-"+key);});nav.querySelectorAll("button").forEach(function(x){x.classList.toggle("active",x===b);});};nav.appendChild(b);}
+        function tab(key,label,icon){var b=el("button","",icon+"  "+label);b.type="button";b.className="fc-v-tab"+(key==="intervene"?" active":"");b.onclick=function(){[paneIntervene,paneInvestigate,paneAudit,paneHandoff,paneDialog].forEach(function(p){p.classList.toggle("active",p.id==="fc-pane-"+key);});nav.querySelectorAll("button").forEach(function(x){x.classList.toggle("active",x===b);});};nav.appendChild(b);}
         tab("intervene","Muolaja","💉");tab("investigate","Tekshiruv","🔍");tab("audit","Jurnal","📑");tab("handoff","Topshirish","📋");
         paneIntervene.appendChild(el("h4","","Shoshilinch muolajalar"));
         if(actionsBox){actionsBox.style.display="flex";actionsBox.style.flexDirection="column";paneIntervene.appendChild(actionsBox);}
@@ -665,14 +666,14 @@
         var scrim=el("div","");scrim.className="fc-drawer-scrim";
         scrim.onclick=function(){right.classList.remove("fc-drawer-open");workspace.classList.remove("fc-drawer-active");};
         var bottomDock=el("nav","");bottomDock.className="fc-bottom-dock";bottomDock.setAttribute("aria-label","Klinik amallar");
-        [["💬","Muloqot",0],["🩺","Ko‘rik",1],["🧪","Tahlil",1],["💉","Muolaja",0],["📋","Jurnal",2],["🏁","Topshirish",3]].forEach(function(item){
+        [["💬","Muloqot",0],["🔍","Tekshiruv",1],["💉","Muolaja",0],["📋","Jurnal",2],["🏁","Topshirish",3]].forEach(function(item){
           var b=el("button","");b.type="button";if(item[1]==="Muolaja")b.className="fc-dock-primary";
           var ic=el("span","",item[0]);ic.className="fc-dock-icon";b.appendChild(ic);b.appendChild(el("span","",item[1]));
           b.onclick=function(){
             if(item[1]==="Muloqot"){
               [paneIntervene,paneInvestigate,paneAudit,paneHandoff,paneDialog].forEach(function(p){p.classList.toggle("active",p===paneDialog);});
             }else{
-              var tabIndex=item[1]==="Ko‘rik"||item[1]==="Tahlil"?1:item[2];
+              var tabIndex=item[2];
               var tabs=nav.querySelectorAll("button");if(tabs[tabIndex])tabs[tabIndex].click();
             }
             right.classList.add("fc-drawer-open");workspace.classList.add("fc-drawer-active");
