@@ -76,6 +76,8 @@ def test_each_role_keeps_server_dashboard_identity_and_cannot_read_admin(client,
     login = client.post("/api/v1/auth/login", json={"username": username, "password": "Audit-Test-Password-123!"})
     assert login.status_code == 200
     headers = {"Authorization": "Bearer " + login.json()["access_token"]}
+    # These tests exercise role isolation, not the interactive MFA enrollment flow.
+    api.totp_store[username] = {"enabled": True}
     assert client.get("/api/v1/auth/me", headers=headers).json()["role"] == role
     assert client.get("/api/v1/dashboard/summary", headers=headers).json()["role"] == role
     assert client.get("/api/v1/admin/users", headers=headers).status_code == 403
@@ -87,5 +89,6 @@ def test_owner_admin_access(client):
     response = client.post("/api/v1/auth/login", json={"username": api.ADMIN_USERNAME, "password": api.ADMIN_PASSWORD})
     assert response.status_code == 200
     headers = {"Authorization": "Bearer " + response.json()["access_token"]}
+    api.totp_store[api.ADMIN_USERNAME] = {"enabled": True}
     assert client.get("/api/v1/auth/me", headers=headers).json()["role"] == "SUPER_ADMIN"
     assert client.get("/api/v1/admin/users", headers=headers).status_code == 200
