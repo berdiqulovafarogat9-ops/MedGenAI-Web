@@ -224,6 +224,32 @@
     } catch (error) { byId("mgdd-hiv-status").textContent = "1HSG strukturasi yuklanmadi: " + error.message; }
   }
 
+  function renderHivMetrics(data, sourceLabel) {
+    const lip = data.lipinski || {};
+    const score = Number(data.affinity_kcal_mol);
+    const rows = [
+      ["Molekulyar og‘irlik (MW)", lip.mw, "Da", Number(lip.mw) < 500],
+      ["Lipofillik (LogP)", lip.logp, "", Number(lip.logp) < 5],
+      ["Vodorod donori (HBD)", lip.hbd, "", Number(lip.hbd) < 5],
+      ["Vodorod akseptori (HBA)", lip.hba, "", Number(lip.hba) < 10]
+    ];
+    const contacts = Array.isArray(data.catalytic_contacts) ? data.catalytic_contacts : [];
+    const contactText = contacts.length
+      ? contacts.map(x => esc(typeof x === "string" ? x : (x.residue || x.name || JSON.stringify(x)))).join(", ")
+      : "Asp25 / Asp25′ bilan vodorod bog‘i atom-darajasida alohida tasdiqlanmadi.";
+    let html = '<div class="mgdd-metric-grid" style="display:grid;grid-template-columns:repeat(auto-fit,minmax(210px,1fr));gap:12px;margin:12px 0">';
+    html += '<article class="mgdd-pose" style="padding:16px;border:1px solid #1d7656;border-radius:14px;background:#06251d"><small style="color:#9bd8bd">Bog‘lanish energiyasi · ΔG</small><div style="font-size:34px;font-weight:900;color:#4ade80">' + (Number.isFinite(score) ? score.toFixed(2) + ' kkal/mol' : '—') + '</div><small style="color:#b8d7c8">' + esc(sourceLabel || data.engine || "AutoDock Vina") + '</small></article>';
+    html += '<article class="mgdd-pose" style="padding:16px;border:1px solid #29465d;border-radius:14px"><b>Lipinski — Rule of Five</b>';
+    rows.forEach(row => {
+      const valid = row[3];
+      html += '<div style="display:flex;justify-content:space-between;gap:8px;padding:7px 0;border-bottom:1px solid #24394d"><span>' + row[0] + '</span><b style="color:' + (valid ? '#4ade80' : '#fbbf24') + '">' + esc(row[1] == null ? "—" : row[1]) + ' ' + row[2] + ' ' + (valid ? '✓' : '⚠') + '</b></div>';
+    });
+    html += '<small style="display:block;margin-top:8px;color:#9fb3c4">' + (lip.is_drug_like ? "Mezonlarga mos" : "Bir yoki bir nechta mezon cheklovdan tashqarida") + '</small></article>';
+    html += '<article class="mgdd-pose" style="padding:16px;border:1px solid #29465d;border-radius:14px"><b>Katalitik bog‘lanish joyi</b><p style="margin:8px 0;color:#cfe0ec">' + contactText + '</p><small style="color:#9fb3c4">Asp25 / Asp25′ — OIV-1 proteaza faol markazidagi katalitik qoldiqlar. Vodorod bog‘i xulosasi faqat atom-kontakt tahlili mavjud bo‘lsa tasdiqlanadi.</small></article></div>';
+    html += '<details style="margin-top:10px;border:1px solid #294052;border-radius:10px;padding:10px"><summary style="cursor:pointer;color:#9fb3c4">Xom JSON / texnik tafsilotlar</summary><pre style="white-space:pre-wrap;overflow-wrap:anywhere;max-height:320px;overflow:auto;font-size:11px;color:#b8c7d6">' + esc(JSON.stringify(data, null, 2)) + '</pre></details>';
+    return html;
+  }
+
   async function runHivDocking() {
     const button = byId("mgdd-hiv-run");
     const payload = { name: byId("mgdd-hiv-name").value.trim() || "MedGen candidate", smiles: byId("mgdd-hiv-smiles").value.trim(), target_pdb: byId("mgdd-hiv-target").value, exhaustiveness: Number(byId("mgdd-hiv-exhaust").value), n_poses: Number(byId("mgdd-hiv-poses").value) };
@@ -232,12 +258,13 @@
     button.disabled = true; byId("mgdd-hiv-status").textContent = "RDKit → Meeko → receptor tayyorlash → AutoDock Vina hisoblayapti…"; byId("mgdd-hiv-results").textContent = "Hisoblash bajarilmoqda…";
     try {
       const data = await api("/hiv-lab/docking", { method: "POST", body: JSON.stringify(payload) });
-      const lip = data.lipinski || {}; const poses = data.poses || [];
-      let html = '<div class="mgdd-pose"><b>Eng yaxshi Vina score</b><strong>' + esc(data.affinity_kcal_mol) + ' kcal/mol</strong><small>' + esc(data.target_name) + ' · ' + esc(data.target_pdb) + ' · ' + esc(data.engine) + '</small></div>';
-      html += "<p><b>Lipinski:</b> MW " + esc(lip.mw) + " · LogP " + esc(lip.logp) + " · HBD " + esc(lip.hbd) + " · HBA " + esc(lip.hba) + " · buzilishlar " + esc(lip.violations) + "</p>";
-      html += "<p><b>Drug-like:</b> " + (lip.is_drug_like ? "Rule of Five mezoniga mos" : "Rule of Five cheklovlari mavjud") + "</p>";
-      html += poses.map((pose, i) => '<article class="mgdd-pose"><b>Pose ' + (i+1) + '</b><strong>' + esc(pose.affinity_kcal_mol) + ' kcal/mol</strong><small>Intermolecular: ' + esc(pose.intermolecular_energy_kcal_mol) + ' · Intramolecular: ' + esc(pose.intramolecular_energy_kcal_mol) + '</small></article>').join("");
-      html += "<p>" + esc(data.scientific_summary) + "</p><p class=\"mgdd-note\">" + esc(data.warning) + "</p>"; byId("mgdd-hiv-results").innerHTML = html;
+      const poses = data.poses || [];
+      let html = '<h3 style="margin:4px 0;color:#e8f0f6">Hisoblash kimyosi natijalari</h3>';
+      html += renderHivMetrics(data, data.target_name + " · " + data.target_pdb + " · " + data.engine);
+      html += '<p class="mgdd-note">' + esc(data.scientific_summary || "") + '</p>';
+      html += '<p class="mgdd-note">' + esc(data.warning || "Vina natijasi eksperimental validatsiyani talab qiladi.") + '</p>';
+      html += poses.map((pose, i) => '<article class="mgdd-pose"><b>Pose ' + (i+1) + '</b><strong>' + esc(pose.affinity_kcal_mol) + ' kkal/mol</strong><small>Intermolecular: ' + esc(pose.intermolecular_energy_kcal_mol) + ' · Intramolecular: ' + esc(pose.intramolecular_energy_kcal_mol) + '</small></article>').join("");
+      byId("mgdd-hiv-results").innerHTML = html;
       if (hivViewer && data.poses_pdbqt) { if (hivPoseModel) { try { hivViewer.removeModel(hivPoseModel); } catch (_) {} } hivPoseModel = hivViewer.addModel(data.poses_pdbqt, "pdb"); if (hivPoseModel && typeof hivPoseModel.setStyle === "function") hivPoseModel.setStyle({}, { stick: { colorscheme: "greenCarbon" } }); hivViewer.zoomTo({ hetflag: false }); hivViewer.render(); }
       byId("mgdd-hiv-status").textContent = "Docking hisoblandi. Eng yaxshi pose 3D receptor ko‘rinishiga qo‘shildi.";
     } catch (error) { byId("mgdd-hiv-results").textContent = error.message; byId("mgdd-hiv-status").textContent = "HIV docking bajarilmadi: " + error.message; }
