@@ -537,7 +537,7 @@ def is_required_profile_complete(profile: dict) -> bool:
         return False
     if not all(profile.get(k) is not None for k in ("birth_year", "birth_month", "birth_day")):
         return False
-    if role in {"student", "researcher", "professor"}:
+    if role == "student":
         ap = profile.get("academic_profile") or {}
         if not all(str(ap.get(k) or "").strip() for k in ("university", "faculty", "major", "group")):
             return False
