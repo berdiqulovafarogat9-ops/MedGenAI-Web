@@ -691,7 +691,7 @@
  ["Remember me","Meni eslab qol","Запомнить меня"],
  ["Show password","Parolni ko‘rsatish","Показать пароль"],
  ["Registration","Ro‘yxatdan o‘tish","Регистрация"],
- ["Register","Ro‘yxatdan o‘tish","Зарегистрироваться"],
+ ["Register","Ro‘yxatdan o‘tish","Регистрация"],
  ["Full name","To‘liq ism","Полное имя"],
  ["Email","Elektron pochta","Электронная почта"],
  ["Phone number","Telefon raqami","Номер телефона"],
