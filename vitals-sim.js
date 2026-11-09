@@ -516,6 +516,123 @@
           });
         } catch(err){console.error("3D Virtual Clinic",err);clinic.appendChild(el("p","color:#fca5a5;font-size:12px","3D sahna ochilmadi. Harakatlar ro‘yxati orqali davom eting."));}
       }
+
+      // FULL CODE VIEW: replace the previous multi-row UI while retaining the same
+      // VitalsCore instance, sim.act(), ECG animation, 3D renderer, audit and handoff.
+      (function mountFullCodeView(){
+        var style=document.createElement("style");
+        style.textContent=`
+          .fc-workspace{height:100vh;width:100%;max-height:100vh;display:flex;flex-direction:column;overflow:hidden;background:#080d14;color:#e2e8f0;box-sizing:border-box;font-family:system-ui,sans-serif}
+          .fc-topbar{height:52px;min-height:52px;display:flex;align-items:center;justify-content:space-between;gap:12px;padding:0 14px;background:#0f172a;border-bottom:1px solid #1e293b;box-sizing:border-box}
+          .fc-topbar-left,.fc-topbar-right{display:flex;align-items:center;gap:10px;min-width:0}
+          .fc-badge-crit{background:#b91c1c;color:#fff;font-size:10px;font-weight:800;padding:4px 8px;border-radius:4px;white-space:nowrap}
+          .fc-case-name{font-size:13px;font-weight:700;color:#f8fafc;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+          .fc-clock-box{background:#1e1b4b;border:1px solid #4338ca;padding:4px 9px;border-radius:6px;white-space:nowrap}
+          .fc-clock-val{font:700 16px monospace;color:#fb7185}
+          .fc-main-grid{display:grid;grid-template-columns:minmax(230px,275px) minmax(0,1fr) minmax(285px,330px);gap:0;flex:1;min-height:0;overflow:hidden}
+          .fc-dock{min-width:0;min-height:0;background:#0c121e;box-sizing:border-box;overflow:hidden}
+          .fc-dock-left{display:flex;flex-direction:column;gap:8px;padding:10px;border-right:1px solid #1e293b}
+          .fc-left-scroll{overflow:auto;min-height:0;display:flex;flex-direction:column;gap:10px}
+          .fc-left-scroll .medgen-clinical-story{display:none!important}
+          .fc-left-scroll h4{margin:0 0 6px;color:#38bdf8;font-size:11px;text-transform:uppercase}
+          .fc-left-scroll .medgen-clinical-meta{font-size:11px}
+          .fc-center-stage{position:relative;min-width:0;min-height:0;overflow:hidden;background:#02070d}
+          .fc-three-viewport{position:absolute;inset:0;width:100%;height:100%;min-height:0;z-index:1}
+          .fc-three-viewport canvas{width:100%!important;height:100%!important;display:block}
+          .fc-floating-monitor{position:absolute;z-index:5;top:10px;left:10px;width:min(350px,calc(100% - 20px));padding:8px;background:rgba(5,10,15,.91);border:1px solid #059669;border-radius:8px;box-sizing:border-box;pointer-events:none;box-shadow:0 4px 18px #0009}
+          .fc-monitor-header{display:flex;justify-content:space-between;gap:8px;color:#10b981;font:10px monospace;margin-bottom:4px}
+          .fc-floating-monitor canvas{width:100%!important;height:48px!important;background:#020a12;border-radius:4px}
+          .fc-vitals-strip{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:5px;margin-top:5px}
+          .fc-v-item{min-width:0;text-align:center;background:#090e17;border:1px solid #1e293b;border-radius:4px;padding:4px 1px}
+          .fc-v-item small{display:block;font-size:8px;color:#94a3b8}
+          .fc-v-item strong{display:block;font:800 17px monospace;color:#e2e8f0}
+          .fc-v-item span{font-size:8px;color:#64748b}
+          .fc-dock-right{display:flex;border-left:1px solid #1e293b}
+          .fc-vert-tabs{width:58px;flex:0 0 58px;background:#070b12;border-right:1px solid #1e293b;display:flex;flex-direction:column}
+          .fc-v-tab{padding:12px 2px;border:0;border-bottom:1px solid #1e293b;background:transparent;color:#94a3b8;font-size:10px;cursor:pointer}
+          .fc-v-tab.active{color:#38bdf8;background:#0c121e;border-left:3px solid #38bdf8}
+          .fc-tab-panes{flex:1;min-width:0;min-height:0;padding:9px;overflow:hidden;box-sizing:border-box}
+          .fc-pane{display:none;height:100%;overflow:auto;flex-direction:column;gap:8px}
+          .fc-pane.active{display:flex}
+          .fc-pane h4{margin:0;color:#9fe7f4;font-size:12px}
+          .fc-action-btn,.fc-pane button{max-width:100%;white-space:normal;overflow-wrap:anywhere}
+          .fc-pane [data-id]{display:block;width:100%;text-align:left;margin:3px 0;padding:9px;background:#162032;color:#cbd5e1;border:1px solid #29384e;border-radius:5px;font-size:11px}
+          .fc-pane [data-id]:disabled{opacity:.45}
+          .fc-pane .medgen-clinical-dock{min-height:0}
+          .fc-audit-timeline,.fc-clinical-log{overflow:auto}
+          .fc-pane .medgen-clinical-log{max-height:none}
+          .fc-workspace .medgen-clinical-disclaimer{font-size:10px}
+          @media(max-width:1050px){.fc-main-grid{grid-template-columns:minmax(190px,230px) minmax(0,1fr) minmax(255px,285px)}}
+          @media(max-width:760px){.fc-workspace{height:100dvh;max-height:100dvh}.fc-topbar{height:48px;min-height:48px;padding:0 8px}.fc-case-name{font-size:11px}.fc-main-grid{grid-template-columns:minmax(0,1fr);grid-template-rows:minmax(110px,22%) minmax(250px,1fr) minmax(180px,34%)}.fc-dock-left{border-right:0;border-bottom:1px solid #1e293b}.fc-left-scroll{display:grid;grid-template-columns:repeat(2,minmax(0,1fr))}.fc-center-stage{grid-row:2}.fc-dock-right{grid-row:3;border-left:0;border-top:1px solid #1e293b}.fc-vert-tabs{width:46px;flex-basis:46px}.fc-floating-monitor{width:min(300px,calc(100% - 16px));top:6px;left:8px}.fc-v-item strong{font-size:14px}}
+        `;
+        card.appendChild(style);
+        var workspace=el("div","");workspace.className="fc-workspace";
+        var top=el("header","");top.className="fc-topbar";
+        var topLeft=el("div","");topLeft.className="fc-topbar-left";
+        topLeft.appendChild(el("span","","EMERGENCY"));
+        topLeft.lastChild.className="fc-badge-crit";
+        topLeft.appendChild(el("span","",c.title||"Klinik simulyatsiya"));topLeft.lastChild.className="fc-case-name";
+        var topRight=el("div","");topRight.className="fc-topbar-right";
+        var clock=el("div","");clock.className="fc-clock-box";
+        clock.appendChild(el("span","","Qolgan vaqt: "));clock.appendChild(hud.time);hud.time.className="fc-clock-val";
+        topRight.appendChild(clock);topRight.appendChild(hud.pen);
+        var hand=el("button","padding:7px 10px;background:#0284c7;color:#fff;border:0;border-radius:5px;font-weight:700;cursor:pointer","Topshirish");
+        hand.type="button";hand.onclick=function(){setRightTab("handoff");};
+        topRight.appendChild(hand);top.appendChild(topLeft);top.appendChild(topRight);
+        var main=el("main","");main.className="fc-main-grid";
+        var left=el("aside","");left.className="fc-dock fc-dock-left";
+        left.appendChild(el("h4","","Bemor kartasi / Anamnez"));
+        var leftScroll=el("div","");leftScroll.className="fc-left-scroll";
+        if(patientCard)leftScroll.appendChild(patientCard);
+        if(historyCard)leftScroll.appendChild(historyCard);
+        if(dialogueCard)leftScroll.appendChild(dialogueCard);
+        left.appendChild(leftScroll);
+        var center=el("section","");center.className="fc-center-stage";
+        var monitor=el("div","");monitor.className="fc-floating-monitor";
+        var mh=el("div","");mh.className="fc-monitor-header";
+        mh.appendChild(el("span","","● II-TARMOQ EKG"));
+        mh.appendChild(el("span","",c.ecg==="st_elev"?"ST O‘ZGARISHI":"SIMULYATSIYA EKG"));mh.lastChild.id="fc-rhythm-badge";
+        monitor.appendChild(mh);canvas.style.width="100%";canvas.style.height="48px";canvas.style.borderRadius="4px";monitor.appendChild(canvas);
+        var vitals=el("div","");vitals.className="fc-vitals-strip";
+        [["hr","HR","bpm"],["bp","NIBP","mmHg"],["spo2","SpO2","%"],["rr","RESP","/min"]].forEach(function(k){
+          var item=el("div","");item.className="fc-v-item";item.appendChild(el("small","",k[1]));
+          tiles[k[0]].style.fontSize="17px";tiles[k[0]].style.color="#e2e8f0";var strong=el("strong","");strong.appendChild(tiles[k[0]]);item.appendChild(strong);item.appendChild(el("span","",k[2]));vitals.appendChild(item);
+        });
+        monitor.appendChild(vitals);center.appendChild(monitor);
+        var sceneMount=el("div","");sceneMount.className="fc-three-viewport";
+        if(typeof clinic!=="undefined"&&clinic){clinic.style.cssText="position:absolute;inset:0;margin:0!important;padding:0!important;border:0!important;border-radius:0!important;background:transparent!important;display:flex;flex-direction:column";var clinicView=clinic.querySelector("div[style*='height:260px']");if(clinicView){clinicView.style.height="100%";clinicView.style.flex="1";clinicView.style.minHeight="0";}sceneMount.appendChild(clinic);}
+        if(typeof genericClinic!=="undefined"&&genericClinic){genericClinic.style.cssText="position:absolute;inset:0;margin:0!important;padding:0!important;border:0!important";var gw=genericClinic.querySelector("div[id^='medgen-3d-patient-']");if(gw){gw.style.height="100%";}sceneMount.appendChild(genericClinic);}
+        center.appendChild(sceneMount);
+        var right=el("aside","");right.className="fc-dock fc-dock-right";
+        var nav=el("nav","");nav.className="fc-vert-tabs";
+        var panes=el("div","");panes.className="fc-tab-panes";
+        var paneIntervene=el("div","");paneIntervene.className="fc-pane active";paneIntervene.id="fc-pane-intervene";
+        var paneInvestigate=el("div","");paneInvestigate.className="fc-pane";paneInvestigate.id="fc-pane-investigate";
+        var paneAudit=el("div","");paneAudit.className="fc-pane";paneAudit.id="fc-pane-audit";
+        var paneHandoff=el("div","");paneHandoff.className="fc-pane";paneHandoff.id="fc-pane-handoff";
+        function tab(key,label,icon){var b=el("button","",icon+"  "+label);b.type="button";b.className="fc-v-tab"+(key==="intervene"?" active":"");b.onclick=function(){[paneIntervene,paneInvestigate,paneAudit,paneHandoff].forEach(function(p){p.classList.toggle("active",p.id==="fc-pane-"+key);});nav.querySelectorAll("button").forEach(function(x){x.classList.toggle("active",x===b);});};nav.appendChild(b);}
+        tab("intervene","Muolaja","💉");tab("investigate","Tekshiruv","🔍");tab("audit","Jurnal","📑");tab("handoff","Topshirish","📋");
+        paneIntervene.appendChild(el("h4","","Shoshilinch muolajalar"));
+        if(actionsBox){actionsBox.style.display="flex";actionsBox.style.flexDirection="column";paneIntervene.appendChild(actionsBox);}
+        paneInvestigate.appendChild(el("h4","","Tekshiruv / klinik baholash"));
+        if(typeof examPanel!=="undefined"&&examPanel){paneInvestigate.appendChild(examPanel);}
+        else paneInvestigate.appendChild(el("p","color:#94a3b8;font-size:12px","Ushbu keys uchun mavjud klinik tekshiruv amallari alohida ro‘yxatda ko‘rsatilmagan."));
+        paneAudit.appendChild(el("h4","","Klinik harakatlar jurnali"));
+        if(logBox){logBox.className="fc-clinical-log";paneAudit.appendChild(logBox);}
+        paneHandoff.appendChild(el("h4","","Topshirish / yakunlash"));
+        if(endBox)paneHandoff.appendChild(endBox);
+        panes.appendChild(paneIntervene);panes.appendChild(paneInvestigate);panes.appendChild(paneAudit);panes.appendChild(paneHandoff);
+        right.appendChild(nav);right.appendChild(panes);
+        main.appendChild(left);main.appendChild(center);main.appendChild(right);
+        workspace.appendChild(top);workspace.appendChild(main);
+        shell.remove();
+        card.appendChild(workspace);
+        // Move the existing renderer canvases only; renderer, camera, scene and RAF remain untouched.
+        if(clinicRenderer&&clinicRenderer.domElement){clinicRenderer.domElement.style.width="100%";clinicRenderer.domElement.style.height="100%";}
+        if(clinicResizeObserver&&typeof clinicResizeObserver.disconnect==="function"){clinicResizeObserver.disconnect();if(typeof view3!=="undefined"&&view3)clinicResizeObserver.observe(view3);}
+        setTimeout(function(){if(clinicRenderer&&typeof resize3==="function")resize3();},60);
+      })();
+
       penalty = 0; running = true; lastPenaltyAt = 0;
       document.addEventListener("visibilitychange", onVis);
       window.addEventListener("blur", onBlur);
