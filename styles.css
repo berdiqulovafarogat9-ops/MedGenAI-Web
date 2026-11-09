@@ -374,27 +374,33 @@ html[data-theme] :is(.nav-section-title,.final-nav-title,.nav-drawer-head small)
   .fc-three-viewport { min-height: 280px !important; }
 }
 
-/* Clinical report and modal surfaces follow the same palette. */
+/* Clinical reports and modal surfaces inherit the active global theme. */
 .mg-report,
 .mg-report-head,
 .mg-report-stat,
 .mg-report-section,
 .mg-report-event,
 .modal,
+.modal-card,
 .fc-modal-content,
 #modal-cases,
 .audit-report-container {
-  color: #e5edf5 !important;
-  border-color: #20384b !important;
+  color: var(--text-primary) !important;
+  border-color: var(--border-color) !important;
 }
 .mg-report-stat,
 .mg-report-section,
 .mg-report-event,
 .modal,
+.modal-card,
 .fc-modal-content,
 #modal-cases,
 .audit-report-container {
-  background: #0d1726 !important;
+  background: var(--bg-modal) !important;
+}
+:is(.mg-report,.modal,.modal-card,.fc-modal-content,#modal-cases,.audit-report-container)
+:is(.muted,.secondary-text,.description,small) {
+  color: var(--text-secondary) !important;
 }
 
 /* Keep report typography legible on narrow tablet screens. */
