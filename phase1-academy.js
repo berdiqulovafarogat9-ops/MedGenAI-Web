@@ -46,6 +46,12 @@ async function openSubject(id){
   $('academyBack').onclick=()=>{p.classList.add('hidden');window.scrollTo({top:0,behavior:'smooth'})};
   const lessons=[...(m.theory||[]),...(m.practice||[])];
   $('academyLessonList').innerHTML='<h5>O‘quv materiallari</h5>'+lessons.map(x=>'<div class="academy-stat"><b>'+esc(x.title||x.task||x.objective||x.id)+'</b><p>'+esc(x.task||x.objective||'Mavzuni o‘rganing va tegishli baholashni bajaring.')+'</p></div>').join('');
+  if(id==='BIO-SAMPI-1' && window.medgenBio?.mount) window.medgenBio.mount(p);
+  if(id==='Anatomy'){
+   const open3d=document.createElement('button');open3d.type='button';open3d.className='primary';open3d.textContent='3D Anatomiya modelini ochish';
+   open3d.onclick=()=>{if(window.MedGenAnatomy?.open)window.MedGenAnatomy.open('/models/full_skeleton.glb','3D Anatomiya');else alert('3D anatomiya moduli yuklanmadi.');};
+   $('academyLessonList').prepend(open3d);
+  }
   p.querySelectorAll('.academy-act').forEach(b=>b.onclick=()=>startAssessment(course,id,b.dataset.type));
  }catch(e){p.innerHTML='<div>Fan yuklanmadi: '+esc(e.message)+'</div>'}
 }
