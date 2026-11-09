@@ -497,6 +497,11 @@
             monitorCtx.stroke();monitorTexture.needsUpdate=true;clinicRenderer.render(sc,cam);
           };
           clinicSync(sim.state);
+          // Additive Full Code room/camera calibration. Existing patient GLB,
+          // targets, raycaster, renderer and sim.act() remain the source of truth.
+          if(window.MedGenVitals3D&&typeof window.MedGenVitals3D.apply==="function"){
+            window.MedGenVitals3D.apply(sc,cam,clinicRenderer,view3);
+          }
           var ray=new THREE.Raycaster(),pt=new THREE.Vector2();
           function resize3(){var w=Math.max(view3.clientWidth,1),h=Math.max(view3.clientHeight,1);cam.aspect=w/h;cam.updateProjectionMatrix();clinicRenderer.setSize(w,h,false);clinicRenderer.render(sc,cam);}
           if(window.ResizeObserver){clinicResizeObserver=new ResizeObserver(resize3);clinicResizeObserver.observe(view3);} else window.addEventListener("resize",resize3);
