@@ -5407,7 +5407,7 @@ async function loadSecurityCenter() {
     const others = sessions.filter(x=>!x.is_current);
     const sessionMarkup = item => '<article class="session-device'+(item.is_current?' is-current':'')+'">'+
       '<div class="session-device-icon">'+deviceIcon(item.device_name)+'</div>'+
-      '<div class="session-device-main"><div class="session-device-title">'+esc(item.device_name||'Unknown device')+
+      '<div class="session-device-main"><div class="session-device-title">'+esc(item.device_name||tx('unknownDevice'))+
       (item.is_current?'<span class="session-current-pill">● '+esc(tx('thisDevice'))+' · '+esc(tx('onlineNow'))+'</span>':'')+'</div>'+
       '<div class="session-device-meta">'+esc(item.browser||'—')+' · IP: '+esc(item.ip_address||'—')+'</div>'+
       '<div class="session-device-meta">'+esc(tx('signedInAt'))+': '+esc(fmt(item.created_at))+' · '+esc(tx('lastActive'))+': '+(item.is_current?esc(tx('activeNow')):esc(fmt(item.last_active_at)))+'</div></div>'+
