@@ -1842,7 +1842,7 @@ async function loadAdminDetails(kind) {
           '<strong>' + escapeHtml(item.university) + ' — ' + escapeHtml(item.major) + '</strong>' +
           '<div>Fakultet: ' + escapeHtml(item.faculty || '—') + ' | Kurs: ' + item.year + ' | Semestr: ' + item.semester + '</div>' +
           '<div>Fanlar: ' + (item.subjects || []).length + ' | Holat: ' + escapeHtml(item.status) + '</div>' +
-          '<details><summary>Mavzularni ko‘rish</summary>' + (Array.isArray(item.subjects) && item.subjects.length ? '<table class="admin-data-table"><thead><tr><th>Fan</th><th>Mavzular</th></tr></thead><tbody>' + item.subjects.map(subject => '<tr><td>' + escapeHtml(subject.subject || subject.name || '—') + '</td><td>' + escapeHtml((subject.topics || []).join(', ')) + '</td></tr>').join('') + '</tbody></table>' : '<p class="muted">Mavzular kiritilmagan.</p>') + '</details>' +
+          '<details><summary>Mavzularni ko‘rish</summary>' + (Array.isArray(item.subjects) && item.subjects.length ? '<table class="admin-data-table"><thead><tr><th>Fan</th><th>Mavzular</th></tr></thead><tbody>' + item.subjects.map(subject => '<tr><td>' + escapeHtml(subject.subject || subject.name || '—') + '</td><td>' + escapeHtml(Array.isArray(subject.topics) ? subject.topics.join(', ') : (subject.topics || '—')) + '</td></tr>').join('') + '</tbody></table>' : '<p class="muted">Mavzular kiritilmagan.</p>') + '</details>' +
           (item.status === 'pending_review' ? '<button data-syllabus-action="publish" data-syllabus-id="' + escapeHtml(item.id) + '">Nashr qilish</button> <button data-syllabus-action="reject" data-syllabus-id="' + escapeHtml(item.id) + '">Rad etish</button>' : '') +
           '</article>'
         ).join('') : 'Hozircha fan dasturlari kiritilmagan.';
