@@ -69,6 +69,9 @@
       clinicSync = null;
       document.removeEventListener("visibilitychange", onVis);
       window.removeEventListener("blur", onBlur);
+      window.removeEventListener("resize", onViewportChange);
+      window.removeEventListener("orientationchange", onViewportChange);
+      if (window.visualViewport) window.visualViewport.removeEventListener("resize", onViewportChange);
       if (embedded) {
         if (activeEmbeddedClose === closeAll) activeEmbeddedClose = null;
         targetRoot.innerHTML = '<div style="max-width:900px;margin:0 auto;text-align:center;padding:36px 18px;color:#e2e8f0"><h3>Virtual bemor simulyatori</h3><p style="color:#a8bacb">Simulyatsiya yopildi.</p><button type="button" onclick="window.medgenPatient.start(\'anaphylaxis\')" style="padding:12px 18px;background:#0e7490;color:#fff;border:0;border-radius:9px;font-weight:700">Qayta boshlash</button></div>';
@@ -92,6 +95,21 @@
     }
     function onVis() { if (document.hidden) penalize(); }
     function onBlur() { penalize(); }
+    // Orientation changes must re-trigger the existing renderer/ResizeObserver;
+    // do not create another Three.js scene or renderer.
+    function onViewportChange() {
+      requestAnimationFrame(function () {
+        window.dispatchEvent(new Event("resize"));
+        requestAnimationFrame(function () {
+          window.dispatchEvent(new Event("resize"));
+        });
+      });
+    }
+    function exitToDashboard() {
+      closeAll();
+      var anatomyOverlayClose = document.getElementById("close-medgen-skeleton");
+      if (anatomyOverlayClose) anatomyOverlayClose.click();
+    }
 
     function showStart() {
       card.innerHTML = ""; card.appendChild(alertBox);
@@ -684,7 +702,34 @@
         panes.appendChild(paneIntervene);panes.appendChild(paneInvestigate);panes.appendChild(paneAudit);panes.appendChild(paneHandoff);
         right.appendChild(nav);right.appendChild(panes);
         main.appendChild(left);main.appendChild(center);main.appendChild(right);
+        workspace.style.position="relative";
+        workspace.style.paddingBottom="68px";
         workspace.appendChild(top);workspace.appendChild(main);
+        var bodyDock=el("nav","");
+        bodyDock.className="fc-body-interact-dock";
+        bodyDock.setAttribute("aria-label","Body Interact navigatsiya paneli");
+        bodyDock.style.cssText="position:absolute;z-index:20;left:50%;bottom:9px;transform:translateX(-50%);display:flex;gap:7px;max-width:calc(100% - 16px);overflow-x:auto;padding:7px 9px;border:1px solid #29465a;border-radius:16px;background:rgba(8,20,32,.96);box-shadow:0 8px 26px rgba(0,0,0,.35);backdrop-filter:blur(10px)";
+        [
+          ["Bemor","patient"],
+          ["Tekshiruv","investigate"],
+          ["Muolaja","actions"],
+          ["Jurnal","log"],
+          ["Topshirish","handoff"]
+        ].forEach(function(item){
+          var b=el("button","","");
+          b.type="button";b.textContent=item[0];b.dataset.target=item[1];
+          b.style.cssText="flex:0 0 auto;min-height:38px;padding:8px 12px;border:1px solid #31536a;border-radius:10px;background:#132b3b;color:#e5edf5;font-size:12px;font-weight:700;white-space:nowrap";
+          b.onclick=function(){
+            if(item[1]==="patient"){
+              var leftPane=workspace.querySelector(".fc-left-scroll");
+              if(leftPane)leftPane.scrollTo({top:0,behavior:"smooth"});
+            } else {
+              setRightTab(item[1]);
+            }
+          };
+          bodyDock.appendChild(b);
+        });
+        workspace.appendChild(bodyDock);
         shell.remove();
         card.appendChild(workspace);
         // Move the existing renderer canvases only; renderer, camera, scene and RAF remain untouched.
@@ -697,6 +742,9 @@
       penalty = 0; running = true; lastPenaltyAt = 0;
       document.addEventListener("visibilitychange", onVis);
       window.addEventListener("blur", onBlur);
+      window.addEventListener("resize", onViewportChange, { passive: true });
+      window.addEventListener("orientationchange", onViewportChange, { passive: true });
+      if (window.visualViewport) window.visualViewport.addEventListener("resize", onViewportChange, { passive: true });
       timer = setInterval(function () {
         if (!running) return;
         sim.tick();
@@ -796,6 +844,9 @@
       clinicSync = null;
       document.removeEventListener("visibilitychange", onVis);
       window.removeEventListener("blur", onBlur);
+      window.removeEventListener("resize", onViewportChange);
+      window.removeEventListener("orientationchange", onViewportChange);
+      if (window.visualViewport) window.visualViewport.removeEventListener("resize", onViewportChange);
       actionsBox.querySelectorAll("button").forEach(function (b) { b.disabled = true; });
       endBox.innerHTML = "";
       endBox.appendChild(el("div", "font-weight:700;margin-bottom:6px", sim.stabilized ? "Bemor " + sim.stabAt + " soniyada barqarorlashdi." : "Vaqt tugadi. Bemor barqarorlashmadi."));
@@ -905,7 +956,7 @@
       wrap.appendChild(el("p","color:#91a6b8;font-size:12px;line-height:1.6;margin:14px 2px","Ball faollik reytingiga qo‘shiladi (keys kuniga bir marta)."));
       var actions=el("div","");actions.className="mg-report-actions";
       var again=el("button","","Yana urinish");again.onclick=showStart;actions.appendChild(again);
-      var close=el("button","","Yopish");close.onclick=closeAll;actions.appendChild(close);
+      var close=el("button","","Kabinetga qaytish");close.onclick=exitToDashboard;actions.appendChild(close);
       wrap.appendChild(actions);card.appendChild(wrap);
       card.scrollTop=0;
     }
