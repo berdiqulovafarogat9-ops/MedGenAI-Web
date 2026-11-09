@@ -893,9 +893,9 @@ def _parse_session_device(user_agent: str) -> tuple[str, str]:
     elif "iphone" in low:
         model = "iPhone"
     elif "android" in low:
-        match = re.search(r"Android [^;)]*;\\s*([^;)]+)", ua, re.IGNORECASE)
-        android_model = re.sub(r"\\s+Build/.*$", "", match.group(1).strip()) if match else ""
-        android_model = re.sub(r"^\\w+;\\s*", "", android_model)
+        match = re.search(r"Android [^;)]*;\s*([^;)]+)", ua, re.IGNORECASE)
+        android_model = re.sub(r"\s+Build/.*$", "", match.group(1).strip()) if match else ""
+        android_model = re.sub(r"^\w+;\s*", "", android_model)
         if android_model.upper().startswith(("SM-X", "SM-T", "SM-P")):
             model = "Samsung Galaxy Tab (" + android_model + ")"
         elif android_model.upper().startswith(("SM-A", "SM-S", "SM-F")):
