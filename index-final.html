@@ -237,7 +237,7 @@ frame-ancestors 'none'">
 
     <span
       class="private-tag"
-      data-i18n="privateDevelopment">
+      data-i18n="title">
       KLINIK SIMULYATSIYA PLATFORMASI
     </span>
 
@@ -253,7 +253,7 @@ frame-ancestors 'none'">
       Welcome back
     </div>
 
-    <h1 data-i18n="signInTitle">
+    <h1 data-i18n="signin">
       Sign in
     </h1>
 
@@ -312,7 +312,7 @@ frame-ancestors 'none'">
         class="primary"
         type="submit"
         onclick="event.preventDefault(); const s=document.getElementById('loginStatus'); if (typeof window.login === 'function') { window.login(); } else if (s) { s.textContent='Frontend xatosi: login moduli yuklanmagan. Sahifani yangilang yoki keyinroq qayta urinib ko‘ring.'; }"
-        data-i18n="signIn">
+        data-i18n="signin">
         Sign in
       </button>
 
@@ -1302,7 +1302,7 @@ window.addEventListener("error", function (event) {
 
 (function () {
 
-  const translations = {
+  const I18N = {
 
     en: {
 
@@ -1316,12 +1316,14 @@ window.addEventListener("error", function (event) {
       selected_role: "Selected role:",
 
       globalPlatform: "GLOBAL BIOMEDICAL AI PLATFORM",
+      title: "CLINICAL SIMULATION PLATFORM",
 
       privateDevelopment: "CLINICAL SIMULATION PLATFORM",
       privateResearch: "Virtual medical education and research system",
 
       welcome: "Welcome back",
       signInTitle: "Sign in",
+      signin: "Sign in",
 
       loginDescription:
         "Global Biomedical AI Platform — registration is available.",
@@ -1545,6 +1547,7 @@ window.addEventListener("error", function (event) {
 
       globalPlatform:
         "GLOBAL BIOMEDIKAL AI PLATFORMASI",
+      title: "KLINIK SIMULYATSIYA PLATFORMASI",
 
       privateDevelopment:
         "KLINIK SIMULYATSIYA PLATFORMASI",
@@ -1557,6 +1560,7 @@ window.addEventListener("error", function (event) {
 
       signInTitle:
         "Tizimga kirish",
+      signin: "Tizimga kirish",
 
       loginDescription:
         "Global Biomedikal AI Platformasi — ro‘yxatdan o‘tish mavjud.",
@@ -1783,6 +1787,7 @@ window.addEventListener("error", function (event) {
 
       globalPlatform:
         "ГЛОБАЛЬНАЯ БИОМЕДИЦИНСКАЯ AI-ПЛАТФОРМА",
+      title: "КЛИНИЧЕСКАЯ СИМУЛЯЦИОННАЯ ПЛАТФОРМА",
 
       privateDevelopment:
         "ПЛАТФОРМА КЛИНИЧЕСКИХ СИМУЛЯЦИЙ",
@@ -1795,6 +1800,7 @@ window.addEventListener("error", function (event) {
 
       signInTitle:
         "Войти",
+      signin: "Войти",
 
       loginDescription:
         "Global Biomedical AI Platform — регистрация доступна.",
@@ -2010,12 +2016,12 @@ window.addEventListener("error", function (event) {
   };
 
 
-  window.medgenTranslateKey = function(key) { const current = localStorage.getItem("medgen_language") || "uz"; return translations[current]?.[key] || translations.en?.[key] || key; };
+  window.medgenTranslateKey = function(key) { const current = localStorage.getItem("medgen_language") || "uz"; return I18N[current]?.[key] || I18N.en?.[key] || key; };
 
   function translatePage(language) {
 
     const dictionary =
-      translations[language] || translations.en;
+      I18N[language] || I18N.en;
 
     document.documentElement.lang = language;
 
@@ -2064,7 +2070,7 @@ window.addEventListener("error", function (event) {
 
     document.querySelectorAll("[data-i18n-legal-notice]").forEach(function (element) {
       const node = Array.from(element.childNodes).find(function (child) { return child.nodeType === Node.TEXT_NODE; });
-      if (node) node.nodeValue = dictionary.legal_notice || translations.en.legal_notice;
+      if (node) node.nodeValue = dictionary.legal_notice || I18N.en.legal_notice;
     });
 
     localStorage.setItem(
@@ -2075,6 +2081,11 @@ window.addEventListener("error", function (event) {
 
   }
 
+
+  function applyAuthLanguage(lang) {
+    translatePage(I18N[lang] ? lang : 'uz');
+  }
+  window.applyAuthLanguage = applyAuthLanguage;
 
   function initializeLanguage() {
 
@@ -2103,7 +2114,7 @@ window.addEventListener("error", function (event) {
         "change",
         function () {
 
-          translatePage(this.value);
+          applyAuthLanguage(this.value);
 
           if (dashboardSelector) {
             dashboardSelector.value =
@@ -2137,7 +2148,7 @@ window.addEventListener("error", function (event) {
     }
 
 
-    translatePage(saved);
+    applyAuthLanguage(saved);
 
   }
 
@@ -2408,7 +2419,7 @@ document.addEventListener("DOMContentLoaded", function () {
   const esc=s=>String(s??'').replace(/[&<>"']/g,m=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[m]));
   const lang=()=>localStorage.getItem('medgen_language')||'uz';
   const ft=(k)=>FINAL_I18N[lang()]?.[k]||FINAL_I18N.en[k]||k;
-  const moduleLabel=(m)=>(typeof translations!=='undefined'&&translations?.[m]?.[lang()])||m;
+  const moduleLabel=(m)=>(typeof I18N!=='undefined'&&I18N?.[m]?.[lang()])||m;
   const roleLabel=(k)=>ROLE_I18N[lang()]?.[k]||ROLE_I18N.en[k]||k;
   window.medgenRoleLabel = roleLabel;
   function dashboard(){return document.getElementById('dashboardView')}
