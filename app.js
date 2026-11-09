@@ -38,6 +38,16 @@ const dynamicTranslations = {
   en: {
 
     loading: 'Loading...',
+    profileSaving: 'Saving...',
+    profileSave: 'Save',
+    profileRequired: 'Complete the required profile fields: name, email, country, region and date of birth.',
+    studentProfileRequired: 'Student profiles require university, faculty, major and group.',
+    invalidEmail: 'Enter a valid email address.',
+    birthYearInvalid: 'Birth year must be between 1900 and 2100.',
+    birthMonthInvalid: 'Birth month must be between 1 and 12.',
+    birthDayInvalid: 'Birth day must be between 1 and 31.',
+    profileSaved: 'Profile saved successfully.',
+    profileSaveTimeout: 'The server did not respond within 12 seconds. Check your connection and try again.',
     analyzing: 'Analyzing...',
     searching: 'Searching...',
     signingIn: 'Signing in...',
@@ -123,6 +133,16 @@ const dynamicTranslations = {
   uz: {
 
     loading: 'Yuklanmoqda...',
+    profileSaving: 'Saqlanmoqda...',
+    profileSave: 'Saqlash',
+    profileRequired: 'Profilni to‘liq to‘ldiring: ism, email, mamlakat, hudud va tug‘ilgan sana majburiy.',
+    studentProfileRequired: 'Talaba profili uchun universitet, fakultet, yo‘nalish va guruh majburiy.',
+    invalidEmail: 'Email manzilini to‘g‘ri kiriting.',
+    birthYearInvalid: 'Tug‘ilgan yil 1900–2100 oralig‘ida bo‘lishi kerak.',
+    birthMonthInvalid: 'Tug‘ilgan oy 1–12 oralig‘ida bo‘lishi kerak.',
+    birthDayInvalid: 'Tug‘ilgan kun 1–31 oralig‘ida bo‘lishi kerak.',
+    profileSaved: 'Profil muvaffaqiyatli saqlandi.',
+    profileSaveTimeout: 'Server 12 soniya ichida javob bermadi. Internet aloqasini tekshirib, qayta urinib ko‘ring.',
     analyzing: 'Tahlil qilinmoqda...',
     searching: 'Qidirilmoqda...',
     signingIn: 'Tizimga kirilmoqda...',
@@ -272,6 +292,16 @@ const dynamicTranslations = {
   ru: {
 
     loading: 'Загрузка...',
+    profileSaving: 'Сохранение...',
+    profileSave: 'Сохранить',
+    profileRequired: 'Заполните обязательные поля: имя, email, страна, регион и дата рождения.',
+    studentProfileRequired: 'Для профиля студента обязательны университет, факультет, направление и группа.',
+    invalidEmail: 'Введите корректный адрес электронной почты.',
+    birthYearInvalid: 'Год рождения должен быть в диапазоне 1900–2100.',
+    birthMonthInvalid: 'Месяц рождения должен быть от 1 до 12.',
+    birthDayInvalid: 'День рождения должен быть от 1 до 31.',
+    profileSaved: 'Профиль успешно сохранён.',
+    profileSaveTimeout: 'Сервер не ответил за 12 секунд. Проверьте подключение и повторите попытку.',
     analyzing: 'Выполняется анализ...',
     searching: 'Поиск...',
     signingIn: 'Выполняется вход...',
@@ -1454,7 +1484,7 @@ async function saveProfile() {
   try {
     if (button) {
       button.disabled = true;
-      button.textContent = 'Saqlanmoqda...';
+      button.textContent = t('profileSaving');
     }
     if (status) status.textContent = '';
 
@@ -1493,32 +1523,32 @@ async function saveProfile() {
     const role = profileAccountRoleKey(state.user?.profile || {});
     if (!payload.full_name || !payload.email || !payload.country || !payload.region ||
         payload.birth_year === null || payload.birth_month === null || payload.birth_day === null) {
-      throw new Error('Profilni to‘liq to‘ldiring: ism, email, mamlakat, hudud va tug‘ilgan sana majburiy.');
+      throw new Error(t('profileRequired'));
     }
 
     const isStudentProfile = role === 'student';
     if (isStudentProfile && (!$('profileUniversity')?.value?.trim() || !$('profileFaculty')?.value?.trim() ||
         !$('profileMajor')?.value?.trim() || !$('profileGroup')?.value?.trim())) {
-      throw new Error('Talaba profili uchun universitet, fakultet, yo‘nalish va guruh majburiy.');
+      throw new Error(t('studentProfileRequired'));
     }
 
     if (!/^\S+@\S+\.\S+$/.test(payload.email)) {
-      throw new Error('Email manzilini to‘g‘ri kiriting.');
+      throw new Error(t('invalidEmail'));
     }
 
     if (payload.birth_year !== null &&
         (!Number.isInteger(payload.birth_year) || payload.birth_year < 1900 || payload.birth_year > 2100)) {
-      throw new Error('Tug‘ilgan yil 1900–2100 oralig‘ida bo‘lishi kerak.');
+      throw new Error(t('birthYearInvalid'));
     }
 
     if (payload.birth_month !== null &&
         (!Number.isInteger(payload.birth_month) || payload.birth_month < 1 || payload.birth_month > 12)) {
-      throw new Error('Tug‘ilgan oy 1–12 oralig‘ida bo‘lishi kerak.');
+      throw new Error(t('birthMonthInvalid'));
     }
 
     if (payload.birth_day !== null &&
         (!Number.isInteger(payload.birth_day) || payload.birth_day < 1 || payload.birth_day > 31)) {
-      throw new Error('Tug‘ilgan kun 1–31 oralig‘ida bo‘lishi kerak.');
+      throw new Error(t('birthDayInvalid'));
     }
 
     const data = await api('/profile', {
@@ -1592,7 +1622,7 @@ async function saveProfile() {
     document.querySelectorAll('#profileModal input, #profileModal textarea, #profileModal select').forEach(el => el.disabled = true);
     if (status) status.textContent = saveWarnings.length
       ? '⚠️ Asosiy profil saqlandi. ' + saveWarnings.join(' ')
-      : '✅ Profil muvaffaqiyatli saqlandi.';
+      : '✅ ' + t('profileSaved');
     if (button) {
       button.style.display = 'none';
       button.disabled = false;
@@ -1603,7 +1633,7 @@ async function saveProfile() {
     }, 500);
   } catch (e) {
     const message = e?.name === 'AbortError'
-      ? 'Server 12 soniya ichida javob bermadi. Internet aloqasini tekshirib, qayta urinib ko‘ring.'
+      ? t('profileSaveTimeout')
       : (e?.message || 'Noma’lum xatolik');
     if (status) status.textContent = '❌ ' + message;
   } finally {
@@ -1611,7 +1641,7 @@ async function saveProfile() {
     // Always release the save control, including for network/JSON errors.
     if (button) {
       button.disabled = false;
-      button.textContent = 'Saqlash';
+      button.textContent = t('profileSave');
       if (state.profileEditMode) button.style.display = '';
     }
   }
