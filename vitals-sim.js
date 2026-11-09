@@ -407,30 +407,16 @@
           var patient=new THREE.Group(); patient.rotation.z=Math.PI/2; patient.scale.setScalar(.9); patient.position.set(-0.05,.62,-.45); sc.add(patient);
           var skinMats=[],patientModel=null,patientChest=null,faceMesh=null,faceTint=null,chestBaseRotation=null,chestBaseScale=null,chestBreathMeshes=[],recoveryStarted=0,recoveryFrom=new THREE.Color(0x94a3b8),recoveryTo=new THREE.Color(0xfbcfe8);
           var loader=new THREE.GLTFLoader();
-          // Ixtiyoriy fon muhiti: mavjud karavot, monitor va uskunalar o‘z joyida qoladi.
-          // Model sahnaning orqa qismiga joylashtiriladi; yuklanmasa procedural xona ishlashda davom etadi.
-          loader.load("https://dbkxgbeisgyjilflkneq.supabase.co/storage/v1/object/public/models/GRADD%20Hospital%20Room%20by%20GRADD%20CO%20-%209sUalfQ76kn.glb",function(roomGltf){
-            if(!clinicRenderer)return;
-            var roomEnv=roomGltf.scene;
-            roomEnv.name="env_hospital_background";
-            var roomBounds=new THREE.Box3().setFromObject(roomEnv);
-            if(!roomBounds.isEmpty()){
-              var roomSize=roomBounds.getSize(new THREE.Vector3());
-              var roomCenter=roomBounds.getCenter(new THREE.Vector3());
-              var roomMax=Math.max(roomSize.x,roomSize.y,roomSize.z);
-              var roomScale=roomMax>0?7.2/roomMax:1;
-              roomEnv.scale.setScalar(roomScale);
-              roomEnv.position.set(-roomCenter.x*roomScale,-roomBounds.min.y*roomScale,-6.0-roomCenter.z*roomScale);
-              roomEnv.traverse(function(node){if(node.isMesh){node.castShadow=true;node.receiveShadow=true;}});
-              sc.add(roomEnv);
-              clinicRenderer.render(sc,cam);
-            }
-          },undefined,function(err){console.warn("[3D] Hospital background GLB yuklanmadi; mavjud xona saqlanadi.",err);});
+          // GRADD xona GLB vaqtincha o‘chirildi: asset geometriyasi mobil kamerada oq/katta ko‘rinmoqda. Mavjud procedural xona saqlanadi.
           // Quaternius bemor modeli mavjud supine patient wrapper ichiga yuklanadi.
           // Parent transform karavot koordinatalari va amaldagi raycaster bilan mos qoladi.
           loader.load("https://dbkxgbeisgyjilflkneq.supabase.co/storage/v1/object/public/models/Casual%20Character%20by%20Quaternius%20-%20kZ3DmIoGip.glb",function(gltf){
             if(!clinicRenderer)return;
             patientModel=gltf.scene;
+            if(fallbackPatient)fallbackPatient.visible=false;
+            // Fallback hotspotlarni olib tashlab, haqiqiy model bo‘yicha qayta joylaymiz.
+            targets.slice().forEach(function(t){if(t.userData&&t.userData.zone){patient.remove(t);}});
+            targets.length=0;
             var initialBounds=new THREE.Box3().setFromObject(patientModel),initialSize=initialBounds.getSize(new THREE.Vector3());
             if(initialSize.x>initialSize.y*1.2)patientModel.rotation.z=Math.PI/2;
             var preFitBounds=new THREE.Box3().setFromObject(patientModel),preFitSize=preFitBounds.getSize(new THREE.Vector3());
@@ -466,7 +452,7 @@
             var ivCurve=new THREE.CatmullRomCurve3([new THREE.Vector3(-1.45,1.62,-.35),new THREE.Vector3(-1.25,1.35,-.25),new THREE.Vector3(-.85,1.05,-.2),armWorld.clone()]);
             var ivTube=new THREE.Mesh(new THREE.TubeGeometry(ivCurve,28,.009,6,false),new THREE.MeshStandardMaterial({color:0x9bd5ed,transparent:true,opacity:.55,roughness:.2}));sc.add(ivTube);
             clinicRenderer.render(sc,cam);
-          },undefined,function(err){console.warn("Patient GLB CDN failed; using geometric fallback mannequin.",err);if(window.ClinicalUIAdapter)window.ClinicalUIAdapter.renderFallbackMannequin(sc,patient);else{var torso=new THREE.Mesh(new THREE.SphereGeometry(1,18,12),new THREE.MeshStandardMaterial({color:0x38bdf8}));torso.scale.set(.29,.43,.17);patient.add(torso);var head=new THREE.Mesh(new THREE.SphereGeometry(.15,16,12),new THREE.MeshStandardMaterial({color:0xf2c6a8}));head.position.set(0,.62,.015);patient.add(head);}mark("face",0,.68,.19,0x38bdf8);mark("chest",0,.12,.18,0xfbbf24);mark("arm",-.38,.08,.12,0x34d399);mark("thigh",.13,-.68,.12,0xfb7185);mask.position.set(0,.68,.27);var note=el("div","position:absolute;right:9px;bottom:8px;padding:5px 8px;border-radius:6px;background:rgba(3,15,28,.88);color:#fcd34d;font-size:11px","Zaxira geometrik maneken · GLB yuklanmadi");view3.appendChild(note);clinicRenderer.render(sc,cam);});
+          },undefined,function(err){console.warn("Patient GLB yuklanmadi; oldindan chizilgan fallback maneken saqlanadi.",err);var note=el("div","position:absolute;right:9px;bottom:8px;padding:5px 8px;border-radius:6px;background:rgba(3,15,28,.88);color:#fcd34d;font-size:11px","Zaxira geometrik maneken · GLB yuklanmadi");view3.appendChild(note);clinicRenderer.render(sc,cam);});
           // IV fluid bag, drip chamber and clear oxygen mask.
           var clearMat=new THREE.MeshStandardMaterial({color:0xbdeaff,transparent:true,opacity:.24,roughness:.12,metalness:0,depthWrite:false});
           var ivBag=new THREE.Mesh(new THREE.BoxGeometry(.2,.3,.09),clearMat);ivBag.position.set(-1.45,1.78,-.35);sc.add(ivBag);
@@ -478,6 +464,10 @@
           var mask=new THREE.Mesh(new THREE.SphereGeometry(.13,16,10,0,Math.PI*2,0,Math.PI/2),new THREE.MeshStandardMaterial({color:0xc7f0ff,transparent:true,opacity:.3,side:THREE.DoubleSide,depthWrite:false,roughness:.1}));mask.position.set(0,1.53,.25);mask.rotation.x=Math.PI/2;patient.add(mask); var maskTube=new THREE.Mesh(new THREE.TorusGeometry(.16,.008,6,32),new THREE.MeshStandardMaterial({color:0xc7f0ff,transparent:true,opacity:.45}));maskTube.position.set(0,1.53,.12);patient.add(maskTube);
           var targets=[];
           function mark(zone,x,y,z,color){var o=new THREE.Mesh(new THREE.TorusGeometry(.105,.018,6,18),new THREE.MeshBasicMaterial({color:color,transparent:true,opacity:.9}));o.position.set(x,y,z);o.userData.zone=zone;if(zone==="thigh")o.userData.actionKey="epi_thigh";patient.add(o);targets.push(o);}
+          // GLB kechiksa yoki brauzerda yuklanmasa ham bemor ko‘rinishi va hotspotlar darhol mavjud.
+          var fallbackPatient=window.ClinicalUIAdapter?window.ClinicalUIAdapter.renderFallbackMannequin(sc,patient):null;
+          mark("face",0,.68,.19,0x38bdf8);mark("chest",0,.12,.18,0xfbbf24);mark("arm",-.38,.08,.12,0x34d399);mark("thigh",.13,-.68,.12,0xfb7185);
+          mask.position.set(0,.68,.27);
           // Hotspots are positioned from the loaded supine model bounds after GLB load.
           function clinicAnimate(){if(!clinicRenderer)return;clinicRaf=requestAnimationFrame(clinicAnimate);
             var breath=1+Math.sin(Date.now()/1000*Math.max(.2,sim.state.rr/60)*Math.PI*2)*.012;
