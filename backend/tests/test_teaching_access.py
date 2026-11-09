@@ -16,12 +16,14 @@ def admin(client):
         'birth_year': 2000, 'birth_month': 1, 'birth_day': 1})
     api.user_consents[api.ADMIN_USERNAME] = {'version': api.LEGAL_CONSENT_VERSION,
         **dict.fromkeys(['terms_accepted', 'privacy_accepted', 'data_processing_accepted', 'research_disclaimer_accepted'], True)}
+    api.totp_store[api.ADMIN_USERNAME] = {'enabled': True}
     return {'Authorization' : 'Bearer ' + response.json()['access_token']}
 
 
 def professor(client, name):
     username, headers = ready_user(client, name)
     api.user_profiles[username]['role'] = 'professor'
+    api.totp_store[username] = {'enabled': True}
     return username, headers
 
 
