@@ -177,6 +177,52 @@
       var storyText = el("div", "", c.story || "Klinik vaziyat tavsifi mavjud emas."); storyText.className = "medgen-clinical-story"; storyCard.appendChild(storyText);
       var disclaimer = el("div", "", "Ta’limiy simulyatsiya. Bu panel haqiqiy bemor monitoringi yoki tibbiy qaror o‘rnini bosmaydi."); disclaimer.className = "medgen-clinical-disclaimer"; storyCard.appendChild(disclaimer);
       leftInner.appendChild(patientCard); leftInner.appendChild(storyCard);
+      if (c.patient || (c.anamnesis && c.anamnesis.length) || (c.allergies && c.allergies.length) || (c.dialogue && c.dialogue.length)) {
+        var historyCard = el("div", "margin-top:12px");
+        historyCard.appendChild(el("h4", "", "Anamnez va allergiya tarixi"));
+        if (c.patient) {
+          var pmeta = [];
+          if (c.patient.age_years) pmeta.push(c.patient.age_years + " yosh");
+          if (c.patient.weight_kg) pmeta.push(c.patient.weight_kg + " kg");
+          if (c.patient.setting) pmeta.push(c.patient.setting);
+          historyCard.appendChild(el("div", "font-size:12px;color:#a9bdcc;margin-bottom:8px", pmeta.join(" · ")));
+        }
+        (c.anamnesis || []).forEach(function(item) {
+          var line = el("div", "font-size:12px;line-height:1.55;margin:5px 0;color:#c4d4e0");
+          line.appendChild(el("strong", "color:#8fd9ed", item.label + ": "));
+          line.appendChild(document.createTextNode(item.value || ""));
+          historyCard.appendChild(line);
+        });
+        if (c.allergies && c.allergies.length) {
+          historyCard.appendChild(el("div", "font-size:12px;font-weight:800;color:#fda4af;margin:10px 0 5px", "Allergiyalar / nojo‘ya reaksiyalar"));
+          c.allergies.forEach(function(item) {
+            var line = el("div", "font-size:12px;line-height:1.5;margin:5px 0;padding:7px;border:1px solid #563342;border-radius:8px;background:#211923");
+            line.appendChild(el("strong", "color:#fecdd3", item.name + " — "));
+            line.appendChild(document.createTextNode((item.reaction || "") + (item.certainty ? " · " + item.certainty : "")));
+            historyCard.appendChild(line);
+          });
+        }
+        leftInner.appendChild(historyCard);
+      }
+      if (c.dialogue && c.dialogue.length) {
+        var dialogueCard = el("div", "margin-top:12px");
+        dialogueCard.appendChild(el("h4", "", "Bemor bilan suhbat"));
+        var dialogueAnswer = el("div", "min-height:68px;padding:9px;border:1px solid #29445a;border-radius:9px;background:#102232;color:#d5e5ef;font-size:12px;line-height:1.55;margin-bottom:8px", "Savolni tanlang — bemorning javobi shu yerda ko‘rsatiladi.");
+        dialogueCard.appendChild(dialogueAnswer);
+        var dialogueButtons = el("div", "display:flex;flex-direction:column;gap:6px");
+        c.dialogue.forEach(function(item, index) {
+          var q = el("button", "text-align:left;padding:8px 9px;background:#132b3d;color:#cde8f4;border:1px solid #31536a;border-radius:8px;font-size:12px;cursor:pointer", (index + 1) + ". " + item.question);
+          q.type = "button";
+          q.onclick = function() {
+            dialogueAnswer.textContent = item.answer;
+            dialogueButtons.querySelectorAll("button").forEach(function(btn){btn.style.borderColor="#31536a";});
+            q.style.borderColor="#22d3ee";
+          };
+          dialogueButtons.appendChild(q);
+        });
+        dialogueCard.appendChild(dialogueButtons);
+        leftInner.appendChild(dialogueCard);
+      }
       var centerHeading = el("h4", "", "Bemor monitori va 3D klinika");
       centerDock.appendChild(centerHeading);
       card.appendChild(shell);
