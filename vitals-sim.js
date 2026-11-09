@@ -990,5 +990,4 @@
     if (!root || root.nodeType !== 1) throw new Error("Virtual bemor paneli topilmadi.");
     open(root, caseId || "anaphylaxis");
   };
-  if (document.readyState === "loading") document.addEventListener("DOMContentLoaded", init); else init();
 })();
