@@ -110,8 +110,18 @@
     }
     resize() {
       if(!this.renderer||!this.wrapper)return;
-      var w=Math.max(this.wrapper.clientWidth,1),h=280;
-      this.camera.aspect=w/h; this.camera.updateProjectionMatrix(); this.renderer.setSize(w,h,false);
+      var rect=this.wrapper.getBoundingClientRect();
+      var w=Math.max(1,Math.round(rect.width||this.wrapper.clientWidth||1));
+      var h=Math.max(280,Math.round(rect.height||this.wrapper.clientHeight||280));
+      this.camera.aspect=w/h;
+      this.camera.updateProjectionMatrix();
+      this.renderer.setSize(w,h,false);
+      if(this.renderer.domElement){
+        this.renderer.domElement.style.width="100%";
+        this.renderer.domElement.style.height="100%";
+        this.renderer.domElement.style.display="block";
+      }
+      this.renderer.render(this.scene,this.camera);
     }
     updateVitals(v) {
       if(v){if(Number.isFinite(Number(v.rr)))this.rr=Math.max(4,Math.min(60,Number(v.rr)));if(Number.isFinite(Number(v.hr)))this.hr=Number(v.hr);if(Number.isFinite(Number(v.sbp)))this.sbp=Number(v.sbp);if(Number.isFinite(Number(v.dbp)))this.dbp=Number(v.dbp);if(Number.isFinite(Number(v.spo2)))this.spo2=Number(v.spo2);}
