@@ -1599,10 +1599,12 @@ async function saveProfile() {
   } catch (e) {
     if (status) status.textContent = '❌ ' + e.message;
   } finally {
-    if (button && !state.user?.profile_complete) {
+    // Always release the save control, including for already-complete profiles
+    // and network/JSON parsing errors. Keep it hidden only after a successful save.
+    if (button) {
       button.disabled = false;
       button.textContent = 'Saqlash';
-      button.style.display = '';
+      if (state.profileEditMode) button.style.display = '';
     }
   }
 }
@@ -1928,6 +1930,63 @@ async function loadAdminDetails(kind) {
       [];
 
     const items = Array.isArray(raw) ? raw : [raw];
+
+    // High-use admin directories get purpose-built, readable tables rather
+    // than dumping nested PostgreSQL/profile JSON into every column.
+    if (kind === 'users' || kind === 'experiments') {
+      const searchId = 'adminSearch_' + kind;
+      const tableId = 'adminTable_' + kind;
+      const renderCleanTable = (query = '') => {
+        const q = query.trim().toLocaleLowerCase();
+        const filtered = items.filter(item => {
+          const p = item?.profile || {};
+          const haystack = kind === 'users'
+            ? [p.full_name, p.email, item.username, item.role].join(' ')
+            : [item.name, item.user, item.owner, item.workflow_type, item.target, item.status].join(' ');
+          return !q || haystack.toLocaleLowerCase().includes(q);
+        });
+        if (!filtered.length) {
+          const node = $(tableId);
+          if (node) node.innerHTML = '<p class="muted">Mos yozuv topilmadi.</p>';
+          return;
+        }
+        const columns = kind === 'users'
+          ? ['F.I.Sh', 'Email', 'Rol', 'Sana', 'Holat']
+          : ['Tajriba', 'Foydalanuvchi', 'Tur / Nishon', 'Sana', 'Holat'];
+        const cell = (value) => '<td>' + escapeHtml(value == null || value === '' ? '—' : String(value)) + '</td>';
+        const rows = filtered.map(item => {
+          if (kind === 'users') {
+            const profile = item.profile || {};
+            const dateValue = profile.created_at || profile.updated_at || item.consent?.created_at || '';
+            const date = dateValue ? new Date(dateValue).toLocaleString() : '—';
+            const status = Number(item.active_tokens || 0) > 0 ? 'Faol' : 'Faol emas';
+            return '<tr>' + cell(profile.full_name || item.username) + cell(profile.email || '') +
+              cell(item.role || (item.roles || []).join(', ')) + cell(date) + cell(status) + '</tr>';
+          }
+          const dateValue = item.created_at || item.updated_at || '';
+          const date = dateValue ? new Date(dateValue).toLocaleString() : '—';
+          return '<tr>' + cell(item.name || item.id) + cell(item.user || item.owner || '') +
+            cell([item.workflow_type, item.target].filter(Boolean).join(' / ')) +
+            cell(date) + cell(item.status || '') + '</tr>';
+        }).join('');
+        const node = $(tableId);
+        if (node) node.innerHTML =
+          '<div class="status">Jami: ' + filtered.length + '</div>' +
+          '<div style="overflow:auto;max-height:560px;border:1px solid rgba(255,255,255,.14);border-radius:10px">' +
+          '<table class="admin-table" style="width:100%;min-width:680px;border-collapse:collapse"><thead><tr>' +
+          columns.map(title => '<th style="text-align:left;padding:10px">' + title + '</th>').join('') +
+          '</tr></thead><tbody>' + rows + '</tbody></table></div>';
+      };
+      out.innerHTML =
+        '<div style="display:flex;justify-content:space-between;align-items:center;gap:12px;flex-wrap:wrap">' +
+        '<h3 style="margin:0">' + escapeHtml(titles[kind] || 'Details') + '</h3>' +
+        '<input id="' + searchId + '" type="search" placeholder="Qidirish..." style="min-width:220px;padding:10px;border-radius:8px">' +
+        '</div><div id="' + tableId + '" style="margin-top:12px"></div>';
+      $(searchId)?.addEventListener('input', event => renderCleanTable(event.target.value));
+      renderCleanTable();
+      return;
+    }
+
     const stateKey = 'adminDetail_' + kind;
 
     window[stateKey] = items;
@@ -2999,15 +3058,17 @@ async function loadPDB() {
 
   try {
 
-    const data =
-      await api(
-        `/pdb/structures/${encodeURIComponent(pdbId)}`
-      );
+    const normalizedId = pdbId.toUpperCase();
+    if (!/^[0-9A-Z]{4}$/.test(normalizedId)) {
+      throw new Error('PDB ID 4 ta harf yoki raqamdan iborat bo‘lishi kerak (masalan: 1CRN).');
+    }
+    // Use the implemented analysis endpoint; the former GET path did not exist.
+    const data = await api('/pdb/structures/analyze', {
+      method: 'POST',
+      body: JSON.stringify({ pdb_id: normalizedId })
+    });
 
-    renderResult(
-      result,
-      data
-    );
+    renderResult(result, data);
 
     if (status) {
       status.textContent =
@@ -3445,15 +3506,23 @@ async function createJob() {
   const status = $('jobCreateStatus');
   const result = $('jobCreateResult');
   let input = {};
-  const raw = $('jobInput')?.value?.trim() || '{}';
+  const raw = $('jobInput')?.value?.trim() || '';
   try {
-    input = JSON.parse(raw);
+    if (jobType === 'MOLECULAR' && raw && !raw.startsWith('{')) {
+      // Accept plain SMILES (e.g. CCO) and wrap it for the API.
+      input = { smiles: raw };
+    } else {
+      input = raw ? JSON.parse(raw) : {};
+    }
     if (!input || typeof input !== 'object' || Array.isArray(input)) {
-      throw new Error('Input JSON obyekt bo‘lishi kerak.');
+      throw new Error('Parametrlar JSON obyekt bo‘lishi kerak.');
+    }
+    if (jobType === 'MOLECULAR' && !String(input.smiles || input.ligand_smiles || '').trim()) {
+      throw new Error('SMILES kiriting (masalan: CCO).');
     }
   } catch (error) {
     if (state.token !== requestToken) return;
-    if (status) status.textContent = 'Input JSON noto‘g‘ri: ' + error.message;
+    if (status) status.textContent = 'Kiritilgan ma’lumot noto‘g‘ri: ' + error.message;
     return;
   }
   if (button) button.disabled = true;
