@@ -1447,6 +1447,10 @@ let profileAvatarRemoved = false;
 async function saveProfile() {
   const button = $('profileSave');
   const status = $('profileStatus');
+  // Bound the complete profile-save workflow so a stalled API cannot leave
+  // the modal or its save button in a permanent loading state.
+  const controller = new AbortController();
+  const timeoutId = setTimeout(() => controller.abort(), 12000);
 
   try {
     if (button) {
@@ -1521,7 +1525,8 @@ async function saveProfile() {
 
     const data = await api('/profile', {
       method: 'PUT',
-      body: JSON.stringify(payload)
+      body: JSON.stringify(payload),
+      signal: controller.signal
     });
 
     // The core profile is saved above. Keep optional account/academy updates
@@ -1537,7 +1542,8 @@ async function saveProfile() {
           username: $('profileUsername')?.value?.trim() || undefined,
           phone: payload.phone,
           email: payload.email
-        })
+        }),
+        signal: controller.signal
       });
     } catch (e) {
       saveWarnings.push('Telefon/akkaunt ma’lumotlari serverga to‘liq yozilmadi: ' + e.message);
@@ -1564,7 +1570,8 @@ async function saveProfile() {
           student_id: $('profileStudentId')?.value?.trim() || '',
           study_language: $('profileStudyLanguage')?.value || 'uz',
           academic_degree: $('profileAcademicDegree')?.value?.trim() || 'MD/MBBS'
-        })
+        }),
+        signal: controller.signal
       });
     } catch (e) {
       saveWarnings.push('Ta’lim profili alohida saqlanmadi: ' + e.message);
@@ -1597,10 +1604,13 @@ async function saveProfile() {
       if (status) status.textContent = '';
     }, 500);
   } catch (e) {
-    if (status) status.textContent = '❌ ' + e.message;
+    const message = e?.name === 'AbortError'
+      ? 'Server 12 soniya ichida javob bermadi. Internet aloqasini tekshirib, qayta urinib ko‘ring.'
+      : (e?.message || 'Noma’lum xatolik');
+    if (status) status.textContent = '❌ ' + message;
   } finally {
-    // Always release the save control, including for already-complete profiles
-    // and network/JSON parsing errors. Keep it hidden only after a successful save.
+    clearTimeout(timeoutId);
+    // Always release the save control, including for network/JSON errors.
     if (button) {
       button.disabled = false;
       button.textContent = 'Saqlash';
