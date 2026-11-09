@@ -1281,6 +1281,11 @@ async function openProfile() {
   modal.classList.remove('hidden');
   initProfileLocationSelectors();
   const card = modal.querySelector('.modal-card');
+  const profileTariffBtn = $('profileTariffBtn');
+  if (profileTariffBtn && profileTariffBtn.dataset.bound !== '1') {
+    profileTariffBtn.dataset.bound = '1';
+    profileTariffBtn.addEventListener('click', () => window.openTariffModal?.());
+  }
   syncAcademicProfileVisibility();
   if (card && !card.querySelector('.profile-edit-icon')) {
     const edit = document.createElement('button');
@@ -6445,7 +6450,7 @@ window.switchMedGenMode = function(mode) {
     const expiry=user?.subscription_expires_at ?? billing?.subscription_expires_at ?? null;
     const name=planNames[plan] || 'Free';
     if(admin){
-      root.innerHTML='<div class="subscription-current"><span class="subscription-eyebrow">HISOB MAQOMI</span><h3>SUPER ADMIN</h3><p class="subscription-state">Cheksiz ma’muriy ruxsat</p><p class="subscription-muted">Platformani boshqarish vakolati serverdagi autentifikatsiya rolingiz bilan tasdiqlangan. Ushbu hisob uchun to‘lov talab qilinmaydi.</p></div>';
+      root.innerHTML='<div class="subscription-current"><span class="subscription-eyebrow">HISOB MAQOMI</span><h3>Maqom: Enterprise</h3><p class="subscription-state">Cheksiz tizim boshqaruvi</p><p class="subscription-muted">SUPER_ADMIN vakolati serverdagi autentifikatsiya rolingiz bilan tasdiqlangan.</p></div>';
       return;
     }
     const statusLabel=statusNames[status] || 'Noma’lum';
@@ -6501,8 +6506,6 @@ window.switchMedGenMode = function(mode) {
     }
   };
   function bind(){
-    const top=$id('topbarTariffBtn');
-    if(top && top.dataset.bound!=='1'){top.dataset.bound='1';top.addEventListener('click',window.openTariffModal);}
     const close=()=>{const modal=$id('tariffModal');if(modal){modal.classList.add('hidden');modal.setAttribute('aria-hidden','true');}};
     $id('tariffModalClose')?.addEventListener('click',close);
     $id('tariffModal')?.addEventListener('click',event=>{if(event.target===$id('tariffModal'))close();});
