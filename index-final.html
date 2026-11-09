@@ -1305,6 +1305,8 @@ window.addEventListener("error", function (event) {
 
     en: {
 
+      otherRegionSpecify: "Other region / country",
+      regionLocation: "Region / Location",
       legal_notice: "Please review our documents before continuing:",
       terms: "Terms of Service",
       privacy: "Privacy Policy",
@@ -1531,6 +1533,8 @@ window.addEventListener("error", function (event) {
 
     uz: {
 
+      otherRegionSpecify: "Boshqa hudud / mamlakat nomi",
+      regionLocation: "Hudud / Joylashuv",
       legal_notice: "Davom etishdan oldin hujjatlar bilan tanishing:",
       terms: "Foydalanish shartlari",
       privacy: "Maxfiylik siyosati",
@@ -1767,6 +1771,8 @@ window.addEventListener("error", function (event) {
 
     ru: {
 
+      otherRegionSpecify: "Другой регион / страна",
+      regionLocation: "Регион / Местоположение",
       legal_notice: "Перед продолжением ознакомьтесь с документами:",
       terms: "Условия использования",
       privacy: "Политика конфиденциальности",
@@ -2225,17 +2231,35 @@ window.addEventListener("error", function (event) {
     <label><span data-i18n="emailLabel">Email</span><input id="profileEmail" type="text" inputmode="email" autocomplete="email" placeholder="email@example.com"></label>
     <label><span data-i18n="organization">Tashkilot / universitet</span><input id="profileOrganization" data-i18n-placeholder="organizationPlaceholder" placeholder="Universitet yoki tashkilot"></label>
     <label><span data-i18n="country">Mamlakat</span><input id="profileCountry" list="profileCountryOptions" autocomplete="country" data-i18n-placeholder="countryPlaceholder" placeholder="Mamlakatni qidiring yoki yozing"></label><datalist id="profileCountryOptions"></datalist>
-    <div class="profile-section-title"><h3>📍 Joylashuv va hudud</h3><p class="profile-auto-note">Mamlakat avtomatik tavsiya qilinishi mumkin. Viloyat/tuman aniq bo‘lishi uchun siz tanlaysiz yoki qurilma joylashuviga ruxsat berasiz. Aniq koordinatalar faqat ruxsat bilan saqlanadi.</p></div>
-    <div class="location-grid">
-      <label>Viloyat / Region<select id="profileRegion"><option value="">Tanlang</option></select></label>
-      <label>Viloyatni qo‘lda kiritish<input id="profileRegionManual" type="text" autocomplete="address-level1" placeholder="Ro‘yxatda bo‘lmasa yozing"></label>
-      <label>Tuman / District<select id="profileDistrict"><option value="">Avval viloyatni tanlang</option></select></label>
-      <label>Tumanni qo‘lda kiritish<input id="profileDistrictManual" type="text" autocomplete="address-level2" placeholder="Ro‘yxatda bo‘lmasa yozing"></label>
-      <label>Shahar / City<input id="profileCity" placeholder="Toshkent, Bo‘ka va h.k."></label>
-      <label>Joylashuv<input id="profileLocationLabel" placeholder="Mahalla / hudud (ixtiyoriy)"></label>
+    <div class="profile-section-title"><h3>📍 Joylashuv va hudud</h3></div>
+    <div class="profile-region-control">
+      <label for="profileRegion"><span data-i18n="regionLocation">Hudud / Joylashuv</span>
+        <select id="profileRegion" autocomplete="address-level1">
+          <option value="">Hududni tanlang</option>
+          <option value="Tashkent">Toshkent sh.</option>
+          <option value="Tashkent Region">Toshkent vil.</option>
+          <option value="Andijan">Andijon</option>
+          <option value="Bukhara">Buxoro</option>
+          <option value="Fergana">Farg‘ona</option>
+          <option value="Jizzakh">Jizzax</option>
+          <option value="Khorezm">Xorazm</option>
+          <option value="Namangan">Namangan</option>
+          <option value="Navoi">Navoiy</option>
+          <option value="Kashkadarya">Qashqadaryo</option>
+          <option value="Samarkand">Samarqand</option>
+          <option value="Sirdarya">Sirdaryo</option>
+          <option value="Surkhandarya">Surxondaryo</option>
+          <option value="Karakalpakstan">Qoraqalpog‘iston Resp.</option>
+          <option value="OTHER">Boshqa / Xorij</option>
+        </select>
+      </label>
+      <label id="profileRegionManualWrap" class="profile-region-manual" hidden>
+        <span data-i18n="otherRegionSpecify">Boshqa hudud / mamlakat nomi</span>
+        <input id="profileRegionManual" type="text" autocomplete="address-level1" maxlength="120" placeholder="Hudud yoki mamlakat nomi">
+      </label>
     </div>
-    <button id="detectLocationBtn" type="button" class="ghost small">📍 Qurilma joylashuvini aniqlash</button>
-    <div id="locationStatus" class="status"></div>
+    <div id="locationStatus" class="status" aria-live="polite"></div>
+    <button id="detectLocationBtn" type="button" hidden aria-hidden="true" tabindex="-1"></button>
     <label><span data-i18n="researchInterests">Ilmiy qiziqishlar</span><input id="profileInterests" data-i18n-placeholder="researchInterestsPlaceholder" placeholder="Bioinformatika, drug discovery..."></label>
     <label><span data-i18n="birthDate">Tug‘ilgan sana</span>
       <input id="profileBirthDate" type="text" inputmode="numeric" autocomplete="bday" placeholder="KK.OO.YYYY" maxlength="10">
