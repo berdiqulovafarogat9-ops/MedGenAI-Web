@@ -78,6 +78,35 @@
     card.appendChild(el("label", LBL, "yoki tayyor ligand fayllari (.pdbqt, ixtiyoriy)"));
     var ligs = el("input", FIELD); ligs.type = "file"; ligs.multiple = true; ligs.accept = ".pdbqt,.txt"; card.appendChild(ligs);
 
+    var showcase = el("button", BTN2, "⚡ Tayyor OIV-1 tahlilini yuklash (Showcase)");
+    showcase.style.setProperty("color", "#b7f7d5", "important");
+    showcase.onclick = function () {
+      out.innerHTML = "";
+      msg.style.setProperty("color", "#56dcc0", "important");
+      msg.textContent = "Taqdimot rejimi: oldindan tayyorlangan namunaviy ma’lumotlar. Yangi docking hisoblanmadi.";
+      var wrap = el("div", "display:grid;grid-template-columns:repeat(auto-fit,minmax(210px,1fr));gap:10px;margin-top:12px");
+      var ind = el("article", "background:#06251d;border:1px solid #1d7656;border-radius:14px;padding:14px");
+      ind.appendChild(el("div", "font-size:12px;color:#9bd8bd", "OIV-1 proteaza · 1HSG"));
+      ind.appendChild(el("h4", "margin:6px 0;color:#e8f0f6", "Indinavir — namunaviy ligand"));
+      ind.appendChild(el("div", "font-size:30px;font-weight:900;color:#4ade80", "−5.77 kkal/mol"));
+      ind.appendChild(el("p", "font-size:12px;color:#b8d7c8", "Demo uchun berilgan Vina ko‘rsatkichi; real qayta hisoblash emas."));
+      var asp = el("article", "background:#13222f;border:1px solid #29465d;border-radius:14px;padding:14px");
+      asp.appendChild(el("div", "font-size:12px;color:#9fb3c4", "Nazorat birikmasi"));
+      asp.appendChild(el("h4", "margin:6px 0;color:#e8f0f6", "Aspirin — reference control"));
+      asp.appendChild(el("div", "font-size:20px;font-weight:800;color:#cbd5e1", "Affinity: hisoblanmagan"));
+      asp.appendChild(el("p", "font-size:12px;color:#9fb3c4", "Taqqoslash uchun nazorat ligand. Bu oynada sun’iy docking balli ko‘rsatilmaydi."));
+      var lip = el("article", "background:#13222f;border:1px solid #29465d;border-radius:14px;padding:14px");
+      lip.appendChild(el("h4", "margin:0 0 8px;color:#e8f0f6", "Lipinski ko‘rsatkichlari"));
+      [["Indinavir","MW 613.79 Da · LogP ~3.1 · HBD 4 · HBA 7"],["Aspirin","MW 180.16 Da · LogP ~1.2 · HBD 1 · HBA 4"]].forEach(function(x){lip.appendChild(el("b","display:block;color:#cfe0ec;margin-top:6px",x[0]));lip.appendChild(el("div","font-size:12px;color:#9fb3c4",x[1]));});
+      wrap.appendChild(ind); wrap.appendChild(asp); wrap.appendChild(lip); out.appendChild(wrap);
+      var details = el("details", "margin-top:10px;border:1px solid #294052;border-radius:10px;padding:10px");
+      details.appendChild(el("summary", "cursor:pointer;color:#9fb3c4", "Xom demo JSON / metodik izoh"));
+      var pre = el("pre", "white-space:pre-wrap;overflow-wrap:anywhere;max-height:260px;overflow:auto;font-size:11px;color:#b8c7d6");
+      pre.textContent = JSON.stringify({mode:"SHOWCASE_PRECOMPUTED",target:"HIV-1 protease 1HSG",ligands:[{name:"Indinavir",affinity_kcal_mol:-5.77,source:"user-provided demo preset"},{name:"Aspirin",role:"reference control",affinity_kcal_mol:null}],note:"Not a live docking run; validate all scientific claims independently."},null,2);
+      details.appendChild(pre); out.appendChild(details);
+    };
+    card.appendChild(showcase);
+
     var run = el("button", BTN, "Skriningni boshlash"); card.appendChild(run);
     var msg = el("div", "min-height:20px;margin-top:10px;font-size:14px;color:#ff8a8a"); card.appendChild(msg);
     var out = el("div", "margin-top:8px"); card.appendChild(out);
@@ -97,7 +126,21 @@
         [r.rank, r.name, r.affinity_kcal_mol.toFixed(2)].forEach(function (v) { tr.appendChild(el("td", "padding:6px;border-bottom:1px solid #1d3042", String(v))); });
         table.appendChild(tr);
       });
+      var summary = el("div", "display:grid;grid-template-columns:repeat(auto-fit,minmax(180px,1fr));gap:8px;margin:10px 0");
+      var best = ok.length ? ok.reduce(function(a,b){return a.affinity_kcal_mol < b.affinity_kcal_mol ? a : b;}) : null;
+      var energy = el("article", "background:#06251d;border:1px solid #1d7656;border-radius:12px;padding:12px");
+      energy.appendChild(el("small", "color:#9bd8bd", "Eng yaxshi bog‘lanish energiyasi · ΔG"));
+      energy.appendChild(el("div", "font-size:25px;font-weight:900;color:#4ade80", best ? best.affinity_kcal_mol.toFixed(2) + " kkal/mol" : "—"));
+      energy.appendChild(el("small", "color:#b8d7c8", best ? best.name : "Muvaffaqiyatli ligand yo‘q"));
+      var count = el("article", "background:#13222f;border:1px solid #29465d;border-radius:12px;padding:12px");
+      count.appendChild(el("small", "color:#9fb3c4", "Hisoblash yakuni"));
+      count.appendChild(el("div", "font-size:25px;font-weight:900;color:#e8f0f6", ok.length + " / " + job.total));
+      count.appendChild(el("small", "color:#9fb3c4", "muvaffaqiyatli ligand"));
+      summary.appendChild(energy); summary.appendChild(count); out.appendChild(summary);
       out.appendChild(table);
+      var raw = el("details", "margin-top:10px;border:1px solid #294052;border-radius:10px;padding:10px");
+      raw.appendChild(el("summary", "cursor:pointer;color:#9fb3c4", "Xom JSON / texnik tafsilotlar"));
+      var pre = el("pre", "white-space:pre-wrap;overflow-wrap:anywhere;max-height:280px;overflow:auto;font-size:11px;color:#b8c7d6"); pre.textContent = JSON.stringify(job, null, 2); raw.appendChild(pre); out.appendChild(raw);
       if (bad.length) out.appendChild(el("p", "color:#ff8a8a;font-size:12px", "Bajarilmadi: " + bad.map(function (b) { return b.name + " (" + b.error + ")"; }).join(", ")));
       if (ok.length) {
         var csv = el("button", BTN2, "CSV yuklab olish");
