@@ -118,7 +118,7 @@
       out.innerHTML = "";
       var ok = job.results.filter(function (r) { return r.affinity_kcal_mol !== undefined; });
       var bad = job.results.filter(function (r) { return r.affinity_kcal_mol === undefined; });
-      var table = el("table", "width:100%;border-collapse:collapse;font-size:12px;min-width:620px");
+      var table = el("table", "width:100%;border-collapse:collapse;font-size:12px;min-width:620px"); table.style.display = "block"; table.style.overflowX = "auto";
       var head = el("tr"); ["#", "Ligand", "Vina afiniteti (kkal/mol)", "MW (Da)", "LogP", "HBD", "HBA", "Lipinski"].forEach(function (h) { head.appendChild(el("th", "text-align:left;border-bottom:1px solid #24394d;padding:6px", h)); });
       table.appendChild(head);
       ok.forEach(function (r) {
