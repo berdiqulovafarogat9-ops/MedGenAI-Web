@@ -4283,6 +4283,14 @@ async function registerAccount() {
 
   if (!selectedRole) { if (status) status.textContent = 'Avval asosiy professional rolingizni tanlang.'; return; }
 
+  if (phone) {
+    const phoneDigits = phone.replace(/\\D/g, '');
+    if (!/^\\+?[0-9\\s().-]+$/.test(phone) || phoneDigits.length < 7 || phoneDigits.length > 15) {
+      if (status) status.textContent = 'Telefon raqamini xalqaro formatda kiriting (masalan, +1 202 555 0123).';
+      return;
+    }
+  }
+
   if (password !== password2) {
     if (status) status.textContent = 'Parollar bir xil emas.';
     return;
@@ -4292,7 +4300,7 @@ async function registerAccount() {
     await api('/auth/register', {
       method: 'POST',
       body: JSON.stringify({
-        username, password, full_name, email, phone,
+        username, password, full_name, email, phone: phone || '',
         role: selectedRole,
         education_mode: 'GLOBAL',
         academic_year: 1
