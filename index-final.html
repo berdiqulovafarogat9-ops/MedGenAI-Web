@@ -345,7 +345,7 @@ frame-ancestors 'none'">
 </div>
       <button class="primary" type="submit">Ro‘yxatdan o‘tish</button>
       <button id="hideRegister" type="button" class="ghost">Kirishga qaytish</button>
-      <p class="muted legal-entry auth-legal-notice">Please review our documents before continuing: <a href="/legal.html#terms" target="_blank" rel="noopener">Terms of Service</a> · <a href="/legal.html#privacy" target="_blank" rel="noopener">Privacy Policy</a> · <a href="/legal.html#data" target="_blank" rel="noopener">Data Processing Agreement</a> · <a href="/legal.html#medical" target="_blank" rel="noopener">Medical Disclaimer</a></p>
+      <p class="muted legal-entry auth-legal-notice" data-i18n-legal-notice="legal_notice">Please review our documents before continuing: <a data-i18n="terms" href="/legal.html#terms" target="_blank" rel="noopener">Terms of Service</a> · <a data-i18n="privacy" href="/legal.html#privacy" target="_blank" rel="noopener">Privacy Policy</a> · <a data-i18n="data_agreement" href="/legal.html#data" target="_blank" rel="noopener">Data Processing Agreement</a> · <a data-i18n="disclaimer" href="/legal.html#medical" target="_blank" rel="noopener">Medical Disclaimer</a></p>
     </form>
 
     <div id="loginStatus" class="status" role="status" aria-live="polite"></div>
@@ -1304,6 +1304,13 @@ window.addEventListener("error", function (event) {
 
     en: {
 
+      legal_notice: "Please review our documents before continuing:",
+      terms: "Terms of Service",
+      privacy: "Privacy Policy",
+      data_agreement: "Data Processing Agreement",
+      disclaimer: "Medical Disclaimer",
+      selected_role: "Selected role:",
+
       globalPlatform: "GLOBAL BIOMEDICAL AI PLATFORM",
 
       privateDevelopment: "CLINICAL SIMULATION PLATFORM",
@@ -1521,6 +1528,13 @@ window.addEventListener("error", function (event) {
 
 
     uz: {
+
+      legal_notice: "Davom etishdan oldin hujjatlar bilan tanishing:",
+      terms: "Foydalanish shartlari",
+      privacy: "Maxfiylik siyosati",
+      data_agreement: "Ma'lumotlarni qayta ishlash",
+      disclaimer: "Tibbiy ogohlantirish",
+      selected_role: "Tanlangan rol:",
 
       globalPlatform:
         "GLOBAL BIOMEDIKAL AI PLATFORMASI",
@@ -1750,6 +1764,13 @@ window.addEventListener("error", function (event) {
 
     ru: {
 
+      legal_notice: "Перед продолжением ознакомьтесь с документами:",
+      terms: "Условия использования",
+      privacy: "Политика конфиденциальности",
+      data_agreement: "Обработка данных",
+      disclaimer: "Медицинский отказ от ответственности",
+      selected_role: "Выбранная роль:",
+
       globalPlatform:
         "ГЛОБАЛЬНАЯ БИОМЕДИЦИНСКАЯ AI-ПЛАТФОРМА",
 
@@ -1978,6 +1999,8 @@ window.addEventListener("error", function (event) {
   };
 
 
+  window.medgenTranslateKey = function(key) { const current = localStorage.getItem("medgen_language") || "uz"; return translations[current]?.[key] || translations.en?.[key] || key; };
+
   function translatePage(language) {
 
     const dictionary =
@@ -2028,10 +2051,16 @@ window.addEventListener("error", function (event) {
       });
 
 
+    document.querySelectorAll("[data-i18n-legal-notice]").forEach(function (element) {
+      const node = Array.from(element.childNodes).find(function (child) { return child.nodeType === Node.TEXT_NODE; });
+      if (node) node.nodeValue = dictionary.legal_notice || translations.en.legal_notice;
+    });
+
     localStorage.setItem(
       "medgen_language",
       language
     );
+    window.dispatchEvent(new CustomEvent("medgen:language-changed", { detail: { language: language } }));
 
   }
 
@@ -2329,6 +2358,7 @@ document.addEventListener("DOMContentLoaded", function () {
   const ft=(k)=>FINAL_I18N[lang()]?.[k]||FINAL_I18N.en[k]||k;
   const moduleLabel=(m)=>(typeof translations!=='undefined'&&translations?.[m]?.[lang()])||m;
   const roleLabel=(k)=>ROLE_I18N[lang()]?.[k]||ROLE_I18N.en[k]||k;
+  window.medgenRoleLabel = roleLabel;
   function dashboard(){return document.getElementById('dashboardView')}
   function hideAll(){['roleDashboard','moduleDirectory','workspace','educationPreferencePanel','securityCenter','userDirectoryDashboard','adminDashboard','supportCenter','aiCenter','communityCenter'].forEach(id=>document.getElementById(id)?.classList.add('hidden'))}
   function openHome(){hideAll();document.getElementById('roleDashboard')?.classList.remove('hidden');renderHome()}
