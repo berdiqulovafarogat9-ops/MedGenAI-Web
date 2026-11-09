@@ -4245,18 +4245,24 @@ function applyRoleDashboard(){
 }
 function bindRoleRegistration(){
   const grid=$('registerRoleGrid'), hidden=$('registerRole'), status=$('registerRoleStatus');
+  if (!window.__medgenRoleStatusI18nBound) {
+    window.__medgenRoleStatusI18nBound = true;
+    window.addEventListener('medgen:language-changed', () => {
+      const selected = hidden?.value;
+      if (!selected || !status) return;
+      const prefix = window.medgenTranslateKey?.('selected_role') || 'Selected role:';
+      const label = window.medgenRoleLabel?.(selected) || selected;
+      status.textContent = prefix + ' ' + label;
+    });
+  }
   grid?.querySelectorAll('.role-choice').forEach(btn=>btn.addEventListener('click',()=>{
     grid.querySelectorAll('.role-choice').forEach(x=>x.classList.remove('selected'));
     btn.classList.add('selected'); if(hidden) hidden.value=btn.dataset.role;
     if(status) {
       const roleKey = btn.dataset.role;
-      const roleEn = ({
-        student:'Student', doctor:'Physician', researcher:'Researcher',
-        professor:'Professor', lab:'Laboratory Specialist', biotech:'Biotechnologist',
-        pharma:'Pharma / Drug Discovery', bioinformatician:'Bioinformatician',
-        hospital:'Hospital / Clinic', company:'Biotech / Pharma Company'
-      })[roleKey] || roleKey;
-      status.textContent = `Selected: ${roleEn}`;
+      const prefix = window.medgenTranslateKey?.('selected_role') || 'Selected role:';
+      const label = window.medgenRoleLabel?.(roleKey) || roleKey;
+      status.textContent = prefix + ' ' + label;
     }
   }));
 }
