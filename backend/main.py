@@ -608,6 +608,14 @@ def get_current_user(
     token = credentials.credentials
     username = tokens.get(token)
     created_at = token_created_at.get(token)
+    if not username and PERSISTENCE_ENABLED:
+        stored_session = _lookup_session_by_token(token)
+        if stored_session and not stored_session.get("is_revoked"):
+            username = stored_session["user_id"]
+            created_at = stored_session["created_at"]
+            tokens[token] = username
+            token_created_at[token] = created_at
+            token_session_ids[token] = stored_session["id"]
 
     if token in revoked_tokens:
         tokens.pop(token, None)
@@ -628,7 +636,8 @@ def get_current_user(
             "created_at":created_at,"last_active_at":datetime.now(timezone.utc).isoformat(),"is_revoked":False})
         token_session_ids[token] = session_id
     session = _get_session_record(session_id, username)
-    if not session or session.get("is_revoked"):
+    expected_hash = hashlib.sha256(token.encode("utf-8")).hexdigest()
+    if not session or session.get("is_revoked") or not hmac.compare_digest(str(session.get("session_token") or ""), expected_hash):
         tokens.pop(token, None)
         token_created_at.pop(token, None)
         token_session_ids.pop(token, None)
@@ -849,6 +858,17 @@ def _parse_session_device(user_agent: str) -> tuple[str, str]:
     elif "iphone" in low or "mobile" in low or "android" in low: model = "Phone"
     else: model = "Computer"
     return f"{model} / {os_name}", browser
+
+def _lookup_session_by_token(token: str) -> dict | None:
+    if not PERSISTENCE_ENABLED: return None
+    digest = hashlib.sha256(token.encode("utf-8")).hexdigest()
+    with psycopg.connect(DATABASE_URL) as conn:
+        row = conn.execute("""SELECT id,user_id,session_token,device_name,browser,ip_address,
+            created_at,last_active_at,is_revoked FROM user_sessions WHERE session_token=%s""",(digest,)).fetchone()
+    if not row: return None
+    return {"id":row[0],"user_id":row[1],"session_token":row[2],"device_name":row[3],
+            "browser":row[4],"ip_address":row[5],"created_at":row[6].isoformat(),
+            "last_active_at":row[7].isoformat(),"is_revoked":row[8]}
 
 def _create_session_record(record: dict) -> None:
     if PERSISTENCE_ENABLED:
