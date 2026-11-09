@@ -275,6 +275,13 @@ def _db_init():
     with psycopg.connect(DATABASE_URL) as conn:
         conn.execute("""CREATE TABLE IF NOT EXISTS medgen_state (state_key TEXT PRIMARY KEY, state_value JSONB NOT NULL, updated_at TIMESTAMPTZ NOT NULL DEFAULT NOW())""")
         conn.execute("INSERT INTO medgen_state(state_key,state_value) VALUES ('__revision','0'::jsonb) ON CONFLICT (state_key) DO NOTHING")
+        conn.execute("""CREATE TABLE IF NOT EXISTS user_sessions (
+            id TEXT PRIMARY KEY, user_id TEXT NOT NULL, session_token TEXT NOT NULL UNIQUE,
+            device_name TEXT NOT NULL DEFAULT '', browser TEXT NOT NULL DEFAULT '',
+            ip_address TEXT NOT NULL DEFAULT '', created_at TIMESTAMPTZ NOT NULL,
+            last_active_at TIMESTAMPTZ NOT NULL, is_revoked BOOLEAN NOT NULL DEFAULT FALSE
+        )""")
+        conn.execute("CREATE INDEX IF NOT EXISTS idx_user_sessions_user_active ON user_sessions(user_id,is_revoked)")
         conn.commit()
 
 def _db_load():
@@ -800,6 +807,134 @@ def health_live():
 # =========================================================
 # AUTH
 # =========================================================
+
+
+
+# =========================================================
+# MULTI-DEVICE SESSION REGISTRY
+# =========================================================
+_session_cache = {}
+
+def _request_ip(request: Request) -> str:
+    forwarded = request.headers.get("x-forwarded-for", "").split(",")[0].strip()
+    return (forwarded or (request.client.host if request.client else "") or "Unknown")[:64]
+
+def _parse_session_device(user_agent: str) -> tuple[str, str]:
+    ua = str(user_agent or "")[:1000]
+    low = ua.lower()
+    browser = "Unknown browser"
+    for token, label in (("edg/", "Edge"), ("opr/", "Opera"), ("chrome/", "Chrome"), ("firefox/", "Firefox"), ("safari/", "Safari")):
+        if token in low:
+            part = ua[low.index(token):].split(" ", 1)[0]
+            browser = label + " " + part.split("/", 1)[1].split(";", 1)[0].split(")", 1)[0]
+            break
+    if "windows nt 10" in low: os_name = "Windows 10/11"
+    elif "windows nt 6.3" in low: os_name = "Windows 8.1"
+    elif "android" in low: os_name = "Android"
+    elif "iphone" in low or "ipad" in low or "ios" in low: os_name = "iOS"
+    elif "mac os x" in low: os_name = "macOS"
+    elif "linux" in low: os_name = "Linux"
+    else: os_name = "Unknown OS"
+    if "ipad" in low or ("android" in low and "mobile" not in low): model = "Tablet"
+    elif "iphone" in low or "mobile" in low or "android" in low: model = "Phone"
+    else: model = "Computer"
+    return f"{model} / {os_name}", browser
+
+def _create_session_record(record: dict) -> None:
+    if PERSISTENCE_ENABLED:
+        with psycopg.connect(DATABASE_URL) as conn:
+            conn.execute("""INSERT INTO user_sessions
+                (id,user_id,session_token,device_name,browser,ip_address,created_at,last_active_at,is_revoked)
+                VALUES (%s,%s,%s,%s,%s,%s,%s,%s,FALSE)""",
+                (record["id"],record["user_id"],record["session_token"],record["device_name"],
+                 record["browser"],record["ip_address"],record["created_at"],record["last_active_at"]))
+            conn.commit()
+    else:
+        _session_cache[record["id"]] = dict(record)
+
+def _get_session_record(session_id: str, username: str) -> dict | None:
+    if PERSISTENCE_ENABLED:
+        with psycopg.connect(DATABASE_URL) as conn:
+            row = conn.execute("""SELECT id,user_id,session_token,device_name,browser,ip_address,
+                created_at,last_active_at,is_revoked FROM user_sessions WHERE id=%s AND user_id=%s""",
+                (session_id,username)).fetchone()
+        if not row: return None
+        return {"id":row[0],"user_id":row[1],"session_token":row[2],"device_name":row[3],
+                "browser":row[4],"ip_address":row[5],"created_at":row[6].isoformat(),
+                "last_active_at":row[7].isoformat(),"is_revoked":row[8]}
+    record = _session_cache.get(session_id)
+    return record if record and record.get("user_id") == username else None
+
+def _touch_session(session_id: str, request: Request) -> None:
+    now = datetime.now(timezone.utc)
+    if PERSISTENCE_ENABLED:
+        with psycopg.connect(DATABASE_URL) as conn:
+            conn.execute("""UPDATE user_sessions SET last_active_at=%s,ip_address=%s
+                WHERE id=%s AND is_revoked=FALSE AND last_active_at < %s""",
+                (now,_request_ip(request),session_id,now.replace(second=0,microsecond=0)))
+            conn.commit()
+    elif session_id in _session_cache:
+        _session_cache[session_id]["last_active_at"] = now.isoformat()
+        _session_cache[session_id]["ip_address"] = _request_ip(request)
+
+def _revoke_session_record(session_id: str, username: str) -> bool:
+    if PERSISTENCE_ENABLED:
+        with psycopg.connect(DATABASE_URL) as conn:
+            cur = conn.execute("UPDATE user_sessions SET is_revoked=TRUE WHERE id=%s AND user_id=%s AND is_revoked=FALSE",
+                               (session_id,username))
+            conn.commit()
+            return cur.rowcount > 0
+    record = _get_session_record(session_id,username)
+    if not record: return False
+    record["is_revoked"] = True
+    return True
+
+def _session_public(record: dict, current_id: str | None) -> dict:
+    return {key:record.get(key) for key in ("id","device_name","browser","ip_address","created_at","last_active_at")} | {
+        "is_current":record.get("id") == current_id
+    }
+
+@app.get("/api/v1/auth/sessions")
+def list_auth_sessions(user=Depends(get_current_user),
+                       credentials: HTTPAuthorizationCredentials = Depends(security)):
+    token = credentials.credentials if credentials else ""
+    current_id = token_session_ids.get(token)
+    if PERSISTENCE_ENABLED:
+        with psycopg.connect(DATABASE_URL) as conn:
+            rows = conn.execute("""SELECT id,user_id,session_token,device_name,browser,ip_address,
+                created_at,last_active_at,is_revoked FROM user_sessions
+                WHERE user_id=%s AND is_revoked=FALSE ORDER BY last_active_at DESC""",
+                (user["username"],)).fetchall()
+        records = [{"id":r[0],"user_id":r[1],"session_token":r[2],"device_name":r[3],"browser":r[4],
+                    "ip_address":r[5],"created_at":r[6].isoformat(),"last_active_at":r[7].isoformat(),"is_revoked":r[8]} for r in rows]
+    else:
+        records = [dict(x) for x in _session_cache.values()
+                   if x.get("user_id")==user["username"] and not x.get("is_revoked")]
+    return {"sessions":[_session_public(x,current_id) for x in records]}
+
+@app.delete("/api/v1/auth/sessions/{session_id}")
+def revoke_auth_session(session_id: str, user=Depends(get_current_user)):
+    record = _get_session_record(session_id,user["username"])
+    if not record: raise HTTPException(status_code=404,detail="Session not found.")
+    _revoke_session_record(session_id,user["username"])
+    return {"status":"revoked","session_id":session_id}
+
+@app.post("/api/v1/auth/sessions/terminate-others")
+def revoke_other_auth_sessions(user=Depends(get_current_user),
+                               credentials: HTTPAuthorizationCredentials = Depends(security)):
+    current_id = token_session_ids.get(credentials.credentials if credentials else "")
+    if not current_id: raise HTTPException(status_code=401,detail="Current session is unavailable.")
+    if PERSISTENCE_ENABLED:
+        with psycopg.connect(DATABASE_URL) as conn:
+            conn.execute("UPDATE user_sessions SET is_revoked=TRUE WHERE user_id=%s AND id<>%s AND is_revoked=FALSE",
+                         (user["username"],current_id))
+            conn.commit()
+    else:
+        for item in _session_cache.values():
+            if item.get("user_id")==user["username"] and item.get("id")!=current_id:
+                item["is_revoked"]=True
+    return {"status":"others_revoked"}
+
 
 @app.post("/api/v1/auth/login")
 def login(data: LoginRequest, request: Request):
