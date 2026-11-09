@@ -888,9 +888,26 @@ def _parse_session_device(user_agent: str) -> tuple[str, str]:
     elif "mac os x" in low: os_name = "macOS"
     elif "linux" in low: os_name = "Linux"
     else: os_name = "Unknown OS"
-    if "ipad" in low or ("android" in low and "mobile" not in low): model = "Tablet"
-    elif "iphone" in low or "mobile" in low or "android" in low: model = "Phone"
-    else: model = "Computer"
+    if "ipad" in low:
+        model = "iPad"
+    elif "iphone" in low:
+        model = "iPhone"
+    elif "android" in low:
+        match = re.search(r"Android [^;)]*;\\s*([^;)]+)", ua, re.IGNORECASE)
+        android_model = re.sub(r"\\s+Build/.*$", "", match.group(1).strip()) if match else ""
+        android_model = re.sub(r"^\\w+;\\s*", "", android_model)
+        if android_model.upper().startswith(("SM-X", "SM-T", "SM-P")):
+            model = "Samsung Galaxy Tab (" + android_model + ")"
+        elif android_model.upper().startswith(("SM-A", "SM-S", "SM-F")):
+            model = "Samsung Galaxy (" + android_model + ")"
+        elif android_model and not re.search(r"^(?:wv|linux|arm|unknown)", android_model, re.IGNORECASE):
+            model = android_model[:64]
+        else:
+            model = "Android phone" if "mobile" in low else "Android tablet"
+    elif "mobile" in low:
+        model = "Phone"
+    else:
+        model = "Computer"
     return f"{model} / {os_name}", browser
 
 def _count_user_sessions(username: str) -> int:
