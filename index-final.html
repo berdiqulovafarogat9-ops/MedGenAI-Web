@@ -323,7 +323,7 @@ frame-ancestors 'none'">
       <label><span>Username</span><input id="registerUsername" autocomplete="username" required></label>
       <label><span>To‘liq ism</span><input id="registerFullName" required></label>
       <label><span>Email</span><input id="registerEmail" type="email" autocomplete="email" required></label>
-      <label><span>Telefon raqami</span><input id="registerPhone" type="tel" autocomplete="tel" placeholder="+998 90 123 45 67"></label>
+      <label><span data-i18n="phoneOptional">Telefon raqami (Ixtiyoriy)</span><input id="registerPhone" type="tel" inputmode="tel" autocomplete="tel"></label>
       <label><span>Parol</span><input id="registerPassword" type="password" autocomplete="new-password" minlength="8" required></label>
       <label><span>Parolni tasdiqlash</span><input id="registerPassword2" type="password" autocomplete="new-password" minlength="8" required></label><div class="role-registration-block">
   <div class="role-title">Sizning asosiy professional rolingiz</div>
@@ -1507,6 +1507,9 @@ window.addEventListener("error", function (event) {
       fullName: "Full name",
       fullNamePlaceholder: "First name Last name",
       emailLabel: "Email",
+      phoneOptional: "Номер телефона (Необязательно)",
+      phoneOptional: "Telefon raqami (Ixtiyoriy)",
+      phoneOptional: "Phone number (Optional)",
       organization: "Organization / university",
       organizationPlaceholder: "University or organization",
       country: "Country",
