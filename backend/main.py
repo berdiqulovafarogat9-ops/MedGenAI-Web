@@ -2438,6 +2438,12 @@ def _subscription_snapshot(username: str, role: str | None = None) -> dict:
                 status = "expired"
         except (TypeError, ValueError):
             expires_at = None
+            if raw_status == "past_due":
+                status = "expired"
+    elif raw_status == "past_due":
+        # Never leave a delinquent subscription active indefinitely when the
+        # provider omits its grace-period end timestamp.
+        status = "expired"
     if plan == "free" and status == "expired":
         status = "active"
     return {
@@ -2596,7 +2602,11 @@ async def billing_webhook(request: Request):
             "plan": plan,
             "status": event_status,
             "subscription_id": subscription_id or previous.get("subscription_id", ""),
-            "customer_id": str((data.get("customer") or {}).get("customer_id") or previous.get("customer_id") or ""),
+            "customer_id": str(
+                ((data.get("customer") or {}).get("customer_id")
+                 if isinstance(data.get("customer"), dict) else data.get("customer_id"))
+                or previous.get("customer_id") or ""
+            ),
             "subscription_expires_at": expiry_value or previous.get("subscription_expires_at"),
             "updated_at": str(payload.get("timestamp") or datetime.now(timezone.utc).isoformat()),
             "last_event_id": wid,
