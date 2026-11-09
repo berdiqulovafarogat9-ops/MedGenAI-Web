@@ -8,7 +8,7 @@
     });
     return out;
   }
-  function newQuiz(names, rnd) {
+  var BONE_SYNONYMS = {\n    pelvis: ["pelvis", "hip bone", "os coxae", "coxal bone", "innominate bone", "chanoq suyagi", "chanoq"],\n    ribs: ["rib", "ribs", "costa", "costae", "qovurg‘a", "qovurg‘alar"]\n  };\n  function normalizeBoneName(value) {\n    var s=String(value||"").trim().toLowerCase().replace(/[_-]+/g," ");\n    for (var key in BONE_SYNONYMS) if (BONE_SYNONYMS[key].some(function(alias){return s===alias || s.indexOf(alias+" ")===0;})) return key;\n    return s;\n  }\n  function newQuiz(names, rnd) {
     return { names: uniqueNames(names), rnd: rnd || Math.random, target: null, asked: 0, correct: 0, wrong: 0 };
   }
   function nextTarget(q) {
@@ -19,14 +19,14 @@
   function answer(q, clickedName) {
     if (!q.target) return { ok: false, reason: "no-target" };
     q.asked += 1;
-    var ok = String(clickedName || "").trim() === q.target;
+    var ok = normalizeBoneName(clickedName) === normalizeBoneName(q.target);
     if (ok) q.correct += 1; else q.wrong += 1;
     var target = q.target;
     q.target = null;
     return { ok: ok, target: target };
   }
   function accuracy(q) { return q.asked ? Math.round(100 * q.correct / q.asked) : 0; }
-  var api = { uniqueNames: uniqueNames, newQuiz: newQuiz, nextTarget: nextTarget, answer: answer, accuracy: accuracy };
+  var api = { uniqueNames: uniqueNames, newQuiz: newQuiz, nextTarget: nextTarget, answer: answer, accuracy: accuracy, normalizeBoneName: normalizeBoneName, BONE_SYNONYMS: BONE_SYNONYMS };
   if (typeof module !== "undefined" && module.exports) module.exports = api;
   else root.MedGenAnatomyQuiz = api;
 })(typeof window !== "undefined" ? window : this);
