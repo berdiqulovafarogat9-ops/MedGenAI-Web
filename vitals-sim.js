@@ -869,8 +869,11 @@
       intro.appendChild(el("div","",r.disclaimer||"Ta’limiy simulyatsiya natijasi."));
       intro.lastChild.className="mg-report-sub";
       head.appendChild(intro);
-      head.appendChild(el("div","",String(r.score)+"<span style='font-size:18px;color:#9fb3c5'> / 100</span>"));
-      head.lastChild.className="mg-report-score";
+      var score=el("div","","");
+      score.className="mg-report-score";
+      score.appendChild(document.createTextNode(String(r.score)));
+      score.appendChild(el("span","font-size:18px;color:#9fb3c5"," / 100"));
+      head.appendChild(score);
       wrap.appendChild(head);
       var b=r.breakdown||{};
       var stats=el("div","");stats.className="mg-report-grid";
