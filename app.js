@@ -4256,11 +4256,7 @@ function bindRoleRegistration(){
         pharma:'Pharma / Drug Discovery', bioinformatician:'Bioinformatician',
         hospital:'Hospital / Clinic', company:'Biotech / Pharma Company'
       })[roleKey] || roleKey;
-      const roleLocal = MEDGEN_ROLES[roleKey]?.title || roleKey;
-      const lang = typeof getLanguage === 'function' ? getLanguage() : 'uz';
-      status.textContent = lang === 'en' ? `Selected: ${roleEn}`
-        : lang === 'ru' ? `Выбрано: ${roleEn}`
-        : 'Tanlandi: ' + roleLocal;
+      status.textContent = `Selected: ${roleEn}`;
     }
   }));
 }
