@@ -1862,7 +1862,25 @@ VITALS_CASES = {
     "anaphylaxis_jasur": {
         "title": "4-keys: Jasur — anafilaktik shok",
         "level": "Shoshilinch",
-        "story": "24 yoshli Jasur: antibiotik yuborilgach yuz-lab shishi, xirillash, gipoksemiya va keskin arterial gipotenziya rivojlandi. O‘tkir anafilaktik shokdan shubhalaning.",
+        "story": "24 yoshli Jasur: tibbiyot muassasasida antibiotik yuborilishi boshlanganidan bir necha daqiqa o‘tib yuz-lab shishi, xirillash, gipoksemiya va keskin arterial gipotenziya rivojlandi. O‘tkir anafilaktik shokdan shubhalaning.",
+        "patient": {"name": "Jasur", "age_years": 24, "weight_kg": None, "setting": "Shoshilinch qabul bo‘limi"},
+        "anamnesis": [
+            {"label": "Hozirgi holat", "value": "Antibiotik yuborilishi boshlanganidan bir necha daqiqa o‘tib to‘satdan nafas qisilishi, yuz-lab shishi va holsizlik boshlangan."},
+            {"label": "Oldingi allergik reaksiya", "value": "Bemor avval penitsillin qabulidan keyin toshma va lab shishi bo‘lganini aytadi; tibbiy hujjat bilan tasdiqlanmagan."},
+            {"label": "Oziq-ovqat allergiyasi", "value": "Yong‘oqqa allergiya tarixi bor. Bemor bugun yong‘oq iste’mol qilmaganini bildiradi; bu epizodda asosiy trigger sifatida ko‘rsatilmagan."},
+            {"label": "Hozirgi dori", "value": "Antibiotik nomi va yuborilgan doza hozircha aniqlanmagan — dori varaqasi va yuborish vaqtini tekshiring."}
+        ],
+        "allergies": [
+            {"name": "Penitsillin", "reaction": "Bemor xabariga ko‘ra: toshma va lab shishi", "certainty": "Tasdiqlanmagan anamnestik ma’lumot"},
+            {"name": "Yong‘oq", "reaction": "Oldingi allergik reaksiya, tafsilotlari aniqlashtirilishi kerak", "certainty": "Bemor xabariga ko‘ra"}
+        ],
+        "dialogue": [
+            {"question": "Nima bo‘ldi va qachon boshlandi?", "answer": "Antibiotik tomchilatib yuborila boshlaganidan bir necha daqiqa o‘tib nafasim qisildi, labim shishdi."},
+            {"question": "Oldin dori yoki ovqatdan allergiya bo‘lganmi?", "answer": "Penitsillin ichganimda toshma chiqqan, labim ham shishgan. Yong‘oqqa ham allergiyam bor."},
+            {"question": "Bugun yong‘oq yoki yong‘oqli mahsulot yedingizmi?", "answer": "Yo‘q, bugun yong‘oq yemadim."},
+            {"question": "Qaysi antibiotik yuborildi?", "answer": "Nomini bilmayman. Hamshira tomchilatib yuborishni boshladi."},
+            {"question": "Hozir ko‘krak og‘rig‘i yoki hushdan ketish bo‘ldimi?", "answer": "Ko‘kragim og‘rimayapti, boshim aylanib, hushim ketayozdi."}
+        ],
         "init": {"hr": 142, "sbp": 68, "dbp": 38, "spo2": 86, "rr": 32},
         "ecg": "normal",
         "worsen": {"hr": 0.05, "sbp": -0.3, "dbp": -0.2, "spo2": -0.03, "rr": 0.02},
@@ -1958,6 +1976,8 @@ def _vit_public(case_id):
     c = VITALS_CASES[case_id]
     return {
         "id": case_id, "title": c["title"], "level": c["level"], "story": c["story"],
+        "patient": c.get("patient", {}), "anamnesis": c.get("anamnesis", []),
+        "allergies": c.get("allergies", []), "dialogue": c.get("dialogue", []),
         "init": c["init"], "ecg": c["ecg"], "worsen": c["worsen"],
         "time_limit_seconds": VITALS_MAX_SECONDS,
         "actions": [{"id": a["id"], "label": a["label"], "effects": a["effects"]} for a in c["actions"]],
