@@ -641,6 +641,14 @@
         paneAudit.appendChild(el("h4","","Klinik harakatlar jurnali"));
         if(logBox){logBox.className="fc-clinical-log";paneAudit.appendChild(logBox);}
         paneHandoff.appendChild(el("h4","","Topshirish / yakunlash"));
+        paneHandoff.appendChild(el("p","font-size:12px;line-height:1.5;color:#94a3b8;margin:0 0 8px","Simulyatsiyani yakunlang, tashxisni belgilang va server baholash hisobotini oling."));
+        var fullCodeFinishBtn=el("button","width:100%;padding:12px;margin:0 0 10px;border:1px solid #047857;border-radius:9px;background:#059669;color:#fff;font-weight:800;font-size:13px;cursor:pointer","📋 Epikrizni chiqarish va Yakunlash");
+        fullCodeFinishBtn.type="button";
+        fullCodeFinishBtn.onclick=function(){
+          if(running && sim && !sim.ended){finish();}
+          else if(endBox){endBox.scrollIntoView({behavior:"smooth",block:"nearest"});}
+        };
+        paneHandoff.appendChild(fullCodeFinishBtn);
         if(endBox)paneHandoff.appendChild(endBox);
         panes.appendChild(paneIntervene);panes.appendChild(paneInvestigate);panes.appendChild(paneAudit);panes.appendChild(paneHandoff);
         right.appendChild(nav);right.appendChild(panes);
@@ -781,11 +789,12 @@
             await window.submitStudentScore(rep.score, "Patient_" + sim.def.id);
           }
           showReport(rep);
+          showJasurEpicrisis();
         } catch (e) { submit.disabled = false; alertBox.style.background = "#b00020"; flash(e.message); }
       };
       endBox.appendChild(submit);
       setRightTab("handoff");
-      if (sim.def.id === "anaphylaxis_jasur" && sim.stabilized) showJasurEpicrisis();
+      // Epikriz modal opens after the server returns the real scored report.
     }
 
     function showReport(r) {
