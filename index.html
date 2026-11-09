@@ -2712,7 +2712,7 @@ document.addEventListener("DOMContentLoaded", function () {
       const session=token();button.disabled=true;input.readOnly=true;
       message(tr('You')+': '+q);
       try{
-        const d=await api('/assistant/chat',{method:'POST',body:JSON.stringify({message:q,language:localStorage.getItem('medgen_language')||'uz',search_evidence:document.getElementById('assistantEvidence').checked})});
+        const d=await api('/assistant/chat',{method:'POST',body:JSON.stringify({message:q,language:'uz',search_evidence:document.getElementById('assistantEvidence').checked})});
         if(token()!==session||!box.isConnected)return;
         const node=message('MedGen AI: '+d.answer);input.value='';
         if(d.search_query){const query=document.createElement('p');query.textContent=tr('Search query')+': '+d.search_query;node.append(query);}
