@@ -473,3 +473,13 @@ html[data-theme] :is(.primary,.mg-report-actions button) {
   .fc-main-grid{grid-template-columns:minmax(170px,22vw) minmax(0,1fr) minmax(245px,28vw)}
   .fc-left-scroll{max-height:calc(100dvh - 100px)}
 }
+
+
+/* Auth/dashboard cleanup: remove only the obsolete theme picker and duplicate banner row. */
+.theme-selector-wrap,
+#theme-select,
+.medgen-ai-banner-nav,
+.cabinet-subnav-horizontal,
+.secondary-menu-bar {
+  display: none !important;
+}
