@@ -2506,8 +2506,11 @@ def billing_checkout(data: BillingCheckoutRequest, user=Depends(get_current_user
 @app.post("/api/v1/billing/webhook")
 async def billing_webhook(request: Request):
     raw = await request.body()
-    wid = request.headers.get("webhook-id", "")
-    if not _dodo_signature_ok(raw, wid, request.headers.get("webhook-timestamp", ""), request.headers.get("webhook-signature", "")):
+    wid = request.headers.get("webhook-id", "").strip()
+    if not wid or not _dodo_signature_ok(
+        raw, wid, request.headers.get("webhook-timestamp", ""),
+        request.headers.get("webhook-signature", "")
+    ):
         raise HTTPException(status_code=401, detail="Invalid signature")
     if wid in billing_events:
         return {"received": True, "duplicate": True}
@@ -2515,39 +2518,116 @@ async def billing_webhook(request: Request):
         payload = json.loads(raw.decode("utf-8"))
     except Exception:
         raise HTTPException(status_code=400, detail="Bad payload")
-    etype = str(payload.get("type") or "")
+
+    etype = str(payload.get("type") or "").strip().lower()
     data = payload.get("data") or {}
+    if not isinstance(data, dict):
+        raise HTTPException(status_code=400, detail="Bad payload data")
     meta = data.get("metadata") or {}
-    username = str(meta.get("username") or "")
-    plan = str(meta.get("plan") or "").lower()
-    status = None
-    if etype in {"subscription.active", "subscription.renewed", "subscription.plan_changed"}:
-        status = "active"
-    elif etype in {"subscription.cancelled", "subscription.expired", "subscription.failed"}:
-        status = "inactive"
-    elif etype == "subscription.on_hold":
-        status = "on_hold"
-    if status and username in user_profiles and plan in BILLING_PLANS:
-        expiry_value = (data.get("next_billing_date") or data.get("expires_at")
+    if not isinstance(meta, dict):
+        meta = {}
+
+    # Dodo subscription events carry the full Subscription resource. Prefer its
+    # metadata; retain subscription-id lookup as a safe fallback for older records.
+    username = str(meta.get("username") or "").strip()
+    plan = str(meta.get("plan") or "").strip().lower()
+    subscription_id = str(data.get("subscription_id") or "").strip()
+    if not username and subscription_id:
+        username = next(
+            (name for name, record in billing_store.items()
+             if str((record or {}).get("subscription_id") or "") == subscription_id),
+            ""
+        )
+    if plan not in BILLING_PLANS:
+        product_id = str(data.get("product_id") or "").strip()
+        plan = next(
+            (key for key, value in BILLING_PLANS.items()
+             if product_id and value.get("product_id") == product_id),
+            ""
+        )
+
+    subscription_events = {
+        "subscription.active", "subscription.renewed",
+        "subscription.plan_changed", "subscription.updated",
+        "subscription.unpaused", "subscription.update_payment_method",
+        "subscription.on_hold", "subscription.past_due",
+        "subscription.paused", "subscription.cancelled",
+        "subscription.expired", "subscription.failed",
+    }
+    if etype in subscription_events and username in user_profiles:
+        previous = dict(billing_store.get(username, {}) or {})
+        raw_status = str(data.get("status") or "").strip().lower()
+        next_billing = data.get("next_billing_date")
+        expiry_value = (data.get("expires_at") or next_billing
                         or data.get("current_period_end") or data.get("next_payment_date"))
-        previous = billing_store.get(username, {})
+        event_status = {
+            "subscription.active": "active",
+            "subscription.renewed": "active",
+            "subscription.plan_changed": "active",
+            "subscription.unpaused": "active",
+            "subscription.update_payment_method": "active",
+            "subscription.on_hold": "on_hold",
+            "subscription.past_due": "past_due",
+            "subscription.paused": "paused",
+            "subscription.cancelled": "cancelled",
+            "subscription.expired": "expired",
+            "subscription.failed": "failed",
+        }.get(etype, raw_status or previous.get("status", "active"))
+
+        # A cancellation scheduled for the end of the paid period must not
+        # revoke access early. Dodo exposes this as cancel_at_next_billing_date.
+        if etype == "subscription.cancelled" and data.get("cancel_at_next_billing_date"):
+            event_status = "active"
+            expiry_value = next_billing or expiry_value
+
+        # Keep access during Dodo's explicit past-due grace window only.
+        if event_status == "past_due":
+            grace_end = data.get("past_due_ends_at")
+            if grace_end:
+                expiry_value = grace_end
+
+        if plan not in BILLING_PLANS:
+            plan = str(previous.get("plan") or "free").lower()
+        if plan not in BILLING_PLANS:
+            plan = "free"
+
         billing_store[username] = {
-            "plan": plan if status == "active" else previous.get("plan", plan),
-            "status": "expired" if status == "inactive" else status,
-            "subscription_id": str(data.get("subscription_id") or previous.get("subscription_id") or ""),
+            "plan": plan,
+            "status": event_status,
+            "subscription_id": subscription_id or previous.get("subscription_id", ""),
+            "customer_id": str((data.get("customer") or {}).get("customer_id") or previous.get("customer_id") or ""),
             "subscription_expires_at": expiry_value or previous.get("subscription_expires_at"),
-            "updated_at": datetime.now(timezone.utc).isoformat(),
+            "updated_at": str(payload.get("timestamp") or datetime.now(timezone.utc).isoformat()),
+            "last_event_id": wid,
         }
-        if username in user_profiles:
-            user_profiles[username]["subscription_plan"] = billing_store[username]["plan"]
-            user_profiles[username]["subscription_status"] = billing_store[username]["status"]
-            user_profiles[username]["subscription_expires_at"] = billing_store[username].get("subscription_expires_at")
-        activity_log.insert(0, {"type": "billing_" + etype.split(".")[-1], "username": username, "at": datetime.now(timezone.utc).isoformat(), "plan": plan})
+        user_profiles[username]["subscription_plan"] = plan
+        user_profiles[username]["subscription_status"] = event_status
+        user_profiles[username]["subscription_expires_at"] = billing_store[username].get("subscription_expires_at")
+        activity_log.insert(0, {
+            "type": "billing_" + etype.split(".")[-1],
+            "username": username,
+            "at": datetime.now(timezone.utc).isoformat(),
+            "plan": plan,
+        })
+    elif etype in {"payment.failed", "payment.cancelled", "payment.processing"}:
+        # Payment events are audit/reconciliation signals only. Access is granted
+        # by verified subscription lifecycle events, never by a browser redirect.
+        activity_log.insert(0, {
+            "type": "billing_" + etype.replace(".", "_"),
+            "username": username if username in user_profiles else "",
+            "at": datetime.now(timezone.utc).isoformat(),
+            "payment_id": str(data.get("payment_id") or ""),
+        })
+
     billing_events[wid] = int(time.time())
     if len(billing_events) > 500:
         for old in sorted(billing_events, key=billing_events.get)[:100]:
             billing_events.pop(old, None)
-    _db_save()
+    try:
+        _db_save()
+    except Exception:
+        billing_events.pop(wid, None)
+        raise
     return {"received": True}
 
 
