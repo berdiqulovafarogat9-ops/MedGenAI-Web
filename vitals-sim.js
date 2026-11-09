@@ -41,7 +41,7 @@
     var embedded = !!(targetRoot && targetRoot.nodeType === 1);
     if (embedded && activeEmbeddedClose) activeEmbeddedClose();
     var overlay = embedded ? null : el("div", "position:fixed;inset:0;background:rgba(0,0,0,.75);display:flex;align-items:center;justify-content:center;z-index:99999");
-    var embeddedCardStyle = CARD.replace("width:min(96vw,640px);max-height:94vh;", "width:100%;max-height:none;") + ";box-sizing:border-box";
+    var embeddedCardStyle = CARD.replace("width:min(98vw,1480px);max-height:96vh;", "width:100%;max-height:none;") + ";box-sizing:border-box";
     var card = el("div", embedded ? embeddedCardStyle : CARD);
     if (embedded) {
       targetRoot.innerHTML = "";
@@ -171,11 +171,11 @@
       var patientCard = el("div", "margin-bottom:12px");
       patientCard.appendChild(el("h4", "", "Bemor kartasi"));
       patientCard.appendChild(el("div", "font-weight:800;font-size:15px;color:#e8f0f6;margin-bottom:6px", c.title || "Klinik keys"));
-      patientCard.appendChild(el("div", "medgen-clinical-meta", "Keys: " + (c.id || "—") + " · Daraja: " + (c.level || "—")));
+      var patientMeta = el("div", "", "Keys: " + (c.id || "—") + " · Daraja: " + (c.level || "—")); patientMeta.className = "medgen-clinical-meta"; patientCard.appendChild(patientMeta);
       var storyCard = el("div", "");
       storyCard.appendChild(el("h4", "", "Klinik vaziyat"));
-      storyCard.appendChild(el("div", "medgen-clinical-story", c.story || "Klinik vaziyat tavsifi mavjud emas."));
-      storyCard.appendChild(el("div", "medgen-clinical-disclaimer", "Ta’limiy simulyatsiya. Bu panel haqiqiy bemor monitoringi yoki tibbiy qaror o‘rnini bosmaydi."));
+      var storyText = el("div", "", c.story || "Klinik vaziyat tavsifi mavjud emas."); storyText.className = "medgen-clinical-story"; storyCard.appendChild(storyText);
+      var disclaimer = el("div", "", "Ta’limiy simulyatsiya. Bu panel haqiqiy bemor monitoringi yoki tibbiy qaror o‘rnini bosmaydi."); disclaimer.className = "medgen-clinical-disclaimer"; storyCard.appendChild(disclaimer);
       leftInner.appendChild(patientCard); leftInner.appendChild(storyCard);
       var centerHeading = el("h4", "", "Bemor monitori va 3D klinika");
       centerDock.appendChild(centerHeading);
