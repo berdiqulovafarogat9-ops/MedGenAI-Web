@@ -20,7 +20,9 @@ class Engine:
 
 @pytest.mark.parametrize('save_failure', [False, True])
 def test_energy_columns_save_and_cleanup(client, monkeypatch, save_failure):
-    _, headers = ready_user(client)
+    username, headers = ready_user(client)
+    api.user_profiles[username]['role'] = 'researcher'
+    api.totp_store[username] = {'enabled': True}
     monkeypatch.setattr(api, 'VINA_AVAILABLE', True)
     monkeypatch.setattr(api, 'Vina', Engine, raising=False)
     monkeypatch.setattr(api, 'docking_jobs_store', {})
