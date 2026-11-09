@@ -328,7 +328,6 @@
         examItem("🧪","ABG","Arterial qon gazlari",function(){showResult("ABG — ushbu keysda laboratoriya natijasi alohida serverdan olinmaydi. Simulyatsiya ko‘rsatkichlarini klinik kontekstda baholang.");});
         examItem("📈","EKG","12-kanalli elektrokardiografiya",function(){showResult("Mavjud monitor EKGsi simulyatsion ritmni ko‘rsatadi. 12-kanalli diagnostik EKG yozuvi bu keysda alohida yaratilmagan.");});
         examItem("🩻","Rentgen","Ko‘krak qafasi rentgeni",function(){showResult("Rentgen tasviri ushbu keys uchun ulanmagan; tasvir yoki radiologik xulosa mavjud emas.");});
-        examItem("🖥️","UZI — o‘quv maketi","Portativ ultratovush apparati",function(){showResult("UZI apparati 3D sahnada ko‘rsatilgan. Ekrandagi tasvir dekorativ o‘quv maketi; bemorga tegishli real ultratovush tekshiruvi yoki diagnostik xulosa emas.");});
                 try {
           var sc=new THREE.Scene(); sc.background=new THREE.Color(0x071521);
           var cam=new THREE.PerspectiveCamera(38,1,0.1,100); cam.position.set(0,1.8,2.2); cam.lookAt(0,1.0,0);
@@ -540,24 +539,6 @@
         var style=document.createElement("style");
         style.textContent=`
           .fc-workspace{height:100vh;width:100%;max-height:100vh;display:flex;flex-direction:column;overflow:hidden;background:#080d14;color:#e2e8f0;box-sizing:border-box;font-family:system-ui,sans-serif}
-          .fc-topbar{position:absolute;z-index:8;top:0;left:0;right:0;height:42px;min-height:42px;background:linear-gradient(180deg,rgba(4,10,17,.82),rgba(4,10,17,.12));border:0;pointer-events:none}
-          .fc-topbar button,.fc-topbar .fc-clock-box{pointer-events:auto}
-          .fc-main-grid{display:block;position:absolute;inset:0;width:100%;height:100%;padding:0}
-          .fc-dock-left{display:none!important}
-          .fc-center-stage{position:absolute;inset:0;width:100%;height:100%;z-index:1}
-          .fc-three-viewport{position:absolute;inset:0!important;width:100%!important;height:100%!important}
-          .fc-floating-monitor{top:54px;left:16px;width:min(360px,calc(100% - 32px));background:rgba(5,12,20,.72);backdrop-filter:blur(16px);border:1px solid rgba(56,189,248,.34);border-radius:14px;box-shadow:0 14px 42px #0008}
-          .fc-dock-right{position:absolute;z-index:20;top:0;right:0;bottom:0;width:min(370px,88vw);display:flex!important;transform:translateX(105%);transition:transform .28s cubic-bezier(.2,.8,.2,1);background:rgba(7,14,23,.94);backdrop-filter:blur(18px);border-left:1px solid #ffffff22;box-shadow:-18px 0 55px #0008}
-          .fc-dock-right.fc-drawer-open{transform:translateX(0)}
-          .fc-vert-tabs{width:64px;flex-basis:64px;padding-top:54px}
-          .fc-tab-panes{padding:62px 12px 88px}
-          .fc-bottom-dock{position:absolute;z-index:15;left:50%;bottom:max(14px,env(safe-area-inset-bottom));transform:translateX(-50%);display:flex;align-items:center;gap:7px;padding:9px 12px;border:1px solid #ffffff26;border-radius:28px;background:rgba(7,15,25,.78);backdrop-filter:blur(18px);box-shadow:0 12px 36px #0009;max-width:calc(100% - 18px);overflow-x:auto}
-          .fc-bottom-dock button{min-width:58px;border:0;background:transparent;color:#d9e6ef;display:flex;flex-direction:column;align-items:center;gap:4px;font:600 10px system-ui;white-space:nowrap;padding:2px 5px;cursor:pointer}
-          .fc-bottom-dock .fc-dock-icon{width:38px;height:38px;border-radius:50%;display:grid;place-items:center;background:#ffffff12;border:1px solid #ffffff22;font-size:17px}
-          .fc-bottom-dock button.fc-dock-primary .fc-dock-icon{background:#0369a1;border-color:#38bdf8;box-shadow:0 0 18px #0284c766}
-          .fc-drawer-scrim{display:none;position:absolute;inset:0;z-index:18;background:#0005}
-          .fc-workspace.fc-drawer-active .fc-drawer-scrim{display:block}
-          @media(max-width:600px){.fc-floating-monitor{top:46px;left:8px;width:min(310px,calc(100% - 16px));padding:6px}.fc-bottom-dock{gap:2px;padding:7px 6px}.fc-bottom-dock button{min-width:49px;font-size:9px}.fc-bottom-dock .fc-dock-icon{width:34px;height:34px}.fc-tab-panes{padding-left:8px;padding-right:8px}}
           .fc-topbar{height:52px;min-height:52px;display:flex;align-items:center;justify-content:space-between;gap:12px;padding:0 14px;background:#0f172a;border-bottom:1px solid #1e293b;box-sizing:border-box}
           .fc-topbar-left,.fc-topbar-right{display:flex;align-items:center;gap:10px;min-width:0}
           .fc-badge-crit{background:#b91c1c;color:#fff;font-size:10px;font-weight:800;padding:4px 8px;border-radius:4px;white-space:nowrap}
@@ -600,22 +581,6 @@
           .fc-workspace .medgen-clinical-disclaimer{font-size:10px}
           @media(max-width:1050px){.fc-main-grid{grid-template-columns:minmax(190px,230px) minmax(0,1fr) minmax(255px,285px)}}
           @media(max-width:760px){.fc-workspace{height:100dvh;max-height:100dvh}.fc-topbar{height:48px;min-height:48px;padding:0 8px}.fc-case-name{font-size:11px}.fc-main-grid{grid-template-columns:minmax(0,1fr);grid-template-rows:minmax(110px,22%) minmax(250px,1fr) minmax(180px,34%)}.fc-dock-left{border-right:0;border-bottom:1px solid #1e293b}.fc-left-scroll{display:grid;grid-template-columns:repeat(2,minmax(0,1fr))}.fc-center-stage{grid-row:2}.fc-dock-right{grid-row:3;border-left:0;border-top:1px solid #1e293b}.fc-vert-tabs{width:46px;flex-basis:46px}.fc-floating-monitor{width:min(300px,calc(100% - 16px));top:6px;left:8px}.fc-v-item strong{font-size:14px}}
-          /* FINAL Full Code layout override: prevent legacy three-column rules
-             from shrinking the live 3D viewport on tablet/mobile. */
-          .fc-workspace{position:relative!important;display:block!important;width:100%!important;height:100dvh!important;min-height:100dvh!important;max-height:100dvh!important;overflow:hidden!important}
-          .fc-topbar{position:absolute!important;top:0!important;left:0!important;right:0!important;z-index:30!important}
-          .fc-main-grid{display:block!important;position:absolute!important;inset:0!important;width:100%!important;height:100%!important;padding:0!important;margin:0!important;overflow:hidden!important}
-          .fc-dock-left{display:none!important}
-          .fc-center-stage{display:block!important;position:absolute!important;inset:0!important;width:100%!important;height:100%!important;min-width:0!important;min-height:0!important;overflow:hidden!important}
-          .fc-three-viewport{position:absolute!important;inset:0!important;width:100%!important;height:100%!important;min-width:0!important;min-height:0!important;z-index:1!important}
-          .fc-three-viewport canvas{display:block!important;width:100%!important;height:100%!important}
-          .fc-dock-right{position:absolute!important;top:0!important;right:0!important;bottom:0!important;left:auto!important;width:min(370px,88vw)!important;height:100%!important;z-index:40!important;display:flex!important;transform:translateX(105%)!important;transition:transform .28s ease!important;border-left:1px solid #ffffff22!important;border-top:0!important}
-          .fc-dock-right.fc-drawer-open{transform:translateX(0)!important}
-          .fc-vert-tabs{width:64px!important;flex:0 0 64px!important}
-          .fc-drawer-scrim{position:absolute!important;inset:0!important;z-index:35!important}
-          .fc-workspace.fc-drawer-active .fc-drawer-scrim{display:block!important}
-          .fc-bottom-dock{position:absolute!important;z-index:32!important;left:50%!important;bottom:max(14px,env(safe-area-inset-bottom))!important;transform:translateX(-50%)!important}
-
         `;
         card.appendChild(style);
         var workspace=el("div","");workspace.className="fc-workspace";
@@ -662,10 +627,7 @@
         var paneInvestigate=el("div","");paneInvestigate.className="fc-pane";paneInvestigate.id="fc-pane-investigate";
         var paneAudit=el("div","");paneAudit.className="fc-pane";paneAudit.id="fc-pane-audit";
         var paneHandoff=el("div","");paneHandoff.className="fc-pane";paneHandoff.id="fc-pane-handoff";
-        var paneDialog=el("div","");paneDialog.className="fc-pane";paneDialog.id="fc-pane-dialog";
-        paneDialog.appendChild(el("h4","","Bemor bilan muloqot"));
-        if(dialogueCard)paneDialog.appendChild(dialogueCard);
-        function tab(key,label,icon){var b=el("button","",icon+"  "+label);b.type="button";b.className="fc-v-tab"+(key==="intervene"?" active":"");b.onclick=function(){[paneIntervene,paneInvestigate,paneAudit,paneHandoff,paneDialog].forEach(function(p){p.classList.toggle("active",p.id==="fc-pane-"+key);});nav.querySelectorAll("button").forEach(function(x){x.classList.toggle("active",x===b);});};nav.appendChild(b);}
+        function tab(key,label,icon){var b=el("button","",icon+"  "+label);b.type="button";b.className="fc-v-tab"+(key==="intervene"?" active":"");b.onclick=function(){[paneIntervene,paneInvestigate,paneAudit,paneHandoff].forEach(function(p){p.classList.toggle("active",p.id==="fc-pane-"+key);});nav.querySelectorAll("button").forEach(function(x){x.classList.toggle("active",x===b);});};nav.appendChild(b);}
         tab("intervene","Muolaja","💉");tab("investigate","Tekshiruv","🔍");tab("audit","Jurnal","📑");tab("handoff","Topshirish","📋");
         paneIntervene.appendChild(el("h4","","Shoshilinch muolajalar"));
         if(actionsBox){actionsBox.style.display="flex";actionsBox.style.flexDirection="column";paneIntervene.appendChild(actionsBox);}
@@ -676,27 +638,10 @@
         if(logBox){logBox.className="fc-clinical-log";paneAudit.appendChild(logBox);}
         paneHandoff.appendChild(el("h4","","Topshirish / yakunlash"));
         if(endBox)paneHandoff.appendChild(endBox);
-        panes.appendChild(paneIntervene);panes.appendChild(paneInvestigate);panes.appendChild(paneAudit);panes.appendChild(paneHandoff);panes.appendChild(paneDialog);
+        panes.appendChild(paneIntervene);panes.appendChild(paneInvestigate);panes.appendChild(paneAudit);panes.appendChild(paneHandoff);
         right.appendChild(nav);right.appendChild(panes);
         main.appendChild(left);main.appendChild(center);main.appendChild(right);
-        var scrim=el("div","");scrim.className="fc-drawer-scrim";
-        scrim.onclick=function(){right.classList.remove("fc-drawer-open");workspace.classList.remove("fc-drawer-active");};
-        var bottomDock=el("nav","");bottomDock.className="fc-bottom-dock";bottomDock.setAttribute("aria-label","Klinik amallar");
-        [["💬","Muloqot",0],["🔍","Tekshiruv",1],["💉","Muolaja",0],["📋","Jurnal",2],["🏁","Topshirish",3]].forEach(function(item){
-          var b=el("button","");b.type="button";if(item[1]==="Muolaja")b.className="fc-dock-primary";
-          var ic=el("span","",item[0]);ic.className="fc-dock-icon";b.appendChild(ic);b.appendChild(el("span","",item[1]));
-          b.onclick=function(){
-            if(item[1]==="Muloqot"){
-              [paneIntervene,paneInvestigate,paneAudit,paneHandoff,paneDialog].forEach(function(p){p.classList.toggle("active",p===paneDialog);});
-            }else{
-              var tabIndex=item[2];
-              var tabs=nav.querySelectorAll("button");if(tabs[tabIndex])tabs[tabIndex].click();
-            }
-            right.classList.add("fc-drawer-open");workspace.classList.add("fc-drawer-active");
-          };
-          bottomDock.appendChild(b);
-        });
-        workspace.appendChild(top);workspace.appendChild(main);workspace.appendChild(scrim);workspace.appendChild(bottomDock);
+        workspace.appendChild(top);workspace.appendChild(main);
         shell.remove();
         card.appendChild(workspace);
         // Move the existing renderer canvases only; renderer, camera, scene and RAF remain untouched.
