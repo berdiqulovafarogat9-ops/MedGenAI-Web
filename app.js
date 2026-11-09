@@ -5455,7 +5455,7 @@ async function loadSecurityCenter() {
     const status=$('securityStatus');if(status)status.textContent='';
   } catch(error) {
     const status=$('securityStatus');if(status)status.textContent=tx('sessionLoadFailed')+' '+error.message;
-    grid.innerHTML='<div class="security-card"><strong>Faol sessiyalar</strong><p>Haqiqiy sessiya ro‘yxati hozircha yuklanmadi. Qayta urinib ko‘ring.</p><button type="button" class="ghost small" id="retrySessions">Qayta yuklash</button></div>';
+    grid.innerHTML='<div class="security-card"><strong>'+esc(tx('sessionsTitle'))+'</strong><p>'+esc(tx('noRealSessions'))+'</p><button type="button" class="ghost small" id="retrySessions">'+esc(tx('retry'))+'</button></div>';
     $('retrySessions')?.addEventListener('click',loadSecurityCenter);
   }
 }
