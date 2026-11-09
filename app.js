@@ -1476,7 +1476,7 @@ async function saveProfile() {
       birth_month: birthMonthRaw ? Number(birthMonthRaw) : null,
       birth_day: birthDayRaw ? Number(birthDayRaw) : null,
       research_interests: $('profileInterests')?.value?.trim() || '',
-      bio: $('profileBio')?.value?.trim() || '',
+      bio: String($('profileBio')?.value ?? '').trim(),
       avatar: savedAvatar
     };
 
