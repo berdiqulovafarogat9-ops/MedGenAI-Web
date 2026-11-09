@@ -600,6 +600,22 @@
           .fc-workspace .medgen-clinical-disclaimer{font-size:10px}
           @media(max-width:1050px){.fc-main-grid{grid-template-columns:minmax(190px,230px) minmax(0,1fr) minmax(255px,285px)}}
           @media(max-width:760px){.fc-workspace{height:100dvh;max-height:100dvh}.fc-topbar{height:48px;min-height:48px;padding:0 8px}.fc-case-name{font-size:11px}.fc-main-grid{grid-template-columns:minmax(0,1fr);grid-template-rows:minmax(110px,22%) minmax(250px,1fr) minmax(180px,34%)}.fc-dock-left{border-right:0;border-bottom:1px solid #1e293b}.fc-left-scroll{display:grid;grid-template-columns:repeat(2,minmax(0,1fr))}.fc-center-stage{grid-row:2}.fc-dock-right{grid-row:3;border-left:0;border-top:1px solid #1e293b}.fc-vert-tabs{width:46px;flex-basis:46px}.fc-floating-monitor{width:min(300px,calc(100% - 16px));top:6px;left:8px}.fc-v-item strong{font-size:14px}}
+          /* FINAL Full Code layout override: prevent legacy three-column rules
+             from shrinking the live 3D viewport on tablet/mobile. */
+          .fc-workspace{position:relative!important;display:block!important;width:100%!important;height:100dvh!important;min-height:100dvh!important;max-height:100dvh!important;overflow:hidden!important}
+          .fc-topbar{position:absolute!important;top:0!important;left:0!important;right:0!important;z-index:30!important}
+          .fc-main-grid{display:block!important;position:absolute!important;inset:0!important;width:100%!important;height:100%!important;padding:0!important;margin:0!important;overflow:hidden!important}
+          .fc-dock-left{display:none!important}
+          .fc-center-stage{display:block!important;position:absolute!important;inset:0!important;width:100%!important;height:100%!important;min-width:0!important;min-height:0!important;overflow:hidden!important}
+          .fc-three-viewport{position:absolute!important;inset:0!important;width:100%!important;height:100%!important;min-width:0!important;min-height:0!important;z-index:1!important}
+          .fc-three-viewport canvas{display:block!important;width:100%!important;height:100%!important}
+          .fc-dock-right{position:absolute!important;top:0!important;right:0!important;bottom:0!important;left:auto!important;width:min(370px,88vw)!important;height:100%!important;z-index:40!important;display:flex!important;transform:translateX(105%)!important;transition:transform .28s ease!important;border-left:1px solid #ffffff22!important;border-top:0!important}
+          .fc-dock-right.fc-drawer-open{transform:translateX(0)!important}
+          .fc-vert-tabs{width:64px!important;flex:0 0 64px!important}
+          .fc-drawer-scrim{position:absolute!important;inset:0!important;z-index:35!important}
+          .fc-workspace.fc-drawer-active .fc-drawer-scrim{display:block!important}
+          .fc-bottom-dock{position:absolute!important;z-index:32!important;left:50%!important;bottom:max(14px,env(safe-area-inset-bottom))!important;transform:translateX(-50%)!important}
+
         `;
         card.appendChild(style);
         var workspace=el("div","");workspace.className="fc-workspace";
