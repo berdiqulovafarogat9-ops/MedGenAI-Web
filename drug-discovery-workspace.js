@@ -228,17 +228,17 @@
     const lip = data.lipinski || {};
     const score = Number(data.affinity_kcal_mol);
     const rows = [
-      ["Molekulyar og‘irlik (MW)", lip.mw, "Da", Number(lip.mw) < 500],
-      ["Lipofillik (LogP)", lip.logp, "", Number(lip.logp) < 5],
-      ["Vodorod donori (HBD)", lip.hbd, "", Number(lip.hbd) < 5],
-      ["Vodorod akseptori (HBA)", lip.hba, "", Number(lip.hba) < 10]
+      ["Molekulyar og‘irlik (MW ≤ 500)", lip.mw, "Da", Number(lip.mw) <= 500],
+      ["Lipofillik (LogP ≤ 5)", lip.logp, "", Number(lip.logp) <= 5],
+      ["Vodorod donori (HBD ≤ 5)", lip.hbd, "", Number(lip.hbd) <= 5],
+      ["Vodorod akseptori (HBA ≤ 10)", lip.hba, "", Number(lip.hba) <= 10]
     ];
     const contacts = Array.isArray(data.catalytic_contacts) ? data.catalytic_contacts : [];
     const contactText = contacts.length
       ? contacts.map(x => esc(typeof x === "string" ? x : (x.residue || x.name || JSON.stringify(x)))).join(", ")
       : "Asp25 / Asp25′ bilan vodorod bog‘i atom-darajasida alohida tasdiqlanmadi.";
     let html = '<div class="mgdd-metric-grid" style="display:grid;grid-template-columns:repeat(auto-fit,minmax(210px,1fr));gap:12px;margin:12px 0">';
-    html += '<article class="mgdd-pose" style="padding:16px;border:1px solid #1d7656;border-radius:14px;background:#06251d"><small style="color:#9bd8bd">Bog‘lanish energiyasi · ΔG</small><div style="font-size:34px;font-weight:900;color:#4ade80">' + (Number.isFinite(score) ? score.toFixed(2) + ' kkal/mol' : '—') + '</div><small style="color:#b8d7c8">' + esc(sourceLabel || data.engine || "AutoDock Vina") + '</small></article>';
+    html += '<article class="mgdd-pose" style="padding:16px;border:1px solid #1d7656;border-radius:14px;background:#06251d"><small style="color:#9bd8bd">Vina afiniteti · ΔG bashorati</small><div style="font-size:34px;font-weight:900;color:#4ade80">' + (Number.isFinite(score) ? score.toFixed(2) + ' kkal/mol' : '—') + '</div><small style="color:#b8d7c8">' + esc(sourceLabel || data.engine || "AutoDock Vina") + '</small></article>';
     html += '<article class="mgdd-pose" style="padding:16px;border:1px solid #29465d;border-radius:14px"><b>Lipinski — Rule of Five</b>';
     rows.forEach(row => {
       const valid = row[3];
