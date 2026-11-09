@@ -118,12 +118,14 @@
       out.innerHTML = "";
       var ok = job.results.filter(function (r) { return r.affinity_kcal_mol !== undefined; });
       var bad = job.results.filter(function (r) { return r.affinity_kcal_mol === undefined; });
-      var table = el("table", "width:100%;border-collapse:collapse;font-size:13px");
-      var head = el("tr"); ["#", "Ligand", "Affinity (kkal/mol)"].forEach(function (h) { head.appendChild(el("th", "text-align:left;border-bottom:1px solid #24394d;padding:6px", h)); });
+      var table = el("table", "width:100%;border-collapse:collapse;font-size:12px;min-width:620px");
+      var head = el("tr"); ["#", "Ligand", "Vina afiniteti (kkal/mol)", "MW (Da)", "LogP", "HBD", "HBA", "Lipinski"].forEach(function (h) { head.appendChild(el("th", "text-align:left;border-bottom:1px solid #24394d;padding:6px", h)); });
       table.appendChild(head);
       ok.forEach(function (r) {
+        var lip = r.lipinski || {};
+        var values = [r.rank, r.name, r.affinity_kcal_mol.toFixed(2), lip.mw == null ? "—" : lip.mw, lip.logp == null ? "—" : lip.logp, lip.hbd == null ? "—" : lip.hbd, lip.hba == null ? "—" : lip.hba, lip.mw == null ? "SMILES yo‘q" : (lip.is_drug_like ? "Mos ✓" : "Cheklov bor")];
         var tr = el("tr");
-        [r.rank, r.name, r.affinity_kcal_mol.toFixed(2)].forEach(function (v) { tr.appendChild(el("td", "padding:6px;border-bottom:1px solid #1d3042", String(v))); });
+        values.forEach(function (v, idx) { tr.appendChild(el("td", "padding:6px;border-bottom:1px solid #1d3042;white-space:nowrap" + (idx === 7 ? ";color:" + (lip.is_drug_like ? "#4ade80" : "#fbbf24") : ""), String(v))); });
         table.appendChild(tr);
       });
       var summary = el("div", "display:grid;grid-template-columns:repeat(auto-fit,minmax(180px,1fr));gap:8px;margin:10px 0");
