@@ -719,7 +719,7 @@ async def account_readiness_guard(request: Request, call_next):
         "/api/v1/auth/logout", "/api/v1/auth/sessions", "/api/v1/auth/sessions/terminate-others", "/api/v1/account", "/api/v1/profile", "/api/v1/billing/webhook",
         "/api/v1/auth/verify-email",
     }
-    if REQUIRE_2FA_ROLES and path not in mfa_exempt and not path.startswith("/api/v1/auth/2fa/"):
+    if REQUIRE_2FA_ROLES and path not in mfa_exempt and not path.startswith("/api/v1/auth/2fa/") and not path.startswith("/api/v1/auth/sessions"):
         _hdr = request.headers.get("authorization", "")
         _tok = _hdr[7:].strip() if _hdr.lower().startswith("bearer ") else ""
         _usr = tokens.get(_tok)
