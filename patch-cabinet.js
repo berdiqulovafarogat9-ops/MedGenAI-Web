@@ -38,11 +38,15 @@
 
   function applyTextCleanup() {
     document.querySelectorAll('[data-i18n="privateDevelopment"]').forEach(el => {
-      el.textContent = 'MEDGEN AI · BIOMEDICAL PLATFORM';
+      if (el.textContent !== 'MEDGEN AI · BIOMEDICAL PLATFORM') {
+        el.textContent = 'MEDGEN AI · BIOMEDICAL PLATFORM';
+      }
       el.style.letterSpacing = '.08em';
     });
     document.querySelectorAll('[data-i18n="privateResearch"]').forEach(el => {
-      el.textContent = 'VIRTUAL MEDICAL EDUCATION & RESEARCH';
+      if (el.textContent !== 'VIRTUAL MEDICAL EDUCATION & RESEARCH') {
+        el.textContent = 'VIRTUAL MEDICAL EDUCATION & RESEARCH';
+      }
     });
 
     const phone = document.querySelector('#registerPhone');
@@ -50,7 +54,7 @@
       phone.required = false;
       const label = phone.closest('label');
       const caption = label && label.querySelector('span');
-      if (caption) caption.textContent = 'Phone number (optional)';
+      if (caption && caption.textContent !== 'Phone number (optional)') caption.textContent = 'Phone number (optional)';
     }
     updateAcademicVisibility();
   }
