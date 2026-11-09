@@ -120,7 +120,7 @@
       }).catch(function (e) { list.appendChild(el("p", "color:#ff8a8a", e.message)); });
     }
 
-    var hud, tiles = {}, canvas, actionsBox, logBox, endBox, handoffFinishBtn = null;
+    var hud, tiles = {}, canvas, actionsBox, logBox, endBox, handoffFinishBtn = null, fullCodeSetTab = null;
     function start(c) {
       card.innerHTML = ""; card.appendChild(alertBox);
       var uiStyle = document.createElement("style");
@@ -156,26 +156,9 @@
         Object.keys(tabButtons).forEach(function(key) {
           tabButtons[key].setAttribute("aria-selected", key === name ? "true" : "false");
         });
-        // Keep the active Full Code pane in sync with the legacy router.
-        if (typeof paneIntervene !== "undefined" && paneIntervene) {
-          var fullPanes = {
-            actions: paneIntervene,
-            investigate: paneInvestigate,
-            log: paneAudit,
-            handoff: paneHandoff
-          };
-          [paneIntervene, paneInvestigate, paneAudit, paneHandoff].forEach(function(p) {
-            if (!p) return;
-            var active = fullPanes[name] === p;
-            p.classList.toggle("active", active);
-            p.style.display = active ? "flex" : "none";
-          });
-          if (typeof nav !== "undefined" && nav) {
-            nav.querySelectorAll(".fc-v-tab").forEach(function(b) {
-              b.classList.toggle("active", b.getAttribute("data-tab") === name);
-            });
-          }
-        }
+        // Full Code panes live inside mountFullCodeView's own closure.
+        // Route through its explicit bridge instead of referencing inaccessible locals.
+        if (typeof fullCodeSetTab === "function") fullCodeSetTab(name);
       }
       [["actions","Tekshiruv / Muolaja"],["log","Jarayon jurnali"],["handoff","Topshirish"]].forEach(function(item) {
         var b = el("button", "", item[1]); b.type = "button"; b.className = "medgen-clinical-tab";
@@ -651,6 +634,23 @@
         var paneInvestigate=el("div","");paneInvestigate.className="fc-pane";paneInvestigate.id="fc-pane-investigate";
         var paneAudit=el("div","");paneAudit.className="fc-pane";paneAudit.id="fc-pane-audit";
         var paneHandoff=el("div","");paneHandoff.className="fc-pane";paneHandoff.id="fc-pane-handoff";
+        fullCodeSetTab = function(name) {
+          var panesByName = {
+            actions: paneIntervene,
+            investigate: paneInvestigate,
+            log: paneAudit,
+            handoff: paneHandoff
+          };
+          [paneIntervene, paneInvestigate, paneAudit, paneHandoff].forEach(function(p) {
+            var active = panesByName[name] === p;
+            p.classList.toggle("active", active);
+            p.style.display = active ? "flex" : "none";
+          });
+          nav.querySelectorAll(".fc-v-tab").forEach(function(b) {
+            b.classList.toggle("active", b.getAttribute("data-tab") ===
+              (name === "actions" ? "intervene" : name === "log" ? "audit" : name));
+          });
+        };
         function tab(key,label,icon){var b=el("button","",icon+"  "+label);b.type="button";b.className="fc-v-tab"+(key==="intervene"?" active":"");b.setAttribute("data-tab",key);b.onclick=function(){setRightTab(key==="intervene"?"actions":key==="investigate"?"investigate":key==="audit"?"log":"handoff");};nav.appendChild(b);}
         tab("intervene","Muolaja","💉");tab("investigate","Tekshiruv","🔍");tab("audit","Jurnal","📑");tab("handoff","Topshirish","📋");
         paneIntervene.appendChild(el("h4","","Shoshilinch muolajalar"));
