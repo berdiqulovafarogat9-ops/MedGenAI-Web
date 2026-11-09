@@ -4248,7 +4248,20 @@ function bindRoleRegistration(){
   grid?.querySelectorAll('.role-choice').forEach(btn=>btn.addEventListener('click',()=>{
     grid.querySelectorAll('.role-choice').forEach(x=>x.classList.remove('selected'));
     btn.classList.add('selected'); if(hidden) hidden.value=btn.dataset.role;
-    if(status) status.textContent='Tanlandi: '+(MEDGEN_ROLES[btn.dataset.role]?.title||btn.dataset.role);
+    if(status) {
+      const roleKey = btn.dataset.role;
+      const roleEn = ({
+        student:'Student', doctor:'Physician', researcher:'Researcher',
+        professor:'Professor', lab:'Laboratory Specialist', biotech:'Biotechnologist',
+        pharma:'Pharma / Drug Discovery', bioinformatician:'Bioinformatician',
+        hospital:'Hospital / Clinic', company:'Biotech / Pharma Company'
+      })[roleKey] || roleKey;
+      const roleLocal = MEDGEN_ROLES[roleKey]?.title || roleKey;
+      const lang = typeof getLanguage === 'function' ? getLanguage() : 'uz';
+      status.textContent = lang === 'en' ? `Selected: ${roleEn}`
+        : lang === 'ru' ? `Выбрано: ${roleEn}`
+        : 'Tanlandi: ' + roleLocal;
+    }
   }));
 }
 
