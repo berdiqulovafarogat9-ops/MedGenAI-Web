@@ -814,8 +814,17 @@
           if (typeof window.submitStudentScore === "function") {
             await window.submitStudentScore(rep.score, "Patient_" + sim.def.id);
           }
+          // Show the authoritative backend audit report only.
+          // Do not place the legacy white learning-summary overlay above it.
+          if (epicrisisOverlay) {
+            epicrisisOverlay.remove();
+            epicrisisOverlay = null;
+            epicrisisScoreLabel = null;
+          }
+          document.querySelectorAll("#medgen-epikriz-modal, .learning-summary-modal").forEach(function(node) {
+            node.remove();
+          });
           showReport(rep);
-          showJasurEpicrisis();
         } catch (e) { submit.disabled = false; alertBox.style.background = "#b00020"; flash(e.message); }
       };
       endBox.appendChild(submit);
