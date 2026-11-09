@@ -676,7 +676,7 @@
  ['Hello! Ask a question about the MedGen AI platform.','Salom! MedGen AI platformasi bo‘yicha savolingizni yozing.','Здравствуйте! Задайте вопрос о платформе MedGen AI.'],
  ['This room is for members of your role.','Bu yopiq xona faqat sizning rolingiz uchun.','Эта комната доступна участникам вашей роли.'],
  ['No messages yet — start the conversation.','Hozircha xabar yo‘q — birinchi bo‘lib yozing.','Сообщений пока нет — начните разговор.'],
- ['Loading…','Yuklanmoqda...','Загрузка…'],['Run Scientific Workflow','Ilmiy jarayonni boshlash','Запустить научный процесс']
+ ['Loading…','Yuklanmoqda...','Загрузка…'],['Run Scientific Workflow','Ilmiy jarayonni boshlash','Запустить научный процесс'],
  ["Country code (ISO-2)","Mamlakat kodi (ISO-2)","Код страны (ISO-2)"],
  ["Two-letter country code, for example UZ or US.","Ikki harfli mamlakat kodi, masalan UZ yoki US.","Двухбуквенный код страны, например UZ или US."],
  ["PRIVATE • DEVELOPMENT","XUSUSIY • ISHLAB CHIQISH","ЧАСТНАЯ • РАЗРАБОТКА"],
