@@ -156,6 +156,7 @@ DODO_API_KEY = os.getenv("DODO_API_KEY", "").strip()
 DODO_ENV = os.getenv("DODO_ENV", "test").strip().lower()
 DODO_WEBHOOK_SECRET = os.getenv("DODO_WEBHOOK_SECRET", "").strip()
 BILLING_PLANS = {
+    "student": {"label": "Student", "product_id": os.getenv("DODO_PRODUCT_STUDENT", "").strip()},
     "pro": {"label": "Pro (Researcher)", "product_id": os.getenv("DODO_PRODUCT_PRO", "").strip()},
     "enterprise": {"label": "Enterprise (Pharma)", "product_id": os.getenv("DODO_PRODUCT_ENTERPRISE", "").strip()},
 }
