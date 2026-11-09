@@ -655,3 +655,12 @@ html[data-theme] a { color: var(--accent); }
 .subscription-plan button:disabled{opacity:.45;cursor:not-allowed}
 .subscription-notice{color:var(--muted);font-size:12px;line-height:1.5}
 @media(max-width:560px){.subscription-dialog{padding:17px}.subscription-plan{align-items:stretch;flex-direction:column}.subscription-plan .primary{width:100%}.subscription-header h2{font-size:20px}}
+
+
+.subscription-usage{margin:18px 0;padding:16px;border:1px solid var(--line);border-radius:16px;background:var(--surface)}
+.subscription-usage h3{margin:0 0 12px;font-size:16px}
+.subscription-quota{margin:12px 0}
+.subscription-quota-head{display:flex;justify-content:space-between;align-items:center;gap:12px;color:var(--text);font-size:12px}
+.subscription-quota-head span{color:var(--muted);white-space:nowrap;font-variant-numeric:tabular-nums}
+.subscription-quota-track{height:7px;margin-top:7px;overflow:hidden;border-radius:999px;background:var(--surface-alt)}
+.subscription-quota-track i{display:block;height:100%;border-radius:inherit;background:var(--accent)}
