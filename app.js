@@ -5364,6 +5364,7 @@ function initProfileLocationSelectors(){
 async function loadSecurityCenter() {
   const grid = $('securityGrid');
   if (!grid) return;
+  const tx = key => window.medgenText?.(key) || key;
   const esc = value => String(value ?? '').replace(/[&<>"']/g, ch => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[ch]));
   const fmt = value => {
     if (!value) return '—';
@@ -5376,19 +5377,19 @@ async function loadSecurityCenter() {
     const others = sessions.filter(x=>!x.is_current);
     const sessionMarkup = item => '<article class="session-device'+(item.is_current?' is-current':'')+'">'+
       '<div class="session-device-icon">'+deviceIcon(item.device_name)+'</div>'+
-      '<div class="session-device-main"><div class="session-device-title">'+esc(item.device_name||'Noma’lum qurilma')+
-      (item.is_current?'<span class="session-current-pill">● Ushbu qurilma · Onlayn</span>':'')+'</div>'+
-      '<div class="session-device-meta">'+esc(item.browser||'Brauzer noma’lum')+' · IP: '+esc(item.ip_address||'Noma’lum')+'</div>'+
-      '<div class="session-device-meta">Kirilgan: '+esc(fmt(item.created_at))+' · Oxirgi faollik: '+(item.is_current?'Hozir faol':esc(fmt(item.last_active_at)))+'</div></div>'+
-      (item.is_current?'<span class="session-live">● Hozir faol</span>':'<button type="button" class="session-revoke" data-session-revoke="'+esc(item.id)+'">Sessiyani tugatish</button>')+
+      '<div class="session-device-main"><div class="session-device-title">'+esc(item.device_name||'Unknown device')+
+      (item.is_current?'<span class="session-current-pill">● '+esc(tx('thisDevice'))+' · '+esc(tx('onlineNow'))+'</span>':'')+'</div>'+
+      '<div class="session-device-meta">'+esc(item.browser||'—')+' · IP: '+esc(item.ip_address||'—')+'</div>'+
+      '<div class="session-device-meta">'+esc(tx('signedInAt'))+': '+esc(fmt(item.created_at))+' · '+esc(tx('lastActive'))+': '+(item.is_current?esc(tx('activeNow')):esc(fmt(item.last_active_at)))+'</div></div>'+
+      (item.is_current?'<span class="session-live">● '+esc(tx('activeNow'))+'</span>':'<button type="button" class="session-revoke" data-session-revoke="'+esc(item.id)+'">'+esc(tx('revokeSession'))+'</button>')+
       '</article>';
-    return '<section class="session-management"><div class="session-section-head"><div><h3>Faol qurilmalar va sessiyalar</h3><p>Hisobingizga kirilgan qurilmalarni ko‘ring va tanimagan sessiyani darhol tugating.</p></div>'+
-      (others.length?'<button type="button" id="terminateOtherSessions" class="session-terminate-all">Barcha boshqa qurilmalardan chiqish</button>':'')+
+    return '<section class="session-management"><div class="session-section-head"><div><h3>'+esc(tx('sessionsTitle'))+'</h3><p>'+esc(tx('sessionsHelp'))+'</p></div>'+
+      (others.length?'<button type="button" id="terminateOtherSessions" class="session-terminate-all">'+esc(tx('terminateOthers'))+'</button>':'')+
       '</div>'+
-      (current?'<h4>Ushbu qurilma</h4>'+sessionMarkup(current):'<p class="session-empty">Joriy sessiya ma’lumoti topilmadi. Sahifani yangilang yoki qayta kiring.</p>')+
-      '<h4>Boshqa faol qurilmalar <span>('+others.length+')</span></h4>'+
-      (others.length?others.map(sessionMarkup).join(''):'<p class="session-empty">Boshqa faol qurilmalar yo‘q.</p>')+
-      '<p class="session-security-note">Sessiya tugatilgach, o‘sha qurilmaning keyingi API so‘rovi 401 qaytaradi va tizimdan chiqariladi. IP manzil taxminiy hududni aniqlash uchun emas, xavfsizlik kuzatuvi uchun ko‘rsatiladi.</p></section>';
+      (current?'<h4>'+esc(tx('thisDevice'))+'</h4>'+sessionMarkup(current):'<p class="session-empty">'+esc(tx('currentSessionMissing'))+'</p>')+
+      '<h4>'+esc(tx('otherDevices'))+' <span>('+others.length+')</span></h4>'+
+      (others.length?others.map(sessionMarkup).join(''):'<p class="session-empty">'+esc(tx('noOtherDevices'))+'</p>')+
+      '<p class="session-security-note">'+esc(tx('sessionRevokeNote'))+'</p></section>';
   };
   const renderCards = d => {
     const consent=d.consent_complete?'✅ Tasdiqlangan':'⚠️ Tasdiqlash kerak';
@@ -5417,7 +5418,7 @@ async function loadSecurityCenter() {
       catch(error){if(button){button.disabled=false;button.textContent='Barcha boshqa qurilmalardan chiqish';}$('securityStatus').textContent='❌ '+error.message;}
     });
   };
-  grid.innerHTML='<div class="status">Xavfsizlik sozlamalari yuklanmoqda...</div>';
+  grid.innerHTML='<div class="status">'+esc(tx('securityLoading'))+'</div>';
   try {
     const [d, sessionData] = await Promise.all([api('/security/summary'),api('/auth/sessions')]);
     renderCards({...d,sessions:sessionData.sessions||[]});
