@@ -18,7 +18,7 @@ frame-ancestors 'none'">
 
 <title>MedGen AI — Global Biomedical AI Platform</title>
 
-<link rel="stylesheet" href="styles.css?v=32">
+<link rel="stylesheet" href="styles.css?v=20261109-contrast1">
 
 <style>
 /* ================================
@@ -1289,7 +1289,7 @@ window.addEventListener("error", function (event) {
      Keep app.js unchanged.
 -->
 
-<script src="app.js?v=20261109-sessions1"></script>
+<script src="app.js?v=20261109-location1"></script>
 
 
 
@@ -2230,33 +2230,15 @@ window.addEventListener("error", function (event) {
     <label><span>Telefon raqami</span><input id="profilePhone" type="tel" autocomplete="tel"></label>
     <label><span data-i18n="emailLabel">Email</span><input id="profileEmail" type="text" inputmode="email" autocomplete="email" placeholder="email@example.com"></label>
     <label><span data-i18n="organization">Tashkilot / universitet</span><input id="profileOrganization" data-i18n-placeholder="organizationPlaceholder" placeholder="Universitet yoki tashkilot"></label>
-    <label><span data-i18n="country">Mamlakat</span><input id="profileCountry" list="profileCountryOptions" autocomplete="country" data-i18n-placeholder="countryPlaceholder" placeholder="Mamlakatni qidiring yoki yozing"></label><datalist id="profileCountryOptions"></datalist>
-    <div class="profile-section-title"><h3>📍 Joylashuv va hudud</h3></div>
-    <div class="profile-region-control">
-      <label for="profileRegion"><span data-i18n="regionLocation">Hudud / Joylashuv</span>
-        <select id="profileRegion" autocomplete="address-level1">
-          <option value="">Hududni tanlang</option>
-          <option value="Tashkent">Toshkent sh.</option>
-          <option value="Tashkent Region">Toshkent vil.</option>
-          <option value="Andijan">Andijon</option>
-          <option value="Bukhara">Buxoro</option>
-          <option value="Fergana">Farg‘ona</option>
-          <option value="Jizzakh">Jizzax</option>
-          <option value="Khorezm">Xorazm</option>
-          <option value="Namangan">Namangan</option>
-          <option value="Navoi">Navoiy</option>
-          <option value="Kashkadarya">Qashqadaryo</option>
-          <option value="Samarkand">Samarqand</option>
-          <option value="Sirdarya">Sirdaryo</option>
-          <option value="Surkhandarya">Surxondaryo</option>
-          <option value="Karakalpakstan">Qoraqalpog‘iston Resp.</option>
-          <option value="OTHER">Boshqa / Xorij</option>
-        </select>
-      </label>
-      <label id="profileRegionManualWrap" class="profile-region-manual" hidden>
-        <span data-i18n="otherRegionSpecify">Boshqa hudud / mamlakat nomi</span>
-        <input id="profileRegionManual" type="text" autocomplete="address-level1" maxlength="120" placeholder="Hudud yoki mamlakat nomi">
-      </label>
+    <label><span data-i18n="country">Mamlakat</span><input id="profileCountry" list="profileCountryOptions" autocomplete="country" data-i18n-placeholder="countryPlaceholder" placeholder="Mamlakatni tanlang yoki yozing"></label><datalist id="profileCountryOptions"></datalist>
+    <div class="profile-section-title"><h3 data-i18n="locationHeading">📍 Joylashuv va hudud</h3><p class="profile-auto-note" data-i18n="locationHelp">Mamlakat, viloyat va tumanni tavsiyalardan tanlang yoki qo‘lda kiriting.</p></div>
+    <div class="location-grid">
+      <label><span data-i18n="region">Viloyat</span><select id="profileRegion" autocomplete="address-level1"><option value="">Viloyatni tanlang</option></select></label>
+      <label id="profileRegionManualWrap"><span data-i18n="regionManual">Viloyatni qo‘lda kiritish</span><input id="profileRegionManual" type="text" autocomplete="address-level1" maxlength="120" data-i18n-placeholder="locationManualPlaceholder" placeholder="Ro‘yxatda bo‘lmasa yozing"></label>
+      <label><span data-i18n="district">Tuman</span><input id="profileDistrict" list="profileDistrictOptions" autocomplete="address-level2" data-i18n-placeholder="districtPlaceholder" placeholder="Tumanni tanlang yoki yozing"></label>
+      <datalist id="profileDistrictOptions"></datalist>
+      <label><span data-i18n="city">Shahar / Aholi punkti</span><input id="profileCity" autocomplete="address-level2" data-i18n-placeholder="cityPlaceholder" placeholder="Shahar yoki aholi punktini kiriting"></label>
+      <label><span data-i18n="locationLabel">Mahalla / Qo‘shimcha hudud</span><input id="profileLocationLabel" data-i18n-placeholder="locationLabelPlaceholder" placeholder="Mahalla yoki qo‘shimcha hudud (ixtiyoriy)"></label>
     </div>
     <div id="locationStatus" class="status" aria-live="polite"></div>
     <button id="detectLocationBtn" type="button" hidden aria-hidden="true" tabindex="-1"></button>
