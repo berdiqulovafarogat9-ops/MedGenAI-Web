@@ -928,12 +928,14 @@ def _lookup_session_by_token(token: str) -> dict | None:
 
 def _create_session_record(record: dict) -> None:
     if PERSISTENCE_ENABLED:
+        created = datetime.fromisoformat(str(record["created_at"]).replace("Z", "+00:00"))
+        last_active = datetime.fromisoformat(str(record["last_active_at"]).replace("Z", "+00:00"))
         with psycopg.connect(DATABASE_URL) as conn:
             conn.execute("""INSERT INTO user_sessions
                 (id,user_id,session_token,device_name,browser,ip_address,created_at,last_active_at,is_revoked)
                 VALUES (%s,%s,%s,%s,%s,%s,%s,%s,FALSE)""",
                 (record["id"],record["user_id"],record["session_token"],record["device_name"],
-                 record["browser"],record["ip_address"],record["created_at"],record["last_active_at"]))
+                 record["browser"],record["ip_address"],created,last_active))
             conn.commit()
     else:
         _session_cache[record["id"]] = dict(record)
