@@ -434,7 +434,7 @@ class ProfileRequest(BaseModel):
     birth_month: int | None = None
     birth_day: int | None = None
     research_interests: str = ""
-    bio: str = ""
+    bio: str | None = ""
     avatar: str = ""
 
 
@@ -2310,6 +2310,7 @@ def update_profile(
                 profile[key] = current
     # Normalize optional location fields; exact coordinates are only stored when
     # the user explicitly grants browser location permission.
+    profile["bio"] = str(data.bio or "").strip()
     profile["country"] = str(profile.get("country") or "").strip()[:120]
     profile["region"] = str(profile.get("region") or "").strip()[:160]
     profile["district"] = str(profile.get("district") or "").strip()[:160]
