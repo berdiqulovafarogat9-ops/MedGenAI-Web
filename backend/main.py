@@ -2332,6 +2332,7 @@ def clinical_vitals_report(data: VitalsReportRequest, user=Depends(get_current_u
     known = {a["id"] for a in case["actions"]}
     if any(item.id not in known for item in data.actions):
         raise HTTPException(status_code=400, detail="Unknown action in log.")
+    quota = _consume_subscription_quota(user["username"], user.get("role"), "physiology_lab_analyses")
     r = _vit_replay(data.case_id, [{"id": i.id, "t": i.t} for i in data.actions], data.diagnosis)
     penalty = VITALS_TAB_PENALTY * data.tab_switches
     raw = r["req_pts"] + r["harm_pts"] + r["diag_pts"] + r["stab_pts"] - penalty
@@ -2352,7 +2353,58 @@ def clinical_vitals_report(data: VitalsReportRequest, user=Depends(get_current_u
         "breakdown": {"required_done": r["req_done"], "required_total": r["req_total"], "harm_used": r["harm_used"],
                       "diagnosis_correct": r["diag_ok"], "stabilization_points": r["stab_pts"], "tab_penalty": penalty},
         "audit": r["audit"],
+        "subscription_usage": {"used": quota["usage"]["physiology_lab_analyses"], "limit": quota["limits"]["physiology_lab_analyses"], "month": quota["month"]},
     }
+
+
+SUBSCRIPTION_MONTHLY_LIMITS = {
+    "free": {"clinical_3d_cases": 3, "physiology_lab_analyses": 3, "virtual_lab_runs": 2},
+    "student": {"clinical_3d_cases": 15, "physiology_lab_analyses": 15, "virtual_lab_runs": 10},
+    "pro": {"clinical_3d_cases": 100, "physiology_lab_analyses": 100, "virtual_lab_runs": 100},
+    "enterprise": {"clinical_3d_cases": -1, "physiology_lab_analyses": -1, "virtual_lab_runs": -1},
+}
+
+
+def _subscription_entitlements(username: str, role: str | None = None) -> dict:
+    snapshot = _subscription_snapshot(username, role)
+    plan = snapshot["subscription_plan"]
+    if snapshot["subscription_status"] == "expired" and plan != "free":
+        plan = "free"
+    limits = SUBSCRIPTION_MONTHLY_LIMITS.get(plan, SUBSCRIPTION_MONTHLY_LIMITS["free"])
+    month_key = datetime.now(timezone.utc).strftime("%Y-%m")
+    profile = user_profiles.setdefault(username, {})
+    usage = profile.setdefault("subscription_usage", {})
+    if usage.get("month") != month_key:
+        usage = {"month": month_key, "clinical_3d_cases": 0,
+                 "physiology_lab_analyses": 0, "virtual_lab_runs": 0}
+        profile["subscription_usage"] = usage
+    return {"plan": plan, "month": month_key, "limits": dict(limits),
+            "usage": {key: int(usage.get(key, 0) or 0) for key in limits},
+            "unlimited": bool(snapshot.get("subscription_unlimited")) or plan == "enterprise"}
+
+
+def _consume_subscription_quota(username: str, role: str | None, feature: str) -> dict:
+    entitlements = _subscription_entitlements(username, role)
+    if feature not in entitlements["limits"]:
+        raise HTTPException(status_code=500, detail="Unknown subscription feature.")
+    if entitlements["unlimited"]:
+        return {**entitlements, "feature": feature, "unlimited": True}
+    limit, used = entitlements["limits"][feature], entitlements["usage"][feature]
+    if limit >= 0 and used >= limit:
+        raise HTTPException(status_code=429, detail={
+            "code": "subscription_limit_reached",
+            "message": "Ushbu oy uchun tarif limitingiz tugadi. Yuqori tarifga o‘ting.",
+            "plan": entitlements["plan"], "feature": feature,
+            "used": used, "limit": limit, "month": entitlements["month"]})
+    usage = user_profiles.setdefault(username, {}).setdefault("subscription_usage", {})
+    usage[feature] = used + 1
+    try:
+        _db_save()
+    except Exception:
+        usage[feature] = used
+        raise
+    return {**entitlements, "usage": {**entitlements["usage"], feature: used + 1},
+            "feature": feature, "unlimited": False}
 
 
 def _subscription_snapshot(username: str, role: str | None = None) -> dict:
@@ -2408,6 +2460,7 @@ def billing_status(user=Depends(get_current_user)):
         "subscription_expires_at": subscription["subscription_expires_at"],
         "subscription_unlimited": subscription["subscription_unlimited"],
         "role": user.get("role"),
+        "entitlements": _subscription_entitlements(user["username"], user.get("role")),
         "plans": [{"id": k, "label": v["label"]} for k, v in BILLING_PLANS.items() if v["product_id"]],
     }
 
@@ -4525,7 +4578,9 @@ def clinical_simulation_start(data: ClinicalSimulationStartRequest, user=Depends
     case = CLINICAL_SIM_CASES.get(data.case_id)
     if not case:
         raise HTTPException(status_code=404, detail="Simulation case not found.")
-    return {"status": "started", "case_id": data.case_id, "title": case["title"], "educational_only": True, "disclaimer": case["disclaimer"], "steps": case["steps"]}
+    quota = _consume_subscription_quota(user["username"], user.get("role"), "clinical_3d_cases")
+    return {"status": "started", "case_id": data.case_id, "title": case["title"], "educational_only": True, "disclaimer": case["disclaimer"], "steps": case["steps"],
+            "subscription_usage": {"used": quota["usage"]["clinical_3d_cases"], "limit": quota["limits"]["clinical_3d_cases"], "month": quota["month"]}}
 
 @app.post("/api/v1/clinical/simulations/submit")
 def clinical_simulation_submit(data: ClinicalSimulationSubmitRequest, user=Depends(get_current_user)):
@@ -7432,6 +7487,7 @@ def execute_lab_experiment(experiment_id: str, user=Depends(get_current_user)):
 
     if not experiment.get("results",{}).get("steps"):
         raise HTTPException(status_code=409,detail="This legacy experiment has no recorded steps. Create a new experiment to run analysis.")
+    quota = _consume_subscription_quota(user["username"], user.get("role"), "virtual_lab_runs")
     previous=copy.deepcopy(experiment)
     experiment_input = experiment.get("input", {})
     results = experiment.setdefault("results", {}).setdefault("steps", [])
@@ -7544,7 +7600,8 @@ def execute_lab_experiment(experiment_id: str, user=Depends(get_current_user)):
     return {
         "status": experiment["status"],
         "module": "Virtual Laboratory",
-        "experiment": experiment
+        "experiment": experiment,
+        "subscription_usage": {"used": quota["usage"]["virtual_lab_runs"], "limit": quota["limits"]["virtual_lab_runs"], "month": quota["month"]}
     }
 
 @app.get("/api/v1/lab/experiments/{experiment_id}")
