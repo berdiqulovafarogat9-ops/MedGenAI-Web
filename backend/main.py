@@ -6652,7 +6652,7 @@ def academy_dashboard(user=Depends(get_current_user)):
         })
     complete_count = sum(1 for s in subjects if s["complete"])
     overall = round(complete_count * 100 / len(subjects)) if subjects else 0
-    return {"status": "ok", "course": course, "course_title": ACADEMY_COURSES[course]["title"], "overall_progress": overall, "subjects": subjects, "academic_profile": ap}
+    return {"status": "ok", "course": course, "course_title": ACADEMY_COURSES[course]["title"], "overall_progress": overall, "subjects": subjects, "academic_profile": ap, "courses": [{"year": year, "title": item["title"], "subjects": [{"id": sid, "name": name, "objective": objective} for sid, name, objective in item["subjects"]]} for year, item in sorted(ACADEMY_COURSES.items())]}
 
 @app.get("/api/v1/academy/eligibility/{course}")
 def academy_eligibility(course: int, user=Depends(get_current_user)):
