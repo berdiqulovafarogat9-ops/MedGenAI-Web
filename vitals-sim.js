@@ -520,6 +520,12 @@
       // FULL CODE VIEW: replace the previous multi-row UI while retaining the same
       // VitalsCore instance, sim.act(), ECG animation, 3D renderer, audit and handoff.
       (function mountFullCodeView(){
+        card.style.setProperty("width","100%","important");
+        card.style.setProperty("height","100vh","important");
+        card.style.setProperty("max-height","100vh","important");
+        card.style.setProperty("overflow","hidden","important");
+        card.style.setProperty("border-radius","0","important");
+        card.style.setProperty("padding","0","important");
         var style=document.createElement("style");
         style.textContent=`
           .fc-workspace{height:100vh;width:100%;max-height:100vh;display:flex;flex-direction:column;overflow:hidden;background:#080d14;color:#e2e8f0;box-sizing:border-box;font-family:system-ui,sans-serif}
