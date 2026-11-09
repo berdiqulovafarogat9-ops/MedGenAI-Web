@@ -561,3 +561,26 @@ html[data-theme] a { color: var(--accent); }
 .profile-region-control{display:grid;grid-template-columns:minmax(0,560px);gap:9px;max-width:560px}
 .profile-region-control label{margin:0}
 .profile-region-manual[hidden]{display:none!important}
+
+
+/* Multi-device active session management */
+.session-management{grid-column:1/-1;margin-top:18px;padding:22px;border:1px solid var(--border-color,rgba(128,145,165,.25));border-radius:18px;background:var(--panel-bg,rgba(128,145,165,.06))}
+.session-section-head{display:flex;align-items:flex-start;justify-content:space-between;gap:16px;flex-wrap:wrap;margin-bottom:18px}
+.session-section-head h3{margin:0 0 6px;font-size:1.12rem}
+.session-section-head p,.session-security-note{margin:0;color:var(--muted,#8492a6);font-size:.88rem;line-height:1.5}
+.session-management h4{margin:18px 0 10px;font-size:.92rem}
+.session-management h4 span{color:var(--muted,#8492a6);font-weight:500}
+.session-device{display:flex;align-items:center;gap:14px;padding:14px;margin:9px 0;border:1px solid var(--border-color,rgba(128,145,165,.22));border-radius:14px;background:var(--card-bg,rgba(255,255,255,.035));min-width:0}
+.session-device.is-current{border-color:rgba(34,197,94,.45);background:rgba(34,197,94,.055)}
+.session-device-icon{width:44px;height:44px;display:grid;place-items:center;flex:0 0 44px;border-radius:12px;background:rgba(128,145,165,.12);font-size:1.45rem}
+.session-device-main{flex:1;min-width:0}
+.session-device-title{display:flex;align-items:center;gap:9px;flex-wrap:wrap;font-weight:700}
+.session-device-meta{margin-top:5px;color:var(--muted,#8492a6);font-size:.82rem;overflow-wrap:anywhere}
+.session-current-pill{padding:3px 8px;border-radius:999px;background:rgba(34,197,94,.13);color:#22c55e;font-size:.72rem;font-weight:700}
+.session-live{white-space:nowrap;color:#22c55e;font-size:.82rem;font-weight:700}
+.session-revoke,.session-terminate-all{border:1px solid rgba(239,68,68,.42);border-radius:10px;padding:9px 12px;background:rgba(239,68,68,.09);color:#ef4444;font-weight:700;cursor:pointer}
+.session-revoke:hover,.session-terminate-all:hover{background:rgba(239,68,68,.16)}
+.session-revoke:disabled,.session-terminate-all:disabled{opacity:.55;cursor:wait}
+.session-empty{padding:12px;border-radius:10px;background:rgba(128,145,165,.07);color:var(--muted,#8492a6)}
+.session-security-note{margin-top:14px}
+@media(max-width:640px){.session-management{padding:14px}.session-device{align-items:flex-start;flex-wrap:wrap}.session-device-main{flex-basis:calc(100% - 60px)}.session-revoke{margin-left:58px}.session-live{margin-left:58px}.session-section-head{display:block}.session-terminate-all{margin-top:12px;width:100%}}
