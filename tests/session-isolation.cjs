@@ -1,7 +1,7 @@
 const {JSDOM}=require('jsdom'),fs=require('fs'),vm=require('vm'),assert=require('node:assert/strict');
 (async()=>{
  const w=new JSDOM('<div id="dashboardView"><pre class="result">private result</pre><input value="private sequence"></div><div id="labSummary">private lab</div><div id="legalModal"></div><div id="learningHubWorkspace"></div><div id="profileModal"><input value="private profile"></div>',{url:'http://localhost',runScripts:'outside-only'}).window;
- const source=fs.readFileSync('app.js','utf8'),a=source.indexOf('async function api('),b=source.indexOf('\n\n/*',a),c=source.indexOf('async function logout()'),d=source.indexOf('\n\n/*',c);
+ const source=fs.readFileSync('app.js','utf8'),a=source.indexOf('async function api('),b=source.indexOf('\n\n/*',a),c=source.indexOf('async function logout('),d=source.indexOf('\n\n/*',c);
  let resolve;
  w.fetch=()=>new Promise(r=>resolve=r);
  vm.runInContext("const state={token:'alice',user:{}};window.sessionState=state;const API_BASE='/api/v1',TOKEN_KEY='token';const $=id=>document.getElementById(id);function showLogin(){}"+source.slice(a,b)+source.slice(c,d)+"\nwindow.logout=logout;",w);
