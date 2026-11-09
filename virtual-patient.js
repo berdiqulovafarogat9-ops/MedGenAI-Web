@@ -9,7 +9,15 @@
       const response=await fetch(apiBase+'/academy/score',{method:'POST',headers:{'Content-Type':'application/json','Authorization':'Bearer '+token},body:JSON.stringify({score:Number(score),module:String(moduleName||'Learning module'),completed_at:new Date().toISOString()})});
       const data=await response.json().catch(()=>({}));
       if(!response.ok)throw new Error(data.detail||('HTTP '+response.status));
-      alert('Ball saqlandi! +'+Number(score)+' ball reytingingizga qo‘shildi.');
+      const notice=document.createElement('div');
+      notice.setAttribute('role','status');
+      notice.style.cssText='position:fixed;inset:0;z-index:100300;background:rgba(2,8,16,.72);display:grid;place-items:center;padding:18px';
+      const card=document.createElement('section');
+      card.style.cssText='width:min(92vw,420px);background:#fff;color:#102033;border:1px solid #cbd5e1;border-radius:18px;padding:22px;box-shadow:0 20px 60px #0005;font:15px system-ui';
+      const title=document.createElement('h3');title.textContent='Natija saqlandi';
+      const message=document.createElement('p');message.textContent='+'+Number(score)+' ball reytingingizga qo‘shildi.';
+      const close=document.createElement('button');close.type='button';close.textContent='Yopish';close.style.cssText='padding:10px 16px;border:0;border-radius:10px;background:#0f766e;color:#fff;font-weight:700';
+      close.onclick=()=>notice.remove();card.append(title,message,close);notice.append(card);document.body.append(notice);
       return data;
     }catch(err){console.error('Ball saqlashda xatolik:',err);return null;}
   };
