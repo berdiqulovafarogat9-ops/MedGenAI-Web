@@ -404,7 +404,7 @@
           roomBox(1.2,.045,.35,0,2.8,-.8,new THREE.MeshStandardMaterial({color:0xe6f1f5,emissive:0x52616b,emissiveIntensity:.45}));
           var roomLight=new THREE.PointLight(0xd8efff,1.2,7);roomLight.position.set(0,2.6,1.2);sc.add(roomLight);
           // Patient GLB: supplied CDN model, with a procedural fallback if the CDN is unreachable.
-          var patient=new THREE.Group(); patient.rotation.z=-Math.PI/2; patient.scale.setScalar(.9); patient.position.set(-0.05,.62,-.45); sc.add(patient);
+          var patient=new THREE.Group(); patient.rotation.z=Math.PI/2; patient.scale.setScalar(.9); patient.position.set(-0.05,.62,-.45); sc.add(patient);
           var skinMats=[],patientModel=null,patientChest=null,faceMesh=null,faceTint=null,chestBaseRotation=null,chestBaseScale=null,chestBreathMeshes=[],recoveryStarted=0,recoveryFrom=new THREE.Color(0x94a3b8),recoveryTo=new THREE.Color(0xfbcfe8);
           var loader=new THREE.GLTFLoader();
           // Ixtiyoriy fon muhiti: mavjud karavot, monitor va uskunalar o‘z joyida qoladi.
