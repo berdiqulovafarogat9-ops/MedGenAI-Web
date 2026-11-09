@@ -343,3 +343,112 @@ html[data-theme] :is(.nav-section-title,.final-nav-title,.nav-drawer-head small)
 
 /* MedGen Drug Discovery workspace */
 .mgdd-shell{margin-top:18px;padding:16px;border:1px solid #24445b;border-radius:16px;background:linear-gradient(145deg,#07111f,#0b1d2d);color:#e2e8f0}.mgdd-header{display:flex;justify-content:space-between;gap:16px;align-items:flex-start;flex-wrap:wrap;border-bottom:1px solid #24445b;padding-bottom:12px;margin-bottom:14px}.mgdd-header h2{margin:4px 0;font-size:20px;color:#7dd3fc}.mgdd-header p,.mgdd-note,.mgdd-warning,.mgdd-disclaimer{font-size:12px;line-height:1.55;color:#a9bdce}.mgdd-kicker{font-size:10px;letter-spacing:1.5px;color:#67e8f9;font-weight:800}.mgdd-tag{border:1px solid #256477;border-radius:999px;padding:6px 10px;font-size:10px;color:#a5f3fc}.mgdd-grid{display:grid;grid-template-columns:1fr 1fr;gap:12px}.mgdd-card{padding:13px;border:1px solid #23435a;border-radius:12px;background:#0b1726;margin-bottom:12px;min-width:0}.mgdd-card h3{font-size:15px;margin:0 0 10px}.mgdd-shell label{display:block;font-size:12px;font-weight:700;color:#cbd5e1;margin:9px 0 5px}.mgdd-shell input,.mgdd-shell select,.mgdd-shell textarea{box-sizing:border-box;width:100%;padding:9px;border:1px solid #35536a;border-radius:8px;background:#071321;color:#e2e8f0;font:12px/1.45 system-ui}.mgdd-shell textarea{resize:vertical}.mgdd-primary{margin:10px 0;padding:10px 13px;border:0;border-radius:8px;background:#0369a1;color:#fff;font-weight:800;cursor:pointer}.mgdd-primary:disabled{opacity:.55;cursor:wait}.mgdd-viewer-wrap{position:relative;margin:10px 0;height:270px;background:#020817;border:1px solid #263d52;border-radius:10px;overflow:hidden}.mgdd-viewer-wrap #mgdd-viewer{height:100%;width:100%}.mgdd-viewer-wrap span{position:absolute;left:8px;top:7px;color:#9fb4c7;font-size:10px;pointer-events:none}.mgdd-note{padding:8px;border-radius:8px;background:#0c2234;margin:8px 0}.mgdd-warning{padding:9px;border-left:3px solid #d97706;background:#2b2112}.mgdd-params{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:8px}.mgdd-status{padding:10px;border-radius:8px;background:#071321;color:#bae6fd;font-size:12px;min-height:20px}.mgdd-results{font-size:12px;white-space:pre-wrap;overflow-wrap:anywhere}.mgdd-pose{display:grid;gap:4px;padding:10px;margin:7px 0;border:1px solid #28516b;border-radius:8px;background:#0a2132}.mgdd-pose strong{font-size:18px;color:#fbbf24}.mgdd-pose small{color:#a9bdce}.mgdd-disclaimer{border-top:1px solid #263d52;padding-top:10px;margin-bottom:0}@media(max-width:760px){.mgdd-grid{grid-template-columns:1fr}.mgdd-params{grid-template-columns:repeat(2,minmax(0,1fr))}.mgdd-shell{padding:10px}.mgdd-viewer-wrap{height:230px}}
+
+
+/* ==============================================================
+   MEDGEN AI — CLINICAL DARK + RESPONSIVE CLEANUP (SAFE PATCH)
+   Applied after the existing theme rules so all workspaces inherit
+   one dark palette without hiding unidentified controls or modules.
+   ============================================================== */
+:root,
+:root[data-theme="light"],
+:root[data-theme="dark"] {
+  color-scheme: dark !important;
+  --page: #080d14 !important;
+  --surface: #0d1726 !important;
+  --surface-alt: #101f2d !important;
+  --text: #e5edf5 !important;
+  --muted: #9fb3c5 !important;
+  --line: #20384b !important;
+  --accent: #56dcc0 !important;
+  --on-accent: #071b1a !important;
+  --error: #ffb4be !important;
+}
+html, body {
+  background: #080d14 !important;
+  color: #e5edf5 !important;
+}
+html[data-theme] :is(.login-card,.topbar,.nav-drawer,.final-menu-drawer,
+.final-panel,.panel,.community-card,.ai-msg,.module,.role-choice,
+.role-registration-block,.role-dashboard,.course-selector,.student-hero,
+.course-question,.student-case-main,.layer-card,.course-lock,.course-note,
+.student-case,.option-btn,.student-tab,.course-chip,.question-card,.card,
+.cabinet-card,.cabinet-tool,.cabinet-nav,.cabinet-welcome,#workspace,
+#workspace .tool,#finalHome.cabinet-home,#workspaceGuide,
+.measurement-summary dl>div,.final-service,.role-quick,.role-stat,
+.role-group,.modal-card) {
+  background-color: #0d1726 !important;
+  color: #e5edf5 !important;
+  border-color: #20384b !important;
+}
+html[data-theme] :is(input,textarea,select) {
+  background: #101f2d !important;
+  color: #e5edf5 !important;
+  border-color: #29445a !important;
+}
+html[data-theme] :is(.muted,.status,.cabinet-card p,.module span) {
+  color: #9fb3c5 !important;
+}
+html[data-theme] :is(.primary,.mg-report-actions button) {
+  background: #123b43 !important;
+  color: #e5edf5 !important;
+  border-color: #28616a !important;
+}
+
+/* Existing clinical simulator viewport: keep its canvas measurable
+   in portrait and landscape without replacing its renderer or model. */
+.fc-three-viewport {
+  position: relative !important;
+  width: 100% !important;
+  height: 100% !important;
+  min-width: 0 !important;
+  min-height: 280px !important;
+  overflow: hidden !important;
+  contain: layout paint;
+}
+.fc-three-viewport > * {
+  min-width: 0 !important;
+  max-width: 100% !important;
+}
+.fc-three-viewport canvas,
+#three-canvas-container canvas,
+.canvas-3d-wrapper canvas,
+#viewport-3d canvas {
+  display: block;
+  max-width: 100%;
+}
+@media (orientation: portrait) {
+  .fc-three-viewport { min-height: 42vh !important; }
+}
+@media (orientation: landscape) {
+  .fc-three-viewport { min-height: 280px !important; }
+}
+
+/* Clinical report and modal surfaces follow the same palette. */
+.mg-report,
+.mg-report-head,
+.mg-report-stat,
+.mg-report-section,
+.mg-report-event,
+.modal,
+.fc-modal-content,
+#modal-cases,
+.audit-report-container {
+  color: #e5edf5 !important;
+  border-color: #20384b !important;
+}
+.mg-report-stat,
+.mg-report-section,
+.mg-report-event,
+.modal,
+.fc-modal-content,
+#modal-cases,
+.audit-report-container {
+  background: #0d1726 !important;
+}
+
+/* Keep report typography legible on narrow tablet screens. */
+@media (max-width: 700px) {
+  .mg-report { width: calc(100% - 20px) !important; }
+  .mg-report-grid { grid-template-columns: repeat(2,minmax(0,1fr)) !important; }
+}
