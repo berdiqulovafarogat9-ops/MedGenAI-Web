@@ -2431,7 +2431,6 @@ document.addEventListener("DOMContentLoaded", function () {
     home.querySelectorAll('[data-final-module]').forEach(b=>b.onclick=(e)=>{
       e.preventDefault();openModuleSafe(b.dataset.finalModule);
     });
-    home.querySelector('#cabinetProfile')?.addEventListener('click',()=>document.getElementById('profileBtn')?.click());
     home.querySelectorAll('[data-final-service]').forEach(b=>b.onclick=()=>openService(b.dataset.finalService));
     document.getElementById('finalAdminOpen')?.addEventListener('click',()=>{home.classList.add('hidden');hideAll();document.getElementById('adminDashboard')?.classList.remove('hidden');if(typeof loadAdminDashboard==='function')loadAdminDashboard()});
   }
