@@ -616,15 +616,25 @@ def get_current_user(
         raise HTTPException(status_code=401, detail="Session revoked")
 
     session_id = token_session_ids.get(token)
-    if session_id:
-        session = _get_session_record(session_id, username)
-        if not session or session.get("is_revoked"):
-            tokens.pop(token, None)
-            token_created_at.pop(token, None)
-            token_session_ids.pop(token, None)
-            revoked_tokens.add(token)
-            raise HTTPException(status_code=401, detail="Session revoked")
-        _touch_session(session_id, request)
+    if not username or not created_at:
+        raise HTTPException(status_code=401, detail="Invalid or expired token")
+    if not session_id:
+        # Backfill tokens issued before the multi-device session feature.
+        session_id = str(uuid.uuid4())
+        device_name, browser = _parse_session_device(request.headers.get("user-agent", ""))
+        _create_session_record({"id":session_id,"user_id":username,
+            "session_token":hashlib.sha256(token.encode("utf-8")).hexdigest(),
+            "device_name":device_name,"browser":browser,"ip_address":_request_ip(request),
+            "created_at":created_at,"last_active_at":datetime.now(timezone.utc).isoformat(),"is_revoked":False})
+        token_session_ids[token] = session_id
+    session = _get_session_record(session_id, username)
+    if not session or session.get("is_revoked"):
+        tokens.pop(token, None)
+        token_created_at.pop(token, None)
+        token_session_ids.pop(token, None)
+        revoked_tokens.add(token)
+        raise HTTPException(status_code=401, detail="Session revoked")
+    _touch_session(session_id, request)
 
     if not username or not created_at:
         raise HTTPException(status_code=401, detail="Invalid or expired token")
@@ -707,7 +717,7 @@ async def account_readiness_guard(request: Request, call_next):
         "/api/v1/dashboard/summary",
         "/api/v1/platform/phase-status",
     }
-    if path in allowed or path.startswith("/api/v1/admin/") or path.startswith("/api/v1/auth/2fa/"):
+    if path in allowed or path.startswith("/api/v1/auth/sessions") or path.startswith("/api/v1/admin/") or path.startswith("/api/v1/auth/2fa/"):
         return await call_next(request)
 
     auth = request.headers.get("authorization", "")
@@ -1469,7 +1479,7 @@ def twofa_devices_revoke(data: TotpCodeRequest, user=Depends(get_current_user)):
 
 
 @app.post("/api/v1/auth/2fa/login")
-def twofa_login(data: TotpLoginRequest):
+def twofa_login(data: TotpLoginRequest, request: Request):
     now_ts = time.time()
     for stale in [k for k, v in mfa_pending.items() if v["exp"] < now_ts]:
         mfa_pending.pop(stale, None)
@@ -1490,12 +1500,19 @@ def twofa_login(data: TotpLoginRequest):
     login_attempts.pop(key, None)
     now = datetime.now(timezone.utc)
     token = make_token(username)
+    session_id = str(uuid.uuid4())
+    device_name, browser = _parse_session_device(request.headers.get("user-agent", ""))
+    _create_session_record({"id":session_id,"user_id":username,
+        "session_token":hashlib.sha256(token.encode("utf-8")).hexdigest(),
+        "device_name":device_name,"browser":browser,"ip_address":_request_ip(request),
+        "created_at":now.isoformat(),"last_active_at":now.isoformat(),"is_revoked":False})
     tokens[token] = username
     token_created_at[token] = now.isoformat()
+    token_session_ids[token] = session_id
     activity_log.insert(0, {"type": "login", "username": username, "at": now.isoformat(), "mfa": True})
     device = _device_issue(username) if data.remember else None
     _db_save()
-    result = {"access_token": token, "token_type": "bearer", "expires_in": TOKEN_TTL_SECONDS}
+    result = {"access_token": token, "token_type": "bearer", "expires_in": TOKEN_TTL_SECONDS, "session_id": session_id}
     if device:
         result["device_token"] = device
     return result
