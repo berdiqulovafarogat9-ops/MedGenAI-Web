@@ -983,7 +983,7 @@ async function api(path, options = {}) {
       if (revoked) {
         const loginStatus = $('loginStatus');
         if (loginStatus) loginStatus.textContent = 'Bu qurilmadagi sessiya boshqa qurilmadan tugatildi. Qayta kiring.';
-        void logout();
+        void logout('Bu qurilmadagi sessiya boshqa qurilmadan tugatildi. Qayta kiring.');
       }
     }
     if (response.status === 403 && state.user) {
@@ -2165,7 +2165,7 @@ function showDashboard() {
    LOGOUT
 ========================================================= */
 
-async function logout() {
+async function logout(reason = '') {
   const previousToken = state.token;
   // Leave immediately even when a sleeping/offline server cannot revoke yet.
   state.token = '';
@@ -2221,7 +2221,7 @@ async function logout() {
     $('loginStatus');
 
   if (status) {
-    status.textContent = '';
+    status.textContent = reason;
   }
   if (previousToken) {
     const controller = new AbortController();
