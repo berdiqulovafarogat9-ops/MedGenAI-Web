@@ -3782,6 +3782,10 @@ function refreshDynamicUI() {
     loadAdminDashboard();
   }
 
+  if ($('securityCenter') && !$('securityCenter').classList.contains('hidden')) {
+    loadSecurityCenter();
+  }
+
   const researchResult = $('researchResult');
   if (researchResult && state.lastResearchData) {
     renderResult(researchResult, state.lastResearchData);
