@@ -2423,9 +2423,10 @@ def _subscription_snapshot(username: str, role: str | None = None) -> dict:
     if plan not in {"free", "student", "pro", "enterprise"}:
         plan = "free"
     raw_status = str(record.get("status") or "").strip().lower()
-    status_map = {"active": "active", "trial": "trial", "expired": "expired",
-                  "inactive": "expired", "failed": "expired", "cancelled": "expired",
-                  "on_hold": "expired", "none": "active", "": "active"}
+    status_map = {"active": "active", "trial": "trial", "past_due": "active",
+                  "expired": "expired", "inactive": "expired", "failed": "expired",
+                  "cancelled": "expired", "paused": "expired", "on_hold": "expired",
+                  "none": "active", "": "active"}
     status = status_map.get(raw_status, "expired")
     expires_at = record.get("subscription_expires_at") or record.get("expires_at") or record.get("next_billing_date")
     if expires_at:
