@@ -61,13 +61,6 @@
     card.appendChild(close);
   }
 
-  function init() {
-    var logout = document.getElementById("logoutBtn");
-    if (!logout || document.getElementById("billingBtn")) return;
-    var b = document.createElement("button");
-    b.id = "billingBtn"; b.type = "button"; b.className = logout.className; b.textContent = "Tarif";
-    b.addEventListener("click", open);
-    logout.parentNode.insertBefore(b, logout);
-  }
-  if (document.readyState === "loading") document.addEventListener("DOMContentLoaded", init); else init();
+  // Tarif oynasi profil ichidagi "Tarif va maqom" havolasidan ochiladi.
+  // Chala navbar tugmasi ataylab yaratilmaydi.
 })();
