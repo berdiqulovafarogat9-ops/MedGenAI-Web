@@ -2357,7 +2357,7 @@ def clinical_vitals_report(data: VitalsReportRequest, user=Depends(get_current_u
 def _subscription_snapshot(username: str, role: str | None = None) -> dict:
     """Build the authenticated subscription view from server-owned billing state."""
     normalized_role = str(role or "").strip().lower().replace("-", "_").replace(" ", "_")
-    if normalized_role in {"super_admin", "superadmin", "owner", "founder", "ceo"}:
+    if normalized_role == "super_admin":
         return {
             "subscription_plan": "enterprise",
             "subscription_status": "active",
@@ -2418,7 +2418,7 @@ class BillingCheckoutRequest(BaseModel):
 @app.post("/api/v1/billing/checkout")
 def billing_checkout(data: BillingCheckoutRequest, user=Depends(get_current_user)):
     username = user["username"]
-    if str(user.get("role") or "").strip().lower() in {"super_admin", "admin", "owner", "founder", "ceo"}:
+    if str(user.get("role") or "").strip().lower() == "super_admin":
         raise HTTPException(status_code=403, detail="Ma’muriy hisob uchun to‘lov talab qilinmaydi.")
     plan = BILLING_PLANS.get(str(data.plan or "").lower())
     if not _billing_ready() or not plan or not plan["product_id"]:
