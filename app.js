@@ -6419,3 +6419,83 @@ window.switchMedGenMode = function(mode) {
     });
   }
 };
+
+
+/* =========================================================
+   SUBSCRIPTION / PRICING — server-backed account state
+========================================================= */
+(function medgenSubscriptionModal(){
+  const $id = id => document.getElementById(id);
+  const esc = value => String(value ?? '').replace(/[&<>"']/g, ch => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[ch]));
+  const planNames = {free:'Free',student:'Student',pro:'Pro',enterprise:'Enterprise'};
+  const statusNames = {active:'Faol',expired:'Muddati tugagan',trial:'Sinov muddati'};
+  function roleIsSuperAdmin(user){
+    return String(user?.role || '').trim().toLowerCase().replace(/[\s-]+/g,'_') === 'super_admin';
+  }
+  function dateLabel(value){
+    if(!value) return 'Cheklanmagan / belgilanmagan';
+    const date = new Date(value);
+    return Number.isNaN(date.getTime()) ? 'Belgilanmagan' : new Intl.DateTimeFormat('uz-UZ',{year:'numeric',month:'long',day:'2-digit'}).format(date);
+  }
+  function render(user,billing){
+    const root=$id('tariffModalContent'); if(!root) return;
+    const admin=roleIsSuperAdmin(user);
+    const plan=String(user?.subscription_plan || billing?.subscription_plan || billing?.plan || 'free').toLowerCase();
+    const status=String(user?.subscription_status || billing?.subscription_status || billing?.status || 'active').toLowerCase();
+    const expiry=user?.subscription_expires_at ?? billing?.subscription_expires_at ?? null;
+    const name=planNames[plan] || 'Free';
+    if(admin){
+      root.innerHTML='<div class="subscription-current"><span class="subscription-eyebrow">HISOB MAQOMI</span><h3>SUPER ADMIN</h3><p class="subscription-state">Cheksiz ma’muriy ruxsat</p><p class="subscription-muted">Platformani boshqarish vakolati serverdagi autentifikatsiya rolingiz bilan tasdiqlangan. Ushbu hisob uchun to‘lov talab qilinmaydi.</p></div>';
+      return;
+    }
+    const statusLabel=statusNames[status] || 'Noma’lum';
+    const plans=Array.isArray(billing?.plans)?billing.plans:[];
+    const configured=Boolean(billing?.configured);
+    const options=['pro','enterprise'].map(id=>{
+      const available=plans.some(p=>p.id===id);
+      const title=id==='pro'?'Pro':'Enterprise';
+      const desc=id==='pro'
+        ? 'Kengaytirilgan 3D klinik holatlar, ko‘proq simulyatsiya va fiziologik laboratoriya tahlillari.'
+        : 'Tashkilotlar uchun kengaytirilgan ilmiy ish jarayonlari, laboratoriya va jamoaviy foydalanish.';
+      return '<article class="subscription-plan"><div><h4>'+title+'</h4><p>'+desc+'</p></div><button type="button" class="primary small subscription-buy" data-plan="'+id+'" '+(!configured||!available?'disabled':'')+'>Tarifni yangilash</button></article>';
+    }).join('');
+    root.innerHTML='<div class="subscription-current"><span class="subscription-eyebrow">JORIY OBUNA</span><h3>'+esc(name)+'</h3><p class="subscription-state">'+esc(statusLabel)+'</p><p class="subscription-muted">Amal qilish muddati: <b>'+esc(dateLabel(expiry))+'</b></p></div><div class="subscription-upgrades"><h3>Tarifni yangilash</h3><p class="subscription-muted">Yangi tarif to‘lovi va obuna faollashuvi to‘lov provayderining tasdiqlangan webhook xabaridan keyin hisobingizga yoziladi.</p>'+options+'</div>'+(configured?'':'<p class="subscription-notice">To‘lov xizmati hozircha sozlanmagan. Pro va Enterprise xaridi administrator tomonidan Dodo Payments sozlamalari kiritilgach faollashadi.</p>');
+    root.querySelectorAll('[data-plan]').forEach(button=>button.addEventListener('click',async()=>{
+      const selected=button.dataset.plan;
+      button.disabled=true; button.textContent='Yuklanmoqda…';
+      try{
+        const result=await api('/billing/checkout',{method:'POST',body:JSON.stringify({plan:selected})});
+        if(!result?.checkout_url) throw new Error('To‘lov havolasi qaytarilmadi.');
+        window.location.assign(result.checkout_url);
+      }catch(error){
+        button.disabled=false; button.textContent='Tarifni yangilash';
+        const notice=$id('subscriptionActionStatus');
+        if(notice) notice.textContent=error.message;
+      }
+    }));
+  }
+  window.openTariffModal=async function(){
+    const modal=$id('tariffModal');
+    if(!modal) return;
+    modal.classList.remove('hidden'); modal.setAttribute('aria-hidden','false');
+    const root=$id('tariffModalContent');
+    if(root) root.innerHTML='<p class="subscription-muted">Hisob ma’lumotlari yuklanmoqda…</p>';
+    try{
+      const me=await api('/auth/me');
+      state.user=me; window.__MEDGEN_USER=me;
+      const billing=await api('/billing/status');
+      render(me,billing);
+    }catch(error){
+      if(root) root.innerHTML='<p class="subscription-notice">Obuna ma’lumotlarini yuklab bo‘lmadi: '+esc(error.message)+'</p>';
+    }
+  };
+  function bind(){
+    const top=$id('topbarTariffBtn');
+    if(top && top.dataset.bound!=='1'){top.dataset.bound='1';top.addEventListener('click',window.openTariffModal);}
+    const close=()=>{const modal=$id('tariffModal');if(modal){modal.classList.add('hidden');modal.setAttribute('aria-hidden','true');}};
+    $id('tariffModalClose')?.addEventListener('click',close);
+    $id('tariffModal')?.addEventListener('click',event=>{if(event.target===$id('tariffModal'))close();});
+    document.addEventListener('keydown',event=>{if(event.key==='Escape')close();});
+  }
+  if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',bind,{once:true});else bind();
+})();
