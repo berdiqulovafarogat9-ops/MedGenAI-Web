@@ -1476,9 +1476,9 @@ async function saveProfile() {
       region: $('profileRegion')?.value === 'OTHER'
         ? ($('profileRegionManual')?.value?.trim() || '')
         : ($('profileRegion')?.value?.trim() || ''),
-      district: state.user?.profile?.district || '',
-      city: state.user?.profile?.city || '',
-      location_label: state.user?.profile?.location_label || '',
+      district: $('profileDistrict')?.value?.trim() || '',
+      city: $('profileCity')?.value?.trim() || '',
+      location_label: $('profileLocationLabel')?.value?.trim() || '',
       location_lat: coordinateValue($('detectLocationBtn')?.dataset?.lat),
       location_lon: coordinateValue($('detectLocationBtn')?.dataset?.lon),
       location_source: $('detectLocationBtn')?.dataset?.source || '',
@@ -3728,6 +3728,7 @@ function bindLanguageSelectors() {
           }
 
           /* Refresh dynamic statuses, module titles, and the unified final shell. */
+          initProfileLocationSelectors();
           refreshDynamicUI();
           if (typeof window.medgenFinalRefreshLanguage === 'function') {
             window.medgenFinalRefreshLanguage();
@@ -5281,35 +5282,74 @@ if (document.readyState === "loading") {
    SECURITY CENTER + LOCATION PERMISSIONS
 ========================================================= */
 function initProfileLocationSelectors(){
-  const region=$('profileRegion'),manual=$('profileRegionManual'),manualWrap=$('profileRegionManualWrap');
+  const region=$('profileRegion');
+  const manual=$('profileRegionManual');
+  const manualWrap=$('profileRegionManualWrap');
+  const district=$('profileDistrict');
+  const districtList=$('profileDistrictOptions');
+  const countryList=$('profileCountryOptions');
   if(!region)return;
-  const regions=[
-    ['Tashkent','Toshkent sh.'],['Tashkent Region','Toshkent vil.'],
-    ['Andijan','Andijon'],['Bukhara','Buxoro'],['Fergana','Farg‘ona'],
-    ['Jizzakh','Jizzax'],['Khorezm','Xorazm'],['Namangan','Namangan'],
-    ['Navoi','Navoiy'],['Kashkadarya','Qashqadaryo'],['Samarkand','Samarqand'],
-    ['Sirdarya','Sirdaryo'],['Surkhandarya','Surxondaryo'],
-    ['Karakalpakstan','Qoraqalpog‘iston Resp.']
-  ];
-  const saved=String(region.dataset.selected||region.value||'').trim();
-  const known=regions.some(([value])=>value===saved);
-  if(saved&&!known&&saved!=='OTHER'&&manual)manual.value=saved;
-  region.innerHTML='<option value="">Hududni tanlang</option>'+
-    regions.map(([value,label])=>'<option value="'+value+'">'+label+'</option>').join('')+
-    '<option value="OTHER">Boshqa / Xorij</option>';
-  region.value=known?saved:(saved?'OTHER':'');
+
+  const lang=getLanguage();
+  const labels={
+    en:{chooseRegion:'Select a region',other:'Other / Abroad',countries:['Uzbekistan','Kazakhstan','Kyrgyzstan','Tajikistan','Turkmenistan','Russia','United States','United Kingdom','Germany','Türkiye'],
+      regions:[['Tashkent','Tashkent city'],['Tashkent Region','Tashkent region'],['Andijan','Andijan'],['Bukhara','Bukhara'],['Fergana','Fergana'],['Jizzakh','Jizzakh'],['Khorezm','Khorezm'],['Namangan','Namangan'],['Navoi','Navoi'],['Kashkadarya','Kashkadarya'],['Samarkand','Samarkand'],['Sirdarya','Sirdarya'],['Surkhandarya','Surkhandarya'],['Karakalpakstan','Republic of Karakalpakstan']]},
+    uz:{chooseRegion:'Viloyatni tanlang',other:'Boshqa / Xorij',countries:['O‘zbekiston','Qozog‘iston','Qirg‘iziston','Tojikiston','Turkmaniston','Rossiya','AQSh','Buyuk Britaniya','Germaniya','Turkiya'],
+      regions:[['Tashkent','Toshkent sh.'],['Tashkent Region','Toshkent vil.'],['Andijan','Andijon'],['Bukhara','Buxoro'],['Fergana','Farg‘ona'],['Jizzakh','Jizzax'],['Khorezm','Xorazm'],['Namangan','Namangan'],['Navoi','Navoiy'],['Kashkadarya','Qashqadaryo'],['Samarkand','Samarqand'],['Sirdarya','Sirdaryo'],['Surkhandarya','Surxondaryo'],['Karakalpakstan','Qoraqalpog‘iston Respublikasi']]},
+    ru:{chooseRegion:'Выберите регион',other:'Другой / За рубежом',countries:['Узбекистан','Казахстан','Кыргызстан','Таджикистан','Туркменистан','Россия','США','Великобритания','Германия','Турция'],
+      regions:[['Tashkent','г. Ташкент'],['Tashkent Region','Ташкентская область'],['Andijan','Андижанская область'],['Bukhara','Бухарская область'],['Fergana','Ферганская область'],['Jizzakh','Джизакская область'],['Khorezm','Хорезмская область'],['Namangan','Наманганская область'],['Navoi','Навоийская область'],['Kashkadarya','Кашкадарьинская область'],['Samarkand','Самаркандская область'],['Sirdarya','Сырдарьинская область'],['Surkhandarya','Сурхандарьинская область'],['Karakalpakstan','Республика Каракалпакстан']]}
+  };
+  const copy=labels[lang]||labels.uz;
+  const districtNames={
+    Tashkent:['Bektemir','Chilonzor','Yashnobod','Mirobod','Mirzo Ulug‘bek','Sergeli','Shayxontohur','Olmazor','Uchtepa','Yakkasaroy','Yunusobod','Yangihayot'],
+    'Tashkent Region':['Angren','Bekobod','Bo‘ka','Bo‘stonliq','Chinoz','Chirchiq','Qibray','Ohangaron','Oqqo‘rg‘on','Parkent','Piskent','Quyi Chirchiq','O‘rta Chirchiq','Yangiyo‘l','Yuqori Chirchiq','Zangiota'],
+    Andijan:['Andijon','Asaka','Baliqchi','Bo‘z','Buloqboshi','Izboskan','Jalaquduq','Marhamat','Oltinko‘l','Paxtaobod','Shahrixon','Ulug‘nor','Xo‘jaobod','Qo‘rg‘ontepa'],
+    Bukhara:['Buxoro','G‘ijduvon','Jondor','Kogon','Olot','Peshku','Qorako‘l','Qorovulbozor','Romitan','Shofirkon','Vobkent'],
+    Fergana:['Farg‘ona','Beshariq','Bog‘dod','Buvayda','Dang‘ara','Furqat','Oltiariq','Qo‘qon','Quva','Rishton','So‘x','Toshloq','Uchko‘prik','Yozyovon'],
+    Jizzakh:['Arnasoy','Baxmal','Do‘stlik','Forish','G‘allaorol','Jizzax','Mirzacho‘l','Paxtakor','Yangiobod','Zafarobod','Zarbdor'],
+    Khorezm:['Urganch','Bog‘ot','Gurlan','Hazorasp','Xiva','Qo‘shko‘pir','Shovot','Yangiariq','Yangibozor'],
+    Namangan:['Namangan','Chortoq','Chust','Kosonsoy','Mingbuloq','Norin','Pop','To‘raqo‘rg‘on','Uchqo‘rg‘on','Uychi','Yangiqo‘rg‘on'],
+    Navoi:['Navoiy','Karmana','Konimex','Navbahor','Nurota','Qiziltepa','Tomdi','Uchquduq','Xatirchi'],
+    Kashkadarya:['Qarshi','Chiroqchi','Dehqonobod','G‘uzor','Kasbi','Kitob','Koson','Mirishkor','Muborak','Nishon','Shahrisabz','Yakkabog‘'],
+    Samarkand:['Samarqand','Bulung‘ur','Ishtixon','Jomboy','Kattaqo‘rg‘on','Narpay','Nurobod','Oqdaryo','Paxtachi','Payariq','Pastdarg‘om','Toyloq','Urgut'],
+    Sirdarya:['Guliston','Boyovut','Mirzaobod','Oqoltin','Sayxunobod','Sardoba','Sirdaryo','Xovos'],
+    Surkhandarya:['Termiz','Angor','Bandixon','Boysun','Denov','Jarqo‘rg‘on','Muzrabot','Oltinsoy','Qiziriq','Qumqo‘rg‘on','Sariosiyo','Sherobod','Sho‘rchi','Uzun'],
+    Karakalpakstan:['Nukus','Amudaryo','Beruniy','Chimboy','Ellikqal’a','Kegeyli','Mo‘ynoq','Qanliko‘l','Qo‘ng‘irot','Qorao‘zak','Shumanay','Taxiatosh','To‘rtko‘l','Xo‘jayli']
+  };
+
+  const savedRegion=String(region.dataset.selected||region.value||'').trim();
+  const savedDistrict=String(district?.dataset.selected||district?.value||'').trim();
+  const known=copy.regions.some(([value])=>value===savedRegion);
+  if(savedRegion&&!known&&savedRegion!=='OTHER'&&manual)manual.value=savedRegion;
+  region.innerHTML='<option value="">'+copy.chooseRegion+'</option>'+
+    copy.regions.map(([value,label])=>'<option value="'+value+'">'+label+'</option>').join('')+
+    '<option value="OTHER">'+copy.other+'</option>';
+  region.value=known?savedRegion:(savedRegion?'OTHER':'');
   const syncManual=()=>{
     const show=region.value==='OTHER';
     if(manualWrap)manualWrap.hidden=!show;
-    if(manual){manual.required=show;if(!show)manual.value='';}
+    if(manual){manual.required=false;if(!show&&region.value!=='OTHER')manual.value='';}
+  };
+  const syncDistricts=()=>{
+    if(!districtList)return;
+    const options=districtNames[region.value]||[];
+    districtList.innerHTML=options.map(name=>'<option value="'+name.replace(/&/g,'&amp;').replace(/"/g,'&quot;')+'"></option>').join('');
+    if(district)district.placeholder=lang==='en'?'Choose or type a district':lang==='ru'?'Выберите или введите район':'Tumanni tanlang yoki yozing';
   };
   if(!region.dataset.locationBound){
-    region.addEventListener('change',syncManual);
+    region.addEventListener('change',()=>{syncManual();syncDistricts();});
     region.dataset.locationBound='1';
   }
+  if(manual&&!manual.dataset.locationBound){
+    manual.addEventListener('input',()=>{if(manual.value)region.value='OTHER';});
+    manual.dataset.locationBound='1';
+  }
+  region.value=known?savedRegion:(savedRegion?'OTHER':'');
   syncManual();
+  syncDistricts();
+  if(district&&savedDistrict)district.value=savedDistrict;
+  if(countryList)countryList.innerHTML=copy.countries.map(name=>'<option value="'+name.replace(/&/g,'&amp;').replace(/"/g,'&quot;')+'"></option>').join('');
 }
-
 async function loadSecurityCenter() {
   const grid = $('securityGrid');
   if (!grid) return;
