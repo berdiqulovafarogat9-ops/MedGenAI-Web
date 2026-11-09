@@ -8,7 +8,16 @@
     });
     return out;
   }
-  var BONE_SYNONYMS = {\n    pelvis: ["pelvis", "hip bone", "os coxae", "coxal bone", "innominate bone", "chanoq suyagi", "chanoq"],\n    ribs: ["rib", "ribs", "costa", "costae", "qovurg‘a", "qovurg‘alar"]\n  };\n  function normalizeBoneName(value) {\n    var s=String(value||"").trim().toLowerCase().replace(/[_-]+/g," ");\n    for (var key in BONE_SYNONYMS) if (BONE_SYNONYMS[key].some(function(alias){return s===alias || s.indexOf(alias+" ")===0;})) return key;\n    return s;\n  }\n  function newQuiz(names, rnd) {
+  var BONE_SYNONYMS = {
+    pelvis: ["pelvis", "hip bone", "os coxae", "coxal bone", "innominate bone", "chanoq suyagi", "chanoq"],
+    ribs: ["rib", "ribs", "costa", "costae", "qovurg‘a", "qovurg‘alar"]
+  };
+  function normalizeBoneName(value) {
+    var s=String(value||"").trim().toLowerCase().replace(/[_-]+/g," ");
+    for (var key in BONE_SYNONYMS) if (BONE_SYNONYMS[key].some(function(alias){return s===alias || s.indexOf(alias+" ")===0;})) return key;
+    return s;
+  }
+  function newQuiz(names, rnd) {
     return { names: uniqueNames(names), rnd: rnd || Math.random, target: null, asked: 0, correct: 0, wrong: 0 };
   }
   function nextTarget(q) {
