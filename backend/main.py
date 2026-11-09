@@ -732,6 +732,15 @@ async def account_readiness_guard(request: Request, call_next):
     auth = request.headers.get("authorization", "")
     token = auth[7:].strip() if auth.lower().startswith("bearer ") else ""
     username = tokens.get(token)
+    if not username and PERSISTENCE_ENABLED and token:
+        stored_session = _lookup_session_by_token(token)
+        if stored_session:
+            if stored_session.get("is_revoked"):
+                return JSONResponse(status_code=401, content={"detail":"Session revoked"})
+            username = stored_session["user_id"]
+            tokens[token] = username
+            token_created_at[token] = stored_session["created_at"]
+            token_session_ids[token] = stored_session["id"]
     if not username:
         return await call_next(request)
 
@@ -858,6 +867,11 @@ def _parse_session_device(user_agent: str) -> tuple[str, str]:
     elif "iphone" in low or "mobile" in low or "android" in low: model = "Phone"
     else: model = "Computer"
     return f"{model} / {os_name}", browser
+
+def _count_user_sessions(username: str) -> int:
+    with psycopg.connect(DATABASE_URL) as conn:
+        row = conn.execute("SELECT COUNT(*) FROM user_sessions WHERE user_id=%s AND is_revoked=FALSE",(username,)).fetchone()
+    return int(row[0] if row else 0)
 
 def _lookup_session_by_token(token: str) -> dict | None:
     if not PERSISTENCE_ENABLED: return None
@@ -2576,7 +2590,11 @@ def security_summary(user=Depends(get_current_user)):
         "consent_version": consent.get("version", ""),
         "consent_accepted_at": consent.get("accepted_at"),
         "identity": identity,
-        "active_sessions": sum(1 for owner in tokens.values() if owner == username),
+        "active_sessions": (
+            (lambda: _count_user_sessions(username))()
+            if PERSISTENCE_ENABLED else
+            sum(1 for item in _session_cache.values() if item.get("user_id")==username and not item.get("is_revoked"))
+        ),
         "location": {
             "source": profile.get("location_source", ""),
             "label": profile.get("location_label", ""),
