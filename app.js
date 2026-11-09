@@ -4183,7 +4183,7 @@ function profileAccountRoleKey(profile = state.user?.profile || {}){
 function syncAcademicProfileVisibility(roleOverride){
   const section = $('academicProfileSection');
   if (!section) return;
-  const selectedRole = String(roleOverride || '').trim().toLowerCase().replace(/[\\s-]+/g, '_');
+  const selectedRole = String(roleOverride || '').trim().toLowerCase().replace(/[\s-]+/g, '_');
   const visible = (selectedRole || profileAccountRoleKey()) === 'student';
   section.hidden = !visible;
   section.style.display = visible ? '' : 'none';
