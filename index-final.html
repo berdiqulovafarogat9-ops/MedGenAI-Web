@@ -2197,13 +2197,19 @@ window.addEventListener("error", function (event) {
       try { localStorage.setItem(KEY, selected); } catch (_) {}
     }
     const selector = document.getElementById('appearanceSelector');
-    if(selector && selector.value !== selected) selector.value = selected;
+    if(selector) {
+      Array.from(selector.options).forEach(option => {
+        if(!['light','dark'].includes(option.value)) option.remove();
+      });
+      if(selector.value !== selected) selector.value = selected;
+    }
   }
   function init(){
     let saved = 'dark';
     try { saved = localStorage.getItem(KEY) || 'dark'; } catch (_) {}
     apply(saved, false);
     const selector = document.getElementById('appearanceSelector');
+    if(selector) Array.from(selector.options).forEach(option => { if(!['light','dark'].includes(option.value)) option.remove(); });
     if(selector && !selector.dataset.themeBound){
       selector.dataset.themeBound = '1';
       selector.addEventListener('change', function(){
