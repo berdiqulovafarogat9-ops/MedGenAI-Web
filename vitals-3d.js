@@ -105,6 +105,59 @@
     var ceilingGlow=new T.PointLight(0xe4f4ff,1.15,7);
     ceilingGlow.position.set(0,2.95,.25); room.add(ceilingGlow);
 
+
+    // Portable ultrasound cart — educational visualization only (not a diagnostic scanner).
+    var usBaseMat=new T.MeshStandardMaterial({color:0xe7edf0,roughness:.58,metalness:.12});
+    var usScreenMat=new T.MeshStandardMaterial({color:0x101a24,roughness:.3,metalness:.12});
+    box("ultrasound_cart_column",.10,.74,.10,2.05,.57,.55,trim);
+    box("ultrasound_cart_base",.62,.09,.48,2.05,.13,.55,usBaseMat);
+    for(var uw=0;uw<4;uw++){
+      var ua=uw*Math.PI/2, wheel=new T.Mesh(new T.TorusGeometry(.065,.018,8,16),dark);
+      wheel.rotation.y=Math.PI/2;wheel.position.set(2.05+Math.cos(ua)*.23,.075,.55+Math.sin(ua)*.17);room.add(wheel);
+    }
+    box("ultrasound_console",.66,.12,.40,2.05,1.00,.55,usBaseMat);
+    box("ultrasound_monitor_shell",.72,.54,.10,2.05,1.40,.43,dark);
+    var usCanvas=document.createElement("canvas");usCanvas.width=512;usCanvas.height=384;
+    var ux=usCanvas.getContext("2d");
+    ux.fillStyle="#07131d";ux.fillRect(0,0,512,384);
+    ux.fillStyle="#9bd7e8";ux.font="bold 22px sans-serif";ux.fillText("UZI · O‘QUV DEMO",18,34);
+    ux.fillStyle="#647987";ux.font="15px sans-serif";ux.fillText("Haqiqiy diagnostik tasvir emas",18,58);
+    ux.save();ux.beginPath();ux.moveTo(256,82);ux.lineTo(78,350);ux.lineTo(434,350);ux.closePath();ux.clip();
+    for(var uy=0;uy<270;uy+=3){for(var ux2=0;ux2<360;ux2+=3){
+      var noise=(Math.sin(ux2*12.989+uy*78.233)*43758.5453)%1;
+      var alpha=Math.abs(noise)*.28;
+      ux.fillStyle="rgba(185,220,230,"+alpha+")";ux.fillRect(76+ux2,82+uy,2,2);
+    }}
+    ux.strokeStyle="rgba(123,190,210,.55)";ux.lineWidth=2;
+    ux.beginPath();ux.moveTo(256,95);ux.quadraticCurveTo(180,180,155,330);ux.stroke();
+    ux.beginPath();ux.moveTo(256,95);ux.quadraticCurveTo(332,180,357,330);ux.stroke();
+    ux.restore();
+    var usTexture=new T.CanvasTexture(usCanvas);
+    var usScreen=new T.Mesh(new T.PlaneGeometry(.62,.43),new T.MeshBasicMaterial({map:usTexture}));
+    usScreen.position.set(2.05,1.40,.486);room.add(usScreen);
+    box("ultrasound_probe_holder",.13,.09,.16,2.43,1.02,.50,trim);
+    var probe=new T.Mesh(new T.SphereGeometry(.07,14,10),new T.MeshStandardMaterial({color:0x273746,roughness:.4}));
+    probe.scale.set(.72,1.4,.7);probe.position.set(2.43,1.13,.50);room.add(probe);
+    var probeCable=new T.Mesh(new T.TubeGeometry(new T.CatmullRomCurve3([
+      new T.Vector3(2.43,1.12,.5),new T.Vector3(2.58,.95,.62),new T.Vector3(2.48,.78,.70),new T.Vector3(2.28,.82,.62)
+    ]),24,.012,6,false),new T.MeshStandardMaterial({color:0x263746}));
+    room.add(probeCable);
+    // Generic clinician training mannequin at bedside; no real-person identity.
+    var staff=new T.Group();staff.name="clinical_staff_training_mannequin";staff.position.set(-2.45,0,.42);
+    var scrubs=new T.MeshStandardMaterial({color:0x167c83,roughness:.88});
+    var skin=new T.MeshStandardMaterial({color:0xc99578,roughness:.9});
+    function staffPart(geo,mat,x,y,z,sx,sy,sz){var m=new T.Mesh(geo,mat);m.position.set(x,y,z);m.scale.set(sx,sy,sz);m.castShadow=true;staff.add(m);return m;}
+    staffPart(new T.CapsuleGeometry(.22,.62,5,10),scrubs,0,1.02,0,1,1,.72);
+    staffPart(new T.SphereGeometry(.16,18,14),skin,0,1.62,.015,1,1,1);
+    staffPart(new T.BoxGeometry(.10,.24,.025),white,0,1.12,.17,1,1,1);
+    [-1,1].forEach(function(side){
+      var arm=staffPart(new T.CapsuleGeometry(.075,.43,4,8),scrubs,side*.29,1.05,.02,1,1,1);arm.rotation.z=side*.24;
+      staffPart(new T.SphereGeometry(.065,12,10),skin,side*.36,.76,.07,1,1,1);
+      staffPart(new T.CylinderGeometry(.07,.085,.72,12),dark,side*.12,.36,0,1,1,1);
+      staffPart(new T.BoxGeometry(.16,.08,.30),dark,side*.12,.055,.06,1,1,1);
+    });
+    scene.add(staff);
+
     scene.add(room);
     // Preserve existing camera controller-free scene; frame bed and room from a wider angle.
     camera.fov=48;
