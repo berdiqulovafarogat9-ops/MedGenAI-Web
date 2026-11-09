@@ -29,7 +29,7 @@ for(const role of [...expected,'admin']){
 }
 vm.runInContext("state.user.role='student';applyRoleDashboard();bindRoleRegistration();",context);
 const modules=[...w.document.querySelectorAll('#roleQuickGrid [data-role-module]')].map(x=>x.dataset.roleModule);
-assert.deepEqual(modules,['Medical Academy','Learning Hub','Virtual Laboratory']);
+assert.deepEqual(modules,['Medical Academy','Virtual Laboratory']);
 w.document.querySelector('[data-role="professor"]').click();assert.equal(w.document.getElementById('registerRole').value,'professor');
 w.document.querySelector('[data-role="student"]').click();assert.equal(w.document.getElementById('registerRole').value,'student');
 console.log('PASS: 10 registration roles, 11 dashboard renders, student modules, role clicks, removed fields/menu/module references, inline JS syntax');
