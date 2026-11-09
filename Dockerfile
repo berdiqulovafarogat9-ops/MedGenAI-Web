@@ -2,6 +2,9 @@ FROM nginx:1.27-alpine
 # Build-time downloads are pinned to Three.js r128; browser runtime uses same-origin files only.
 RUN apk add --no-cache curl \
  && mkdir -p /usr/share/nginx/html/models /usr/share/nginx/html/vendor \
+ && { if curl -fLsS --retry 2 --retry-delay 2 "https://dbkxgbeisgyjilflkneq.supabase.co/storage/v1/object/public/models/Casual%20Character%20by%20Quaternius%20-%20kZ3DmIoGip.glb" -o /usr/share/nginx/html/models/medgen-patient.glb; then \
+      if [ "$(head -c 4 /usr/share/nginx/html/models/medgen-patient.glb)" = "glTF" ]; then echo "Quaternius patient GLB cached locally"; else rm -f /usr/share/nginx/html/models/medgen-patient.glb; echo "Patient GLB was not a valid GLB; runtime fallback will be used"; fi; \
+    else echo "Patient GLB download unavailable during build; runtime fallback will be used"; fi; } \
  && curl -fLsS --retry 3 --retry-delay 2 "https://dbkxgbeisgyjilflkneq.supabase.co/storage/v1/object/public/models/full_skeleton.glb" -o /usr/share/nginx/html/models/full_skeleton.glb \
  && echo "fa91ad49eef6463ff3df2b38219aa70b40e58dfc227421ae2b41329ac137c304  /usr/share/nginx/html/models/full_skeleton.glb" | sha256sum -c - \
  && cp /usr/share/nginx/html/models/full_skeleton.glb /usr/share/nginx/html/models/thoracic_spine.glb \
