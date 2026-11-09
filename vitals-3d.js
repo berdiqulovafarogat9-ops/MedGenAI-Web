@@ -60,6 +60,32 @@
     for(var k=0;k<3;k++) box("cabinet_drawer_"+k,.70,.025,.035,2.55,.48+k*.28,-1.60,trim);
     box("wall_supply_unit",.58,.48,.14,-2.20,1.55,-2.30,dark);
     box("wall_supply_screen",.42,.28,.025,-2.20,1.57,-2.21,glass);
+
+    box("bedhead_gas_panel",2.15,.38,.10,-.05,1.94,-2.25,white);
+    [[-.72,0x16a34a],[-.24,0xf59e0b],[.24,0x0284c7],[.72,0xe5e7eb]].forEach(function(v){
+      var socket=new T.Mesh(new T.CylinderGeometry(.065,.065,.045,24),new T.MeshStandardMaterial({color:v[1],metalness:.22,roughness:.38}));
+      socket.rotation.x=Math.PI/2;socket.position.set(v[0],1.94,-2.17);room.add(socket);
+      var center=new T.Mesh(new T.CircleGeometry(.027,20),new T.MeshBasicMaterial({color:0x17212b}));
+      center.position.set(v[0],1.94,-2.135);room.add(center);
+    });
+    var lampHub=new T.Mesh(new T.CylinderGeometry(.16,.16,.12,24),trim);lampHub.position.set(.65,3.02,-.1);room.add(lampHub);
+    var lampArm=new T.Mesh(new T.CylinderGeometry(.035,.035,1.0,16),trim);lampArm.rotation.z=-.48;lampArm.position.set(.34,2.72,-.05);room.add(lampArm);
+    var lampHead=new T.Mesh(new T.CylinderGeometry(.34,.42,.13,32),white);lampHead.position.set(.02,2.36,.02);room.add(lampHead);
+    var lampLens=new T.Mesh(new T.CircleGeometry(.31,32),new T.MeshBasicMaterial({color:0xf8fafc}));lampLens.rotation.x=-Math.PI/2;lampLens.position.set(.02,2.285,.02);room.add(lampLens);
+    var examSpot=new T.SpotLight(0xeaf6ff,1.35,5,Math.PI/5,.45,1.2);examSpot.position.set(.02,2.28,.02);examSpot.target.position.set(0,.55,.15);room.add(examSpot);room.add(examSpot.target);
+    var ivPole=new T.Mesh(new T.CylinderGeometry(.018,.022,2.05,14),trim);ivPole.position.set(1.38,1.05,.35);room.add(ivPole);
+    var ivBase=new T.Mesh(new T.CylinderGeometry(.28,.28,.055,24),dark);ivBase.position.set(1.38,.06,.35);room.add(ivBase);
+    for(var iw=0;iw<4;iw++){var ivWheel=new T.Mesh(new T.SphereGeometry(.055,12,10),trim);ivWheel.position.set(1.38+Math.cos(iw*Math.PI/2)*.22,.045,.35+Math.sin(iw*Math.PI/2)*.22);room.add(ivWheel);}
+    var ivBag=new T.Mesh(new T.BoxGeometry(.20,.30,.07),glass);ivBag.position.set(1.38,2.02,.35);room.add(ivBag);
+    var ivFluid=new T.Mesh(new T.BoxGeometry(.16,.13,.012),new T.MeshBasicMaterial({color:0x38bdf8,transparent:true,opacity:.5}));ivFluid.position.set(1.38,1.96,.307);room.add(ivFluid);
+    box("crash_cart_body",.68,.82,.48,-1.65,.48,-.52,new T.MeshStandardMaterial({color:0xb91c1c,roughness:.48,metalness:.08}));
+    for(var dr=0;dr<4;dr++){box("crash_cart_drawer_"+dr,.58,.13,.025,-1.65,.23+dr*.19,-.265,white);box("crash_cart_handle_"+dr,.24,.025,.025,-1.65,.23+dr*.19,-.235,trim);}
+    box("crash_cart_top",.74,.07,.52,-1.65,.92,-.52,trim);
+    box("defibrillator_body",.34,.18,.28,-1.65,1.045,-.52,dark);
+    box("defibrillator_screen",.23,.11,.018,-1.65,1.055,-.365,new T.MeshBasicMaterial({color:0x0f766e}));
+    var blanket=new T.Mesh(new T.BoxGeometry(.78,.12,1.02),new T.MeshStandardMaterial({color:0x267da5,roughness:.88}));
+    blanket.name="clinical_patient_blanket";blanket.position.set(0,.79,.48);blanket.castShadow=true;room.add(blanket);
+
     box("door_frame",.12,2.35,1.12,3.20,1.18,-1.42,trim);
     box("clinical_door",.075,2.22,.98,3.13,1.14,-1.42,new T.MeshStandardMaterial({color:0xb7c8cb,roughness:.78}));
     box("door_vision_glass",.035,.42,.62,3.085,1.78,-1.42,glass);
