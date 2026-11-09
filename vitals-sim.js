@@ -156,6 +156,26 @@
         Object.keys(tabButtons).forEach(function(key) {
           tabButtons[key].setAttribute("aria-selected", key === name ? "true" : "false");
         });
+        // Keep the active Full Code pane in sync with the legacy router.
+        if (typeof paneIntervene !== "undefined" && paneIntervene) {
+          var fullPanes = {
+            actions: paneIntervene,
+            investigate: paneInvestigate,
+            log: paneAudit,
+            handoff: paneHandoff
+          };
+          [paneIntervene, paneInvestigate, paneAudit, paneHandoff].forEach(function(p) {
+            if (!p) return;
+            var active = fullPanes[name] === p;
+            p.classList.toggle("active", active);
+            p.style.display = active ? "flex" : "none";
+          });
+          if (typeof nav !== "undefined" && nav) {
+            nav.querySelectorAll(".fc-v-tab").forEach(function(b) {
+              b.classList.toggle("active", b.getAttribute("data-tab") === name);
+            });
+          }
+        }
       }
       [["actions","Tekshiruv / Muolaja"],["log","Jarayon jurnali"],["handoff","Topshirish"]].forEach(function(item) {
         var b = el("button", "", item[1]); b.type = "button"; b.className = "medgen-clinical-tab";
@@ -631,7 +651,7 @@
         var paneInvestigate=el("div","");paneInvestigate.className="fc-pane";paneInvestigate.id="fc-pane-investigate";
         var paneAudit=el("div","");paneAudit.className="fc-pane";paneAudit.id="fc-pane-audit";
         var paneHandoff=el("div","");paneHandoff.className="fc-pane";paneHandoff.id="fc-pane-handoff";
-        function tab(key,label,icon){var b=el("button","",icon+"  "+label);b.type="button";b.className="fc-v-tab"+(key==="intervene"?" active":"");b.onclick=function(){[paneIntervene,paneInvestigate,paneAudit,paneHandoff].forEach(function(p){p.classList.toggle("active",p.id==="fc-pane-"+key);});nav.querySelectorAll("button").forEach(function(x){x.classList.toggle("active",x===b);});};nav.appendChild(b);}
+        function tab(key,label,icon){var b=el("button","",icon+"  "+label);b.type="button";b.className="fc-v-tab"+(key==="intervene"?" active":"");b.setAttribute("data-tab",key);b.onclick=function(){setRightTab(key==="intervene"?"actions":key==="investigate"?"investigate":key==="audit"?"log":"handoff");};nav.appendChild(b);}
         tab("intervene","Muolaja","💉");tab("investigate","Tekshiruv","🔍");tab("audit","Jurnal","📑");tab("handoff","Topshirish","📋");
         paneIntervene.appendChild(el("h4","","Shoshilinch muolajalar"));
         if(actionsBox){actionsBox.style.display="flex";actionsBox.style.flexDirection="column";paneIntervene.appendChild(actionsBox);}
@@ -644,9 +664,15 @@
         paneHandoff.appendChild(el("p","font-size:12px;line-height:1.5;color:#94a3b8;margin:0 0 8px","Simulyatsiyani yakunlang, tashxisni belgilang va server baholash hisobotini oling."));
         var fullCodeFinishBtn=el("button","width:100%;padding:12px;margin:0 0 10px;border:1px solid #047857;border-radius:9px;background:#059669;color:#fff;font-weight:800;font-size:13px;cursor:pointer","📋 Epikrizni chiqarish va Yakunlash");
         fullCodeFinishBtn.type="button";
+        handoffFinishBtn = fullCodeFinishBtn;
         fullCodeFinishBtn.onclick=function(){
           if(running && sim && !sim.ended){finish();}
-          else if(endBox){endBox.scrollIntoView({behavior:"smooth",block:"nearest"});}
+          else if(endBox){
+            setRightTab("handoff");
+            endBox.scrollIntoView({behavior:"smooth",block:"nearest"});
+          } else {
+            flash("Yakunlash uchun faol klinik simulyatsiya topilmadi.");
+          }
         };
         paneHandoff.appendChild(fullCodeFinishBtn);
         if(endBox)paneHandoff.appendChild(endBox);
