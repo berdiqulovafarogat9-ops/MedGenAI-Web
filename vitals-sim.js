@@ -313,7 +313,7 @@
         var examPanel=el("div","margin-top:9px;padding:12px;border:1px solid #29465a;border-radius:12px;background:#0a1b28");
         examPanel.appendChild(el("div","font-weight:800;color:#9fe7f4;margin-bottom:8px","Klinik ko‘rik va diagnostika — Body Interact"));
         var examOut=el("div","font-size:12px;line-height:1.5;color:#c5d5e1;min-height:34px;margin:6px 0","Kategoriya tanlang va bemor tanasidagi yoritilgan nuqtani bosing.");
-        var categoryGrid=el("div","display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:8px");
+        var categoryGrid=el("div","display:flex;flex-direction:column;gap:7px");
         examPanel.appendChild(categoryGrid);examPanel.appendChild(examOut);rightActionsPane.appendChild(examPanel);
         var actionModal=el("div","display:none;margin-top:10px;padding:12px;border:1px solid #3b647d;border-radius:12px;background:#102536");actionModal.setAttribute("aria-live","polite");examPanel.appendChild(actionModal);
         function showResult(t){examOut.textContent=t;actionModal.style.display="none";}
