@@ -689,6 +689,28 @@ async def account_readiness_guard(request: Request, call_next):
     if not path.startswith("/api/v1/"):
         return await call_next(request)
 
+    # Enforce revocation before every authenticated API route, including
+    # onboarding and read-only routes that do not call get_current_user.
+    auth_header = request.headers.get("authorization", "")
+    bearer_token = auth_header[7:].strip() if auth_header.lower().startswith("bearer ") else ""
+    if bearer_token:
+        session_owner = tokens.get(bearer_token)
+        session_id = token_session_ids.get(bearer_token)
+        if not session_owner and PERSISTENCE_ENABLED:
+            stored = _lookup_session_by_token(bearer_token)
+            if stored:
+                if stored.get("is_revoked"):
+                    return JSONResponse(status_code=401, content={"detail":"Session revoked"})
+                session_owner = stored["user_id"]
+                session_id = stored["id"]
+                tokens[bearer_token] = session_owner
+                token_created_at[bearer_token] = stored["created_at"]
+                token_session_ids[bearer_token] = session_id
+        if session_owner and session_id:
+            live_session = _get_session_record(session_id, session_owner)
+            if not live_session or live_session.get("is_revoked"):
+                return JSONResponse(status_code=401, content={"detail":"Session revoked"})
+
     mfa_exempt = {
         "/api/v1/health/live", "/api/v1/auth/login", "/api/v1/auth/register", "/api/v1/auth/me",
         "/api/v1/auth/logout", "/api/v1/auth/sessions", "/api/v1/auth/sessions/terminate-others", "/api/v1/account", "/api/v1/profile", "/api/v1/billing/webhook",
