@@ -312,22 +312,27 @@
         actionsBox.style.display="none";
         var examPanel=el("div","margin-top:9px;padding:12px;border:1px solid #29465a;border-radius:12px;background:#0a1b28");
         examPanel.appendChild(el("div","font-weight:800;color:#9fe7f4;margin-bottom:8px","Klinik ko‘rik va diagnostika — Body Interact"));
-        var examOut=el("div","font-size:12px;line-height:1.5;color:#c5d5e1;min-height:34px;margin:6px 0","Kategoriya tanlang va bemor tanasidagi yoritilgan nuqtani bosing.");
-        var categoryGrid=el("div","display:flex;flex-direction:column;gap:7px");
-        examPanel.appendChild(categoryGrid);examPanel.appendChild(examOut);rightActionsPane.appendChild(examPanel);
-        var actionModal=el("div","display:none;margin-top:10px;padding:12px;border:1px solid #3b647d;border-radius:12px;background:#102536");actionModal.setAttribute("aria-live","polite");examPanel.appendChild(actionModal);
-        function showResult(t){examOut.textContent=t;actionModal.style.display="none";}
-        function modalChoice(label,fn){var b=el("button",BTN2,label);b.type="button";b.onclick=fn;actionModal.appendChild(b);}
-        function category(icon,label,fn){var b=el("button","min-height:48px;padding:11px 12px;border:1px solid #31536a;border-radius:10px;background:#102b3d;color:#e5f3fb;font-weight:750;text-align:left;cursor:pointer",icon+"  "+label);b.type="button";b.setAttribute("aria-expanded","false");b.onclick=function(){actionModal.innerHTML="";actionModal.style.display="block";categoryGrid.querySelectorAll("button").forEach(function(x){x.setAttribute("aria-expanded","false");x.style.borderColor="#31536a";});b.setAttribute("aria-expanded","true");b.style.borderColor="#22d3ee";fn();};categoryGrid.appendChild(b);}
-        category("🩺","Ko‘rik",function(){modalChoice("ABCDE ko‘rigi",function(){showResult("ABCDE: nafas yo‘li shishi, xirillash, gipoksiya va gipotenziyani baholang.");});modalChoice("Bosh / bo‘yin",function(){chosen="head";showResult("Bosh/bo‘yin hotspotini bosing: sianoz, shish va nafas yo‘li holati.");});modalChoice("Ko‘krak auskultatsiyasi",function(){chosen="stethoscope";showResult("Ko‘krak hotspotini bosing — xirillash tavsifi chiqadi.");});});
-        category("💉","Shoshilinch dori / Muolaja",function(){modalChoice("💉 Adrenalin 1:1000 · 0.5 mg IM",function(){chosen="epi";showResult("💉 Adrenalin shpritsi tanlandi. Yuborish joyi: sonning old-yon qismi (Vastus lateralis). Son hotspotini bosing.");});modalChoice("🫁 Kislorod",function(){chosen="oxygen";showResult("Kislorod niqobi tanlandi. Bosh/yuz hotspotini bosing.");});modalChoice("💧 IV kateter + kristalloid",function(){chosen="iv";showResult("IV kateter tanlandi. Bilak hotspotini bosing.");});});
-        category("🧪","Tahlil va EKG",function(){modalChoice("12-kanalli EKG",function(){showResult("Simulyatsion EKG: sinus taxikardiyasiga mos ritm; anafilaksiyani tasdiqlamaydi.");});modalChoice("Qon gazlari / triptaza",function(){showResult("Simulyatsion natija: gipoksemiya ehtimoli. Triptaza keyinroq olinishi mumkin; adrenalin kechiktirilmaydi.");});});
-        category("🗣️","Bemor bilan muloqot",function(){modalChoice("Allergiya va trigger tarixi",function(){showResult("Nima chaqdi? Qachon boshlandi? Oldin allergiya bo‘lganmi? Qanday dorilar qabul qilasiz?");});modalChoice("Bemorni tinchlantirish",function(){showResult("Men siz bilanman. Nafas va qon bosimingizni kuzatyapmiz. Iltimos, o‘rningizdan turmang.");});modalChoice("SBAR topshirish",function(){showResult("S: ari chaqishidan keyingi anafilaktik shok. B: yuz-lab shishi, xirillash. A: vitallar monitor orqali kuzatilmoqda. R: reanimatsiya jamoasi.");});});
+        var examOut=el("div","font-size:12px;line-height:1.5;color:#9fb5c7;min-height:34px;margin:8px 0 2px","Tekshiruv turini tanlang.");
+        var examList=el("div","display:flex;flex-direction:column;gap:6px");
+        examPanel.appendChild(examList);examPanel.appendChild(examOut);rightActionsPane.appendChild(examPanel);
+        function showResult(t){examOut.textContent=t;}
+        function examItem(icon,label,description,fn){
+          var b=el("button","display:flex;align-items:center;gap:10px;width:100%;min-height:42px;padding:9px 11px;margin:0;border:1px solid #263b50;border-radius:8px;background:#101d2b;color:#dce8f2;text-align:left;font-size:12px;font-weight:650;cursor:pointer;box-sizing:border-box");
+          b.type="button";b.appendChild(el("span","font-size:17px;flex:0 0 24px",icon));
+          var copy=el("span","display:flex;flex-direction:column;gap:2px;min-width:0");
+          copy.appendChild(el("strong","font-size:12px;color:#e5eef6",label));
+          copy.appendChild(el("span","font-size:10px;font-weight:400;color:#8fa3b5",description));
+          b.appendChild(copy);b.onclick=fn;examList.appendChild(b);
+        }
+        examItem("🩺","Auskultatsiya","Ko‘krak qafasi auskultatsiyasi",function(){chosen="stethoscope";showResult("Stetoskop tanlandi. 3D bemor modelidagi ko‘krak hotspotini bosing.");});
+        examItem("🧪","ABG","Arterial qon gazlari",function(){showResult("ABG — ushbu keysda laboratoriya natijasi alohida serverdan olinmaydi. Simulyatsiya ko‘rsatkichlarini klinik kontekstda baholang.");});
+        examItem("📈","EKG","12-kanalli elektrokardiografiya",function(){showResult("Mavjud monitor EKGsi simulyatsion ritmni ko‘rsatadi. 12-kanalli diagnostik EKG yozuvi bu keysda alohida yaratilmagan.");});
+        examItem("🩻","Rentgen","Ko‘krak qafasi rentgeni",function(){showResult("Rentgen tasviri ushbu keys uchun ulanmagan; tasvir yoki radiologik xulosa mavjud emas.");});
                 try {
           var sc=new THREE.Scene(); sc.background=new THREE.Color(0x071521);
           var cam=new THREE.PerspectiveCamera(38,1,0.1,100); cam.position.set(0,1.8,2.2); cam.lookAt(0,1.0,0);
           clinicRenderer=new THREE.WebGLRenderer({antialias:true,alpha:false}); clinicRenderer.setPixelRatio(Math.min(window.devicePixelRatio||1,1.5)); clinicRenderer.shadowMap.enabled=true; clinicRenderer.shadowMap.type=THREE.PCFSoftShadowMap; clinicRenderer.outputEncoding=THREE.sRGBEncoding; clinicRenderer.toneMapping=THREE.ACESFilmicToneMapping; clinicRenderer.toneMappingExposure=1.05; view3.appendChild(clinicRenderer.domElement);
-          clinicRenderer.domElement.style.cssText="width:100%;height:100%;display:block";
+          clinicRenderer.domElement.id="three-canvas";clinicRenderer.domElement.style.cssText="width:100%;height:100%;display:block;background-color:#080d14";
           sc.add(new THREE.HemisphereLight(0xffffff,0x334455,2));
           var light=new THREE.DirectionalLight(0xfff2e6,2.2); light.position.set(-2,5,3); light.castShadow=true; light.shadow.mapSize.set(1024,1024); sc.add(light); var fillLight=new THREE.DirectionalLight(0x9bc9e8,.75); fillLight.position.set(3,2,-2); sc.add(fillLight);
           var floor=new THREE.Mesh(new THREE.PlaneGeometry(10,10),new THREE.MeshStandardMaterial({color:0x263b49,roughness:.94})); floor.rotation.x=-Math.PI/2; floor.receiveShadow=true; sc.add(floor);
@@ -544,7 +549,8 @@
           .fc-left-scroll .medgen-clinical-meta{font-size:11px}
           .fc-center-stage{position:relative;min-width:0;min-height:0;overflow:hidden;background:#02070d}
           .fc-three-viewport{position:absolute;inset:0;width:100%;height:100%;min-height:0;z-index:1}
-          .fc-three-viewport canvas{width:100%!important;height:100%!important;display:block}
+          .fc-three-viewport, .fc-three-viewport canvas, canvas#three-canvas{width:100%!important;height:100%!important;background-color:#080d14!important}
+          .fc-three-viewport canvas{display:block}
           .fc-floating-monitor{position:absolute;z-index:5;top:10px;left:10px;width:min(350px,calc(100% - 20px));padding:8px;background:rgba(5,10,15,.91);border:1px solid #059669;border-radius:8px;box-sizing:border-box;pointer-events:none;box-shadow:0 4px 18px #0009}
           .fc-monitor-header{display:flex;justify-content:space-between;gap:8px;color:#10b981;font:10px monospace;margin-bottom:4px}
           .fc-floating-monitor canvas{width:100%!important;height:48px!important;background:#020a12;border-radius:4px}
