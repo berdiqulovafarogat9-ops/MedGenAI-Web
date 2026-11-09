@@ -1,0 +1,33 @@
+/* MedGen AI — clinical 3-dock layout override (UI only) */
+.medgen-clinical-shell { width:100% !important; max-width:100% !important; }
+.medgen-clinical-grid {
+  display:grid !important;
+  grid-template-columns:minmax(250px,300px) minmax(420px,1.4fr) minmax(300px,340px) !important;
+  gap:14px !important;
+  width:100% !important;
+  max-width:100% !important;
+  align-items:start !important;
+  box-sizing:border-box !important;
+}
+.medgen-clinical-dock { min-width:0 !important; }
+.medgen-clinical-left, .dock-col-left { display:flex !important; flex-direction:column !important; gap:10px !important; }
+.medgen-clinical-center, .dock-col-center { display:flex !important; flex-direction:column !important; gap:12px !important; }
+.medgen-clinical-right, .dock-col-right { display:flex !important; flex-direction:column !important; gap:10px !important; }
+.medgen-clinical-right .medgen-clinical-pane { min-width:0; }
+.medgen-clinical-right .medgen-clinical-pane:first-of-type { overflow:visible; }
+.medgen-clinical-right .medgen-clinical-tabs { position:sticky; top:0; z-index:3; background:#0a1723; padding:4px 0; }
+.medgen-clinical-right .medgen-clinical-tab { min-width:0; white-space:normal; }
+.medgen-clinical-center canvas { width:100% !important; max-width:100% !important; }
+.medgen-clinical-center > div { min-width:0; }
+.medgen-clinical-center .medgen-clinical-vitals { display:grid !important; grid-template-columns:repeat(2,minmax(0,1fr)) !important; }
+.medgen-clinical-right [aria-expanded="true"] { border-color:#22d3ee !important; background:#12344a !important; }
+.medgen-clinical-right button { max-width:100%; overflow-wrap:anywhere; }
+@media (max-width:1180px) {
+  .medgen-clinical-grid { grid-template-columns:minmax(220px,.8fr) minmax(0,1.2fr) !important; }
+  .medgen-clinical-right { grid-column:1 / -1; }
+}
+@media (max-width:720px) {
+  .medgen-clinical-grid { grid-template-columns:minmax(0,1fr) !important; }
+  .medgen-clinical-right { grid-column:auto; }
+  .medgen-clinical-center .medgen-clinical-vitals { grid-template-columns:repeat(2,minmax(0,1fr)) !important; }
+}
