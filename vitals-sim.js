@@ -539,6 +539,24 @@
         var style=document.createElement("style");
         style.textContent=`
           .fc-workspace{height:100vh;width:100%;max-height:100vh;display:flex;flex-direction:column;overflow:hidden;background:#080d14;color:#e2e8f0;box-sizing:border-box;font-family:system-ui,sans-serif}
+          .fc-topbar{position:absolute;z-index:8;top:0;left:0;right:0;height:42px;min-height:42px;background:linear-gradient(180deg,rgba(4,10,17,.82),rgba(4,10,17,.12));border:0;pointer-events:none}
+          .fc-topbar button,.fc-topbar .fc-clock-box{pointer-events:auto}
+          .fc-main-grid{display:block;position:absolute;inset:0;width:100%;height:100%;padding:0}
+          .fc-dock-left{display:none!important}
+          .fc-center-stage{position:absolute;inset:0;width:100%;height:100%;z-index:1}
+          .fc-three-viewport{position:absolute;inset:0!important;width:100%!important;height:100%!important}
+          .fc-floating-monitor{top:54px;left:16px;width:min(360px,calc(100% - 32px));background:rgba(5,12,20,.72);backdrop-filter:blur(16px);border:1px solid rgba(56,189,248,.34);border-radius:14px;box-shadow:0 14px 42px #0008}
+          .fc-dock-right{position:absolute;z-index:20;top:0;right:0;bottom:0;width:min(370px,88vw);display:flex!important;transform:translateX(105%);transition:transform .28s cubic-bezier(.2,.8,.2,1);background:rgba(7,14,23,.94);backdrop-filter:blur(18px);border-left:1px solid #ffffff22;box-shadow:-18px 0 55px #0008}
+          .fc-dock-right.fc-drawer-open{transform:translateX(0)}
+          .fc-vert-tabs{width:64px;flex-basis:64px;padding-top:54px}
+          .fc-tab-panes{padding:62px 12px 88px}
+          .fc-bottom-dock{position:absolute;z-index:15;left:50%;bottom:max(14px,env(safe-area-inset-bottom));transform:translateX(-50%);display:flex;align-items:center;gap:7px;padding:9px 12px;border:1px solid #ffffff26;border-radius:28px;background:rgba(7,15,25,.78);backdrop-filter:blur(18px);box-shadow:0 12px 36px #0009;max-width:calc(100% - 18px);overflow-x:auto}
+          .fc-bottom-dock button{min-width:58px;border:0;background:transparent;color:#d9e6ef;display:flex;flex-direction:column;align-items:center;gap:4px;font:600 10px system-ui;white-space:nowrap;padding:2px 5px;cursor:pointer}
+          .fc-bottom-dock .fc-dock-icon{width:38px;height:38px;border-radius:50%;display:grid;place-items:center;background:#ffffff12;border:1px solid #ffffff22;font-size:17px}
+          .fc-bottom-dock button.fc-dock-primary .fc-dock-icon{background:#0369a1;border-color:#38bdf8;box-shadow:0 0 18px #0284c766}
+          .fc-drawer-scrim{display:none;position:absolute;inset:0;z-index:18;background:#0005}
+          .fc-workspace.fc-drawer-active .fc-drawer-scrim{display:block}
+          @media(max-width:600px){.fc-floating-monitor{top:46px;left:8px;width:min(310px,calc(100% - 16px));padding:6px}.fc-bottom-dock{gap:2px;padding:7px 6px}.fc-bottom-dock button{min-width:49px;font-size:9px}.fc-bottom-dock .fc-dock-icon{width:34px;height:34px}.fc-tab-panes{padding-left:8px;padding-right:8px}}
           .fc-topbar{height:52px;min-height:52px;display:flex;align-items:center;justify-content:space-between;gap:12px;padding:0 14px;background:#0f172a;border-bottom:1px solid #1e293b;box-sizing:border-box}
           .fc-topbar-left,.fc-topbar-right{display:flex;align-items:center;gap:10px;min-width:0}
           .fc-badge-crit{background:#b91c1c;color:#fff;font-size:10px;font-weight:800;padding:4px 8px;border-radius:4px;white-space:nowrap}
@@ -641,7 +659,20 @@
         panes.appendChild(paneIntervene);panes.appendChild(paneInvestigate);panes.appendChild(paneAudit);panes.appendChild(paneHandoff);
         right.appendChild(nav);right.appendChild(panes);
         main.appendChild(left);main.appendChild(center);main.appendChild(right);
-        workspace.appendChild(top);workspace.appendChild(main);
+        var scrim=el("div","");scrim.className="fc-drawer-scrim";
+        scrim.onclick=function(){right.classList.remove("fc-drawer-open");workspace.classList.remove("fc-drawer-active");};
+        var bottomDock=el("nav","");bottomDock.className="fc-bottom-dock";bottomDock.setAttribute("aria-label","Klinik amallar");
+        [["💬","Muloqot",0],["🩺","Ko‘rik",1],["🧪","Tahlil",1],["💉","Muolaja",0],["📋","Jurnal",2],["🏁","Topshirish",3]].forEach(function(item){
+          var b=el("button","");b.type="button";if(item[1]==="Muolaja")b.className="fc-dock-primary";
+          var ic=el("span","",item[0]);ic.className="fc-dock-icon";b.appendChild(ic);b.appendChild(el("span","",item[1]));
+          b.onclick=function(){
+            var tabIndex=item[1]==="Ko‘rik"||item[1]==="Tahlil"?1:item[2];
+            var tabs=nav.querySelectorAll("button");if(tabs[tabIndex])tabs[tabIndex].click();
+            right.classList.add("fc-drawer-open");workspace.classList.add("fc-drawer-active");
+          };
+          bottomDock.appendChild(b);
+        });
+        workspace.appendChild(top);workspace.appendChild(main);workspace.appendChild(scrim);workspace.appendChild(bottomDock);
         shell.remove();
         card.appendChild(workspace);
         // Move the existing renderer canvases only; renderer, camera, scene and RAF remain untouched.
