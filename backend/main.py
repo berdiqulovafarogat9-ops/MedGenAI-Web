@@ -693,7 +693,10 @@ async def account_readiness_guard(request: Request, call_next):
     # onboarding and read-only routes that do not call get_current_user.
     auth_header = request.headers.get("authorization", "")
     bearer_token = auth_header[7:].strip() if auth_header.lower().startswith("bearer ") else ""
-    if bearer_token:
+    if bearer_token and path not in {
+        "/api/v1/auth/login", "/api/v1/auth/register", "/api/v1/auth/2fa/login",
+        "/api/v1/auth/verify-email",
+    }:
         session_owner = tokens.get(bearer_token)
         session_id = token_session_ids.get(bearer_token)
         if not session_owner and PERSISTENCE_ENABLED:
