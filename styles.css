@@ -664,3 +664,27 @@ html[data-theme] a { color: var(--accent); }
 .subscription-quota-head span{color:var(--muted);white-space:nowrap;font-variant-numeric:tabular-nums}
 .subscription-quota-track{height:7px;margin-top:7px;overflow:hidden;border-radius:999px;background:var(--surface-alt)}
 .subscription-quota-track i{display:block;height:100%;border-radius:inherit;background:var(--accent)}
+
+
+/* High-contrast light theme: consistent readable surfaces on every auth/card view. */
+html[data-theme="light"] {
+  --page: #f8fafc; --surface: #ffffff; --surface-alt: #f1f5f9;
+  --text: #0f172a; --muted: #475569; --line: #cbd5e1;
+  --bg-main: #f8fafc; --bg-card: #ffffff; --text-primary: #0f172a; --border-color: #cbd5e1;
+}
+body[data-theme="light"] {
+  --bg-main: #f8fafc; --bg-card: #ffffff; --text-primary: #0f172a; --border-color: #cbd5e1;
+  background: var(--bg-main) !important; color: var(--text-primary) !important;
+}
+html[data-theme="light"] body,
+html[data-theme="light"] body .card-box,
+html[data-theme="light"] body .auth-box,
+html[data-theme="light"] body .login-card,
+body[data-theme="light"] .card-box,
+body[data-theme="light"] .auth-box,
+body[data-theme="light"] .login-card { color: #0f172a !important; }
+html[data-theme="light"] body :is(.card-box,.auth-box,.login-card),
+body[data-theme="light"] :is(.card-box,.auth-box,.login-card) {
+  background: #ffffff !important; border: 1px solid #cbd5e1 !important;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.06) !important;
+}
