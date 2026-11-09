@@ -6451,6 +6451,17 @@ window.switchMedGenMode = function(mode) {
     const statusLabel=statusNames[status] || 'Noma’lum';
     const plans=Array.isArray(billing?.plans)?billing.plans:[];
     const configured=Boolean(billing?.configured);
+    const entitlements=billing?.entitlements || {};
+    const usage=entitlements.usage || {};
+    const limits=entitlements.limits || {};
+    const quotaLabels={clinical_3d_cases:'3D klinik holatlar',physiology_lab_analyses:'Fiziologik laboratoriya tahlillari',virtual_lab_runs:'Virtual laboratoriya ishga tushirishlari'};
+    const quotaCards=Object.keys(quotaLabels).map(key=>{
+      const used=Number(usage[key]||0);
+      const limit=Number(limits[key]??0);
+      const limitText=limit<0?'Cheksiz':String(limit);
+      const percent=limit<0?0:Math.min(100,limit?used/limit*100:0);
+      return '<div class="subscription-quota"><div class="subscription-quota-head"><b>'+quotaLabels[key]+'</b><span>'+used+' / '+limitText+'</span></div><div class="subscription-quota-track"><i style="width:'+percent+'%"></i></div></div>';
+    }).join('');
     const options=['pro','enterprise'].map(id=>{
       const available=plans.some(p=>p.id===id);
       const title=id==='pro'?'Pro':'Enterprise';
@@ -6459,7 +6470,7 @@ window.switchMedGenMode = function(mode) {
         : 'Tashkilotlar uchun kengaytirilgan ilmiy ish jarayonlari, laboratoriya va jamoaviy foydalanish.';
       return '<article class="subscription-plan"><div><h4>'+title+'</h4><p>'+desc+'</p></div><button type="button" class="primary small subscription-buy" data-plan="'+id+'" '+(!configured||!available?'disabled':'')+'>Tarifni yangilash</button></article>';
     }).join('');
-    root.innerHTML='<div class="subscription-current"><span class="subscription-eyebrow">JORIY OBUNA</span><h3>'+esc(name)+'</h3><p class="subscription-state">'+esc(statusLabel)+'</p><p class="subscription-muted">Amal qilish muddati: <b>'+esc(dateLabel(expiry))+'</b></p></div><div class="subscription-upgrades"><h3>Tarifni yangilash</h3><p class="subscription-muted">Yangi tarif to‘lovi va obuna faollashuvi to‘lov provayderining tasdiqlangan webhook xabaridan keyin hisobingizga yoziladi.</p>'+options+'</div>'+(configured?'':'<p class="subscription-notice">To‘lov xizmati hozircha sozlanmagan. Pro va Enterprise xaridi administrator tomonidan Dodo Payments sozlamalari kiritilgach faollashadi.</p>');
+    root.innerHTML='<div class="subscription-current"><span class="subscription-eyebrow">JORIY OBUNA</span><h3>'+esc(name)+'</h3><p class="subscription-state">'+esc(statusLabel)+'</p><p class="subscription-muted">Amal qilish muddati: <b>'+esc(dateLabel(expiry))+'</b></p></div><section class="subscription-usage"><h3>Joriy oy foydalanish limiti</h3>'+quotaCards+'<p class="subscription-muted">Hisob-kitob davri: '+esc(entitlements.month || 'joriy oy')+'</p></section><div class="subscription-upgrades"><h3>Tarifni yangilash</h3><p class="subscription-muted">Yangi tarif to‘lovi va obuna faollashuvi to‘lov provayderining tasdiqlangan webhook xabaridan keyin hisobingizga yoziladi.</p>'+options+'</div>'+(configured?'':'<p class="subscription-notice">To‘lov xizmati hozircha sozlanmagan. Pro va Enterprise xaridi administrator tomonidan Dodo Payments sozlamalari kiritilgach faollashadi.</p>');
     root.querySelectorAll('[data-plan]').forEach(button=>button.addEventListener('click',async()=>{
       const selected=button.dataset.plan;
       button.disabled=true; button.textContent='Yuklanmoqda…';
