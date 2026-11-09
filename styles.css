@@ -584,3 +584,52 @@ html[data-theme] a { color: var(--accent); }
 .session-empty{padding:12px;border-radius:10px;background:rgba(128,145,165,.07);color:var(--muted,#8492a6)}
 .session-security-note{margin-top:14px}
 @media(max-width:640px){.session-management{padding:14px}.session-device{align-items:flex-start;flex-wrap:wrap}.session-device-main{flex-basis:calc(100% - 60px)}.session-revoke{margin-left:58px}.session-live{margin-left:58px}.session-section-head{display:block}.session-terminate-all{margin-top:12px;width:100%}}
+
+
+/* Readability hardening: remove legacy fixed-dark surfaces from light mode. */
+:root[data-theme="light"] :is(.security-center,.admin-dashboard-section,.security-card,.admin-card,.user-directory-card,.profile-section-title){
+  background:#ffffff!important;
+  color:#173347!important;
+  border-color:#c9d9e3!important;
+}
+:root[data-theme="light"] :is(.security-center,.admin-dashboard-section,.security-card,.admin-card,.user-directory-card)
+:is(h1,h2,h3,h4,h5,p,span,strong,b,label,small,li,div){
+  color:inherit;
+}
+:root[data-theme="light"] :is(.security-center,.admin-dashboard-section,.security-card,.admin-card,.user-directory-card) :is(.muted,small,.description,.help-text){
+  color:#4c6577!important;
+  opacity:1!important;
+}
+:root[data-theme="light"] .profile-section-title{border-color:#c9d9e3!important}
+:root[data-theme="light"] .profile-auto-note{color:#4c6577!important;opacity:1!important}
+:root[data-theme="light"] .language-box select{
+  background:#ffffff!important;
+  color:#173347!important;
+  border:1px solid #c9d9e3!important;
+}
+:root[data-theme="light"] .login-card .private-tag,
+:root[data-theme="light"] .login-card .eyebrow{color:#167d70!important}
+:root[data-theme="light"] .login-card .muted{color:#4c6577!important}
+:root[data-theme="light"] .login-card label{color:#173347!important}
+:root[data-theme="light"] :is(.profile-modal,.modal-card,.security-center,.security-card) :is(input,textarea,select){
+  background:#f4f8fa!important;
+  color:#173347!important;
+  border-color:#c9d9e3!important;
+}
+:root[data-theme="light"] :is(input,textarea,select)::placeholder{color:#607789!important;opacity:1!important}
+:root[data-theme="dark"] :is(.security-center,.admin-dashboard-section,.security-card,.admin-card,.user-directory-card){
+  background:#0d1b2d!important;
+  color:#e6eff6!important;
+  border-color:#3b536a!important;
+}
+:root[data-theme="dark"] :is(.security-center,.admin-dashboard-section,.security-card,.admin-card,.user-directory-card) :is(.muted,small,.description,.help-text){
+  color:#b2c5d5!important;
+  opacity:1!important;
+}
+/* Location inputs are intentionally free-text capable, even when suggestions exist. */
+#profileCountry,#profileDistrict,#profileCity,#profileLocationLabel,#profileRegionManual{
+  width:100%;min-width:0;
+}
+#profileRegionManualWrap[hidden]{display:none!important}
+.location-grid label{min-width:0}
+.location-grid input,.location-grid select{max-width:100%}
