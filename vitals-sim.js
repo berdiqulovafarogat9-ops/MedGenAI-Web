@@ -108,6 +108,8 @@
       closeAll();
       var anatomyOverlayClose = document.getElementById("close-medgen-skeleton");
       if (anatomyOverlayClose) anatomyOverlayClose.click();
+      // Use the application's real dashboard renderer when available.
+      if (typeof window.showDashboard === "function") window.showDashboard();
     }
 
     function showStart() {
