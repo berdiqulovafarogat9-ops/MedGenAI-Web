@@ -677,6 +677,8 @@
  ['This room is for members of your role.','Bu yopiq xona faqat sizning rolingiz uchun.','Эта комната доступна участникам вашей роли.'],
  ['No messages yet — start the conversation.','Hozircha xabar yo‘q — birinchi bo‘lib yozing.','Сообщений пока нет — начните разговор.'],
  ['Loading…','Yuklanmoqda...','Загрузка…'],['Run Scientific Workflow','Ilmiy jarayonni boshlash','Запустить научный процесс']
+ ["Country code (ISO-2)","Mamlakat kodi (ISO-2)","Код страны (ISO-2)"],
+ ["Two-letter country code, for example UZ or US.","Ikki harfli mamlakat kodi, masalan UZ yoki US.","Двухбуквенный код страны, например UZ или US."],
  ["PRIVATE • DEVELOPMENT","XUSUSIY • ISHLAB CHIQISH","ЧАСТНАЯ • РАЗРАБОТКА"],
  ["PRIVATE RESEARCH PLATFORM","XUSUSIY ILMIY PLATFORMA","ЧАСТНАЯ НАУЧНАЯ ПЛАТФОРМА"],
  ["Welcome back","Xush kelibsiz","С возвращением"],
