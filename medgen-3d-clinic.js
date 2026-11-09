@@ -11,7 +11,7 @@
       var wrap=document.getElementById(wrapperId);
       if(!wrap || !window.THREE || !THREE.WebGLRenderer) return null;
       this.wrapper=wrap;
-      wrap.innerHTML='<div style="position:relative;width:100%;height:280px;background:#071521;border-radius:10px;overflow:hidden"><canvas style="width:100%;height:100%;display:block"></canvas><div style="position:absolute;left:9px;bottom:8px;padding:5px 9px;border-radius:5px;background:rgba(3,15,28,.86);color:#7dd3fc;font:11px system-ui">3D reanimatsiya xonasi · nafas harakati — simulyatsiya</div></div>';
+      wrap.innerHTML='<div class="medgen-3d-clinic-stage" style="position:relative;width:100%;height:100%;min-height:0;background:#071521;border-radius:10px;overflow:hidden"><canvas style="width:100%;height:100%;display:block"></canvas><div style="position:absolute;left:9px;bottom:8px;padding:5px 9px;border-radius:5px;background:rgba(3,15,28,.86);color:#7dd3fc;font:11px system-ui">3D reanimatsiya xonasi · nafas harakati — simulyatsiya</div></div>';
       var canvas=wrap.querySelector("canvas");
       try {
         this.scene=new THREE.Scene(); this.scene.background=new THREE.Color(0x0f172a);
