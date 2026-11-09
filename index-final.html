@@ -371,6 +371,7 @@ frame-ancestors 'none'">
 
     <button id="medgenMenuBtn" class="ghost menu-button" type="button">☰ Menyu</button>
     <button id="profileBtn" class="ghost" type="button">Profilim</button>
+    <label class="theme-control" for="appearanceSelector"><span>Ko‘rinish</span><select id="appearanceSelector" aria-label="Ko‘rinish"><option value="light">Kunduzgi</option><option value="dark">Tungi</option><option value="system">Qurilmaga mos</option></select></label>
     <select id="languageSelector">
 
       <option value="en">🇬🇧 English</option>
@@ -2171,6 +2172,47 @@ window.addEventListener("error", function (event) {
 
 </script>
 
+
+
+
+<!-- Unified theme controller: applies to dynamically-created modals and report overlays too. -->
+<script>
+(function medgenAppearanceController(){
+  const KEY = 'medgen_theme_mode';
+  const root = document.documentElement;
+  const media = window.matchMedia ? window.matchMedia('(prefers-color-scheme: dark)') : null;
+  function apply(mode, persist){
+    const selected = ['light','dark','system'].includes(mode) ? mode : 'system';
+    const resolved = selected === 'system' ? (media && media.matches ? 'dark' : 'light') : selected;
+    root.setAttribute('data-theme', resolved);
+    root.setAttribute('data-theme-mode', selected);
+    if(persist) {
+      try { localStorage.setItem(KEY, selected); } catch (_) {}
+    }
+    const selector = document.getElementById('appearanceSelector');
+    if(selector && selector.value !== selected) selector.value = selected;
+  }
+  function init(){
+    let saved = 'system';
+    try { saved = localStorage.getItem(KEY) || 'system'; } catch (_) {}
+    apply(saved, false);
+    const selector = document.getElementById('appearanceSelector');
+    if(selector && !selector.dataset.themeBound){
+      selector.dataset.themeBound = '1';
+      selector.addEventListener('change', function(){ apply(this.value, true); });
+    }
+    if(media){
+      const onSystemChange = function(){
+        if((root.getAttribute('data-theme-mode') || 'system') === 'system') apply('system', false);
+      };
+      if(media.addEventListener) media.addEventListener('change', onSystemChange);
+      else if(media.addListener) media.addListener(onSystemChange);
+    }
+  }
+  if(document.readyState === 'loading') document.addEventListener('DOMContentLoaded', init, {once:true});
+  else init();
+})();
+</script>
 
 <!-- =================================
      PROFILE + LEGAL MODALS
