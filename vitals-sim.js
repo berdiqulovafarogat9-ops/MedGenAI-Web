@@ -69,7 +69,6 @@
       clinicSync = null;
       document.removeEventListener("visibilitychange", onVis);
       window.removeEventListener("blur", onBlur);
-      window.removeEventListener("resize", onViewportChange);
       window.removeEventListener("orientationchange", onViewportChange);
       if (window.visualViewport) window.visualViewport.removeEventListener("resize", onViewportChange);
       if (embedded) {
@@ -742,7 +741,6 @@
       penalty = 0; running = true; lastPenaltyAt = 0;
       document.addEventListener("visibilitychange", onVis);
       window.addEventListener("blur", onBlur);
-      window.addEventListener("resize", onViewportChange, { passive: true });
       window.addEventListener("orientationchange", onViewportChange, { passive: true });
       if (window.visualViewport) window.visualViewport.addEventListener("resize", onViewportChange, { passive: true });
       timer = setInterval(function () {
