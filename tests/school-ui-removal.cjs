@@ -17,7 +17,7 @@ assert.equal(w.document.querySelector('#educationLevel option[value="SCHOOL"]'),
 assert.equal(/school|maktab|AI Teacher Studio/i.test(app+html),false);
 for(const el of w.document.querySelectorAll('script:not([src])'))new vm.Script(el.textContent);
 const context=dom.getInternalVMContext();
-vm.runInContext(`const $=id=>document.getElementById(id);const state={user:{role:'student'}};function updateUserUI(){};function roleKey(){return state.user.role};function openModule(){};`,context);
+vm.runInContext(`const $=id=>document.getElementById(id);const state={user:{role:'student'}};function updateUserUI(){};function roleKey(){return state.user.role};function openModule(){};function syncAcademicProfileVisibility(){};`,context);
 const a=app.indexOf('const MEDGEN_ROLES =');const b=app.indexOf('function getLocalRole()',a);
 vm.runInContext(app.slice(a,b),context);
 const c=app.indexOf('function applyRoleDashboard()');const d=app.indexOf('async function registerAccount()',c);
