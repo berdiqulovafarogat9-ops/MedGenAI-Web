@@ -51,12 +51,14 @@
       document.body.appendChild(overlay);
     }
     var sim = null, timer = null, raf = null, clinicRaf = null, penalty = 0, lastPenaltyAt = 0, running = false, clinicSync = null;
+    var epicrisisOverlay = null, epicrisisScoreLabel = null;
     var genericClinicMounted = false;
     var alertBox = el("div", "display:none;background:#b00020;color:#fff;font-weight:700;padding:10px;border-radius:10px;margin-bottom:8px");
     card.appendChild(alertBox);
 
     function closeAll() {
       running = false;
+      if (epicrisisOverlay) { epicrisisOverlay.remove(); epicrisisOverlay = null; epicrisisScoreLabel = null; }
       if (genericClinicMounted && window.medgen3DClinic) window.medgen3DClinic.dispose();
       genericClinicMounted = false;
       if (timer) clearInterval(timer);
@@ -447,6 +449,26 @@
       hud.pen.textContent = penalty ? "Jarima: -" + (15 * penalty) + " ball" : "Jarima: yo'q";
     }
 
+    function showJasurEpicrisis() {
+      if (epicrisisOverlay) epicrisisOverlay.remove();
+      epicrisisOverlay = el("div", "position:fixed;inset:0;background:rgba(2,8,16,.82);display:flex;align-items:center;justify-content:center;padding:16px;z-index:100000");
+      var paper = el("section", "width:min(96vw,680px);max-height:92vh;overflow:auto;background:#f8fafc;color:#14202b;border-radius:16px;padding:22px;box-shadow:0 20px 70px rgba(0,0,0,.5)");
+      paper.appendChild(el("div", "font-size:11px;letter-spacing:1.5px;color:#526579;font-weight:800", "MEDGEN AI · KLINIK SIMULYATSIYA HUJJATI"));
+      paper.appendChild(el("h2", "margin:6px 0 14px;font-size:22px;color:#102a43", "Rasmiy klinik epikriz"));
+      [["Bemor","Jasur, 24 yosh"],["Tashxis","Antibiotik kiritilishiga javoban o‘tkir anafilaktik shok"],["Kiritilgan terapiya","Epinefrin (Adrenalin) 0,5 mg mushak ichiga (m/o), kislorod ingalatsiyasi, izotonik eritma 500 ml vena ichiga infuziya"],["Natijaviy xulosa","Simulyatsiyada gemodinamika tiklandi; yakuniy monitoringda asorat qayd etilmadi."]].forEach(function(row){
+        var block=el("div","padding:10px 0;border-bottom:1px solid #d8e1e8");
+        block.appendChild(el("div","font-size:11px;text-transform:uppercase;letter-spacing:.7px;color:#64748b;font-weight:800",row[0]));
+        block.appendChild(el("div","font-size:14px;line-height:1.5;color:#102a43;font-weight:600",row[1]));
+        paper.appendChild(block);
+      });
+      epicrisisScoreLabel = el("div","margin:14px 0;font-size:20px;font-weight:900;color:#087443","Baho: hisobot yuborilgach aniqlanadi");
+      paper.appendChild(epicrisisScoreLabel);
+      paper.appendChild(el("p","font-size:11px;color:#64748b","Eslatma: bu o‘quv simulyatsiyasi uchun tuzilgan epikriz maketi; haqiqiy tibbiy hujjat yoki EHR yozuvi emas."));
+      var close = el("button", "padding:11px 16px;border:0;border-radius:9px;background:#0e7490;color:white;font-weight:800;cursor:pointer", "Epikrizni yopish");
+      close.onclick = function(){ if(epicrisisOverlay) epicrisisOverlay.remove(); epicrisisOverlay=null; epicrisisScoreLabel=null; };
+      paper.appendChild(close); epicrisisOverlay.appendChild(paper); document.body.appendChild(epicrisisOverlay);
+    }
+
     function finish() {
       running = false;
       if (genericClinicMounted && window.medgen3DClinic) window.medgen3DClinic.dispose();
@@ -484,9 +506,11 @@
         } catch (e) { submit.disabled = false; alertBox.style.background = "#b00020"; flash(e.message); }
       };
       endBox.appendChild(submit);
+      if (sim.def.id === "anaphylaxis_jasur" && sim.stabilized) showJasurEpicrisis();
     }
 
     function showReport(r) {
+      if (epicrisisScoreLabel) epicrisisScoreLabel.textContent = "Baho: " + r.score + " / 100 ball";
       card.innerHTML = "";
       card.appendChild(el("h3", "margin:0 0 6px;font-size:20px", "Klinik hisobot: " + r.title));
       card.appendChild(el("div", "font-size:34px;font-weight:800;color:#56dcc0", r.score + " / 100"));
