@@ -1884,7 +1884,7 @@ VITALS_CASES = {
         ],
         "diagnosis_options": ["Anafilaktik shok", "O'tkir astma xuruji", "Miokard infarkti", "Vazovagal sinkope"],
         "diagnosis_correct": 0,
-        "diagnosis_explain": "Ari chaqishidan keyin tez boshlangan yuz-lab shishi, xirillash, gipoksemiya va og'ir gipotenziya anafilaksiyani ko'rsatadi.",
+        "diagnosis_explain": "Antibiotik yuborilgach tez boshlangan yuz-lab shishi, xirillash, gipoksemiya va og‘ir gipotenziya o‘tkir anafilaktik shokni ko‘rsatadi.",
     },
     "mi": {
         "title": "2-keys: O'tkir miokard infarkti (STEMI)",
