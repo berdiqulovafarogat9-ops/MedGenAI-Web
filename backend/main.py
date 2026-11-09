@@ -1,7 +1,7 @@
 import uuid
 import threading
 import copy
-from datetime import date, datetime, timezone
+from datetime import date, datetime, timedelta, timezone
 import hashlib
 import json
 import xml.etree.ElementTree as ET
@@ -659,6 +659,8 @@ def get_current_user(
     if age > TOKEN_TTL_SECONDS:
         tokens.pop(credentials.credentials, None)
         token_created_at.pop(credentials.credentials, None)
+        token_session_ids.pop(credentials.credentials, None)
+        if session_id: _revoke_session_record(session_id, username)
         raise HTTPException(status_code=401, detail="Token expired")
 
     profile = user_profiles.get(username, {})
@@ -987,8 +989,11 @@ def list_auth_sessions(user=Depends(get_current_user),
                        credentials: HTTPAuthorizationCredentials = Depends(security)):
     token = credentials.credentials if credentials else ""
     current_id = token_session_ids.get(token)
+    expiry_cutoff = datetime.now(timezone.utc) - timedelta(seconds=TOKEN_TTL_SECONDS)
     if PERSISTENCE_ENABLED:
         with psycopg.connect(DATABASE_URL) as conn:
+            conn.execute("UPDATE user_sessions SET is_revoked=TRUE WHERE user_id=%s AND is_revoked=FALSE AND created_at < %s",
+                         (user["username"],expiry_cutoff))
             rows = conn.execute("""SELECT id,user_id,session_token,device_name,browser,ip_address,
                 created_at,last_active_at,is_revoked FROM user_sessions
                 WHERE user_id=%s AND is_revoked=FALSE ORDER BY last_active_at DESC""",
@@ -996,8 +1001,18 @@ def list_auth_sessions(user=Depends(get_current_user),
         records = [{"id":r[0],"user_id":r[1],"session_token":r[2],"device_name":r[3],"browser":r[4],
                     "ip_address":r[5],"created_at":r[6].isoformat(),"last_active_at":r[7].isoformat(),"is_revoked":r[8]} for r in rows]
     else:
-        records = [dict(x) for x in _session_cache.values()
-                   if x.get("user_id")==user["username"] and not x.get("is_revoked")]
+        records = []
+        for item in _session_cache.values():
+            if item.get("user_id") != user["username"] or item.get("is_revoked"): continue
+            try:
+                created = datetime.fromisoformat(str(item.get("created_at", "")).replace("Z","+00:00"))
+                if created < expiry_cutoff:
+                    item["is_revoked"] = True
+                    continue
+            except (TypeError, ValueError):
+                item["is_revoked"] = True
+                continue
+            records.append(dict(item))
     return {"sessions":[_session_public(x,current_id) for x in records]}
 
 @app.delete("/api/v1/auth/sessions/{session_id}")
