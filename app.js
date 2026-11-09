@@ -1643,10 +1643,12 @@ async function saveProfile() {
     if (status) status.textContent = '❌ ' + message;
   } finally {
     clearTimeout(timeoutId);
-    // Always release the save control, including for network/JSON errors.
+    // Always release the save control, including validation, network and server errors.
     if (button) {
+      let saveLabel = 'Saqlash';
+      try { saveLabel = t('profileSave') || saveLabel; } catch (_) {}
       button.disabled = false;
-      button.textContent = t('profileSave');
+      button.textContent = saveLabel;
       if (state.profileEditMode) button.style.display = '';
     }
   }
@@ -5295,7 +5297,7 @@ if (document.readyState === "loading") {
         <h3>Universitet va ta’lim ma’lumotlari</h3>
         <div class="academic-grid">
           <label>Ta’lim tizimi<select id="profileEducationMode"><option value="GLOBAL">Global / International</option><option value="COUNTRY">Mening mamlakatim</option></select></label>
-          <label>Mamlakat<select id="profileAcademicCountry"></select></label>
+          <label>ISO mamlakat kodi<input id="profileAcademicCountry" type="text" inputmode="latin" autocomplete="country" maxlength="2" placeholder="UZ" list="profileAcademicCountryOptions" oninput="this.value=this.value.toUpperCase()"><datalist id="profileAcademicCountryOptions"></datalist></label>
           <label>Universitet<input id="profileUniversity" list="profileUniversityList" placeholder="Universitetni tanlang yoki yozing"><datalist id="profileUniversityList"></datalist></label>
           <label>Fakultet<input id="profileFaculty" placeholder="Fakultet"></label>
           <label>Yo‘nalish<input id="profileMajor" placeholder="Davolash ishi / Medicine"></label>
@@ -5389,6 +5391,7 @@ function initProfileLocationSelectors(){
       if(manual.value){
         region.value='OTHER';
         region.dataset.selected='OTHER';
+        syncManual();
         syncDistricts();
       }
     });
@@ -5749,7 +5752,8 @@ async function detectProfileLocation(fromSecurity=false){
     try {
       const data=await api('/academy/catalog');
       const countries=data.countries||[];
-      countrySelect.innerHTML=countries.map(x=>'<option value="'+escapeHtml(x.code)+'">'+escapeHtml(x.name)+' ('+escapeHtml(x.code)+')</option>').join('');
+      const countryOptions=$('profileAcademicCountryOptions');
+      if(countryOptions) countryOptions.innerHTML=countries.map(x=>'<option value="'+escapeHtml(String(x.code||'').toUpperCase())+'">'+escapeHtml(x.name||x.code)+'</option>').join('');
       const guessed=(function(){
         const tz=Intl.DateTimeFormat().resolvedOptions().timeZone||'';
         const lang=(navigator.language||'').toLowerCase();
@@ -5762,13 +5766,20 @@ async function detectProfileLocation(fromSecurity=false){
         if(lang.endsWith('-en-gb')) return 'GB';
         return 'UZ';
       })();
-      const existing=preferredCountry||countrySelect.dataset.value||countrySelect.value;
-      countrySelect.value=(countries.some(x=>x.code===existing)?existing:guessed);
+      const existing=String(preferredCountry||countrySelect.dataset.value||countrySelect.value||'').trim().toUpperCase();
+      countrySelect.value=(countries.some(x=>String(x.code||'').toUpperCase()===existing)?existing:guessed);
       const renderUniversities=()=>{
         const vals=data.universities?.[countrySelect.value]||['Other / enter manually'];
         if(list) list.innerHTML=vals.map(x=>'<option value="'+escapeHtml(x)+'"></option>').join('');
       };
-      countrySelect.addEventListener('change',()=>{renderUniversities();renderUzRegions();});
+      if(!countrySelect.dataset.countryCodeBound){
+        countrySelect.addEventListener('input',()=>{
+          countrySelect.value=countrySelect.value.replace(/[^a-z]/gi,'').slice(0,2).toUpperCase();
+          renderUniversities();
+        });
+        countrySelect.addEventListener('change',()=>{countrySelect.value=countrySelect.value.trim().toUpperCase();renderUniversities();renderUzRegions();});
+        countrySelect.dataset.countryCodeBound='1';
+      }
       renderUniversities();
       renderUzRegions();
       const profileCountryInput=$('profileCountry');
