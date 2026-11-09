@@ -1243,6 +1243,7 @@ async function openProfile() {
   modal.classList.remove('hidden');
   initProfileLocationSelectors();
   const card = modal.querySelector('.modal-card');
+  syncAcademicProfileVisibility();
   if (card && !card.querySelector('.profile-edit-icon')) {
     const edit = document.createElement('button');
     edit.type = 'button';
@@ -1374,7 +1375,7 @@ function isProfileComplete(p) {
   if (!p) return false;
   let role = String(p.role || state.user?.role || state.user?.user_role || '').trim().toLowerCase().replace(/[\s-]+/g, '_');
   if (!(String(p.full_name || '').trim() && String(p.email || '').trim() && String(p.country || '').trim() && String(p.region || '').trim() && String(p.city || '').trim() && String(p.district || '').trim() && Number.isInteger(Number(p.birth_year)) && Number(p.birth_year) >= 1900 && Number(p.birth_year) <= 2100 && Number.isInteger(Number(p.birth_month)) && Number(p.birth_month) >= 1 && Number(p.birth_month) <= 12 && Number.isInteger(Number(p.birth_day)) && Number(p.birth_day) >= 1 && Number(p.birth_day) <= 31)) return false;
-  if (['student', 'researcher', 'professor'].includes(role)) {
+  if (role === 'student') {
     const ap = p.academic_profile || {};
     return ['university', 'faculty', 'major', 'group'].every(key => String(ap[key] || '').trim());
   }
@@ -1486,12 +1487,10 @@ async function saveProfile() {
       throw new Error('Profilni to‘liq to‘ldiring: ism, email, mamlakat, hudud va tug‘ilgan sana majburiy.');
     }
 
-    if (['student','researcher','professor'].includes(role)) {
-      if (!$('profileUniversity')?.value?.trim() || !$('profileFaculty')?.value?.trim() ||
-          !$('profileMajor')?.value?.trim() || !$('profileGroup')?.value?.trim() ||
-          !$('profileStudentId')?.value?.trim()) {
-        throw new Error('Ta’lim profili ham to‘liq bo‘lishi kerak: universitet, fakultet, yo‘nalish, guruh va talaba ID.');
-      }
+    const isStudentProfile = role === 'student';
+    if (isStudentProfile && (!$('profileUniversity')?.value?.trim() || !$('profileFaculty')?.value?.trim() ||
+        !$('profileMajor')?.value?.trim() || !$('profileGroup')?.value?.trim())) {
+      throw new Error('Talaba profili uchun universitet, fakultet, yo‘nalish va guruh majburiy.');
     }
 
     if (!/^\S+@\S+\.\S+$/.test(payload.email)) {
@@ -1539,7 +1538,7 @@ async function saveProfile() {
       saveWarnings.push('Telefon/akkaunt ma’lumotlari serverga to‘liq yozilmadi: ' + e.message);
     }
 
-    try {
+    if (isStudentProfile) try {
       savedAcademicProfile = await api('/academy/profile', {
         method: 'PUT',
         body: JSON.stringify({
@@ -4167,6 +4166,26 @@ function getLocalRole(){
   const u=state.user?.username||'';
   try{return JSON.parse(localStorage.getItem('medgen_role_'+u)||'null');}catch(_){return null;}
 }
+function profileAccountRoleKey(){
+  const normalize = value => String(value || '').trim().toLowerCase().replace(/[\\s-]+/g, '_');
+  const authRole = normalize(state.user?.role || state.user?.user_role || state.user?.type);
+  const profileRole = normalize(state.user?.profile?.role || state.user?.metadata?.role);
+  const aliases = {super_admin:'admin',superadmin:'admin',founder:'admin',ceo:'admin',owner:'admin'};
+  if (aliases[authRole] || authRole === 'admin') return 'admin';
+  if (profileRole && profileRole !== 'student') return aliases[profileRole] || profileRole;
+  if (MEDGEN_ROLES[authRole]) return authRole;
+  const localRole = normalize(getLocalRole()?.key);
+  return aliases[localRole] || (MEDGEN_ROLES[localRole] ? localRole : 'student');
+}
+function syncAcademicProfileVisibility(){
+  const section = $('academicProfileSection');
+  if (!section) return;
+  const visible = profileAccountRoleKey() === 'student';
+  section.hidden = !visible;
+  section.style.display = visible ? '' : 'none';
+  section.setAttribute('aria-hidden', visible ? 'false' : 'true');
+}
+
 function roleKey(){
   const raw=String(
     state.user?.role ||
@@ -4203,6 +4222,7 @@ function roleKey(){
 }
 function applyRoleDashboard(){
   const key=roleKey(), role=MEDGEN_ROLES[key]||MEDGEN_ROLES.student;
+  syncAcademicProfileVisibility();
   const title=$('roleDashboardTitle'), desc=$('roleDashboardDesc'), badge=$('roleDashboardBadge');
   if(title) title.textContent=role.icon+' '+role.title;
   if(desc) desc.textContent=role.desc;
@@ -5238,6 +5258,7 @@ if (document.readyState === "loading") {
       sec.querySelectorAll('input,select').forEach(el=>el.addEventListener('change',()=>{
         if(el.id==='profileEducationMode') document.getElementById('profileAcademicCountry').disabled=el.value==='GLOBAL';
       }));
+      syncAcademicProfileVisibility();
     }
   }
   if(document.readyState==='loading') document.addEventListener('DOMContentLoaded',boot,{once:true}); else boot();
