@@ -2874,6 +2874,14 @@ document.addEventListener("DOMContentLoaded", function () {
         model.scale.setScalar(scale);
         model.position.y=.9;
         scene.add(model);
+        // Keep all named 3D hotspot sprites above bone geometry without depth-buffer clipping.
+        model.traverse(function(node){
+          const isHotspot = node.isSprite || node.userData?.hotspot === true || /hotspot|marker/i.test(node.name || '');
+          if(isHotspot){
+            if(node.material){node.material.depthTest=false;node.material.needsUpdate=true;}
+            node.renderOrder=999;
+          }
+        });
         info.textContent='Skelet tayyor. Barmoq bilan aylantiring, yaqinlashtiring yoki suyakni tanlang.';
         container.addEventListener('pointerdown',function(e){
           const rect=container.getBoundingClientRect();
