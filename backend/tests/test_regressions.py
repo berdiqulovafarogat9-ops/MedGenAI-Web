@@ -22,9 +22,9 @@ import main as api  # noqa: E402
 def client():
     # Reset process-local state to make each test independent.
     for name in (
-        "tokens", "token_created_at", "revoked_tokens", "user_accounts",
+        "tokens", "token_created_at", "token_session_ids", "revoked_tokens", "user_accounts",
         "user_profiles", "user_consents", "login_attempts", "activity_log",
-        "role_requests_store",
+        "role_requests_store", "totp_store", "mfa_pending", "_session_cache",
     ):
         value = getattr(api, name, None)
         if hasattr(value, "clear"):
