@@ -227,7 +227,7 @@ textarea{width:100%;min-height:120px;box-sizing:border-box;padding:14px;border-r
 
 /* Unified cabinet: scoped to the new home, preserving existing tool themes. */
 #finalHome.cabinet-home{padding:0;margin:0 0 24px;background:#f4f8fb;border:1px solid #dce8ef;border-radius:24px;overflow:hidden;color:#153047;box-shadow:0 20px 70px #0002}
-.cabinet-layout{display:grid;grid-template-columns:220px minmax(0,1fr)}
+.cabinet-layout{display:block}
 .cabinet-nav{background:#0c2639;padding:30px 18px;display:flex;flex-direction:column;gap:7px;color:#d4e5ef}
 .cabinet-brand{font-size:21px;font-weight:900;letter-spacing:.06em;margin:0 10px 25px}.cabinet-brand span{color:#53dac0}
 .cabinet-nav p{font-size:10px;letter-spacing:.16em;color:#90b6c9;margin:12px 10px}
