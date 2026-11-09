@@ -24,7 +24,7 @@
     return n;
   }
   var activeEmbeddedClose = null;
-  var CARD = "background:#0d1a26;color:#e8f0f6;border:1px solid #24394d;border-radius:18px;padding:16px;width:min(96vw,640px);max-height:94vh;overflow:auto;font-family:system-ui,sans-serif";
+  var CARD = "background:#0d1a26;color:#e8f0f6;border:1px solid #24394d;border-radius:18px;padding:16px;width:min(98vw,1480px);max-height:96vh;overflow:auto;font-family:system-ui,sans-serif;box-sizing:border-box";
   var BTN = "padding:10px 14px;border:0;border-radius:10px;background:#56dcc0;color:#06231d;font-weight:700;font-size:14px;margin:4px 4px 4px 0";
   var BTN2 = "padding:9px 12px;border:1px solid #24394d;border-radius:10px;background:#13222f;color:#cfe0ec;font-size:13px;margin:4px 4px 4px 0;text-align:left";
   var TILE = "flex:1;min-width:120px;background:#06101a;border:1px solid #1d3042;border-radius:12px;padding:8px";
@@ -123,7 +123,64 @@
     var hud, tiles = {}, canvas, actionsBox, logBox, endBox;
     function start(c) {
       card.innerHTML = ""; card.appendChild(alertBox);
-      var caseMenu = el("div", "display:flex;gap:8px;flex-wrap:wrap;margin:0 0 12px");
+      var uiStyle = document.createElement("style");
+      uiStyle.textContent = ".medgen-clinical-shell{width:100%;box-sizing:border-box;color:#e8f0f6}.medgen-clinical-top{display:flex;flex-direction:column;gap:8px;padding:14px;margin-bottom:12px;border:1px solid #29445a;border-radius:14px;background:linear-gradient(135deg,#10283a,#0a1724)}.medgen-clinical-grid{display:grid;grid-template-columns:minmax(210px,.82fr) minmax(340px,1.65fr) minmax(250px,1fr);gap:12px;align-items:start}.medgen-clinical-dock{min-width:0;min-height:180px;padding:12px;border:1px solid #263d50;border-radius:14px;background:#0a1723;box-sizing:border-box}.medgen-clinical-dock h4{margin:0 0 10px;color:#9fe7f4;font-size:13px;letter-spacing:.04em;text-transform:uppercase}.medgen-clinical-center{display:flex;flex-direction:column;gap:9px}.medgen-clinical-tabs{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:5px;margin-bottom:10px}.medgen-clinical-tab{padding:9px 5px;border:1px solid #31536a;border-radius:8px;background:#102536;color:#c8d9e6;font-weight:700;font-size:12px;cursor:pointer}.medgen-clinical-tab[aria-selected=true]{background:#0e7490;border-color:#22d3ee;color:#fff}.medgen-clinical-pane{min-width:0}.medgen-clinical-vitals{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:7px}.medgen-clinical-vitals>div{min-width:0}.medgen-clinical-story{font-size:13px;line-height:1.6;color:#c4d4e0;white-space:normal}.medgen-clinical-meta{font-size:12px;color:#8fa3b5;line-height:1.7}.medgen-clinical-disclaimer{margin-top:12px;padding:9px;border-radius:9px;background:#101f2c;color:#8fa3b5;font-size:11px;line-height:1.5}.medgen-clinical-log{max-height:320px;overflow:auto}.medgen-clinical-grid canvas{max-width:100%}@media(max-width:1080px){.medgen-clinical-grid{grid-template-columns:minmax(0,1fr) minmax(0,1.55fr)}.medgen-clinical-left{grid-column:1/-1}.medgen-clinical-left-inner{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:12px}}@media(max-width:720px){.medgen-clinical-grid{grid-template-columns:minmax(0,1fr)}.medgen-clinical-left{grid-column:auto}.medgen-clinical-left-inner{grid-template-columns:minmax(0,1fr)}.medgen-clinical-vitals{grid-template-columns:repeat(2,minmax(0,1fr))}.medgen-clinical-tabs{position:sticky;top:0;z-index:2;background:#0a1723;padding:4px 0}.medgen-clinical-dock{padding:10px}}";
+      card.appendChild(uiStyle);
+      var shell = el("div", "width:100%;box-sizing:border-box");
+      shell.className = "medgen-clinical-shell";
+      var topbar = el("div", "");
+      topbar.className = "medgen-clinical-top";
+      var grid = el("div", "");
+      grid.className = "medgen-clinical-grid";
+      var leftDock = el("section", "");
+      leftDock.className = "medgen-clinical-dock medgen-clinical-left";
+      var leftInner = el("div", "");
+      leftInner.className = "medgen-clinical-left-inner";
+      var centerDock = el("section", "");
+      centerDock.className = "medgen-clinical-dock medgen-clinical-center";
+      var rightDock = el("section", "");
+      rightDock.className = "medgen-clinical-dock";
+      var rightTabs = el("div", "");
+      rightTabs.className = "medgen-clinical-tabs";
+      var rightActionsPane = el("div", "");
+      rightActionsPane.className = "medgen-clinical-pane";
+      var rightLogPane = el("div", "display:none");
+      rightLogPane.className = "medgen-clinical-pane medgen-clinical-log";
+      var rightHandoffPane = el("div", "display:none");
+      rightHandoffPane.className = "medgen-clinical-pane";
+      var tabButtons = {};
+      function setRightTab(name) {
+        rightActionsPane.style.display = name === "actions" ? "block" : "none";
+        rightLogPane.style.display = name === "log" ? "block" : "none";
+        rightHandoffPane.style.display = name === "handoff" ? "block" : "none";
+        Object.keys(tabButtons).forEach(function(key) {
+          tabButtons[key].setAttribute("aria-selected", key === name ? "true" : "false");
+        });
+      }
+      [["actions","Tekshiruv / Muolaja"],["log","Jarayon jurnali"],["handoff","Topshirish"]].forEach(function(item) {
+        var b = el("button", "", item[1]); b.type = "button"; b.className = "medgen-clinical-tab";
+        b.setAttribute("aria-selected", item[0] === "actions" ? "true" : "false");
+        b.onclick = function(){ setRightTab(item[0]); };
+        tabButtons[item[0]] = b; rightTabs.appendChild(b);
+      });
+      shell.appendChild(topbar); shell.appendChild(grid);
+      grid.appendChild(leftDock); grid.appendChild(centerDock); grid.appendChild(rightDock);
+      leftDock.appendChild(leftInner);
+      rightDock.appendChild(rightTabs); rightDock.appendChild(rightActionsPane);
+      rightDock.appendChild(rightLogPane); rightDock.appendChild(rightHandoffPane);
+      var patientCard = el("div", "margin-bottom:12px");
+      patientCard.appendChild(el("h4", "", "Bemor kartasi"));
+      patientCard.appendChild(el("div", "font-weight:800;font-size:15px;color:#e8f0f6;margin-bottom:6px", c.title || "Klinik keys"));
+      patientCard.appendChild(el("div", "medgen-clinical-meta", "Keys: " + (c.id || "—") + " · Daraja: " + (c.level || "—")));
+      var storyCard = el("div", "");
+      storyCard.appendChild(el("h4", "", "Klinik vaziyat"));
+      storyCard.appendChild(el("div", "medgen-clinical-story", c.story || "Klinik vaziyat tavsifi mavjud emas."));
+      storyCard.appendChild(el("div", "medgen-clinical-disclaimer", "Ta’limiy simulyatsiya. Bu panel haqiqiy bemor monitoringi yoki tibbiy qaror o‘rnini bosmaydi."));
+      leftInner.appendChild(patientCard); leftInner.appendChild(storyCard);
+      var centerHeading = el("h4", "", "Bemor monitori va 3D klinika");
+      centerDock.appendChild(centerHeading);
+      card.appendChild(shell);
+      var caseMenu = el("div", "display:flex;gap:8px;flex-wrap:wrap;margin:0 0 4px");
       [
         ["anaphylaxis", "1-keys: Anafilaksiya"],
         ["mi", "2-keys: STEMI"],
@@ -138,19 +195,19 @@
         };
         caseMenu.appendChild(b);
       });
-      card.appendChild(caseMenu);
-      card.appendChild(el("h3", "margin:0 0 4px;font-size:18px", c.title));
-      card.appendChild(el("p", "color:#8fa3b5;font-size:13px;margin:0 0 8px", c.story));
+      topbar.appendChild(caseMenu);
+      topbar.appendChild(el("h3", "margin:0;font-size:19px", c.title));
+      topbar.appendChild(el("p", "color:#a9bdcc;font-size:13px;margin:0", c.story));
       hud = el("div", "display:flex;gap:8px;align-items:center;justify-content:space-between;margin-bottom:6px;font-size:13px");
       var timeLbl = el("span", "color:#f6c85f", "");
       var penLbl = el("span", "color:#ff8a8a", "");
-      hud.appendChild(timeLbl); hud.appendChild(penLbl); card.appendChild(hud);
+      hud.appendChild(timeLbl); hud.appendChild(penLbl); topbar.appendChild(hud);
       hud.time = timeLbl; hud.pen = penLbl;
 
       canvas = document.createElement("canvas");
       canvas.width = 800; canvas.height = 150;
       canvas.style.cssText = "width:100%;height:auto;background:#020a12;border:1px solid #1d3042;border-radius:12px";
-      card.appendChild(canvas);
+      centerDock.appendChild(canvas);
 
       var row = el("div", "display:flex;gap:8px;flex-wrap:wrap;margin:8px 0");
       ["hr", "bp", "spo2", "rr"].forEach(function (k) {
@@ -158,7 +215,7 @@
         var val = el("div", "font-size:26px;font-weight:700", "–");
         t.appendChild(lbl); t.appendChild(val); row.appendChild(t); tiles[k] = val;
       });
-      card.appendChild(row);
+      row.className = "medgen-clinical-vitals"; centerDock.appendChild(row);
 
       // Generic 3D patient room for the standard clinical cases. Jasur has a dedicated interactive scene below.
       if (c.id !== "anaphylaxis_jasur" && window.medgen3DClinic && window.THREE) {
@@ -168,17 +225,21 @@
         var genericWrap=el("div","width:100%;height:280px;border-radius:10px;overflow:hidden;background:#071521");
         genericWrap.id="medgen-3d-patient-"+Date.now();
         genericClinic.appendChild(genericWrap);
-        card.appendChild(genericClinic);
+        centerDock.appendChild(genericClinic);
         genericClinicMounted=!!window.medgen3DClinic.mount3DScene(genericWrap.id);
       }
 
       actionsBox = el("div", "margin:6px 0");
-      card.appendChild(el("div", "font-size:13px;color:#8fa3b5;margin-top:6px", "Harakatlar (har biri bir marta):"));
-      card.appendChild(actionsBox);
+      rightActionsPane.appendChild(el("h4", "", "Klinik harakatlar"));
+      rightActionsPane.appendChild(el("div", "font-size:12px;color:#8fa3b5;margin:0 0 8px", "Har bir klinik harakat mavjud simulyatsiya dvigateli orqali qayd etiladi."));
+      rightActionsPane.appendChild(actionsBox);
       logBox = el("div", "font-size:12px;color:#8fa3b5;max-height:90px;overflow:auto;border-top:1px solid #1d3042;margin-top:6px;padding-top:6px");
-      card.appendChild(logBox);
+      rightLogPane.appendChild(el("h4", "", "Harakatlar tarixi"));
+      rightLogPane.appendChild(logBox);
       endBox = el("div", "margin-top:8px");
-      card.appendChild(endBox);
+      rightHandoffPane.appendChild(el("h4", "", "Klinik topshirish"));
+      rightHandoffPane.appendChild(el("p", "font-size:12px;color:#8fa3b5;line-height:1.5", "Simulyatsiya yakunlangach tashxisni belgilang va serverga rasmiy o‘quv hisobotini yuboring."));
+      rightHandoffPane.appendChild(endBox);
 
       sim = Core.create(c);
       c.actions.forEach(function (a) {
@@ -200,14 +261,14 @@
         clinic.appendChild(el("div", "font-size:12px;color:#9fb5c7;margin-bottom:8px", "Asbobni tanlang, so‘ng mos anatomik nishonni bosing. Soddalashtirilgan o‘quv modeli."));
         var tools3 = el("div", "display:flex;gap:6px;flex-wrap:wrap;margin-bottom:8px");
         var view3 = el("div", "height:260px;width:100%;background:#06101b;border-radius:10px;overflow:hidden");
-        clinic.appendChild(tools3); clinic.appendChild(view3); actionsBox.parentNode.insertBefore(clinic, actionsBox);
+        clinic.appendChild(tools3); clinic.appendChild(view3); centerDock.appendChild(clinic);
         var chosen = "epi";
         actionsBox.style.display="none";
         var examPanel=el("div","margin-top:9px;padding:12px;border:1px solid #29465a;border-radius:12px;background:#0a1b28");
         examPanel.appendChild(el("div","font-weight:800;color:#9fe7f4;margin-bottom:8px","Klinik ko‘rik va diagnostika — Body Interact"));
         var examOut=el("div","font-size:12px;line-height:1.5;color:#c5d5e1;min-height:34px;margin:6px 0","Kategoriya tanlang va bemor tanasidagi yoritilgan nuqtani bosing.");
         var categoryGrid=el("div","display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:8px");
-        examPanel.appendChild(categoryGrid);examPanel.appendChild(examOut);clinic.appendChild(examPanel);
+        examPanel.appendChild(categoryGrid);examPanel.appendChild(examOut);rightActionsPane.appendChild(examPanel);
         var actionModal=el("div","display:none;margin-top:10px;padding:12px;border:1px solid #3b647d;border-radius:12px;background:#102536");examPanel.appendChild(actionModal);
         function showResult(t){examOut.textContent=t;actionModal.style.display="none";}
         function modalChoice(label,fn){var b=el("button",BTN2,label);b.type="button";b.onclick=fn;actionModal.appendChild(b);}
@@ -506,6 +567,7 @@
         } catch (e) { submit.disabled = false; alertBox.style.background = "#b00020"; flash(e.message); }
       };
       endBox.appendChild(submit);
+      setRightTab("handoff");
       if (sim.def.id === "anaphylaxis_jasur" && sim.stabilized) showJasurEpicrisis();
     }
 
