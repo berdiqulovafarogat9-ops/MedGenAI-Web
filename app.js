@@ -1044,7 +1044,13 @@ async function login() {
   }
 
   const submitButton = $('loginSubmitBtn');
-  if (submitButton) submitButton.disabled = true;
+  const submitOriginalText = submitButton?.textContent || '';
+  if (submitButton) {
+    submitButton.disabled = true;
+    submitButton.classList.add('medgen-auth-loading');
+    submitButton.setAttribute('aria-busy', 'true');
+    submitButton.textContent = 'Tekshirilmoqda…';
+  }
 
   if (status) {
     status.textContent = 'Kirish so‘rovi yuborilmoqda…';
@@ -1146,7 +1152,12 @@ async function login() {
         error.message;
     }
   } finally {
-    if (submitButton) submitButton.disabled = false;
+    if (submitButton) {
+      submitButton.disabled = false;
+      submitButton.classList.remove('medgen-auth-loading');
+      submitButton.removeAttribute('aria-busy');
+      submitButton.textContent = submitOriginalText || t('signIn');
+    }
   }
 }
 
