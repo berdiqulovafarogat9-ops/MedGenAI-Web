@@ -2386,6 +2386,7 @@ window.addEventListener("error", function (event) {
     <label><span data-i18n="emailLabel">Email</span><input id="profileEmail" type="text" inputmode="email" autocomplete="email" placeholder="email@example.com"></label>
     <label><span data-i18n="organization">Tashkilot / universitet</span><input id="profileOrganization" data-i18n-placeholder="organizationPlaceholder" placeholder="Universitet yoki tashkilot"></label>
     <label><span data-i18n="country">Mamlakat</span><input id="profileCountry" list="profileCountryOptions" autocomplete="country" data-i18n-placeholder="countryPlaceholder" placeholder="Mamlakatni tanlang yoki yozing"></label>
+    <label><span data-i18n="countryCode">Mamlakat kodi (ISO-2)</span><input id="profileAcademicCountry" type="text" inputmode="text" autocomplete="off" maxlength="2" pattern="[A-Za-z]{2}" placeholder="UZ" aria-describedby="profileCountryCodeHelp"></label><small id="profileCountryCodeHelp" class="profile-auto-note">Ikki harfli mamlakat kodi, masalan UZ yoki US.</small>
     <datalist id="profileCountryOptions">
       <option value="O‘zbekiston"><option value="Qozog‘iston"><option value="Qirg‘iziston"><option value="Tojikiston"><option value="Turkmaniston"><option value="Rossiya"><option value="AQSh"><option value="Buyuk Britaniya"><option value="Germaniya"><option value="Turkiya">
     </datalist>
