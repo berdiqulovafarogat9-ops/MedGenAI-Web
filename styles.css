@@ -556,3 +556,8 @@ html[data-theme] :is(.ghost,.secondary) { background: var(--surface-alt) !import
 html[data-theme] a { color: var(--accent); }
 .theme-control { display:flex; align-items:center; gap:6px; margin:0; font-size:12px; color:var(--text-primary); }
 .theme-control select { margin:0; padding:8px; min-height:40px; background:var(--surface-alt); color:var(--text-primary); border:1px solid var(--border-color); border-radius:8px; }
+
+/* Compact single-field profile location selector */
+.profile-region-control{display:grid;grid-template-columns:minmax(0,560px);gap:9px;max-width:560px}
+.profile-region-control label{margin:0}
+.profile-region-manual[hidden]{display:none!important}
