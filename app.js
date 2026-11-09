@@ -4284,8 +4284,9 @@ async function registerAccount() {
   if (!selectedRole) { if (status) status.textContent = 'Avval asosiy professional rolingizni tanlang.'; return; }
 
   if (phone) {
-    const phoneDigits = phone.replace(/\\D/g, '');
-    if (!/^\\+?[0-9\\s().-]+$/.test(phone) || phoneDigits.length < 7 || phoneDigits.length > 15) {
+    const phoneBody = phone.startsWith('+') ? phone.slice(1) : phone;
+    const phoneDigits = (phone.match(/[0-9]/g) || []).length;
+    if (!/^[0-9 ().-]+$/.test(phoneBody) || phoneDigits < 7 || phoneDigits > 15) {
       if (status) status.textContent = 'Telefon raqamini xalqaro formatda kiriting (masalan, +1 202 555 0123).';
       return;
     }
