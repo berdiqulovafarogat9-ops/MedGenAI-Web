@@ -692,3 +692,5 @@ body[data-theme="light"] :is(.card-box,.auth-box,.login-card) {
 /* Accessible assessment choices: radio control and answer text share one row. */
 .academy-v2 .q label,.q label{display:flex!important;align-items:center!important;gap:9px!important;}
 .academy-v2 .q input[type="radio"],.q input[type="radio"]{display:inline-block!important;width:auto!important;flex:0 0 auto!important;margin:0!important;}
+
+.admin-data-table{width:100%;border-collapse:collapse;margin:10px 0;font-size:13px}.admin-data-table th,.admin-data-table td{padding:9px 10px;text-align:left;vertical-align:top;border:1px solid var(--line)}.admin-data-table th{background:var(--surface-alt);color:var(--text)}
