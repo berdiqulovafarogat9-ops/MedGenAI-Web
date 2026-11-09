@@ -627,7 +627,10 @@
         topRight.appendChild(clock);topRight.appendChild(hud.pen);
         var hand=el("button","padding:7px 10px;background:#0284c7;color:#fff;border:0;border-radius:5px;font-weight:700;cursor:pointer","Topshirish");
         hand.type="button";hand.onclick=function(){setRightTab("handoff");};
-        topRight.appendChild(hand);top.appendChild(topLeft);top.appendChild(topRight);
+        topRight.appendChild(hand);
+        var exitBtn=el("button","padding:7px 10px;background:#334155;color:#e2e8f0;border:1px solid #475569;border-radius:5px;font-weight:700;cursor:pointer","Kabinetga qaytish");
+        exitBtn.type="button";exitBtn.onclick=function(){if(running){if(!window.confirm("Simulyatsiyadan chiqilsinmi? Joriy urinish yakunlanmagan bo‘ladi."))return;}exitToDashboard();};
+        topRight.appendChild(exitBtn);top.appendChild(topLeft);top.appendChild(topRight);
         var main=el("main","");main.className="fc-main-grid";
         var left=el("aside","");left.className="fc-dock fc-dock-left";
         left.appendChild(el("h4","","Bemor kartasi / Anamnez"));
