@@ -612,7 +612,7 @@
         });
         monitor.appendChild(vitals);center.appendChild(monitor);
         var sceneMount=el("div","");sceneMount.className="fc-three-viewport";
-        if(typeof clinic!=="undefined"&&clinic){clinic.style.cssText="position:absolute;inset:0;margin:0!important;padding:0!important;border:0!important;border-radius:0!important;background:transparent!important;display:flex;flex-direction:column";var clinicView=clinic.querySelector("div[style*='height:260px']");if(clinicView){clinicView.style.height="100%";clinicView.style.flex="1";clinicView.style.minHeight="0";}sceneMount.appendChild(clinic);}
+        if(typeof clinic!=="undefined"&&clinic){clinic.style.cssText="position:absolute;inset:0;width:100%;height:100%;min-height:0;margin:0!important;padding:0!important;border:0!important;border-radius:0!important;background:transparent!important;overflow:hidden";if(typeof view3!=="undefined"&&view3){view3.style.cssText="position:absolute;inset:0;width:100%;height:100%;min-height:0;border-radius:0;overflow:hidden;background:#080d14";}if(typeof tools3!=="undefined"&&tools3){tools3.style.cssText="position:absolute;z-index:4;top:8px;left:8px;display:flex;gap:6px;flex-wrap:wrap;margin:0;max-width:calc(100% - 16px)";}var clinicHead=clinic.children[0],clinicHelp=clinic.children[1];if(clinicHead)clinicHead.style.display="none";if(clinicHelp)clinicHelp.style.display="none";sceneMount.appendChild(clinic);}
         if(typeof genericClinic!=="undefined"&&genericClinic){genericClinic.style.cssText="position:absolute;inset:0;margin:0!important;padding:0!important;border:0!important";var gw=genericClinic.querySelector("div[id^='medgen-3d-patient-']");if(gw){gw.style.height="100%";}sceneMount.appendChild(genericClinic);}
         center.appendChild(sceneMount);
         var right=el("aside","");right.className="fc-dock fc-dock-right";
@@ -643,6 +643,7 @@
         if(clinicRenderer&&clinicRenderer.domElement){clinicRenderer.domElement.style.width="100%";clinicRenderer.domElement.style.height="100%";}
         if(clinicResizeObserver&&typeof clinicResizeObserver.disconnect==="function"){clinicResizeObserver.disconnect();if(typeof view3!=="undefined"&&view3)clinicResizeObserver.observe(view3);}
         setTimeout(function(){if(clinicRenderer&&typeof resize3==="function")resize3();},60);
+        setTimeout(function(){if(clinicRenderer&&typeof resize3==="function")resize3();},300);
       })();
 
       penalty = 0; running = true; lastPenaltyAt = 0;
