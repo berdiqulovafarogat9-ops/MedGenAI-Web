@@ -1323,8 +1323,8 @@ async function openProfile() {
       if(window.medgenLoadAcademyCatalogForProfile) await window.medgenLoadAcademyCatalogForProfile(academicProfile.country_code||'',academicProfile.university||'');
       if($('profileAcademicCountry'))$('profileAcademicCountry').value=academicProfile.country_code||$('profileAcademicCountry').value;
       if($('profileCountry') && !$('profileCountry').value) $('profileCountry').value=academicProfile.country_code || $('profileAcademicCountry')?.value || 'UZ';
-      if($('profileRegion'))$('profileRegion').value=academicProfile.region||p.region||'';
-      $('profileRegion')?.dispatchEvent(new Event('change'));
+      // The canonical region selector is initialized from the saved profile above.
+      // Do not overwrite its OTHER/manual mapping with legacy academic-profile text.
       if($('profileDistrict'))$('profileDistrict').value=academicProfile.district||p.district||'';
     }catch(_){}
 
