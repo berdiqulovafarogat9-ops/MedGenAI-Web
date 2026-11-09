@@ -120,7 +120,7 @@
       }).catch(function (e) { list.appendChild(el("p", "color:#ff8a8a", e.message)); });
     }
 
-    var hud, tiles = {}, canvas, actionsBox, logBox, endBox;
+    var hud, tiles = {}, canvas, actionsBox, logBox, endBox, handoffFinishBtn = null;
     function start(c) {
       card.innerHTML = ""; card.appendChild(alertBox);
       var uiStyle = document.createElement("style");
@@ -284,7 +284,11 @@
       rightLogPane.appendChild(logBox);
       endBox = el("div", "margin-top:8px");
       rightHandoffPane.appendChild(el("h4", "", "Klinik topshirish"));
-      rightHandoffPane.appendChild(el("p", "font-size:12px;color:#8fa3b5;line-height:1.5", "Simulyatsiya yakunlangach tashxisni belgilang va serverga rasmiy o‘quv hisobotini yuboring."));
+      rightHandoffPane.appendChild(el("p", "font-size:12px;color:#8fa3b5;line-height:1.5", "Yakunlash tugmasi simulyatsiyani to‘xtatadi, tashxis tanlash va serverdagi haqiqiy baholash bosqichini ochadi."));
+      handoffFinishBtn = el("button", "width:100%;padding:12px;margin:4px 0 12px;border:0;border-radius:9px;background:#059669;color:#fff;font-weight:800;font-size:13px;cursor:pointer;box-shadow:0 4px 12px rgba(5,150,105,.25)", "📋 Epikrizni chiqarish va Yakunlash");
+      handoffFinishBtn.type = "button";
+      handoffFinishBtn.onclick = function () { if (running && sim && !sim.ended) finish(); else if (sim && sim.ended) setRightTab("handoff"); };
+      rightHandoffPane.appendChild(handoffFinishBtn);
       rightHandoffPane.appendChild(endBox);
 
       sim = Core.create(c);
@@ -727,7 +731,9 @@
     }
 
     function finish() {
+      if (!running) return;
       running = false;
+      if (handoffFinishBtn) { handoffFinishBtn.disabled = true; handoffFinishBtn.style.opacity = ".55"; handoffFinishBtn.textContent = "Yakunlash bosqichi ochildi"; }
       if (genericClinicMounted && window.medgen3DClinic) window.medgen3DClinic.dispose();
       genericClinicMounted = false;
       clearInterval(timer); cancelAnimationFrame(raf);
