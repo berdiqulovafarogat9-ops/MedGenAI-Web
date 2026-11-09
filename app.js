@@ -3113,12 +3113,21 @@ async function loadPDB() {
       body: JSON.stringify({ pdb_id: normalizedId })
     });
 
-    renderResult(result, data);
-
-    if (status) {
-      status.textContent =
-        t('loaded');
+    const viewerData = await api('/pdb/structures/' + normalizedId + '/viewer');
+    const viewerHost = $('pdbViewer');
+    if (!viewerHost) throw new Error('Ichki 3D ko‘ruvchi konteyneri topilmadi.');
+    viewerHost.innerHTML = '';
+    if (!window.$3Dmol || typeof window.$3Dmol.createViewer !== 'function') {
+      throw new Error('3Dmol.js kutubxonasi yuklanmagan.');
     }
+    const viewer = window.$3Dmol.createViewer(viewerHost, { backgroundColor: '#07111f' });
+    viewer.addModel(viewerData.pdb, 'pdb');
+    viewer.setStyle({}, { cartoon: { color: 'spectrum' }, stick: { radius: 0.12, colorscheme: 'Jmol' } });
+    viewer.zoomTo();
+    viewer.render();
+    viewerHost.dataset.pdbId = normalizedId;
+    renderResult(result, { status: data.status, pdb_id: normalizedId, title: data.title, models: data.models, chains: data.chains, residues: data.residues, atoms: data.atoms });
+    if (status) status.textContent = t('loaded');
 
   } catch (error) {
 
@@ -6459,7 +6468,7 @@ window.switchMedGenMode = function(mode) {
     const plan=String(user?.subscription_plan || billing?.subscription_plan || billing?.plan || 'free').toLowerCase();
     const status=String(user?.subscription_status || billing?.subscription_status || billing?.status || 'active').toLowerCase();
     const expiry=user?.subscription_expires_at ?? billing?.subscription_expires_at ?? null;
-    const name=planNames[plan] || 'Free';
+    const name=admin ? 'Cheksiz / Enterprise' : (planNames[plan] || 'Free');
     if(admin){
       root.innerHTML='<div class="subscription-current"><span class="subscription-eyebrow">HISOB MAQOMI</span><h3>Maqom: Enterprise</h3><p class="subscription-state">Cheksiz tizim boshqaruvi</p><p class="subscription-muted">SUPER_ADMIN vakolati serverdagi autentifikatsiya rolingiz bilan tasdiqlangan.</p></div>';
       return;
