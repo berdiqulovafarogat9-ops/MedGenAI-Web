@@ -1524,6 +1524,21 @@ window.addEventListener("error", function (event) {
       locationLabel: "Neighborhood / Additional location",
       locationLabelPlaceholder: "Neighborhood or additional location (optional)",
       locationManualPlaceholder: "Type the region if it is not listed",
+      sessionsTitle: "Active devices and sessions",
+      sessionsHelp: "Review devices signed in to your account and end any session you do not recognize.",
+      thisDevice: "This device",
+      otherDevices: "Other active devices",
+      onlineNow: "Online",
+      activeNow: "Active now",
+      signedInAt: "Signed in",
+      lastActive: "Last active",
+      revokeSession: "End session",
+      terminateOthers: "Sign out of all other devices",
+      noOtherDevices: "No other active devices.",
+      currentSessionMissing: "Current session details were not found. Refresh or sign in again.",
+      sessionRevokeNote: "After a session is ended, its next API request returns 401 and signs that device out.",
+      securityLoading: "Loading security settings...",
+      retry: "Retry",
       researchInterests: "Research interests",
       researchInterestsPlaceholder: "Bioinformatics, drug discovery...",
       birthDate: "Date of birth",
@@ -1766,6 +1781,21 @@ window.addEventListener("error", function (event) {
       locationLabel: "Mahalla / Qo‘shimcha hudud",
       locationLabelPlaceholder: "Mahalla yoki qo‘shimcha hudud (ixtiyoriy)",
       locationManualPlaceholder: "Ro‘yxatda bo‘lmasa, hudud nomini yozing",
+      sessionsTitle: "Faol qurilmalar va sessiyalar",
+      sessionsHelp: "Hisobingizga kirilgan qurilmalarni ko‘ring va tanimagan sessiyani tugating.",
+      thisDevice: "Ushbu qurilma",
+      otherDevices: "Boshqa faol qurilmalar",
+      onlineNow: "Onlayn",
+      activeNow: "Hozir faol",
+      signedInAt: "Kirilgan",
+      lastActive: "Oxirgi faollik",
+      revokeSession: "Sessiyani tugatish",
+      terminateOthers: "Barcha boshqa qurilmalardan chiqish",
+      noOtherDevices: "Boshqa faol qurilmalar yo‘q.",
+      currentSessionMissing: "Joriy sessiya ma’lumoti topilmadi. Sahifani yangilang yoki qayta kiring.",
+      sessionRevokeNote: "Sessiya tugatilgach, o‘sha qurilmaning keyingi API so‘rovi 401 qaytaradi va tizimdan chiqaradi.",
+      securityLoading: "Xavfsizlik sozlamalari yuklanmoqda...",
+      retry: "Qayta urinish",
       researchInterests: "Ilmiy qiziqishlar",
       researchInterestsPlaceholder: "Bioinformatika, drug discovery...",
       birthDate: "Tug‘ilgan sana",
@@ -2008,6 +2038,21 @@ window.addEventListener("error", function (event) {
       locationLabel: "Махалля / Дополнительное местоположение",
       locationLabelPlaceholder: "Махалля или дополнительное место (необязательно)",
       locationManualPlaceholder: "Если региона нет в списке, введите его",
+      sessionsTitle: "Активные устройства и сеансы",
+      sessionsHelp: "Просмотрите устройства, вошедшие в аккаунт, и завершите незнакомые сеансы.",
+      thisDevice: "Это устройство",
+      otherDevices: "Другие активные устройства",
+      onlineNow: "В сети",
+      activeNow: "Активно сейчас",
+      signedInAt: "Вход",
+      lastActive: "Последняя активность",
+      revokeSession: "Завершить сеанс",
+      terminateOthers: "Выйти со всех других устройств",
+      noOtherDevices: "Других активных устройств нет.",
+      currentSessionMissing: "Данные текущего сеанса не найдены. Обновите страницу или войдите снова.",
+      sessionRevokeNote: "После завершения сеанса следующий API-запрос на том устройстве вернёт 401 и выполнит выход.",
+      securityLoading: "Загрузка настроек безопасности...",
+      retry: "Повторить",
       researchInterests: "Научные интересы",
       researchInterestsPlaceholder: "Биоинформатика, разработка лекарств...",
       birthDate: "Дата рождения",
@@ -2086,6 +2131,12 @@ window.addEventListener("error", function (event) {
 
 
   window.translatePage = translatePage;
+
+  window.translatePage = translatePage;
+  window.medgenText = function(key) {
+    const language = localStorage.getItem("medgen_language") || "uz";
+    return translations[language]?.[key] || translations.en?.[key] || key;
+  };
 
   function initializeLanguage() {
 
