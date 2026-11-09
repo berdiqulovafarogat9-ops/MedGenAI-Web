@@ -1167,6 +1167,9 @@ def register(data: RegisterRequest):
         "birth_year": None, "birth_month": None, "birth_day": None,
         "research_interests": "", "bio": "", "avatar": "",
         "role": role,
+        "subscription_plan": "free",
+        "subscription_status": "active",
+        "subscription_expires_at": None,
         "approved_roles": [role],
         "role_status": "pending" if school_role else "active",
         "school_name": school_name if school_role else "",
@@ -1225,10 +1228,13 @@ def me(
     user=Depends(get_current_user),
 ):
     profile = user_profiles.get(user["username"], {})
+    subscription = _subscription_snapshot(user["username"], user.get("role"))
+    profile_view = {**profile, **subscription}
     consent = user_consents.get(user["username"], {})
     return {
         **user,
-        "profile": profile,
+        **subscription,
+        "profile": profile_view,
         "consent": consent,
         "profile_complete": is_required_profile_complete(profile),
         "academic_status": profile.get("academic_status", "pending"),
@@ -2348,14 +2354,59 @@ def clinical_vitals_report(data: VitalsReportRequest, user=Depends(get_current_u
     }
 
 
+def _subscription_snapshot(username: str, role: str | None = None) -> dict:
+    """Build the authenticated subscription view from server-owned billing state."""
+    normalized_role = str(role or "").strip().lower().replace("-", "_").replace(" ", "_")
+    if normalized_role in {"super_admin", "superadmin", "owner", "founder", "ceo"}:
+        return {
+            "subscription_plan": "enterprise",
+            "subscription_status": "active",
+            "subscription_expires_at": None,
+            "subscription_unlimited": True,
+        }
+
+    record = billing_store.get(username, {}) or {}
+    plan = str(record.get("plan") or "free").strip().lower()
+    if plan not in {"free", "student", "pro", "enterprise"}:
+        plan = "free"
+    raw_status = str(record.get("status") or "").strip().lower()
+    status_map = {"active": "active", "trial": "trial", "expired": "expired",
+                  "inactive": "expired", "failed": "expired", "cancelled": "expired",
+                  "on_hold": "expired", "none": "active", "": "active"}
+    status = status_map.get(raw_status, "expired")
+    expires_at = record.get("subscription_expires_at") or record.get("expires_at") or record.get("next_billing_date")
+    if expires_at:
+        try:
+            expiry = datetime.fromisoformat(str(expires_at).replace("Z", "+00:00"))
+            if expiry.tzinfo is None:
+                expiry = expiry.replace(tzinfo=timezone.utc)
+            if expiry <= datetime.now(timezone.utc):
+                status = "expired"
+        except (TypeError, ValueError):
+            expires_at = None
+    if plan == "free" and status == "expired":
+        status = "active"
+    return {
+        "subscription_plan": plan,
+        "subscription_status": status,
+        "subscription_expires_at": expires_at,
+        "subscription_unlimited": False,
+    }
+
+
 @app.get("/api/v1/billing/status")
 def billing_status(user=Depends(get_current_user)):
-    record = billing_store.get(user["username"], {})
+    subscription = _subscription_snapshot(user["username"], user.get("role"))
     return {
         "configured": _billing_ready(),
         "environment": DODO_ENV,
-        "plan": record.get("plan", "free"),
-        "status": record.get("status", "none"),
+        "plan": subscription["subscription_plan"],
+        "status": subscription["subscription_status"],
+        "subscription_plan": subscription["subscription_plan"],
+        "subscription_status": subscription["subscription_status"],
+        "subscription_expires_at": subscription["subscription_expires_at"],
+        "subscription_unlimited": subscription["subscription_unlimited"],
+        "role": user.get("role"),
         "plans": [{"id": k, "label": v["label"]} for k, v in BILLING_PLANS.items() if v["product_id"]],
     }
 
@@ -2367,6 +2418,8 @@ class BillingCheckoutRequest(BaseModel):
 @app.post("/api/v1/billing/checkout")
 def billing_checkout(data: BillingCheckoutRequest, user=Depends(get_current_user)):
     username = user["username"]
+    if str(user.get("role") or "").strip().lower() in {"super_admin", "admin", "owner", "founder", "ceo"}:
+        raise HTTPException(status_code=403, detail="Ma’muriy hisob uchun to‘lov talab qilinmaydi.")
     plan = BILLING_PLANS.get(str(data.plan or "").lower())
     if not _billing_ready() or not plan or not plan["product_id"]:
         raise HTTPException(status_code=503, detail="Payments are not configured.")
@@ -2421,12 +2474,20 @@ async def billing_webhook(request: Request):
     elif etype == "subscription.on_hold":
         status = "on_hold"
     if status and username in user_profiles and plan in BILLING_PLANS:
+        expiry_value = (data.get("next_billing_date") or data.get("expires_at")
+                        or data.get("current_period_end") or data.get("next_payment_date"))
+        previous = billing_store.get(username, {})
         billing_store[username] = {
-            "plan": plan if status == "active" else billing_store.get(username, {}).get("plan", plan),
-            "status": status,
-            "subscription_id": str(data.get("subscription_id") or ""),
+            "plan": plan if status == "active" else previous.get("plan", plan),
+            "status": "expired" if status == "inactive" else status,
+            "subscription_id": str(data.get("subscription_id") or previous.get("subscription_id") or ""),
+            "subscription_expires_at": expiry_value or previous.get("subscription_expires_at"),
             "updated_at": datetime.now(timezone.utc).isoformat(),
         }
+        if username in user_profiles:
+            user_profiles[username]["subscription_plan"] = billing_store[username]["plan"]
+            user_profiles[username]["subscription_status"] = billing_store[username]["status"]
+            user_profiles[username]["subscription_expires_at"] = billing_store[username].get("subscription_expires_at")
         activity_log.insert(0, {"type": "billing_" + etype.split(".")[-1], "username": username, "at": datetime.now(timezone.utc).isoformat(), "plan": plan})
     billing_events[wid] = int(time.time())
     if len(billing_events) > 500:
@@ -2518,10 +2579,12 @@ def change_password(data: PasswordChangeRequest, user=Depends(get_current_user))
 
 @app.get("/api/v1/profile")
 def get_profile(user=Depends(get_current_user)):
+    subscription = _subscription_snapshot(user["username"], user.get("role"))
     return {
         "username": user["username"],
         "role": user["role"],
-        "profile": user_profiles.get(user["username"], {}),
+        **subscription,
+        "profile": {**user_profiles.get(user["username"], {}), **subscription},
     }
 
 
