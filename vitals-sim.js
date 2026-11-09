@@ -554,15 +554,23 @@
       // FULL CODE VIEW: replace the previous multi-row UI while retaining the same
       // VitalsCore instance, sim.act(), ECG animation, 3D renderer, audit and handoff.
       (function mountFullCodeView(){
-        card.style.setProperty("width","100%","important");
-        card.style.setProperty("height","100vh","important");
-        card.style.setProperty("max-height","100vh","important");
+        // Promote the active simulator card to a true viewport layer.
+        // Embedded Academy containers can be short/clipped; a 100vh child alone
+        // does not escape their layout, which produced the large empty black area.
+        card.style.setProperty("position","fixed","important");
+        card.style.setProperty("inset","0","important");
+        card.style.setProperty("z-index","99999","important");
+        card.style.setProperty("width","100vw","important");
+        card.style.setProperty("height","100dvh","important");
+        card.style.setProperty("min-height","100vh","important");
+        card.style.setProperty("max-height","100dvh","important");
         card.style.setProperty("overflow","hidden","important");
+        card.style.setProperty("margin","0","important");
         card.style.setProperty("border-radius","0","important");
         card.style.setProperty("padding","0","important");
         var style=document.createElement("style");
         style.textContent=`
-          .fc-workspace{height:100vh;width:100%;max-height:100vh;display:flex;flex-direction:column;overflow:hidden;background:#080d14;color:#e2e8f0;box-sizing:border-box;font-family:system-ui,sans-serif}
+          .fc-workspace{height:100dvh;min-height:100vh;width:100%;max-height:100dvh;display:flex;flex-direction:column;overflow:hidden;background:#080d14;color:#e2e8f0;box-sizing:border-box;font-family:system-ui,sans-serif}
           .fc-topbar{height:52px;min-height:52px;display:flex;align-items:center;justify-content:space-between;gap:12px;padding:0 14px;background:#0f172a;border-bottom:1px solid #1e293b;box-sizing:border-box}
           .fc-topbar-left,.fc-topbar-right{display:flex;align-items:center;gap:10px;min-width:0}
           .fc-badge-crit{background:#b91c1c;color:#fff;font-size:10px;font-weight:800;padding:4px 8px;border-radius:4px;white-space:nowrap}
@@ -604,7 +612,7 @@
           .fc-pane .medgen-clinical-log{max-height:none}
           .fc-workspace .medgen-clinical-disclaimer{font-size:10px}
           @media(max-width:1050px){.fc-main-grid{grid-template-columns:minmax(190px,230px) minmax(0,1fr) minmax(255px,285px)}}
-          @media(max-width:760px){.fc-workspace{height:100dvh;max-height:100dvh}.fc-topbar{height:48px;min-height:48px;padding:0 8px}.fc-case-name{font-size:11px}.fc-main-grid{grid-template-columns:minmax(0,1fr);grid-template-rows:minmax(110px,22%) minmax(250px,1fr) minmax(180px,34%)}.fc-dock-left{border-right:0;border-bottom:1px solid #1e293b}.fc-left-scroll{display:grid;grid-template-columns:repeat(2,minmax(0,1fr))}.fc-center-stage{grid-row:2}.fc-dock-right{grid-row:3;border-left:0;border-top:1px solid #1e293b}.fc-vert-tabs{width:46px;flex-basis:46px}.fc-floating-monitor{width:min(300px,calc(100% - 16px));top:6px;left:8px}.fc-v-item strong{font-size:14px}}
+          @media(max-width:1050px){.fc-main-grid{grid-template-columns:minmax(165px,22vw) minmax(0,1fr) minmax(220px,27vw)}}@media(max-width:760px){.fc-workspace{height:100dvh;max-height:100dvh}.fc-topbar{height:48px;min-height:48px;padding:0 8px}.fc-case-name{font-size:11px}.fc-main-grid{grid-template-columns:minmax(0,1fr);grid-template-rows:minmax(110px,22%) minmax(250px,1fr) minmax(180px,34%)}.fc-dock-left{border-right:0;border-bottom:1px solid #1e293b}.fc-left-scroll{display:grid;grid-template-columns:repeat(2,minmax(0,1fr))}.fc-center-stage{grid-row:2}.fc-dock-right{grid-row:3;border-left:0;border-top:1px solid #1e293b}.fc-vert-tabs{width:46px;flex-basis:46px}.fc-floating-monitor{width:min(300px,calc(100% - 16px));top:6px;left:8px}.fc-v-item strong{font-size:14px}}
         `;
         card.appendChild(style);
         var workspace=el("div","");workspace.className="fc-workspace";
