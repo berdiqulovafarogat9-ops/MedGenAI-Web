@@ -343,7 +343,7 @@ class RegisterRequest(BaseModel):
     password: str
     full_name: str
     email: str
-    phone: str = ""
+    phone: str | None = ""
     country: str = ""
     organization: str = ""
     role: str = "student"
@@ -900,7 +900,7 @@ def register(data: RegisterRequest):
         "created_at": datetime.now(timezone.utc).isoformat(),
     }
     user_profiles[username] = {
-        "full_name": data.full_name.strip(), "email": email, "phone": data.phone.strip(),
+        "full_name": data.full_name.strip(), "email": email, "phone": str(data.phone or "").strip(),
         "country": data.country.strip(), "region": "", "district": "", "city": "",
         "location_label": "", "location_lat": None, "location_lon": None,
         "location_source": "", "organization": data.organization.strip(),
