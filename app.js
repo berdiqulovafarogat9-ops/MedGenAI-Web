@@ -1329,32 +1329,10 @@ async function openProfile() {
     }catch(_){}
 
     const regionManual = $('profileRegionManual');
-    const districtManual = $('profileDistrictManual');
     const regionSelect = $('profileRegion');
-    const districtSelect = $('profileDistrict');
-
-    // Assign handlers instead of stacking listeners every time the profile opens.
-    // An empty select value can happen while region options are still loading; do
-    // not erase the user's manually entered/saved value in that state.
-    if (regionSelect) regionSelect.onchange = () => {
-      if (regionSelect.value === 'OTHER') {
-        regionManual?.focus();
-      } else if (regionSelect.value && regionManual) {
-        regionManual.value = '';
-      }
-    };
-    if (districtSelect) districtSelect.onchange = () => {
-      if (districtSelect.value === 'OTHER') {
-        districtManual?.focus();
-      } else if (districtSelect.value && districtManual) {
-        districtManual.value = '';
-      }
-    };
+    if (regionSelect) regionSelect.dispatchEvent(new Event('change'));
     if (regionManual) regionManual.oninput = () => {
       if (regionManual.value && regionSelect) regionSelect.value = 'OTHER';
-    };
-    if (districtManual) districtManual.oninput = () => {
-      if (districtManual.value && districtSelect) districtSelect.value = 'OTHER';
     };
 
     const profileSaveButton = $('profileSave');
@@ -1485,10 +1463,12 @@ async function saveProfile() {
       phone: $('profilePhone')?.value?.trim() || '',
       organization: $('profileOrganization')?.value?.trim() || '',
       country: $('profileCountry')?.value?.trim() || '',
-      region: $('profileRegionManual')?.value?.trim() || (($('profileRegion')?.value === 'OTHER') ? '' : ($('profileRegion')?.value?.trim() || '')),
-      district: $('profileDistrictManual')?.value?.trim() || (($('profileDistrict')?.value === 'OTHER') ? '' : ($('profileDistrict')?.value?.trim() || '')),
-      city: $('profileCity')?.value?.trim() || '',
-      location_label: $('profileLocationLabel')?.value?.trim() || '',
+      region: $('profileRegion')?.value === 'OTHER'
+        ? ($('profileRegionManual')?.value?.trim() || '')
+        : ($('profileRegion')?.value?.trim() || ''),
+      district: state.user?.profile?.district || '',
+      city: state.user?.profile?.city || '',
+      location_label: state.user?.profile?.location_label || '',
       location_lat: coordinateValue($('detectLocationBtn')?.dataset?.lat),
       location_lon: coordinateValue($('detectLocationBtn')?.dataset?.lon),
       location_source: $('detectLocationBtn')?.dataset?.source || '',
@@ -1502,9 +1482,8 @@ async function saveProfile() {
 
     const role = typeof roleKey === 'function' ? roleKey() : String(state.user?.role || '').toLowerCase();
     if (!payload.full_name || !payload.email || !payload.country || !payload.region ||
-        !payload.district || !payload.city || payload.birth_year === null ||
-        payload.birth_month === null || payload.birth_day === null) {
-      throw new Error('Profilni to‘liq to‘ldiring: ism, email, mamlakat, viloyat, tuman, shahar va tug‘ilgan sana majburiy.');
+        payload.birth_year === null || payload.birth_month === null || payload.birth_day === null) {
+      throw new Error('Profilni to‘liq to‘ldiring: ism, email, mamlakat, hudud va tug‘ilgan sana majburiy.');
     }
 
     if (['student','researcher','professor'].includes(role)) {
@@ -5268,50 +5247,35 @@ if (document.readyState === "loading") {
    SECURITY CENTER + LOCATION PERMISSIONS
 ========================================================= */
 function initProfileLocationSelectors(){
-  const country=$('profileCountry'),region=$('profileRegion'),district=$('profileDistrict');
-  if(!country||!region||!district)return;
-  const list=$('profileCountryOptions');
-  if(list&&!list.dataset.ready){
-    const display=new Intl.DisplayNames(['en'],{type:'region'}),names=[];
-    for(let a=65;a<=90;a++)for(let b=65;b<=90;b++){const code=String.fromCharCode(a,b);try{const name=display.of(code);if(name&&name!==code&&!/unknown region/i.test(name))names.push(name)}catch(_){}}
-    [...new Set(names)].sort((a,b)=>a.localeCompare(b)).forEach(name=>{const o=document.createElement('option');o.value=name;list.appendChild(o)});
-    list.dataset.ready='1';
+  const region=$('profileRegion'),manual=$('profileRegionManual'),manualWrap=$('profileRegionManualWrap');
+  if(!region)return;
+  const regions=[
+    ['Tashkent','Toshkent sh.'],['Tashkent Region','Toshkent vil.'],
+    ['Andijan','Andijon'],['Bukhara','Buxoro'],['Fergana','Farg‘ona'],
+    ['Jizzakh','Jizzax'],['Khorezm','Xorazm'],['Namangan','Namangan'],
+    ['Navoi','Navoiy'],['Kashkadarya','Qashqadaryo'],['Samarkand','Samarqand'],
+    ['Sirdarya','Sirdaryo'],['Surkhandarya','Surxondaryo'],
+    ['Karakalpakstan','Qoraqalpog‘iston Resp.']
+  ];
+  const saved=String(region.dataset.selected||region.value||'').trim();
+  const known=regions.some(([value])=>value===saved);
+  if(saved&&!known&&saved!=='OTHER'&&manual)manual.value=saved;
+  region.innerHTML='<option value="">Hududni tanlang</option>'+
+    regions.map(([value,label])=>'<option value="'+value+'">'+label+'</option>').join('')+
+    '<option value="OTHER">Boshqa / Xorij</option>';
+  region.value=known?saved:(saved?'OTHER':'');
+  const syncManual=()=>{
+    const show=region.value==='OTHER';
+    if(manualWrap)manualWrap.hidden=!show;
+    if(manual){manual.required=show;if(!show)manual.value='';}
+  };
+  if(!region.dataset.locationBound){
+    region.addEventListener('change',syncManual);
+    region.dataset.locationBound='1';
   }
-  const normalize=()=>{let v=(country.value||'').trim();if(/^[A-Z]{2}$/.test(v)){try{v=new Intl.DisplayNames(['en'],{type:'region'}).of(v)||v}catch(_){}}return v};
-  const fill=(el,items,placeholder,selected='')=>{
-    const vals=[...new Set((items||[]).filter(Boolean))];
-    if(selected&&!vals.includes(selected))vals.unshift(selected);
-    el.innerHTML='<option value="">'+placeholder+'</option>'+vals.map(v=>'<option value="'+escapeHtml(v)+'">'+escapeHtml(v)+'</option>').join('')+'<option value="OTHER">Boshqa / qo‘lda kiritish</option>';
-    if(selected)el.value=selected;
-  };
-  const load=async()=>{
-    const c=normalize(),savedRegion=region.dataset.selected||region.value,savedDistrict=district.dataset.selected||district.value;
-    if(!c){fill(region,[],'Avval mamlakatni tanlang');fill(district,[],'Avval viloyatni tanlang');return}
-    fill(region,savedRegion?[savedRegion]:[],'Hududlar yuklanmoqda...',savedRegion);
-    fill(district,savedDistrict?[savedDistrict]:[],'Avval viloyatni tanlang',savedDistrict);
-    try{
-      const response=await fetch('https://countriesnow.space/api/v0.1/countries/states',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({country:c})});
-      if(!response.ok)throw new Error('region lookup failed');
-      const payload=await response.json(),items=(payload.data?.states||[]).map(x=>typeof x==='string'?x:x.name).filter(Boolean);
-      fill(region,items,'Viloyat / hududni tanlang',savedRegion);
-      await loadCities();
-    }catch(_){fill(region,savedRegion?[savedRegion]:[],'Hududni tanlang yoki yozib kiriting',savedRegion);fill(district,savedDistrict?[savedDistrict]:[],'Tumanni tanlang yoki yozib kiriting',savedDistrict)}
-  };
-  const loadCities=async()=>{
-    const c=normalize(),s=region.value;
-    if(!c||!s||s==='OTHER'){fill(district,[],'Tuman / shaharni qo‘lda kiriting');return}
-    const saved=district.dataset.selected||district.value;
-    try{
-      const response=await fetch('https://countriesnow.space/api/v0.1/countries/state/cities',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({country:c,state:s})});
-      if(!response.ok)throw new Error('city lookup failed');
-      const payload=await response.json();fill(district,payload.data||[],'Tuman / shaharni tanlang',saved);
-    }catch(_){fill(district,saved?[saved]:[],'Tuman / shaharni tanlang yoki qo‘lda kiriting',saved)}
-  };
-  if(!country.dataset.locationBound){country.addEventListener('change',()=>{region.dataset.selected='';district.dataset.selected='';region.value='';district.value='';load()});country.dataset.locationBound='1'}
-  if(!region.dataset.locationBound){region.addEventListener('change',()=>{district.dataset.selected='';loadCities()});region.dataset.locationBound='1'}
-  if(!country.value&&country.dataset.value)country.value=country.dataset.value;
-  if(country.value)load();else{fill(region,[],'Avval mamlakatni tanlang');fill(district,[],'Avval viloyatni tanlang')}
+  syncManual();
 }
+
 async function loadSecurityCenter() {
   const grid=$('securityGrid'); if(!grid)return;
   const renderCards=(d={})=>{
