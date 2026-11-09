@@ -4180,10 +4180,11 @@ function profileAccountRoleKey(profile = state.user?.profile || {}){
   if (profileRole === 'student' || authRole === 'student' || localRole === 'student') return 'student';
   return 'student';
 }
-function syncAcademicProfileVisibility(){
+function syncAcademicProfileVisibility(roleOverride){
   const section = $('academicProfileSection');
   if (!section) return;
-  const visible = profileAccountRoleKey() === 'student';
+  const selectedRole = String(roleOverride || '').trim().toLowerCase().replace(/[\\s-]+/g, '_');
+  const visible = (selectedRole || profileAccountRoleKey()) === 'student';
   section.hidden = !visible;
   section.style.display = visible ? '' : 'none';
   section.setAttribute('aria-hidden', visible ? 'false' : 'true');
@@ -4260,6 +4261,7 @@ function bindRoleRegistration(){
   grid?.querySelectorAll('.role-choice').forEach(btn=>btn.addEventListener('click',()=>{
     grid.querySelectorAll('.role-choice').forEach(x=>x.classList.remove('selected'));
     btn.classList.add('selected'); if(hidden) hidden.value=btn.dataset.role;
+    syncAcademicProfileVisibility(btn.dataset.role);
     if(status) {
       const roleKey = btn.dataset.role;
       const prefix = window.medgenTranslateKey?.('selected_role') || 'Selected role:';
