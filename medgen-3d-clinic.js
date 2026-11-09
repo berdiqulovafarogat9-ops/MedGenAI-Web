@@ -36,7 +36,7 @@
         var patient=new THREE.Group(); patient.position.set(-.05,.62,-.25); patient.rotation.z=-Math.PI/2; patient.scale.setScalar(.9); this.scene.add(patient);
         this.patientModel=null; this.patientChest=null; this.chestBaseRotation=null; this.chestBaseScale=null;
         var loader=new THREE.GLTFLoader();
-        loader.load("https://files.innerscene.com/library/daniel-3d-person-lying-flat-820f78f4/6d7b4ad3797154f4db48/daniel-lying-flat-3d-person.glb",gltf=>{
+        loader.load("/models/medgen-patient.glb",gltf=>{
           if(!this.renderer)return;
           this.patientModel=gltf.scene;
           var initial=new THREE.Box3().setFromObject(this.patientModel),initialSize=initial.getSize(new THREE.Vector3());
