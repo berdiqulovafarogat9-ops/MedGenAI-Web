@@ -110,6 +110,7 @@ TOKEN_TTL_SECONDS = int(os.getenv("MEDGEN_TOKEN_TTL_SECONDS", "28800"))
 
 tokens = {}
 token_created_at = {}
+token_session_ids = {}
 revoked_tokens = set()
 login_attempts = {}
 LOGIN_WINDOW_SECONDS = int(os.getenv("MEDGEN_LOGIN_WINDOW_SECONDS", "300"))
@@ -588,9 +589,8 @@ def make_token(username: str) -> str:
 
 
 def get_current_user(
-    credentials: HTTPAuthorizationCredentials = Depends(
-        security
-    ),
+    request: Request,
+    credentials: HTTPAuthorizationCredentials = Depends(security),
 ):
     if not credentials:
         raise HTTPException(
@@ -605,7 +605,19 @@ def get_current_user(
     if token in revoked_tokens:
         tokens.pop(token, None)
         token_created_at.pop(token, None)
+        token_session_ids.pop(token, None)
         raise HTTPException(status_code=401, detail="Session revoked")
+
+    session_id = token_session_ids.get(token)
+    if session_id:
+        session = _get_session_record(session_id, username)
+        if not session or session.get("is_revoked"):
+            tokens.pop(token, None)
+            token_created_at.pop(token, None)
+            token_session_ids.pop(token, None)
+            revoked_tokens.add(token)
+            raise HTTPException(status_code=401, detail="Session revoked")
+        _touch_session(session_id, request)
 
     if not username or not created_at:
         raise HTTPException(status_code=401, detail="Invalid or expired token")
@@ -653,7 +665,7 @@ async def account_readiness_guard(request: Request, call_next):
 
     mfa_exempt = {
         "/api/v1/health/live", "/api/v1/auth/login", "/api/v1/auth/register", "/api/v1/auth/me",
-        "/api/v1/auth/logout", "/api/v1/account", "/api/v1/profile", "/api/v1/billing/webhook",
+        "/api/v1/auth/logout", "/api/v1/auth/sessions", "/api/v1/auth/sessions/terminate-others", "/api/v1/account", "/api/v1/profile", "/api/v1/billing/webhook",
         "/api/v1/auth/verify-email",
     }
     if REQUIRE_2FA_ROLES and path not in mfa_exempt and not path.startswith("/api/v1/auth/2fa/"):
@@ -669,6 +681,7 @@ async def account_readiness_guard(request: Request, call_next):
         "/api/v1/auth/register",
         "/api/v1/auth/me",
         "/api/v1/auth/logout",
+        "/api/v1/auth/sessions",
         "/api/v1/profile",
         "/api/v1/account",
         "/api/v1/legal/documents",
@@ -789,7 +802,7 @@ def health_live():
 # =========================================================
 
 @app.post("/api/v1/auth/login")
-def login(data: LoginRequest):
+def login(data: LoginRequest, request: Request):
     now = datetime.now(timezone.utc)
     key = data.username.strip().lower()
     attempts = login_attempts.get(key, [])
@@ -826,8 +839,16 @@ def login(data: LoginRequest):
         mfa_pending[mfa_token] = {"username": authenticated_username, "exp": time.time() + 300}
         return {"mfa_required": True, "mfa_token": mfa_token, "expires_in": 300}
     token = make_token(authenticated_username)
+    session_id = str(uuid.uuid4())
+    device_name, browser = _parse_session_device(request.headers.get("user-agent", ""))
+    ip_address = _request_ip(request)
+    _create_session_record({"id":session_id,"user_id":authenticated_username,
+        "session_token":hashlib.sha256(token.encode("utf-8")).hexdigest(),
+        "device_name":device_name,"browser":browser,"ip_address":ip_address,
+        "created_at":now.isoformat(),"last_active_at":now.isoformat(),"is_revoked":False})
     tokens[token] = authenticated_username
     token_created_at[token] = now.isoformat()
+    token_session_ids[token] = session_id
     activity_log.insert(0, {
         "type": "login",
         "username": data.username,
@@ -838,6 +859,7 @@ def login(data: LoginRequest):
         "access_token": token,
         "token_type": "bearer",
         "expires_in": TOKEN_TTL_SECONDS,
+        "session_id": session_id,
     }
 
 
@@ -1052,6 +1074,8 @@ def logout(credentials: HTTPAuthorizationCredentials = Depends(security)):
         token = credentials.credentials
         username = tokens.pop(token, None)
         token_created_at.pop(token, None)
+        session_id = token_session_ids.pop(token, None)
+        if session_id and username: _revoke_session_record(session_id, username)
         revoked_tokens.add(token)
         if username:
             activity_log.insert(0, {
