@@ -737,7 +737,13 @@
    actions.append(recall,listen);li.append(actions);
   });
  }
+ function hideLegacyBrainPuzzle(){
+  const game=document.getElementById('organGame');
+  const card=game?.closest('article');
+  if(card) card.hidden=true;
+ }
  function update(){
+  hideLegacyBrainPuzzle();
   enhanceLanguageLesson();
   document.documentElement.lang=language();
   const walker=document.createTreeWalker(document.body,NodeFilter.SHOW_TEXT);
