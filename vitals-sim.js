@@ -415,7 +415,7 @@
           // GRADD xona GLB vaqtincha o‘chirildi: asset geometriyasi mobil kamerada oq/katta ko‘rinmoqda. Mavjud procedural xona saqlanadi.
           // Quaternius bemor modeli mavjud supine patient wrapper ichiga yuklanadi.
           // Parent transform karavot koordinatalari va amaldagi raycaster bilan mos qoladi.
-          loader.load("https://dbkxgbeisgyjilflkneq.supabase.co/storage/v1/object/public/models/Casual%20Character%20by%20Quaternius%20-%20kZ3DmIoGip.glb",function(gltf){
+          loader.load("/models/medgen-patient.glb",function(gltf){
             if(!clinicRenderer)return;
             patientModel=gltf.scene;
             if(fallbackPatient)fallbackPatient.visible=false;
