@@ -713,7 +713,12 @@ async def account_readiness_guard(request: Request, call_next):
                 token_created_at[bearer_token] = stored["created_at"]
                 token_session_ids[bearer_token] = session_id
         if session_owner and session_id:
-            live_session = _get_session_record(session_id, session_owner)
+            try:
+                live_session = _get_session_record(session_id, session_owner)
+            except Exception:
+                # Fail closed without leaking driver/connection details when
+                # durable session revocation cannot be verified.
+                return JSONResponse(status_code=503, content={"detail":"Session verification temporarily unavailable"})
             if not live_session or live_session.get("is_revoked"):
                 return JSONResponse(status_code=401, content={"detail":"Session revoked"})
 
@@ -2681,6 +2686,18 @@ def update_account(data: AccountUpdateRequest, user=Depends(get_current_user)):
             for token, owner in list(tokens.items()):
                 if owner == current:
                     tokens[token] = new_username
+            # Keep in-memory session ownership aligned with the renamed account.
+            for session in _session_cache.values():
+                if session.get("user_id") == current:
+                    session["user_id"] = new_username
+            # Persist session ownership as part of account rename as well.
+            if PERSISTENCE_ENABLED:
+                try:
+                    with psycopg.connect(DATABASE_URL) as conn:
+                        conn.execute("UPDATE user_sessions SET user_id=%s WHERE user_id=%s", (new_username, current))
+                        conn.commit()
+                except Exception as exc:
+                    raise HTTPException(status_code=503, detail="Sessiya egasini yangilash amalga oshmadi.") from exc
             current = new_username
     profile = user_profiles.setdefault(current, {})
     if data.phone is not None:
