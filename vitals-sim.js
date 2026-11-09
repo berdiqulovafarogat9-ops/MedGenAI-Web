@@ -407,11 +407,35 @@
           var patient=new THREE.Group(); patient.rotation.z=-Math.PI/2; patient.scale.setScalar(.9); patient.position.set(-0.05,.62,-.45); sc.add(patient);
           var skinMats=[],patientModel=null,patientChest=null,faceMesh=null,faceTint=null,chestBaseRotation=null,chestBaseScale=null,chestBreathMeshes=[],recoveryStarted=0,recoveryFrom=new THREE.Color(0x94a3b8),recoveryTo=new THREE.Color(0xfbcfe8);
           var loader=new THREE.GLTFLoader();
-          loader.load("https://files.innerscene.com/library/daniel-3d-person-lying-flat-820f78f4/6d7b4ad3797154f4db48/daniel-lying-flat-3d-person.glb",function(gltf){
+          // Ixtiyoriy fon muhiti: mavjud karavot, monitor va uskunalar o‘z joyida qoladi.
+          // Model sahnaning orqa qismiga joylashtiriladi; yuklanmasa procedural xona ishlashda davom etadi.
+          loader.load("https://dbkxgbeisgyjilflkneq.supabase.co/storage/v1/object/public/models/GRADD%20Hospital%20Room%20by%20GRADD%20CO%20-%209sUalfQ76kn.glb",function(roomGltf){
+            if(!clinicRenderer)return;
+            var roomEnv=roomGltf.scene;
+            roomEnv.name="env_hospital_background";
+            var roomBounds=new THREE.Box3().setFromObject(roomEnv);
+            if(!roomBounds.isEmpty()){
+              var roomSize=roomBounds.getSize(new THREE.Vector3());
+              var roomCenter=roomBounds.getCenter(new THREE.Vector3());
+              var roomMax=Math.max(roomSize.x,roomSize.y,roomSize.z);
+              var roomScale=roomMax>0?7.2/roomMax:1;
+              roomEnv.scale.setScalar(roomScale);
+              roomEnv.position.set(-roomCenter.x*roomScale,-roomBounds.min.y*roomScale,-6.0-roomCenter.z*roomScale);
+              roomEnv.traverse(function(node){if(node.isMesh){node.castShadow=true;node.receiveShadow=true;}});
+              sc.add(roomEnv);
+              clinicRenderer.render(sc,cam);
+            }
+          },undefined,function(err){console.warn("[3D] Hospital background GLB yuklanmadi; mavjud xona saqlanadi.",err);});
+          // Quaternius bemor modeli mavjud supine patient wrapper ichiga yuklanadi.
+          // Parent transform karavot koordinatalari va amaldagi raycaster bilan mos qoladi.
+          loader.load("https://dbkxgbeisgyjilflkneq.supabase.co/storage/v1/object/public/models/Casual%20Character%20by%20Quaternius%20-%20kZ3DmIoGip.glb",function(gltf){
             if(!clinicRenderer)return;
             patientModel=gltf.scene;
             var initialBounds=new THREE.Box3().setFromObject(patientModel),initialSize=initialBounds.getSize(new THREE.Vector3());
             if(initialSize.x>initialSize.y*1.2)patientModel.rotation.z=Math.PI/2;
+            var preFitBounds=new THREE.Box3().setFromObject(patientModel),preFitSize=preFitBounds.getSize(new THREE.Vector3());
+            var fitScale=preFitSize.y>0?1.55/preFitSize.y:1;
+            patientModel.scale.setScalar(fitScale);
             var modelBounds=new THREE.Box3().setFromObject(patientModel),modelSize=modelBounds.getSize(new THREE.Vector3()),modelCenter=modelBounds.getCenter(new THREE.Vector3());
             patientModel.position.sub(modelCenter);
             patient.add(patientModel); sc.updateMatrixWorld(true);
@@ -453,10 +477,11 @@
           var drip=new THREE.Mesh(new THREE.CylinderGeometry(.025,.025,.18,8),new THREE.MeshStandardMaterial({color:0x9bd5ed,transparent:true,opacity:.55}));drip.position.set(-1.45,1.55,-.35);sc.add(drip);
           var mask=new THREE.Mesh(new THREE.SphereGeometry(.13,16,10,0,Math.PI*2,0,Math.PI/2),new THREE.MeshStandardMaterial({color:0xc7f0ff,transparent:true,opacity:.3,side:THREE.DoubleSide,depthWrite:false,roughness:.1}));mask.position.set(0,1.53,.25);mask.rotation.x=Math.PI/2;patient.add(mask); var maskTube=new THREE.Mesh(new THREE.TorusGeometry(.16,.008,6,32),new THREE.MeshStandardMaterial({color:0xc7f0ff,transparent:true,opacity:.45}));maskTube.position.set(0,1.53,.12);patient.add(maskTube);
           var targets=[];
-          function mark(zone,x,y,z,color){var o=new THREE.Mesh(new THREE.TorusGeometry(.105,.018,6,18),new THREE.MeshBasicMaterial({color:color,transparent:true,opacity:.9}));o.position.set(x,y,z);o.userData.zone=zone;patient.add(o);targets.push(o);}
+          function mark(zone,x,y,z,color){var o=new THREE.Mesh(new THREE.TorusGeometry(.105,.018,6,18),new THREE.MeshBasicMaterial({color:color,transparent:true,opacity:.9}));o.position.set(x,y,z);o.userData.zone=zone;if(zone==="thigh")o.userData.actionKey="epi_thigh";patient.add(o);targets.push(o);}
           // Hotspots are positioned from the loaded supine model bounds after GLB load.
           function clinicAnimate(){if(!clinicRenderer)return;clinicRaf=requestAnimationFrame(clinicAnimate);
             var breath=1+Math.sin(Date.now()/1000*Math.max(.2,sim.state.rr/60)*Math.PI*2)*.012;
+            targets.forEach(function(target){if(target.userData&&target.userData.zone==="thigh"){var p=1+Math.sin(Date.now()/260)*.13;target.scale.set(p,p,p);target.material.opacity=.62+Math.sin(Date.now()/260)*.28;}});
             var chestMotion=Math.sin(Date.now()/1000*Math.max(.2,sim.state.rr/60)*Math.PI*2)*.008;chestBreathMeshes.forEach(function(item){var a=item.geometry.attributes.position;for(var vi=0;vi<item.weights.length;vi++){var k=vi*3,w=item.weights[vi]*chestMotion;a.array[k]=item.base[k]+item.axis.x*w;a.array[k+1]=item.base[k+1]+item.axis.y*w;a.array[k+2]=item.base[k+2]+item.axis.z*w;}a.needsUpdate=true;}); if(patientChest){if(chestBaseRotation!==null)patientChest.rotation.x=chestBaseRotation+chestMotion*.7;else if(chestBaseScale!==null)patientChest.scale.z=chestBaseScale*(1+chestMotion);}
             if(recoveryStarted){var t=Math.min(1,(Date.now()-recoveryStarted)/3000),col=recoveryFrom.clone().lerp(recoveryTo,t);skinMats.forEach(function(m){if(m&&m.color)m.color.copy(col);});if(faceTint){faceTint.material.color.copy(col);faceTint.material.opacity=.28*(1-t)+.06*t;}}
             clinicRenderer.render(sc,cam);
