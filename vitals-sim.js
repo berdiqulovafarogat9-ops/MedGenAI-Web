@@ -645,6 +645,9 @@
         var paneInvestigate=el("div","");paneInvestigate.className="fc-pane";paneInvestigate.id="fc-pane-investigate";
         var paneAudit=el("div","");paneAudit.className="fc-pane";paneAudit.id="fc-pane-audit";
         var paneHandoff=el("div","");paneHandoff.className="fc-pane";paneHandoff.id="fc-pane-handoff";
+        var paneDialog=el("div","");paneDialog.className="fc-pane";paneDialog.id="fc-pane-dialog";
+        paneDialog.appendChild(el("h4","","Bemor bilan muloqot"));
+        if(dialogueCard)paneDialog.appendChild(dialogueCard);
         function tab(key,label,icon){var b=el("button","",icon+"  "+label);b.type="button";b.className="fc-v-tab"+(key==="intervene"?" active":"");b.onclick=function(){[paneIntervene,paneInvestigate,paneAudit,paneHandoff].forEach(function(p){p.classList.toggle("active",p.id==="fc-pane-"+key);});nav.querySelectorAll("button").forEach(function(x){x.classList.toggle("active",x===b);});};nav.appendChild(b);}
         tab("intervene","Muolaja","💉");tab("investigate","Tekshiruv","🔍");tab("audit","Jurnal","📑");tab("handoff","Topshirish","📋");
         paneIntervene.appendChild(el("h4","","Shoshilinch muolajalar"));
@@ -656,7 +659,7 @@
         if(logBox){logBox.className="fc-clinical-log";paneAudit.appendChild(logBox);}
         paneHandoff.appendChild(el("h4","","Topshirish / yakunlash"));
         if(endBox)paneHandoff.appendChild(endBox);
-        panes.appendChild(paneIntervene);panes.appendChild(paneInvestigate);panes.appendChild(paneAudit);panes.appendChild(paneHandoff);
+        panes.appendChild(paneIntervene);panes.appendChild(paneInvestigate);panes.appendChild(paneAudit);panes.appendChild(paneHandoff);panes.appendChild(paneDialog);
         right.appendChild(nav);right.appendChild(panes);
         main.appendChild(left);main.appendChild(center);main.appendChild(right);
         var scrim=el("div","");scrim.className="fc-drawer-scrim";
@@ -666,8 +669,12 @@
           var b=el("button","");b.type="button";if(item[1]==="Muolaja")b.className="fc-dock-primary";
           var ic=el("span","",item[0]);ic.className="fc-dock-icon";b.appendChild(ic);b.appendChild(el("span","",item[1]));
           b.onclick=function(){
-            var tabIndex=item[1]==="Ko‘rik"||item[1]==="Tahlil"?1:item[2];
-            var tabs=nav.querySelectorAll("button");if(tabs[tabIndex])tabs[tabIndex].click();
+            if(item[1]==="Muloqot"){
+              [paneIntervene,paneInvestigate,paneAudit,paneHandoff,paneDialog].forEach(function(p){p.classList.toggle("active",p===paneDialog);});
+            }else{
+              var tabIndex=item[1]==="Ko‘rik"||item[1]==="Tahlil"?1:item[2];
+              var tabs=nav.querySelectorAll("button");if(tabs[tabIndex])tabs[tabIndex].click();
+            }
             right.classList.add("fc-drawer-open");workspace.classList.add("fc-drawer-active");
           };
           bottomDock.appendChild(b);
