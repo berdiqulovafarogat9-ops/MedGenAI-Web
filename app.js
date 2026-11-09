@@ -5337,11 +5337,22 @@ function initProfileLocationSelectors(){
     if(district)district.placeholder=lang==='en'?'Choose or type a district':lang==='ru'?'Выберите или введите район':'Tumanni tanlang yoki yozing';
   };
   if(!region.dataset.locationBound){
-    region.addEventListener('change',()=>{syncManual();syncDistricts();});
+    region.addEventListener('change',()=>{
+      if(region.value!==region.dataset.selected && district)district.value='';
+      region.dataset.selected=region.value;
+      syncManual();
+      syncDistricts();
+    });
     region.dataset.locationBound='1';
   }
   if(manual&&!manual.dataset.locationBound){
-    manual.addEventListener('input',()=>{if(manual.value)region.value='OTHER';});
+    manual.addEventListener('input',()=>{
+      if(manual.value){
+        region.value='OTHER';
+        region.dataset.selected='OTHER';
+        syncDistricts();
+      }
+    });
     manual.dataset.locationBound='1';
   }
   region.value=known?savedRegion:(savedRegion?'OTHER':'');
