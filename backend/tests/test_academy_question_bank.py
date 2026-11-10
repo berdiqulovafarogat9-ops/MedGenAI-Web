@@ -1,5 +1,5 @@
 import pytest
-from test_regressions import api
+from test_regressions import api, client
 from test_audit_regressions import ready_user
 
 
