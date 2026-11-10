@@ -21,7 +21,7 @@ let dashboard=null,selectedCourse=null;
 function renderSubjects(){
  const host=$('academySubjects');if(!host||!dashboard)return;
  const course=(dashboard.courses||[]).find(x=>Number(x.year)===Number(selectedCourse));
- const subjects=course?.subjects||((Number(selectedCourse)===Number(dashboard.course))?dashboard.subjects:[]);
+ const subjects=Number(selectedCourse)===Number(dashboard.course)?(dashboard.subjects||[]):(course?.subjects||[]);
  const assessmentLabels={theory:'Nazariya',practice:'Amaliyot',quiz:'Test',case:'Klinik keys',skills:'Ko‘nikma',osce:'OSCE',theory_exam:'Nazariy imtihon',practical_exam:'Amaliy imtihon',exam:'Yakuniy imtihon'};
  host.innerHTML='<section class="academy-stat"><b>Bosqich 1: Kurs tanlash</b><div class="academy-actions">'+(dashboard.courses||[{year:dashboard.course,title:dashboard.course_title}]).map(c=>'<button type="button" class="academy-course '+(Number(c.year)===Number(selectedCourse)?'primary':'')+'" data-course="'+Number(c.year)+'">'+esc(c.title)+'</button>').join('')+'</div></section><section><h4>Bosqich 2: Fan tanlash</h4><div class="academy-subjects">'+subjects.map(s=>{
   const completed=(s.completed_assessments||[]).map(x=>assessmentLabels[x]||x).join(' · ');
