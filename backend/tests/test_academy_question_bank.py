@@ -25,9 +25,8 @@ def test_curated_chemistry_and_biology_have_distinct_quiz_and_exam_banks(
     quiz_items = quiz_response.json()["items"]
     assert len(quiz_items) == 5
     assert all(len(item["options"]) == 4 for item in quiz_items)
-    assert all(0 <= item["answer"] < len(item["options"]) for item in api._academy_question_bank(
-        1, api._academy_subject(1, subject_id)
-    )["quiz"])
+    bank = api._academy_question_bank(1, api._academy_subject(1, subject_id))
+    assert all(0 <= item["answer"] < len(item["options"]) for item in bank["quiz"])
     quiz_text = " ".join(item["question"].lower() for item in quiz_items)
     assert any(term in quiz_text for term in quiz_terms)
     assert not any(item["question"].startswith("Which statement best describes") for item in quiz_items)
@@ -41,9 +40,7 @@ def test_curated_chemistry_and_biology_have_distinct_quiz_and_exam_banks(
     exam_items = exam_response.json()["items"]
     assert len(exam_items) == 10
     assert all(len(item["options"]) == 4 for item in exam_items)
-    assert all(0 <= item["answer"] < len(item["options"]) for item in api._academy_question_bank(
-        1, api._academy_subject(1, subject_id)
-    )["exam"])
+    assert all(0 <= item["answer"] < len(item["options"]) for item in bank["exam"])
     exam_text = " ".join(item["question"].lower() for item in exam_items)
     assert any(term in exam_text for term in exam_terms)
     assert {item["question"] for item in quiz_items}.isdisjoint(
