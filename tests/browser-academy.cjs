@@ -8,6 +8,7 @@ const root = path.resolve(__dirname, "..");
 
 const assessmentFixtures = {
   theory: [{ id: "theory-1", title: "Bosh miya nazariyasi", prompt: "Asosiy tuzilmalar", content: "Bosh miya korteksi va uning bo‘limlari haqida to‘liq nazariya matni.", instruction: "Matnni o‘qing va asosiy tushunchalarni izohlang." }],
+  puzzle: [{ id: "brain-assembly-v1", title: "Bosh miya qismlarini joylashtiring", instruction: "Har bir tuzilmani mos joyga biriktiring.", parts: [{ id: "frontal", label: "Peshona bo‘lagi" }, { id: "cerebellum", label: "Miyacha" }], slots: [{ value: 0, label: "Oldingi-yuqori" }, { value: 4, label: "Orqa-pastki" }] }],
   practice: [{ id: "practice-1", title: "Anatomik amaliy mashq", prompt: "Tuzilmalarni farqlang", instruction: "Berilgan anatomik tuzilmalarni aniqlang va natijani qayta tekshiring." }],
   quiz: [{ id: "quiz-1", question: "Qaysi tuzilma muvozanatni muvofiqlashtiradi?", options: ["Miyacha", "Ensa bo‘lagi"] }],
   case: [{ id: "case-1", scenario: "Bemor koordinatsiya buzilishi bilan murojaat qildi.", prompt: "Qaysi tuzilmani baholash kerak?", options: ["Miyacha", "Ko‘ruv nervi"] }],
@@ -77,13 +78,18 @@ const assessmentFixtures = {
         await page.getByText("Dars kartasida ko‘rinadigan nazariya mazmuni.").waitFor();
         assert.match(await page.locator("#academySubjects").innerText(), /Nazariya/);
 
-        const types = ["theory", "practice", "quiz", "case", "skills", "osce", "theory_exam", "practical_exam", "exam"];
+        const types = ["theory", "practice", "puzzle", "quiz", "case", "skills", "osce", "theory_exam", "practical_exam", "exam"];
         for (const type of types) {
           await page.locator('[data-type="' + type + '"]').click();
           await page.locator("#academyForm").waitFor({ state: "visible" });
           if (type === "theory" || type === "practice") {
             assert.ok(await page.locator("#academyForm [data-completion-check]").count() > 0, type + " must show completion controls");
             await page.locator("#academyForm [data-completion-check]").check();
+          } else if (type === "puzzle") {
+            const slots = page.locator("#academyForm select[name]");
+            assert.equal(await slots.count(), 2, "puzzle must render each anatomical part");
+            await slots.nth(0).selectOption("0");
+            await slots.nth(1).selectOption("4");
           } else if (["skills", "osce", "practical_exam"].includes(type)) {
             const checks = page.locator('#academyForm input[type="checkbox"]');
             assert.ok(await checks.count() > 0, type + " must render checklist items");
@@ -102,6 +108,8 @@ const assessmentFixtures = {
         assert.deepEqual(submissions.map(x => x.assessment_type), types);
         assert.equal(submissions.find(x => x.assessment_type === "theory").answers.completion, 1);
         assert.equal(submissions.find(x => x.assessment_type === "practice").answers.completion, 1);
+        assert.equal(submissions.find(x => x.assessment_type === "puzzle").answers.frontal, 0);
+        assert.equal(submissions.find(x => x.assessment_type === "puzzle").answers.cerebellum, 4);
         assert.equal(submissions.find(x => x.assessment_type === "skills").answers["skill-1:0"], 1);
         assert.equal(submissions.find(x => x.assessment_type === "osce").answers["osce-1:1"], 1);
         assert.equal(submissions.find(x => x.assessment_type === "practical_exam").answers["skill-1:1"], 1);
