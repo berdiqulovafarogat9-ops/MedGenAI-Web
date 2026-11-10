@@ -32,7 +32,7 @@ const assessmentFixtures = {
         const page = await context.newPage();
         const pageErrors = [];
         page.on("pageerror", error => pageErrors.push(error.message));
-        await page.addInitScript(() => {
+        await page.addInitScript(({ fixtures }) => {
           window.MEDGEN_API_BASE = "/api/v1";
           window.__academySubmits = [];
           window.fetch = async (url, options = {}) => {
@@ -58,7 +58,7 @@ const assessmentFixtures = {
               };
             } else if (path.endsWith("/academy/assessment/start") && method === "POST") {
               const body = JSON.parse(options.body || "{}");
-              data = { status: "started", items: assessmentFixtures[body.assessment_type] || [], time_limit_minutes: body.assessment_type.includes("exam") ? 60 : null };
+              data = { status: "started", items: fixtures[body.assessment_type] || [], time_limit_minutes: body.assessment_type.includes("exam") ? 60 : null };
             } else if (path.endsWith("/academy/assessment/submit") && method === "POST") {
               const body = JSON.parse(options.body || "{}");
               window.__academySubmits.push(body);
@@ -68,7 +68,7 @@ const assessmentFixtures = {
             }
             return new Response(JSON.stringify(data), { status: 200, headers: { "Content-Type": "application/json" } });
           };
-        });
+        }, { fixtures: assessmentFixtures });
         await page.goto("http://127.0.0.1:8080/api/v1/health/live", { waitUntil: "domcontentloaded" });
         await page.setContent('<!doctype html><html lang="uz"><head><meta name="viewport" content="width=device-width,initial-scale=1"></head><body><main id="studentTool"></main></body></html>');
         await page.addScriptTag({ path: path.join(root, "phase1-academy.js") });
