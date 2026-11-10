@@ -60,6 +60,7 @@
       running = false;
       if (epicrisisOverlay) { epicrisisOverlay.remove(); epicrisisOverlay = null; epicrisisScoreLabel = null; }
       if (genericClinicMounted && window.medgen3DClinic) window.medgen3DClinic.dispose();
+      if (window.MedGenAnatomyLab && window.MedGenAnatomyLab.disposeAll) window.MedGenAnatomyLab.disposeAll();
       genericClinicMounted = false;
       if (timer) clearInterval(timer);
       if (raf) cancelAnimationFrame(raf);
