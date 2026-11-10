@@ -13,6 +13,7 @@
     var curve=new T.CatmullRomCurve3(points.map(function(p){return new T.Vector3(p[0],p[1],p[2]);}));
     var m=new T.Mesh(new T.TubeGeometry(curve,segments||48,radius,10,false),material);m.name=name;m.castShadow=true;parent.add(m);return m;
   }
+  var instances=[];
   function Lab(host, mode) {
     this.host=host;this.mode=mode;this.scene=new T.Scene();this.scene.background=new T.Color(0x071521);
     this.camera=new T.PerspectiveCamera(35,1,.1,100);this.camera.position.set(0,0.3,7.2);
@@ -116,5 +117,5 @@
   Lab.prototype.resize=function(){if(!this.renderer||!this.host)return;var w=Math.max(240,this.host.clientWidth),h=Math.max(260,this.host.clientHeight);this.camera.aspect=w/h;this.camera.updateProjectionMatrix();this.renderer.setSize(w,h,false);};
   Lab.prototype.animate=function(){var self=this;this.raf=requestAnimationFrame(function(){self.animate();});if(this.mode==="anatomy")this.root.rotation.y+=.0015;this.renderer.render(this.scene,this.camera);};
   Lab.prototype.dispose=function(){if(this.raf)cancelAnimationFrame(this.raf);if(this.observer)this.observer.disconnect();if(this.toolbar)this.toolbar.remove();if(this.info)this.info.remove();this.renderer.dispose();this.host.innerHTML="";};
-  window.MedGenAnatomyLab={mount:function(host,mode){return new Lab(host,mode);}};
+  window.MedGenAnatomyLab={mount:function(host,mode){var lab=new Lab(host,mode);instances.push(lab);return lab;},disposeAll:function(){instances.splice(0).forEach(function(lab){lab.dispose();});}};
 })();
