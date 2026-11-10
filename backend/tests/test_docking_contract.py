@@ -17,6 +17,8 @@ class Engine:
     def dock(self, **kwargs): pass
     def energies(self, **kwargs):
         return [[-7.1, -8.2, 0.3, 1.1, 0.3]]
+    def poses(self, **kwargs):
+        return "MODEL 1\\nENDMDL\\n"
 
 @pytest.mark.parametrize('save_failure', [False, True])
 def test_energy_columns_save_and_cleanup(client, monkeypatch, save_failure):
