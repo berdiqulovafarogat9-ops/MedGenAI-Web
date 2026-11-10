@@ -1,0 +1,58 @@
+/* MedGen AI — Clinical Hand-off / Full Code layout polish.
+   Presentation only: does not alter VitalsCore, sim.act(), ECG, or scoring. */
+.fc-main-grid {
+  grid-template-columns: minmax(250px, 1fr) minmax(0, 2fr) minmax(285px, 1fr) !important;
+  gap: 0 !important;
+}
+.fc-dock-left, .fc-dock-right { min-width: 0 !important; }
+.fc-center-stage { min-width: 0 !important; }
+.fc-left-scroll { scrollbar-width: thin; }
+.fc-pane { scrollbar-width: thin; }
+.fc-pane button, .fc-v-tab, .fc-body-interact-dock button {
+  min-height: 38px;
+  touch-action: manipulation;
+}
+.fc-floating-monitor {
+  width: min(390px, calc(100% - 20px)) !important;
+  backdrop-filter: blur(12px);
+}
+.fc-v-item strong { font-variant-numeric: tabular-nums; }
+.fc-v-item strong, .fc-clock-val { text-shadow: 0 0 12px currentColor; }
+.fc-dock-right { min-height: 0; }
+.fc-tab-panes { overscroll-behavior: contain; }
+.mg-sbar-overlay {
+  z-index: 100000 !important;
+  backdrop-filter: blur(5px);
+}
+.mg-sbar-paper {
+  width: min(96vw, 820px) !important;
+  max-height: 94dvh !important;
+  overflow: auto !important;
+  box-sizing: border-box !important;
+  font-family: Inter, system-ui, sans-serif;
+}
+.mg-sbar-paper h2 { line-height: 1.25; }
+.mg-sbar-section { break-inside: avoid; }
+.mg-sbar-section > div:last-child { overflow-wrap: anywhere; }
+@media (max-width: 1050px) {
+  .fc-main-grid {
+    grid-template-columns: minmax(210px, 0.8fr) minmax(0, 1.6fr) minmax(250px, 1fr) !important;
+  }
+}
+@media (max-width: 760px) {
+  .fc-main-grid {
+    grid-template-columns: minmax(0, 1fr) !important;
+    grid-template-rows: minmax(110px, 22%) minmax(250px, 1fr) minmax(180px, 34%) !important;
+  }
+  .fc-dock-left, .fc-dock-right { min-width: 0 !important; }
+  .fc-floating-monitor { width: min(320px, calc(100% - 16px)) !important; }
+  .mg-sbar-overlay { padding: 8px !important; }
+  .mg-sbar-paper { padding: 16px !important; }
+}
+@media print {
+  body * { visibility: hidden !important; }
+  .mg-sbar-paper, .mg-sbar-paper * { visibility: visible !important; }
+  .mg-sbar-overlay { position: static !important; display: block !important; background: #fff !important; padding: 0 !important; }
+  .mg-sbar-paper { width: 100% !important; max-height: none !important; overflow: visible !important; box-shadow: none !important; }
+  .mg-sbar-paper button { display: none !important; }
+}
