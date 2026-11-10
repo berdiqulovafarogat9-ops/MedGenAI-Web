@@ -330,9 +330,10 @@
       if (c.id === "anaphylaxis_jasur" && window.THREE && THREE.WebGLRenderer) {
         var clinic = el("div", "margin:10px 0;padding:10px;border:1px solid #28465c;border-radius:14px;background:#071521");
         clinic.appendChild(el("div", "font-weight:800;color:#67e8f9;margin-bottom:6px", "3D VIRTUAL CLINIC — Jasur"));
-        clinic.appendChild(el("div", "font-size:12px;color:#9fb5c7;margin-bottom:8px", "Asbobni tanlang, so‘ng mos anatomik nishonni bosing. Soddalashtirilgan o‘quv modeli."));
+        clinic.appendChild(el("div", "font-size:12px;color:#9fb5c7;margin-bottom:8px", "Asbobni tanlang, so‘ng mos anatomik nishonni bosing. Interaktiv anatomik bemor modeli: ko‘rik nuqtalarini tanlang va muolajalarni bajaring."));
         var tools3 = el("div", "display:flex;gap:6px;flex-wrap:wrap;margin-bottom:8px");
         var view3 = el("div", "height:260px;width:100%;background:#06101b;border-radius:10px;overflow:hidden");
+        view3.className="medgen-jasur-3d-stage";
         clinic.appendChild(tools3); clinic.appendChild(view3); centerDock.appendChild(clinic);
         var chosen = "epi";
         actionsBox.style.display="none";
@@ -357,7 +358,7 @@
                 try {
           var sc=new THREE.Scene(); sc.background=new THREE.Color(0x071521);
           var cam=new THREE.PerspectiveCamera(38,1,0.1,100); cam.position.set(0,1.8,2.2); cam.lookAt(0,1.0,0);
-          clinicRenderer=new THREE.WebGLRenderer({antialias:true,alpha:false}); clinicRenderer.setPixelRatio(Math.min(window.devicePixelRatio||1,1.5)); clinicRenderer.shadowMap.enabled=true; clinicRenderer.shadowMap.type=THREE.PCFSoftShadowMap; clinicRenderer.outputEncoding=THREE.sRGBEncoding; clinicRenderer.toneMapping=THREE.ACESFilmicToneMapping; clinicRenderer.toneMappingExposure=1.05; view3.appendChild(clinicRenderer.domElement);
+          clinicRenderer=new THREE.WebGLRenderer({antialias:true,alpha:false}); clinicRenderer.setPixelRatio(Math.min(window.devicePixelRatio||1,1.75)); clinicRenderer.shadowMap.enabled=true; clinicRenderer.shadowMap.type=THREE.PCFSoftShadowMap; clinicRenderer.outputEncoding=THREE.sRGBEncoding; clinicRenderer.toneMapping=THREE.ACESFilmicToneMapping; clinicRenderer.toneMappingExposure=1.12; view3.appendChild(clinicRenderer.domElement);
           clinicRenderer.domElement.id="three-canvas";clinicRenderer.domElement.style.cssText="width:100%;height:100%;display:block;background-color:#080d14";
           sc.add(new THREE.HemisphereLight(0xffffff,0x334455,2));
           var light=new THREE.DirectionalLight(0xfff2e6,2.2); light.position.set(-2,5,3); light.castShadow=true; light.shadow.mapSize.set(1024,1024); sc.add(light); var fillLight=new THREE.DirectionalLight(0x9bc9e8,.75); fillLight.position.set(3,2,-2); sc.add(fillLight);
