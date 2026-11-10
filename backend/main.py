@@ -6159,6 +6159,32 @@ def _academy_question_bank(course: int, subject: dict):
             ("Which factor is essential when interpreting a population health statistic?", ["Anecdote alone", "Ignoring the denominator", "Assuming association proves causation", "The population and time period measured"], 3, "Rates require clear denominators, population definitions and time windows."),
         ],
     }
+    exam_curated = {
+        "CHEM-SAMPI-1": [
+            ("Respirator atsidozda birlamchi qaysi ko‘rsatkich o‘zgaradi?", ["PaCO₂ ortadi", "HCO₃⁻ ortadi", "PaCO₂ kamayadi", "pH ortadi"], 0, "Respirator atsidoz alveolyar ventilyatsiya yetishmovchiligi tufayli PaCO₂ ortishi bilan boshlanadi."),
+            ("Metabolik alkaloz uchun qaysi birlamchi o‘zgarish xos?", ["PaCO₂ kamayishi", "HCO₃⁻ ortishi", "HCO₃⁻ kamayishi", "Laktatning majburiy ortishi"], 1, "Metabolik alkalozda bikarbonat ortadi yoki vodorod ionlari yo‘qotiladi."),
+            ("Bufer eritmasida [A⁻] = [HA] bo‘lsa, pH qanday bo‘ladi?", ["pKa dan ikki birlik past", "Har doim 7.0", "pKa ga teng", "pKa dan ikki birlik yuqori"], 2, "Henderson–Hasselbalch tenglamasiga ko‘ra asos va kislota shakllari teng bo‘lsa pH=pKa."),
+            ("Ion bog‘i asosan qanday mexanizm orqali yuzaga keladi?", ["Elektron juftini teng bo‘lishish", "Vodorod atomining ko‘chishi", "Kovalent zanjirning uzilishi", "Qarama-qarshi zaryadli ionlar elektrostatik tortishuvi"], 3, "Ion bog‘lanish qarama-qarshi zaryadli ionlar orasidagi elektrostatik tortishish bilan izohlanadi."),
+            ("Oqsilning alfa-spiral va beta-qatlam tuzilishini barqarorlashtiruvchi asosiy kuch qaysi?", ["Vodorod bog‘lari", "Faqat ion bog‘lari", "Faqat fosfodiester bog‘lari", "Glikozid bog‘lari"], 0, "Ikkilamchi oqsil tuzilmasi polipeptid skeleti orasidagi vodorod bog‘lari bilan barqarorlashadi."),
+            ("Disulfid ko‘prigi qaysi aminokislota qoldiqlari orasida hosil bo‘ladi?", ["Glitsin", "Sistein", "Alanin", "Valin"], 1, "Ikki sistein qoldig‘ining oltingugurt atomlari oksidlanib disulfid bog‘ hosil qilishi mumkin."),
+            ("Raqobatli ferment ingibitori Michaelis–Menten kinetikasida odatda nimaga olib keladi?", ["Vmax ortadi", "Vmax kamayadi, Km o‘zgarmaydi", "Ko‘rinma Km ortadi, Vmax o‘zgarmaydi", "Ferment substratsiz ham maksimal ishlaydi"], 2, "Raqobatli ingibitor substrat bilan faol markaz uchun raqobatlashadi; ko‘rinma Km ortadi, Vmax esa o‘zgarmaydi."),
+            ("ATP gidrolizining hujayradagi muhim vazifasi qaysi?", ["DNKni bevosita nusxalash", "Barcha reaksiyalarni issiqliksiz bajarish", "Suvni osmotik parchalanish", "Energiya talab qiluvchi jarayonlarga erkin energiyani bog‘lash"], 3, "ATP gidrolizi energiya talab qiluvchi biosintez, transport va mexanik ish bilan bog‘lanishi mumkin."),
+            ("Gemoglobinning kislorod dissotsiatsiya egri chizig‘i o‘ngga siljishi qaysi holatda yuz beradi?", ["CO₂ va H⁺ ortishi yoki harorat ko‘tarilishi", "pH ko‘tarilishi va CO₂ kamayishi", "2,3-BPG kamayishi", "Harorat pasayishi"], 0, "CO₂, H⁺, harorat va 2,3-BPG ortishi gemoglobinning O₂ ga affinitetini kamaytirib egri chiziqni o‘ngga siljitadi."),
+            ("Fehling reaksiyasida Cu²⁺ ionlari qaytarilganda qaysi mahsulot hosil bo‘ladi?", ["CuO qora cho‘kmasi", "Cu₂O g‘isht-qizil cho‘kmasi", "NaCl kristallari", "AgCl oq cho‘kmasi"], 1, "Qaytaruvchi uglevodlar ishqoriy muhitda Cu²⁺ ni Cu⁺ gacha qaytarib, Cu₂O cho‘kmasini hosil qilishi mumkin."),
+        ],
+        "BIO-SAMPI-1": [
+            ("Meiozda gomologik xromosomalar o‘rtasida crossing-over odatda qaysi bosqichda sodir bo‘ladi?", ["Metafaza II", "Anafaza I", "Profaza I", "Telofaza II"], 2, "Krossing-over meioz I profaza bosqichida, gomologik xromosomalar sinapsisi vaqtida yuz beradi."),
+            ("Xromosomalarning ajralmasligi (nondisjunction) qanday genetik oqibatga olib kelishi mumkin?", ["Faqat nuqtaviy mutatsiya", "Faqat gen ekspressiyasi ortishi", "Faqat mitoxondrial irsiylanish", "Aneuploidiya"], 3, "Nondisjunction xromosomalar sonining ortishi yoki kamayishiga, ya’ni aneuploidiyaga olib kelishi mumkin."),
+            ("Autosom-dominant irsiylanishga qaysi holat ko‘proq mos keladi?", ["Belgining ketma-ket avlodlarda uchrashi va ikkala jinsda kuzatilishi", "Faqat o‘g‘illarda uchrashi", "Faqat ona orqali o‘tishi", "Har doim faqat bitta avlodda namoyon bo‘lishi"], 0, "Autosom-dominant belgilar ko‘pincha avlodlar bo‘ylab va har ikki jinsda uchraydi; penetrantlik va yangi mutatsiyalar istisno bo‘lishi mumkin."),
+            ("ABO qon guruhi tizimida AB fenotipi qaysi genotipga mos keladi?", ["I⁰I⁰", "IᴬIᴮ", "IᴬI⁰", "IᴮI⁰"], 1, "Iᴬ va Iᴮ allellari kodominant bo‘lib, birga ifodalanganda AB fenotipi yuzaga keladi."),
+            ("X-birikkan retsessiv belgi bo‘yicha kasal ota o‘g‘liga patogen X allelini bevosita bera oladimi?", ["Har doim beradi", "Faqat ona tashuvchi bo‘lsa beradi", "Yo‘q, o‘g‘il otadan Y-xromosoma oladi", "Faqat Rh musbat bo‘lsa beradi"], 2, "O‘g‘il farzand otadan Y-xromosoma oladi; otaning X-xromosomasi qiz farzandlarga uzatiladi."),
+            ("Gemofiliya A ko‘pincha qaysi gen bilan bog‘liq?", ["HBB", "CFTR", "F8", "DMD"], 2, "Gemofiliya A VIII ivish omilini kodlovchi F8 genidagi patogen variantlar bilan bog‘liq."),
+            ("Mitoxondrial DNKda bir xil hujayrada normal va variant genomlar aralash bo‘lishi qanday ataladi?", ["Kodominantlik", "Genom imprintingi", "Poliploidiya", "Geteroplazmiya"], 3, "Geteroplazmiya — bitta hujayra yoki to‘qimada turli mitoxondrial DNK variantlarining birga mavjud bo‘lishidir."),
+            ("Plasmodium vivax qaytalanuvchi bezgak chaqirishida qaysi bosqich muhim?", ["Jigardagi gipnozoit", "Faqat eritrotsit membranasi", "Bakterial endospora", "Neyron ichidagi kista"], 0, "P. vivax jigarda gipnozoit sifatida saqlanib, keyinchalik relapsga sabab bo‘lishi mumkin."),
+            ("Leishmania tropica ning asosiy biologik vektori qaysi?", ["Anopheles chivini", "Phlebotomus qum pashshasi", "Ixodes kanasi", "Culex chivini"], 1, "L. tropica odatda Phlebotomus turkumiga mansub flebotom qum pashshalari orqali yuqadi."),
+            ("Daun sindromining eng ko‘p uchraydigan mexanizmi qaysi?", ["X-xromosoma monosomiyasi", "Y-xromosoma duplikatsiyasi", "Meiozdagi nondisjunction natijasida 21-trisomiya", "Mitoxondrial DNK deletsiya"], 2, "Daun sindromining ko‘p holatlari meiozda 21-xromosoma ajralmasligi natijasidagi erkin trisomiya 21 bilan bog‘liq."),
+        ],
+    }
     if sid in curated:
         specific = []
         for index, (question_text, options, answer, explanation) in enumerate(curated[sid], start=1):
@@ -6185,6 +6211,18 @@ def _academy_question_bank(course: int, subject: dict):
         exam_question = dict(question)
         exam_question["id"] = f"{course}-{sid}-exam{index + 1}"
         exam.append(exam_question)
+    if sid in exam_curated:
+        exam = []
+        for index, (question_text, options, answer, explanation) in enumerate(exam_curated[sid], start=1):
+            shift = (index + course + len(sid) + 1) % len(options)
+            rotated_options = list(options[shift:]) + list(options[:shift])
+            exam.append({
+                "id": f"{course}-{sid}-exam-specific{index}",
+                "question": question_text,
+                "options": rotated_options,
+                "answer": (int(answer) - shift) % len(rotated_options),
+                "explanation": explanation,
+            })
 
     cases = [
         {
