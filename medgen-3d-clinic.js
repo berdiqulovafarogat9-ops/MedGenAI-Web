@@ -16,13 +16,41 @@
       try {
         this.scene=new THREE.Scene(); this.scene.background=new THREE.Color(0x0f172a);
         this.camera=new THREE.PerspectiveCamera(48,1,.1,100);
-        this.camera.position.set(0,1.8,2.2); this.camera.lookAt(0,1.0,0);
+        this.camera.position.set(3.15,2.55,4.25); this.camera.lookAt(0,1.0,-.18);
         this.renderer=new THREE.WebGLRenderer({canvas:canvas,antialias:true,alpha:false});
-        this.renderer.setPixelRatio(Math.min(window.devicePixelRatio||1,1.5));
+        this.renderer.setPixelRatio(Math.min(window.devicePixelRatio||1,1.75));
+        this.renderer.shadowMap.enabled=true; this.renderer.shadowMap.type=THREE.PCFSoftShadowMap;
+        if("outputColorSpace" in this.renderer && THREE.SRGBColorSpace)this.renderer.outputColorSpace=THREE.SRGBColorSpace;
+        if("toneMapping" in this.renderer && THREE.ACESFilmicToneMapping){this.renderer.toneMapping=THREE.ACESFilmicToneMapping;this.renderer.toneMappingExposure=1.12;}
         this.scene.add(new THREE.HemisphereLight(0xffffff,0x334155,1.8));
-        var key=new THREE.DirectionalLight(0xfff2e6,2); key.position.set(-2,6,4); key.castShadow=true; key.shadow.mapSize.set(1024,1024); this.scene.add(key); var fill=new THREE.DirectionalLight(0x9bc9e8,.7); fill.position.set(3,2,-2); this.scene.add(fill);
+        var key=new THREE.DirectionalLight(0xfff2e6,2.35); key.position.set(-2,6,4); key.castShadow=true; key.shadow.mapSize.set(1536,1536); key.shadow.camera.near=.5; key.shadow.camera.far=18; this.scene.add(key); var fill=new THREE.DirectionalLight(0x9bc9e8,.95); fill.position.set(3,2,-2); this.scene.add(fill);
         var floor=new THREE.Mesh(new THREE.PlaneGeometry(9,8),new THREE.MeshStandardMaterial({color:0x1e3445,roughness:.95}));
         floor.rotation.x=-Math.PI/2; floor.receiveShadow=true; this.scene.add(floor);
+        // Enclosed emergency-room architecture: wall panels, glazed observation window and clinical headwall.
+        var roomMat=new THREE.MeshStandardMaterial({color:0xdce5e7,roughness:.94});
+        var tealMat=new THREE.MeshStandardMaterial({color:0x789b9b,roughness:.9});
+        var railMat=new THREE.MeshStandardMaterial({color:0x536b78,metalness:.38,roughness:.42});
+        var glassMat=new THREE.MeshStandardMaterial({color:0x8bc9df,transparent:true,opacity:.28,roughness:.12,metalness:.08,side:THREE.DoubleSide});
+        function roomBox(w,h,d,x,y,z,mat){var m=new THREE.Mesh(new THREE.BoxGeometry(w,h,d),mat);m.position.set(x,y,z);m.castShadow=true;m.receiveShadow=true;this.scene.add(m);return m;}
+        roomBox.call(this,7,.12,.12,0,2.9,-2.45,railMat);
+        roomBox.call(this,7,3.0,.12,0,1.5,-2.55,roomMat);
+        roomBox.call(this,7,.92,.14,0,.48,-2.45,tealMat);
+        roomBox.call(this,.12,3,5,-3.45,1.5,-.1,roomMat);
+        roomBox.call(this,.12,3,5,3.45,1.5,-.1,roomMat);
+        roomBox.call(this,.06,1.45,2.0,-3.34,2.0,-.35,railMat);
+        roomBox.call(this,.035,1.30,1.84,-3.29,2.0,-.35,glassMat);
+        roomBox.call(this,2.5,.42,.10,0,1.82,-2.40,railMat);
+        roomBox.call(this,2.35,.30,.025,0,1.82,-2.32,new THREE.MeshStandardMaterial({color:0x243746,roughness:.65}));
+        [-.88,-.30,.30,.88].forEach((x,i)=>{var outlet=new THREE.Mesh(new THREE.CylinderGeometry(.055,.055,.025,20),new THREE.MeshStandardMaterial({color:[0x38bdf8,0x22c55e,0xf59e0b,0xe2e8f0][i],metalness:.25,roughness:.35}));outlet.rotation.x=Math.PI/2;outlet.position.set(x,1.82,-2.28);this.scene.add(outlet);});
+        // Warm ceiling light panels and soft ambient fill.
+        [-1.25,1.25].forEach(x=>{var panel=new THREE.Mesh(new THREE.BoxGeometry(1.25,.045,.55),new THREE.MeshStandardMaterial({color:0xf8fbff,emissive:0xb8d9e8,emissiveIntensity:.38,roughness:.35}));panel.position.set(x,2.88,-.5);this.scene.add(panel);});
+        var roomFill=new THREE.PointLight(0xc9e8ff,.42,8);roomFill.position.set(0,2.65,-1.0);this.scene.add(roomFill);
+        // Wall-mounted equipment rail and privacy curtain.
+        roomBox.call(this,1.05,.72,.10,-2.25,1.55,-2.42,railMat);
+        roomBox.call(this,.82,.52,.035,-2.25,1.55,-2.34,new THREE.MeshStandardMaterial({color:0x102333,emissive:0x0b5264,emissiveIntensity:.35}));
+        var curtain=new THREE.Mesh(new THREE.PlaneGeometry(1.15,2.25,12,12),new THREE.MeshStandardMaterial({color:0x8fc7d5,transparent:true,opacity:.20,side:THREE.DoubleSide,roughness:.85}));
+        curtain.position.set(2.85,1.35,-.55);curtain.rotation.y=-.12;this.scene.add(curtain);
+
         var metal=new THREE.MeshStandardMaterial({color:0x94a3b8,metalness:.45,roughness:.4});
         var bed=new THREE.Mesh(new THREE.BoxGeometry(2.25,.16,1.05),metal); bed.position.set(0,.38,-.25); this.scene.add(bed);
         var mattress=new THREE.Mesh(new THREE.BoxGeometry(2.12,.13,.96),new THREE.MeshStandardMaterial({color:0xdbe5ec})); mattress.position.set(0,.52,-.25); this.scene.add(mattress); 

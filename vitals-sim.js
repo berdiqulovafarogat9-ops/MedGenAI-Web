@@ -330,9 +330,10 @@
       if (c.id === "anaphylaxis_jasur" && window.THREE && THREE.WebGLRenderer) {
         var clinic = el("div", "margin:10px 0;padding:10px;border:1px solid #28465c;border-radius:14px;background:#071521");
         clinic.appendChild(el("div", "font-weight:800;color:#67e8f9;margin-bottom:6px", "3D VIRTUAL CLINIC — Jasur"));
-        clinic.appendChild(el("div", "font-size:12px;color:#9fb5c7;margin-bottom:8px", "Asbobni tanlang, so‘ng mos anatomik nishonni bosing. Soddalashtirilgan o‘quv modeli."));
+        clinic.appendChild(el("div", "font-size:12px;color:#9fb5c7;margin-bottom:8px", "Asbobni tanlang, so‘ng mos anatomik nishonni bosing. Interaktiv anatomik bemor modeli: ko‘rik nuqtalarini tanlang va muolajalarni bajaring."));
         var tools3 = el("div", "display:flex;gap:6px;flex-wrap:wrap;margin-bottom:8px");
         var view3 = el("div", "height:260px;width:100%;background:#06101b;border-radius:10px;overflow:hidden");
+        view3.className="medgen-jasur-3d-stage";
         clinic.appendChild(tools3); clinic.appendChild(view3); centerDock.appendChild(clinic);
         var chosen = "epi";
         actionsBox.style.display="none";
@@ -357,7 +358,7 @@
                 try {
           var sc=new THREE.Scene(); sc.background=new THREE.Color(0x071521);
           var cam=new THREE.PerspectiveCamera(38,1,0.1,100); cam.position.set(0,1.8,2.2); cam.lookAt(0,1.0,0);
-          clinicRenderer=new THREE.WebGLRenderer({antialias:true,alpha:false}); clinicRenderer.setPixelRatio(Math.min(window.devicePixelRatio||1,1.5)); clinicRenderer.shadowMap.enabled=true; clinicRenderer.shadowMap.type=THREE.PCFSoftShadowMap; clinicRenderer.outputEncoding=THREE.sRGBEncoding; clinicRenderer.toneMapping=THREE.ACESFilmicToneMapping; clinicRenderer.toneMappingExposure=1.05; view3.appendChild(clinicRenderer.domElement);
+          clinicRenderer=new THREE.WebGLRenderer({antialias:true,alpha:false}); clinicRenderer.setPixelRatio(Math.min(window.devicePixelRatio||1,1.75)); clinicRenderer.shadowMap.enabled=true; clinicRenderer.shadowMap.type=THREE.PCFSoftShadowMap; clinicRenderer.outputEncoding=THREE.sRGBEncoding; clinicRenderer.toneMapping=THREE.ACESFilmicToneMapping; clinicRenderer.toneMappingExposure=1.12; view3.appendChild(clinicRenderer.domElement);
           clinicRenderer.domElement.id="three-canvas";clinicRenderer.domElement.style.cssText="width:100%;height:100%;display:block;background-color:#080d14";
           sc.add(new THREE.HemisphereLight(0xffffff,0x334455,2));
           var light=new THREE.DirectionalLight(0xfff2e6,2.2); light.position.set(-2,5,3); light.castShadow=true; light.shadow.mapSize.set(1024,1024); sc.add(light); var fillLight=new THREE.DirectionalLight(0x9bc9e8,.75); fillLight.position.set(3,2,-2); sc.add(fillLight);
@@ -669,14 +670,18 @@
         var paneInvestigate=el("div","");paneInvestigate.className="fc-pane";paneInvestigate.id="fc-pane-investigate";
         var paneAudit=el("div","");paneAudit.className="fc-pane";paneAudit.id="fc-pane-audit";
         var paneHandoff=el("div","");paneHandoff.className="fc-pane";paneHandoff.id="fc-pane-handoff";
+        var paneAnatomy=el("div","");paneAnatomy.className="fc-pane";paneAnatomy.id="fc-pane-anatomy";
+        var paneSurgery=el("div","");paneSurgery.className="fc-pane";paneSurgery.id="fc-pane-surgery";
         fullCodeSetTab = function(name) {
           var panesByName = {
             actions: paneIntervene,
             investigate: paneInvestigate,
             log: paneAudit,
-            handoff: paneHandoff
+            handoff: paneHandoff,
+            anatomy: paneAnatomy,
+            surgery: paneSurgery
           };
-          [paneIntervene, paneInvestigate, paneAudit, paneHandoff].forEach(function(p) {
+          [paneIntervene, paneInvestigate, paneAudit, paneHandoff, paneAnatomy, paneSurgery].forEach(function(p) {
             var active = panesByName[name] === p;
             p.classList.toggle("active", active);
             p.style.display = active ? "flex" : "none";
@@ -686,10 +691,53 @@
               (name === "actions" ? "intervene" : name === "log" ? "audit" : name));
           });
         };
-        function tab(key,label,icon){var b=el("button","",icon+"  "+label);b.type="button";b.className="fc-v-tab"+(key==="intervene"?" active":"");b.setAttribute("data-tab",key);b.onclick=function(){setRightTab(key==="intervene"?"actions":key==="investigate"?"investigate":key==="audit"?"log":"handoff");};nav.appendChild(b);}
-        tab("intervene","Muolaja","💉");tab("investigate","Tekshiruv","🔍");tab("audit","Jurnal","📑");tab("handoff","Topshirish","📋");
+        function tab(key,label,icon){var b=el("button","",icon+"  "+label);b.type="button";b.className="fc-v-tab"+(key==="intervene"?" active":"");b.setAttribute("data-tab",key);b.onclick=function(){setRightTab(key==="intervene"?"actions":key==="investigate"?"investigate":key==="audit"?"log":key==="anatomy"?"anatomy":key==="surgery"?"surgery":"handoff");};nav.appendChild(b);}
+        tab("intervene","Muolaja","💉");tab("investigate","Tekshiruv","🔍");tab("anatomy","Anatomiya","🫀");tab("surgery","Jarrohlik","🩺");tab("audit","Jurnal","📑");tab("handoff","Topshirish","📋");
         paneIntervene.appendChild(el("h4","","Shoshilinch muolajalar"));
         if(actionsBox){actionsBox.style.display="flex";actionsBox.style.flexDirection="column";paneIntervene.appendChild(actionsBox);}
+        paneAnatomy.appendChild(el("h4","","Interaktiv anatomiya — bemor ko‘rigi"));
+        paneAnatomy.appendChild(el("p","font-size:11px;line-height:1.5;color:#94a3b8;margin:0","3D bemor ustidagi rangli nishonlar ko‘rik zonalarini bildiradi. Zonani tanlang, so‘ng 3D sahnadagi mos nuqtani bosing."));
+        var anatomyRegions=[
+          ["🧠","Bosh va bo‘yin","Yuz, lab-til shishi, sianoz va yuqori nafas yo‘li xavf belgilarini baholash.","face"],
+          ["🫁","Ko‘krak qafasi","Nafas harakati, ko‘krak ekskursiyasi va auskultatsiya zonasi.","chest"],
+          ["💪","Qo‘l / periferik vena","Periferik venoz kirish joyi va infuziya kuzatuvi.","arm"],
+          ["🦵","Sonning old-yon sohasi","Mushak ichiga inʼeksiya uchun anatomik mo‘ljal.","thigh"]
+        ];
+        anatomyRegions.forEach(function(item){
+          var b=el("button","text-align:left;padding:10px;border:1px solid #29465a;border-radius:9px;background:#102536;color:#e5eef6;cursor:pointer");
+          b.type="button";b.textContent=item[0]+"  "+item[1];b.onclick=function(){
+            if(typeof chosen!=="undefined")chosen=item[3]==="chest"?"stethoscope":item[3]==="face"?"oxygen":item[3]==="arm"?"iv":"epi";
+            var zoneInfo=el("div","font-size:11px;line-height:1.55;color:#b8cad8;padding:9px;border:1px solid #29465a;border-radius:8px;background:#0b1b29",item[2]);
+            var prior=paneAnatomy.querySelector(".anatomy-region-detail");if(prior)prior.remove();zoneInfo.className="anatomy-region-detail";paneAnatomy.appendChild(zoneInfo);
+            if(typeof showResult==="function")showResult(item[1]+": "+item[2]+" 3D nishonni bosing.");
+            setRightTab("anatomy");
+          };paneAnatomy.appendChild(b);
+        });
+        paneAnatomy.appendChild(el("p","font-size:10px;color:#fbbf24;line-height:1.4","Eslatma: anatomik belgilar o‘quv maqsadida. Klinik qarorlar simulyatsiya keysidagi tasdiqlangan protokolga asoslanadi."));
+        paneSurgery.appendChild(el("h4","","Jarrohlik simulyatsiyasi — appendektomiya"));
+        paneSurgery.appendChild(el("p","font-size:11px;line-height:1.5;color:#94a3b8;margin:0","Alohida o‘quv rejimi. Bosqichlarni ketma-ket bajaring; bu bemorning anafilaksiya keysiga ta’sir qilmaydi va real jarrohlik ko‘rsatmasi emas."));
+        var surgerySteps=[
+          ["1","Operatsiyadan oldingi xavfsizlik","Bemor identifikatsiyasi, rozilik, allergiya, timeout va jamoa tekshiruvi."],
+          ["2","Anesteziya va monitoring","Anesteziya jamoasi, nafas yo‘li, monitoring va aseptika tayyorligini tasdiqlash."],
+          ["3","Kirish va anatomik orientir","O‘quv modelida qorin sohasi va anatomik orientirlarni aniqlash."],
+          ["4","Appendiksni ajratish","Appendiks, ko‘richak va mezappendiks anatomiyasini vizual aniqlash."],
+          ["5","Gemostaz va yakuniy tekshiruv","Qon ketish nazorati, operatsion maydon va namuna tekshiruvi."],
+          ["6","Yopish va operatsiyadan keyingi reja","Yara yopilishi, hisob-kitob va kuzatuv rejasini yakunlash."]
+        ];
+        var surgeryState=0,surgeryProgress=el("div","font-size:11px;color:#67e8f9;font-weight:800","Bajarilgan: 0 / "+surgerySteps.length);
+        paneSurgery.appendChild(surgeryProgress);
+        var surgeryTrack=el("div","height:6px;background:#1e293b;border-radius:99px;overflow:hidden");
+        var surgeryBar=el("div","height:6px;width:0%;background:#06b6d4;transition:width .2s");surgeryTrack.appendChild(surgeryBar);paneSurgery.appendChild(surgeryTrack);
+        var surgeryList=el("div","display:flex;flex-direction:column;gap:7px");paneSurgery.appendChild(surgeryList);
+        var surgeryDetail=el("div","padding:10px;border:1px solid #29465a;border-radius:9px;background:#0b1b29;color:#b8cad8;font-size:11px;line-height:1.5","Birinchi bosqichni tanlang.");paneSurgery.appendChild(surgeryDetail);
+        function renderSurgery(){
+          surgeryList.innerHTML="";
+          surgerySteps.forEach(function(step,index){
+            var b=el("button","display:flex;gap:8px;align-items:center;text-align:left;padding:10px;border:1px solid "+(index<surgeryState?"#047857":index===surgeryState?"#0e7490":"#29465a")+";border-radius:8px;background:"+(index<surgeryState?"#0b2a27":index===surgeryState?"#102d40":"#101d2b")+";color:#e5eef6;cursor:pointer");
+            b.type="button";b.textContent=(index<surgeryState?"✓ ":step[0]+". ")+step[1];b.disabled=index>surgeryState;b.onclick=function(){surgeryDetail.textContent=step[2];if(index===surgeryState){surgeryState++;surgeryProgress.textContent="Bajarilgan: "+surgeryState+" / "+surgerySteps.length;surgeryBar.style.width=(surgeryState/surgerySteps.length*100)+"%";renderSurgery();if(surgeryState===surgerySteps.length)surgeryDetail.textContent="O‘quv ketma-ketligi yakunlandi. Bu klinik malaka yoki real operatsiya ruxsati o‘rnini bosmaydi.";}};surgeryList.appendChild(b);
+          });
+        }
+        renderSurgery();
         paneInvestigate.appendChild(el("h4","","Tekshiruv / klinik baholash"));
         if(typeof examPanel!=="undefined"&&examPanel){paneInvestigate.appendChild(examPanel);}
         else paneInvestigate.appendChild(el("p","color:#94a3b8;font-size:12px","Ushbu keys uchun mavjud klinik tekshiruv amallari alohida ro‘yxatda ko‘rsatilmagan."));
@@ -711,7 +759,7 @@
         };
         paneHandoff.appendChild(fullCodeFinishBtn);
         if(endBox)paneHandoff.appendChild(endBox);
-        panes.appendChild(paneIntervene);panes.appendChild(paneInvestigate);panes.appendChild(paneAudit);panes.appendChild(paneHandoff);
+        panes.appendChild(paneIntervene);panes.appendChild(paneInvestigate);panes.appendChild(paneAnatomy);panes.appendChild(paneSurgery);panes.appendChild(paneAudit);panes.appendChild(paneHandoff);
         right.appendChild(nav);right.appendChild(panes);
         main.appendChild(left);main.appendChild(center);main.appendChild(right);
         workspace.style.position="relative";
@@ -724,6 +772,8 @@
         [
           ["Bemor","patient"],
           ["Tekshiruv","investigate"],
+          ["Anatomiya","anatomy"],
+          ["Jarrohlik","surgery"],
           ["Muolaja","actions"],
           ["Jurnal","log"],
           ["Topshirish","handoff"]
