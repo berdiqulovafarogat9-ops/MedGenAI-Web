@@ -15,7 +15,7 @@ function ensureShell(){
  const root=document.createElement('div');root.id='academyV2Root';root.className='academy-v2';
  root.innerHTML='<div class="eyebrow">PHASE 1 • MEDICAL ACADEMY</div><h3>🎓 Medical Academy</h3><p class="muted">Course → Subject → Theory → Practice → Quiz → Case → Skills → OSCE → Exam → Progress</p><div id="academySummary"></div><div id="academySubjects"></div><div id="academyPanel" class="hidden"></div>';
  host.appendChild(root);
- const s=document.createElement('style');s.textContent='.academy-v2{display:grid;gap:14px}.academy-v2 .academy-stat{padding:15px;border:1px solid rgba(255,255,255,.1);border-radius:14px;background:rgba(255,255,255,.035)}.academy-v2 .academy-subjects{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:10px}.academy-v2 .academy-subject{padding:15px;text-align:left;border:1px solid rgba(255,255,255,.1);border-radius:14px;background:rgba(255,255,255,.035);color:inherit;cursor:pointer}.academy-v2 .academy-subject small{display:block;opacity:.6;margin-top:6px}.academy-v2 .academy-course{min-width:180px;text-align:left}.academy-v2 .academy-panel{padding:16px;border:1px solid rgba(255,255,255,.12);border-radius:15px}.academy-v2 .academy-actions{display:flex;flex-wrap:wrap;gap:8px;margin:12px 0}.academy-v2 button{border:1px solid rgba(255,255,255,.13);border-radius:9px;background:rgba(255,255,255,.06);color:inherit;padding:9px 12px;cursor:pointer}.academy-v2 button.primary{background:rgba(80,150,255,.18)}.academy-v2 .q{padding:13px;margin:10px 0;border:1px solid rgba(255,255,255,.1);border-radius:12px}.academy-v2 label{display:block;padding:7px;cursor:pointer}.academy-v2 .pass{opacity:.95}.academy-v2 .weak{opacity:.7}.academy-v2 .academy-progress{font-size:11px}.academy-v2 .academy-progress.is-complete{color:#5ed6a0}.academy-v2 .academy-muted{opacity:.72;font-size:12px;line-height:1.5}.academy-v2 .academy-lesson p,.academy-v2 .academy-assessment-item p{line-height:1.6}.academy-v2 .academy-assessment-item{padding:14px;margin:10px 0;border:1px solid rgba(255,255,255,.12);border-radius:12px;background:rgba(255,255,255,.025)}.academy-v2 .academy-assessment-item h6{margin:0 0 8px}.academy-v2 .academy-confirm{margin-top:10px;padding:9px;border-radius:8px;background:rgba(80,150,255,.08)}.academy-v2 .academy-checklist label,.academy-v2 .academy-options label{display:flex;gap:9px;align-items:flex-start}.academy-v2 .academy-checklist input,.academy-v2 .academy-options input,.academy-v2 .academy-confirm input{margin-top:4px;flex:0 0 auto}.academy-v2 .academy-result{border-color:rgba(70,190,130,.4)}.academy-v2 .academy-error{border-color:rgba(220,90,90,.45);color:#ffb2b2}.academy-v2 button:disabled{opacity:.55;cursor:not-allowed}@media(max-width:650px){.academy-v2 .academy-subjects{grid-template-columns:1fr}}';document.head.appendChild(s);return root;
+ const s=document.createElement('style');s.textContent='.academy-v2{display:grid;gap:14px}.academy-v2 .academy-stat{padding:15px;border:1px solid rgba(255,255,255,.1);border-radius:14px;background:rgba(255,255,255,.035)}.academy-v2 .academy-subjects{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:10px}.academy-v2 .academy-subject{padding:15px;text-align:left;border:1px solid rgba(255,255,255,.1);border-radius:14px;background:rgba(255,255,255,.035);color:inherit;cursor:pointer}.academy-v2 .academy-subject small{display:block;opacity:.6;margin-top:6px}.academy-v2 .academy-course{min-width:180px;text-align:left}.academy-v2 .academy-panel{padding:16px;border:1px solid rgba(255,255,255,.12);border-radius:15px}.academy-v2 .academy-actions{display:flex;flex-wrap:wrap;gap:8px;margin:12px 0}.academy-v2 button{border:1px solid rgba(255,255,255,.13);border-radius:9px;background:rgba(255,255,255,.06);color:inherit;padding:9px 12px;cursor:pointer}.academy-v2 button.primary{background:rgba(80,150,255,.18)}.academy-v2 .q{padding:13px;margin:10px 0;border:1px solid rgba(255,255,255,.1);border-radius:12px}.academy-v2 label{display:block;padding:7px;cursor:pointer}.academy-v2 .pass{opacity:.95}.academy-v2 .weak{opacity:.7}.academy-v2 .academy-progress{font-size:11px}.academy-v2 .academy-progress.is-complete{color:#5ed6a0}.academy-v2 .academy-muted{opacity:.72;font-size:12px;line-height:1.5}.academy-v2 .academy-lesson p,.academy-v2 .academy-assessment-item p{line-height:1.6}.academy-v2 .academy-assessment-item{padding:14px;margin:10px 0;border:1px solid rgba(255,255,255,.12);border-radius:12px;background:rgba(255,255,255,.025)}.academy-v2 .academy-assessment-item h6{margin:0 0 8px}.academy-v2 .academy-confirm{margin-top:10px;padding:9px;border-radius:8px;background:rgba(80,150,255,.08)}.academy-v2 .academy-puzzle-grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:10px}.academy-v2 .academy-puzzle-grid label{display:grid;gap:6px}.academy-v2 .academy-puzzle-grid select{width:100%;min-width:0;padding:9px;border:1px solid rgba(255,255,255,.18);border-radius:8px;background:#142536;color:inherit}.academy-v2 .academy-checklist label,.academy-v2 .academy-options label{display:flex;gap:9px;align-items:flex-start}.academy-v2 .academy-checklist input,.academy-v2 .academy-options input,.academy-v2 .academy-confirm input{margin-top:4px;flex:0 0 auto}.academy-v2 .academy-result{border-color:rgba(70,190,130,.4)}.academy-v2 .academy-error{border-color:rgba(220,90,90,.45);color:#ffb2b2}.academy-v2 button:disabled{opacity:.55;cursor:not-allowed}@media(max-width:650px){.academy-v2 .academy-subjects{grid-template-columns:1fr}}';document.head.appendChild(s);return root;
 }
 let dashboard=null,selectedCourse=null;
 function renderSubjects(){
@@ -47,7 +47,7 @@ async function openSubject(id){
   const d=await api('/academy/subject/'+course+'/'+encodeURIComponent(id));
   const subject=d.subject||{},modules=d.modules||{};
   const assessmentTypes=[
-   ['theory','Nazariya'],['practice','Amaliy mashg‘ulot'],['quiz','Test'],['case','Klinik keys'],
+   ['theory','Nazariya'],['practice','Amaliy mashg‘ulot'],['puzzle','Anatomik puzzle'],['quiz','Test'],['case','Klinik keys'],
    ['skills','Amaliy ko‘nikmalar'],['osce','OSCE stansiyasi'],['theory_exam','Nazariy imtihon'],
    ['practical_exam','Amaliy imtihon'],['exam','Yakuniy imtihon']
   ];
@@ -69,7 +69,7 @@ async function openSubject(id){
 }
 async function startAssessment(course,id,type){
  const box=$('academyAssessment');if(!box)return;
- const labels={theory:'Nazariya',practice:'Amaliy mashg‘ulot',quiz:'Test',case:'Klinik keys',skills:'Amaliy ko‘nikmalar',osce:'OSCE stansiyasi',theory_exam:'Nazariy imtihon',practical_exam:'Amaliy imtihon',exam:'Yakuniy imtihon'};
+ const labels={theory:'Nazariya',practice:'Amaliy mashg‘ulot',puzzle:'Anatomik puzzle',quiz:'Test',case:'Klinik keys',skills:'Amaliy ko‘nikmalar',osce:'OSCE stansiyasi',theory_exam:'Nazariy imtihon',practical_exam:'Amaliy imtihon',exam:'Yakuniy imtihon'};
  const allowed=Object.keys(labels);
  if(!allowed.includes(type)){box.innerHTML='<p>Bu baholash turi hozircha mavjud emas.</p>';return}
  box.innerHTML='<div class="academy-stat">Baholash yuklanmoqda…</div>';
@@ -78,7 +78,14 @@ async function startAssessment(course,id,type){
   const items=d.items||[];
   box.innerHTML='<h5>'+esc(labels[type])+'</h5>'+(d.time_limit_minutes?'<p class="academy-muted">Ajratilgan vaqt: '+Number(d.time_limit_minutes)+' daqiqa</p>':'')+'<form id="academyForm" class="academy-assessment-form"></form>';
   const form=$('academyForm');
-  if(type==='theory'){
+  if(type==='puzzle'){
+   const puzzle=items[0]||{},parts=puzzle.parts||[],slots=puzzle.slots||[];
+   if(!parts.length||!slots.length){
+    form.innerHTML='<p class="academy-muted">'+esc(puzzle.instruction||'Bu fan uchun interaktiv puzzle hali mavjud emas.')+'</p>';
+   }else{
+    form.innerHTML='<article class="academy-assessment-item"><h6>'+esc(puzzle.title||'Anatomik puzzle')+'</h6><p>'+esc(puzzle.instruction||'Har bir tuzilmani mos joy bilan bog‘lang.')+'</p><div class="academy-puzzle-grid">'+parts.map(part=>'<label><strong>'+esc(part.label)+'</strong><select name="'+esc(part.id)+'" required><option value="">Joyni tanlang</option>'+slots.map(slot=>'<option value="'+Number(slot.value)+'">'+esc(slot.label)+'</option>').join('')+'</select></label>').join('')+'</div></article>';
+   }
+  }else if(type==='theory'){
    form.innerHTML=items.map((item,i)=>'<article class="academy-assessment-item"><h6>'+esc(item.title||('Nazariya '+(i+1)))+'</h6>'+(item.prompt?'<p><strong>'+esc(item.prompt)+'</strong></p>':'')+'<p>'+esc(item.content||item.instruction||'')+'</p>'+(item.instruction&&item.content?'<small>'+esc(item.instruction)+'</small>':'')+'<label class="academy-confirm"><input type="checkbox" data-completion-check required> Ushbu bo‘limni o‘qidim va asosiy tushunchalarni tushundim.</label></article>').join('');
   }else if(type==='practice'){
    form.innerHTML=items.map((item,i)=>'<article class="academy-assessment-item"><h6>'+esc(item.title||('Amaliy topshiriq '+(i+1)))+'</h6>'+(item.prompt?'<p><strong>'+esc(item.prompt)+'</strong></p>':'')+'<p>'+esc(item.instruction||item.task||'Amaliy topshiriqni bajaring va natijani tekshiring.')+'</p><label class="academy-confirm"><input type="checkbox" data-completion-check required> Amaliy faoliyatni bajardim va natijani qayta tekshirdim.</label></article>').join('');
@@ -94,6 +101,8 @@ async function startAssessment(course,id,type){
    if(type==='theory'||type==='practice'){
     const checks=[...form.querySelectorAll('[data-completion-check]')];
     answers.completion=checks.length&&checks.every(x=>x.checked)?1:0;
+   }else if(type==='puzzle'){
+    form.querySelectorAll('select[name]').forEach(x=>{if(x.value!=='')answers[x.name]=Number(x.value)});
    }else form.querySelectorAll('input:checked').forEach(x=>answers[x.name]=Number(x.value));
    btn.disabled=true;btn.textContent='Saqlanmoqda…';
    try{
