@@ -2143,23 +2143,23 @@ VITALS_CASES = {
     "anaphylaxis_jasur": {
         "title": "4-keys: Jasur — anafilaktik shok",
         "level": "Shoshilinch",
-        "story": "24 yoshli Jasur: tibbiyot muassasasida antibiotik yuborilishi boshlanganidan bir necha daqiqa o‘tib yuz-lab shishi, xirillash, gipoksemiya va keskin arterial gipotenziya rivojlandi. O‘tkir anafilaktik shokdan shubhalaning.",
-        "patient": {"name": "Jasur", "age_years": 24, "weight_kg": None, "setting": "Shoshilinch qabul bo‘limi"},
+        "story": "22 yoshli Jasur: yong‘oq iste’mol qilganidan taxminan 10 daqiqa o‘tib yuz-lab shishi, xirillash, gipoksemiya va keskin arterial gipotenziya rivojlandi. O‘tkir anafilaktik shokdan shubhalaning.",
+        "patient": {"name": "Jasur", "age_years": 22, "weight_kg": None, "setting": "Shoshilinch qabul bo‘limi"},
         "anamnesis": [
-            {"label": "Hozirgi holat", "value": "Antibiotik yuborilishi boshlanganidan bir necha daqiqa o‘tib to‘satdan nafas qisilishi, yuz-lab shishi va holsizlik boshlangan."},
+            {"label": "Hozirgi holat", "value": "Yong‘oq iste’mol qilganidan taxminan 10 daqiqa o‘tib to‘satdan nafas qisilishi, yuz-lab shishi va holsizlik boshlangan."},
             {"label": "Oldingi allergik reaksiya", "value": "Bemor avval penitsillin qabulidan keyin toshma va lab shishi bo‘lganini aytadi; tibbiy hujjat bilan tasdiqlanmagan."},
-            {"label": "Oziq-ovqat allergiyasi", "value": "Yong‘oqqa allergiya tarixi bor. Bemor bugun yong‘oq iste’mol qilmaganini bildiradi; bu epizodda asosiy trigger sifatida ko‘rsatilmagan."},
-            {"label": "Hozirgi dori", "value": "Antibiotik nomi va yuborilgan doza hozircha aniqlanmagan — dori varaqasi va yuborish vaqtini tekshiring."}
+            {"label": "Oziq-ovqat allergiyasi", "value": "Yong‘oq allergiyasi bor; ushbu epizod yong‘oq iste’molidan keyin boshlangan. Miqdori va mahsulot tarkibi aniqlashtiriladi."},
+            {"label": "Ekspozitsiya", "value": "Yong‘oq iste’moli va simptomlar boshlangan vaqt oralig‘i taxminan 10 daqiqa."}
         ],
         "allergies": [
             {"name": "Penitsillin", "reaction": "Bemor xabariga ko‘ra: toshma va lab shishi", "certainty": "Tasdiqlanmagan anamnestik ma’lumot"},
             {"name": "Yong‘oq", "reaction": "Oldingi allergik reaksiya, tafsilotlari aniqlashtirilishi kerak", "certainty": "Bemor xabariga ko‘ra"}
         ],
         "dialogue": [
-            {"question": "Nima bo‘ldi va qachon boshlandi?", "answer": "Antibiotik tomchilatib yuborila boshlaganidan bir necha daqiqa o‘tib nafasim qisildi, labim shishdi."},
+            {"question": "Nima bo‘ldi va qachon boshlandi?", "answer": "Yong‘oq yeganimdan taxminan 10 daqiqa o‘tib nafasim qisildi, labim shishdi."},
             {"question": "Oldin dori yoki ovqatdan allergiya bo‘lganmi?", "answer": "Penitsillin ichganimda toshma chiqqan, labim ham shishgan. Yong‘oqqa ham allergiyam bor."},
-            {"question": "Bugun yong‘oq yoki yong‘oqli mahsulot yedingizmi?", "answer": "Yo‘q, bugun yong‘oq yemadim."},
-            {"question": "Qaysi antibiotik yuborildi?", "answer": "Nomini bilmayman. Hamshira tomchilatib yuborishni boshladi."},
+            {"question": "Bugun yong‘oq yoki yong‘oqli mahsulot yedingizmi?", "answer": "Ha, taxminan 10 daqiqa oldin yong‘oq yedim."},
+            {"question": "Qancha yong‘oq iste’mol qildingiz?", "answer": "Taxminan bir hovuch yedim; aniq miqdorini bilmayman."},
             {"question": "Hozir ko‘krak og‘rig‘i yoki hushdan ketish bo‘ldimi?", "answer": "Ko‘kragim og‘rimayapti, boshim aylanib, hushim ketayozdi."}
         ],
         "init": {"hr": 142, "sbp": 68, "dbp": 38, "spo2": 86, "rr": 32},

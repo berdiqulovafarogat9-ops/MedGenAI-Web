@@ -808,40 +808,91 @@
       hud.pen.textContent = penalty ? "Jarima: -" + (15 * penalty) + " ball" : "Jarima: yo'q";
     }
 
-    function showJasurEpicrisis() {
+    function showJasurEpicrisis(report) {
       if (epicrisisOverlay) epicrisisOverlay.remove();
       var st = sim && sim.state ? sim.state : {};
+      var def = sim && sim.def ? sim.def : {};
       var performed = [];
       if (sim && sim.log && sim.def && sim.def.actions) {
         sim.log.forEach(function (entry) {
           var action = sim.def.actions.find(function (item) { return item.id === entry.id; });
-          if (action) performed.push(action.label + " (" + entry.t + " s)");
+          if (action) performed.push(action.label + " — " + entry.t + " soniya");
         });
       }
-      var vitalsText = "HR " + Math.round(st.hr || 0) + " bpm · AQB " + Math.round(st.sbp || 0) + "/" + Math.round(st.dbp || 0) + " mmHg · SpO₂ " + Math.round(st.spo2 || 0) + "% · Nafas " + Math.round(st.rr || 0) + "/min";
-      epicrisisOverlay = el("div", "position:fixed;inset:0;background:rgba(2,8,16,.82);display:flex;align-items:center;justify-content:center;padding:16px;z-index:100000");
-      var paper = el("section", "width:min(96vw,680px);max-height:92vh;overflow:auto;background:#f8fafc;color:#14202b;border-radius:16px;padding:22px;box-shadow:0 20px 70px rgba(0,0,0,.5)");
-      paper.appendChild(el("div", "font-size:11px;letter-spacing:1.5px;color:#526579;font-weight:800", "MEDGEN AI · KLINIK SIMULYATSIYA HUJJATI"));
-      paper.appendChild(el("h2", "margin:6px 0 14px;font-size:22px;color:#102a43", "O‘quv klinik epikrizi"));
-      var rows = [[
-        ["Bemor", (sim && sim.def && sim.def.title) || "Jasur — klinik keys"],
-        ["Tashxis", "Talaba tanlagan tashxis server baholashida tekshiriladi."],
-        ["Qayd etilgan muolajalar", performed.length ? performed.join("; ") : "Simulyatsiya jurnalida bajarilgan muolaja qayd etilmadi."],
-        ["Yakuniy simulyatsiya ko‘rsatkichlari", vitalsText],
-        ["Holat", sim && sim.stabilized ? "Simulyatsiya dvigateli barqarorlashuv mezoniga erishilganini qayd etdi." : "Simulyatsiya barqarorlashuvni qayd etmadi."]
-      ]];
-      rows.forEach(function(row) {
-        var block=el("div","padding:10px 0;border-bottom:1px solid #d8e1e8");
-        block.appendChild(el("div","font-size:11px;text-transform:uppercase;letter-spacing:.7px;color:#64748b;font-weight:800",row[0]));
-        block.appendChild(el("div","font-size:14px;line-height:1.5;color:#102a43;font-weight:600",row[1]));
+      var audit = report && Array.isArray(report.audit) ? report.audit : [];
+      var harmful = audit.filter(function (item) { return item.type === "harm"; });
+      var missed = audit.filter(function (item) { return item.type === "missed"; });
+      var finalVitals = report && report.final_vitals ? report.final_vitals : st;
+      var vitalsText = "HR " + Math.round(finalVitals.hr || 0) + " bpm · AQB " +
+        Math.round(finalVitals.sbp || 0) + "/" + Math.round(finalVitals.dbp || 0) +
+        " mmHg · SpO₂ " + Math.round(finalVitals.spo2 || 0) + "% · Nafas " +
+        Math.round(finalVitals.rr || 0) + "/min";
+      var elapsed = report && Number.isFinite(Number(report.seconds_used)) ?
+        Number(report.seconds_used) : (sim ? sim.s : 0);
+      var tabPenalty = report && report.breakdown &&
+        Number.isFinite(Number(report.breakdown.tab_penalty)) ?
+        Number(report.breakdown.tab_penalty) : penalty * 15;
+      var diagnosisText = report && report.breakdown ?
+        (report.breakdown.diagnosis_correct ? "To‘g‘ri" : "Noto‘g‘ri yoki tanlanmagan") :
+        "Server baholashida tekshirildi";
+      var stableText = report && report.stabilized ?
+        "Barqarorlashuv qayd etildi (" + (report.stabilized_at_s || 0) + " soniya)." :
+        "Simulyatsiya yakunida barqarorlashuv mezoniga erishilmadi.";
+
+      epicrisisOverlay = el("div", "position:fixed;inset:0;background:rgba(2,8,16,.84);display:flex;align-items:center;justify-content:center;padding:14px;z-index:100000");
+      epicrisisOverlay.className = "mg-sbar-overlay";
+      var paper = el("section", "width:min(96vw,820px);max-height:94vh;overflow:auto;background:#f8fafc;color:#14202b;border-radius:16px;padding:22px;box-shadow:0 20px 70px rgba(0,0,0,.5)");
+      paper.className = "mg-sbar-paper";
+      paper.appendChild(el("div", "font-size:11px;letter-spacing:1.5px;color:#526579;font-weight:800", "MEDGEN AI · KLINIK SIMULYATSIYA"));
+      paper.appendChild(el("h2", "margin:6px 0 4px;font-size:24px;color:#102a43", "SBAR — Reanimatsiyaga topshirish epikrizi"));
+      paper.appendChild(el("p", "margin:0 0 14px;color:#64748b;font-size:12px", "O‘quv simulyatsiyasi hujjati · " + new Date().toLocaleString()));
+
+      var sections = [
+        ["S", "SITUATION · VAZIYAT",
+          "22 yoshli Jasurda yong‘oq iste’molidan taxminan 10 daqiqa o‘tib rivojlangan o‘tkir anafilaktik shok. Dastlabki ko‘rsatkichlar: HR 142 bpm, AQB 68/38 mmHg, SpO₂ 86%, nafas 32/min. " + stableText],
+        ["B", "BACKGROUND · ANAMNEZ",
+          "Yong‘oq allergiyasi mavjud. Ushbu epizod yong‘oq iste’molidan keyin boshlangan. Oldingi penitsillin reaksiyasi bemor xabariga ko‘ra qayd etilgan; allergologik tasdiq mavjudligi alohida tekshirilishi kerak. Simulyatsiya keysida nafas qisilishi, yuz-lab shishi va holsizlik kuzatilgan."],
+        ["A", "ASSESSMENT · BAHOLASH",
+          "Yakuniy ko‘rsatkichlar: " + vitalsText + ". Sarflangan simulyatsiya vaqti: " + elapsed + " soniya. Tashxis: " + diagnosisText +
+          ". Bajarilgan muolajalar: " + (performed.length ? performed.join("; ") : "Jurnalga muolaja kiritilmagan.") +
+          ". Zararli harakatlar: " + harmful.length + "; bajarilmagan majburiy harakatlar: " + missed.length +
+          "; tab-switch jarimasi: −" + tabPenalty + " ball."],
+        ["R", "RECOMMENDATION · TAVSIYA",
+          "Reanimatsiya / intensiv kuzatuv bo‘limiga topshirish. Nafas yo‘li, nafas va qon aylanishini qayta baholash; uzluksiz EKG, SpO₂, arterial bosim va nafas monitoringini davom ettirish. Kuzatuv davomiyligini reaksiya og‘irligi, davoga javob va mahalliy klinik protokol bo‘yicha shifokor belgilaydi; 24 soatlik kuzatuv avtomatik majburiy qoida emas. Kortikosteroidlar anafilaksiyada rutin birinchi qator davo emas; faqat refrakter holat yoki davom etayotgan astma/shokda dastlabki reanimatsiyadan keyin mutaxassis qarori bilan ko‘rib chiqiladi."]
+      ];
+      sections.forEach(function (section) {
+        var block = el("section", "padding:13px 0;border-bottom:1px solid #d8e1e8");
+        block.className = "mg-sbar-section";
+        var heading = el("div", "font-size:12px;letter-spacing:.7px;color:#087e8b;font-weight:900;margin-bottom:6px", section[0] + " · " + section[1]);
+        block.appendChild(heading);
+        block.appendChild(el("div", "font-size:13px;line-height:1.65;color:#102a43", section[2]));
         paper.appendChild(block);
       });
-      epicrisisScoreLabel = el("div","margin:14px 0;font-size:18px;font-weight:900;color:#087443","Yakuniy ball server hisobotidan keyin ko‘rsatiladi");
+
+      var auditBlock = el("section", "padding:13px 0");
+      auditBlock.appendChild(el("h3", "font-size:14px;color:#102a43;margin:0 0 8px", "Audit tafsilotlari"));
+      var auditItems = [];
+      audit.forEach(function (item) {
+        auditItems.push((item.action || "Audit hodisasi") + (item.t !== null && item.t !== undefined ? " (" + item.t + " s)" : "") + ": " + (item.text || ""));
+      });
+      auditBlock.appendChild(el("div", "font-size:12px;line-height:1.6;color:#334155", auditItems.length ? auditItems.join(" · ") : "Qo‘shimcha audit hodisasi yo‘q."));
+      paper.appendChild(auditBlock);
+
+      epicrisisScoreLabel = el("div", "margin:12px 0;font-size:20px;font-weight:900;color:#087443",
+        "Yakuniy SBAR / klinik baho: " + (report && Number.isFinite(Number(report.score)) ? report.score + " / 100 ball" : "server javobi kutilmoqda"));
       paper.appendChild(epicrisisScoreLabel);
-      paper.appendChild(el("p","font-size:11px;color:#64748b","Bu hujjat ta’limiy simulyatsiya hisoboti. Haqiqiy tibbiy hujjat yoki EHR yozuvi emas. Yakuniy baho serverdagi klinik baholash natijasidan olinadi."));
+      paper.appendChild(el("p", "font-size:11px;line-height:1.5;color:#64748b",
+        "Bu hujjat ta’limiy simulyatsiya natijasidir. Haqiqiy tibbiy epikriz, EHR yozuvi yoki mustaqil davolash ko‘rsatmasi emas. Klinik qarorlar malakali mutaxassis va amaldagi mahalliy protokolga tegishli."));
+
       var close = el("button", "padding:11px 16px;border:0;border-radius:9px;background:#0e7490;color:white;font-weight:800;cursor:pointer", "Epikrizni yopish");
-      close.onclick = function(){ if(epicrisisOverlay) epicrisisOverlay.remove(); epicrisisOverlay=null; epicrisisScoreLabel=null; };
-      paper.appendChild(close); epicrisisOverlay.appendChild(paper); document.body.appendChild(epicrisisOverlay);
+      close.onclick = function () {
+        if (epicrisisOverlay) epicrisisOverlay.remove();
+        epicrisisOverlay = null;
+        epicrisisScoreLabel = null;
+      };
+      paper.appendChild(close);
+      epicrisisOverlay.appendChild(paper);
+      document.body.appendChild(epicrisisOverlay);
     }
     function finish() {
       if (!running) return;
@@ -879,7 +930,7 @@
             actions: sim.log, tab_switches: penalty
           });
           if (typeof window.submitStudentScore === "function") {
-            await window.submitStudentScore(rep.score, "Patient_" + sim.def.id);
+            await window.submitStudentScore(rep.score, sim.def.id === "anaphylaxis_jasur" ? "Clinical SBAR — Jasur anafilaktik shok" : "Patient_" + sim.def.id);
           }
           // Show the authoritative backend audit report only.
           // Do not place the legacy white learning-summary overlay above it.
@@ -892,6 +943,7 @@
             node.remove();
           });
           showReport(rep);
+          if (sim.def.id === "anaphylaxis_jasur") showJasurEpicrisis(rep);
         } catch (e) { submit.disabled = false; alertBox.style.background = "#b00020"; flash(e.message); }
       };
       endBox.appendChild(submit);
