@@ -16,13 +16,15 @@
   function buildScene(){
     const host=$('lab3d');
     if(!window.THREE){$('sceneLoading').innerHTML='<b>3D kutubxona yuklanmadi</b><small>Internet ulanishini tekshirib sahifani yangilang.</small>';return;}
-    const T=window.THREE, scene=new T.Scene(); scene.background=new T.Color(0x081724); scene.fog=new T.Fog(0x081724,12,25);
+    const T=window.THREE, scene=new T.Scene(); scene.background=new T.Color(0x070b12); scene.fog=new T.Fog(0x070b12,15,30);
     const camera=new T.PerspectiveCamera(42,host.clientWidth/host.clientHeight,.1,100);camera.position.set(8,6.5,10);
-    const renderer=new T.WebGLRenderer({antialias:true,alpha:false});renderer.setPixelRatio(Math.min(devicePixelRatio||1,2));renderer.setSize(host.clientWidth,host.clientHeight);renderer.shadowMap.enabled=true;renderer.shadowMap.type=T.PCFSoftShadowMap;if('outputColorSpace' in renderer && T.SRGBColorSpace)renderer.outputColorSpace=T.SRGBColorSpace;else if('outputEncoding' in renderer && T.sRGBEncoding)renderer.outputEncoding=T.sRGBEncoding;renderer.toneMapping=T.ACESFilmicToneMapping;renderer.toneMappingExposure=1.25;host.prepend(renderer.domElement);
+    const renderer=new T.WebGLRenderer({antialias:true,alpha:false});renderer.setPixelRatio(Math.min(devicePixelRatio||1,2));renderer.setSize(host.clientWidth,host.clientHeight);renderer.shadowMap.enabled=true;renderer.shadowMap.type=T.PCFSoftShadowMap;if('outputColorSpace' in renderer && T.SRGBColorSpace)renderer.outputColorSpace=T.SRGBColorSpace;else if('outputEncoding' in renderer && T.sRGBEncoding)renderer.outputEncoding=T.sRGBEncoding;renderer.toneMapping=T.ACESFilmicToneMapping;renderer.toneMappingExposure=1.08;host.prepend(renderer.domElement);
     const controls={target:new T.Vector3(0,1.3,0),drag:false,x:0,y:0,theta:Math.atan2(8,10),phi:1.02,radius:14};
-    const ambient=new T.HemisphereLight(0xb9e9ff,0x162434,2.1);scene.add(ambient);
-    const key=new T.DirectionalLight(0xffffff,3.1);key.position.set(5,10,6);key.castShadow=true;key.shadow.mapSize.set(1024,1024);scene.add(key);
-    const cyan=new T.PointLight(0x3ed9e8,22,12);cyan.position.set(-4,4,1);scene.add(cyan);
+    const ambient=new T.AmbientLight(0x38bdf8,.42);scene.add(ambient);
+    const hemi=new T.HemisphereLight(0x9bdcf5,0x101a2b,.62);scene.add(hemi);
+    const key=new T.DirectionalLight(0xeaf7ff,2.15);key.position.set(5,10,6);key.castShadow=true;key.shadow.mapSize.set(1536,1536);scene.add(key);
+    const spot=new T.SpotLight(0xdff8ff,34,22,Math.PI/5,.45,1.2);spot.position.set(1,9,3);spot.target.position.set(0,1.2,0);spot.castShadow=true;scene.add(spot,spot.target);
+    const cyan=new T.PointLight(0x38bdf8,12,14);cyan.position.set(-4,3,1);scene.add(cyan);
     const floor=new T.Mesh(new T.PlaneGeometry(30,30),new T.MeshStandardMaterial({color:0x0b1b29,roughness:.82,metalness:.15}));floor.rotation.x=-Math.PI/2;floor.position.y=-.02;floor.receiveShadow=true;scene.add(floor);
     const grid=new T.GridHelper(24,24,0x1a4558,0x153244);grid.position.y=.005;scene.add(grid);
     const wallMat=new T.MeshStandardMaterial({color:0x102b3c,roughness:.8,metalness:.1});
@@ -42,24 +44,42 @@
     const pip=box('pipette',.2,.24,1.2,.15,2.0,-.2,blue,true);pip.rotation.x=-.2;pip.rotation.z=-.12;
     cylinder('pipette-button',.13,.13,.18,.15,2.22,-.2,gold);
     const tip=cylinder('pipette-tip',.015,.11,.6,.15,1.57,-.2,mat(0xb8e8ed,.1,.2,true,.65),false,20);tip.rotation.z=Math.PI;
-    // Microscope
-    box('microscope-base',1.2,.15,.7,2.65,1.35,-.45,dark);
-    const arm=cylinder('microscope',.13,.16,1.25,2.55,2.0,-.45,white,true);arm.rotation.z=-.35;
-    cylinder('microscope-eyepiece',.11,.11,.48,2.27,2.55,-.45,steel).rotation.z=-.35;
-    cylinder('microscope-objective',.09,.07,.38,2.95,1.7,-.45,gold).rotation.z=.25;
-    // Bioreactor vessel
-    const vessel=cylinder('bioreactor',.62,.62,1.75,0,2.25,-1.45,glass,true,48);
-    cylinder('reactor-base',.72,.72,.16,0,1.42,-1.45,steel);
-    cylinder('reactor-liquid',.54,.54,.62,0,1.93,-1.45,mat(0x1c9c99,.1,.18,true,.78),false,48);
-    for(let i=0;i<6;i++){const bubble=new T.Mesh(new T.SphereGeometry(.045,10,8),mat(0x9cecf0,.05,.18,true,.72));bubble.position.set(Math.sin(i*2.1)*.28,1.65+(i%3)*.18,-1.45+Math.cos(i*1.7)*.28);scene.add(bubble);state.bubbles.push(bubble);}
-    cylinder('reactor-cap',.68,.68,.16,0,3.2,-1.45,steel);
-    for(let j=0;j<3;j++){const tube=cylinder('reactor-port',.045,.045,.7,-.38+j*.38,3.55,-1.45,blue);tube.rotation.z=.12*(j-1);}
-    // Cell model, with membrane, nucleus, mitochondria
+    // Recognizable compound microscope: foot, upright arm, stage, tube and objectives.
+    const microscope=new T.Group();microscope.position.set(2.65,1.35,-.45);microscope.userData={name:'microscope',selectable:true};scene.add(microscope);state.objects.microscope=microscope;
+    function part(parent,geometry,material,x,y,z,rz=0){const m=new T.Mesh(geometry,material);m.position.set(x,y,z);m.rotation.z=rz;m.castShadow=true;m.receiveShadow=true;parent.add(m);return m;}
+    part(microscope,new T.BoxGeometry(1.35,.16,.78),dark,0,0,0);
+    part(microscope,new T.BoxGeometry(.18,.92,.22),steel,-.42,.52,-.12,-.12);
+    part(microscope,new T.TorusGeometry(.48,.095,12,36,Math.PI*1.25),white,-.08,.93,-.12,-.28);
+    part(microscope,new T.CylinderGeometry(.13,.16,.72,32),white,.22,1.18,-.12,-.48);
+    part(microscope,new T.CylinderGeometry(.105,.12,.36,32),steel,.04,1.53,-.12,-.48);
+    part(microscope,new T.CylinderGeometry(.12,.09,.36,32),gold,.42,.83,-.12,.22);
+    part(microscope,new T.BoxGeometry(.95,.09,.62),blue,.12,.48,-.12);
+    part(microscope,new T.BoxGeometry(.28,.07,.24),steel,.12,.57,.08);
+    part(microscope,new T.CylinderGeometry(.16,.16,.09,32),gold,.12,.65,.08);
+    part(microscope,new T.CylinderGeometry(.08,.08,.26,24),dark,.12,.8,.08);
+    part(microscope,new T.CylinderGeometry(.11,.11,.28,24),steel,-.08,1.72,-.12,-.48);
+    part(microscope,new T.CylinderGeometry(.14,.14,.08,24),dark,-.08,1.87,-.12,-.48);
+    // Glass bioreactor with jacket, control head, ports and visible impeller.
+    const reactorGroup=new T.Group();reactorGroup.position.set(0,1.42,-1.45);reactorGroup.userData={name:'bioreactor',selectable:true};scene.add(reactorGroup);state.objects.bioreactor=reactorGroup;
+    const vessel= new T.Group();reactorGroup.add(vessel);state.vessel=reactorGroup;
+    const vesselGlass= new T.Mesh(new T.CylinderGeometry(.58,.58,1.62,48,1,true),glass);vesselGlass.position.y=.88;vesselGlass.castShadow=true;vessel.add(vesselGlass);
+    part(reactorGroup,new T.CylinderGeometry(.64,.64,.13,48),steel,0,.12,0);
+    part(reactorGroup,new T.CylinderGeometry(.58,.58,.09,48),steel,0,1.72,0);
+    const liquid=new T.Mesh(new T.CylinderGeometry(.51,.51,.56,48),mat(0x0eaaa4,.1,.2,true,.72));liquid.position.y=.58;reactorGroup.add(liquid);
+    part(reactorGroup,new T.CylinderGeometry(.045,.045,1.18,16),steel,0,.93,0);
+    for(let y of [.5,.82,1.14])part(reactorGroup,new T.BoxGeometry(.62,.055,.07),gold,0,y,0);
+    for(let x of [-.43,.43])part(reactorGroup,new T.CylinderGeometry(.035,.035,.42,16),blue,x,1.98,0,x*.12);
+    part(reactorGroup,new T.BoxGeometry(.38,.34,.1),dark,.48,1.28,.42);
+    part(reactorGroup,new T.BoxGeometry(.26,.2,.025),green,.48,1.3,.48);
+    for(let i=0;i<4;i++){const bubble=new T.Mesh(new T.SphereGeometry(.035,10,8),mat(0x9cecf0,.05,.18,true,.72));bubble.position.set(Math.sin(i*2.1)*.25,.35+(i%3)*.17,Math.cos(i*1.7)*.25);reactorGroup.add(bubble);state.bubbles.push(bubble);}
+    // Teaching cell cross-section: membrane, cytoplasm, nucleus and organelles.
     const cellGroup=new T.Group();cellGroup.position.set(4.1,2.1,.1);cellGroup.userData={name:'cell',selectable:true};scene.add(cellGroup);state.objects.cell=cellGroup;
-    const cell=new T.Mesh(new T.SphereGeometry(1.05,40,32),mat(0x49aeb6,.12,.32,true,.48));cell.scale.set(1.35,.9,.85);cell.castShadow=true;cellGroup.add(cell);
-    const nucleus=new T.Mesh(new T.SphereGeometry(.47,32,24),mat(0x855fc1,.15,.3));nucleus.position.set(.12,.08,0);cellGroup.add(nucleus);
-    const nucleolus=new T.Mesh(new T.SphereGeometry(.17,20,16),mat(0xe9bd70));nucleolus.position.set(.2,.12,.36);cellGroup.add(nucleolus);
-    for(let i=0;i<7;i++){const m=new T.Mesh(new T.SphereGeometry(.13,14,10),mat(i%2?0x58c995:0xe5a96b));m.scale.set(1.7,.6,.7);const a=i*2.4;m.position.set(Math.cos(a)*.78,Math.sin(a)*.45,Math.sin(a*1.7)*.4);cellGroup.add(m);}
+    const membrane=new T.Mesh(new T.SphereGeometry(1.05,40,32),mat(0x38bdf8,.18,.24,true,.22));membrane.scale.set(1.35,.9,.85);membrane.castShadow=true;cellGroup.add(membrane);
+    const membraneEdge=new T.Mesh(new T.SphereGeometry(1.055,40,32),new T.MeshBasicMaterial({color:0x4dd9e8,wireframe:true,transparent:true,opacity:.22}));membraneEdge.scale.copy(membrane.scale);cellGroup.add(membraneEdge);
+    const cytoplasm=new T.Mesh(new T.SphereGeometry(.82,32,24),mat(0x1c7f8a,.05,.5,true,.2));cytoplasm.scale.set(1.3,.82,.82);cellGroup.add(cytoplasm);
+    const nucleus=new T.Mesh(new T.SphereGeometry(.43,32,24),mat(0x855fc1,.15,.3));nucleus.position.set(.12,.08,0);cellGroup.add(nucleus);
+    const nucleolus=new T.Mesh(new T.SphereGeometry(.15,20,16),mat(0xe9bd70));nucleolus.position.set(.2,.12,.36);cellGroup.add(nucleolus);
+    for(let i=0;i<7;i++){const mito=new T.Mesh(new T.CapsuleGeometry(.075,.22,4,10),mat(i%2?0x58c995:0xe5a96b));const a=i*2.4;mito.scale.set(1.4,.65,.75);mito.position.set(Math.cos(a)*.78,Math.sin(a)*.45,Math.sin(a*1.7)*.4);mito.rotation.z=a;cellGroup.add(mito);}
     // DNA double helix display stand
     const dnaGroup=new T.Group();dnaGroup.position.set(-4,1.5,-1.25);scene.add(dnaGroup);state.objects.dna=dnaGroup;dnaGroup.userData={name:'dna',selectable:true};
     for(let i=0;i<32;i++){const y=i*.105;const a=i*.42;for(const sign of [-1,1]){const bead=new T.Mesh(new T.SphereGeometry(.075,12,10),sign<0?blue:green);bead.position.set(Math.cos(a+Math.PI*(sign>0))*0.48,y,Math.sin(a+Math.PI*(sign>0))*.48);dnaGroup.add(bead);}const rung=new T.Mesh(new T.CylinderGeometry(.025,.025,.72,8),gold);rung.position.y=y;rung.rotation.z=Math.PI/2;dnaGroup.add(rung);}
@@ -69,7 +89,7 @@
     // Equipment labels as canvas sprites
     function label(text,x,y,z){const c=document.createElement('canvas');c.width=256;c.height=64;const ctx=c.getContext('2d');ctx.fillStyle='rgba(5,20,30,.82)';ctx.strokeStyle='#3e9bad';ctx.lineWidth=2;ctx.beginPath();ctx.roundRect(2,2,252,60,12);ctx.fill();ctx.stroke();ctx.font='bold 22px Arial';ctx.fillStyle='#c7edf2';ctx.textAlign='center';ctx.fillText(text,128,40);const tex=new T.CanvasTexture(c);const sprite=new T.Sprite(new T.SpriteMaterial({map:tex,transparent:true,depthWrite:false}));sprite.scale.set(1.5,.38,1);sprite.position.set(x,y,z);sprite.userData.label=true;scene.add(sprite);state.labels.push(sprite);return sprite;}
     label('PCR MICROPLATE',-2.15,2.25,-.25);label('MICROSCOPE',2.65,3.0,-.45);label('BIOREACTOR',0,4.25,-1.45);label('CELL CULTURE',4.1,3.55,.1);label('DNA MODEL',-4,5.2,-1.25);
-    state.scene=scene;state.camera=camera;state.renderer=renderer;state.raycaster=new T.Raycaster();state.pointer=new T.Vector2();state.controls=controls;state.cellGroup=cellGroup;state.vessel=vessel;state.dnaGroup=dnaGroup;
+    state.scene=scene;state.camera=camera;state.renderer=renderer;state.raycaster=new T.Raycaster();state.pointer=new T.Vector2();state.controls=controls;state.cellGroup=cellGroup;state.vessel=reactorGroup;state.dnaGroup=dnaGroup;
     $('sceneLoading').style.display='none';
     renderer.domElement.addEventListener('pointerdown',onPointerDown);
     renderer.domElement.addEventListener('pointermove',onPointerMove);
@@ -83,7 +103,7 @@
   function onPointerMove(e){if(!state.controls?.drag)return;const c=state.controls,dx=e.clientX-c.x,dy=e.clientY-c.y;c.x=e.clientX;c.y=e.clientY;c.theta-=dx*.006;c.phi+=dy*.005;}
   function onWheel(e){e.preventDefault();state.controls.radius=Math.max(6,Math.min(20,state.controls.radius+e.deltaY*.012));}
   function resizeScene(){const h=$('lab3d');if(!state.renderer||!h)return;state.camera.aspect=h.clientWidth/h.clientHeight;state.camera.updateProjectionMatrix();state.renderer.setSize(h.clientWidth,h.clientHeight);}
-  function focusObject(name){const obj=state.objects[name];if(!obj)return;state.selected=name;$('selectedObject').textContent='Tanlangan: '+({microscope:'mikroskop',pipette:'pipetka',plate:'mikroplastinka',bioreactor:'bioreaktor',cell:'hujayra modeli',dna:'DNK modeli'}[name]||name);$('sceneHint').textContent='Tanlangan obyekt: '+name;const c=state.controls;if(name==='cell'){c.target.set(4,2.1,0);c.radius=7;}else if(name==='dna'){c.target.set(-4,3, -1);c.radius=7;}else if(name==='bioreactor'){c.target.set(0,2,-1.4);c.radius=7;}else if(name==='microscope'){c.target.set(2.6,2,-.4);c.radius=7;}else if(name==='pipette'||name==='plate'){c.target.set(-.8,1.6,0);c.radius=7;} }
+  function focusObject(name){const obj=state.objects[name];if(!obj)return;state.selected=name;$('selectedObject').textContent='Tanlangan: '+({microscope:'mikroskop',pipette:'pipetka',plate:'mikroplastinka',bioreactor:'bioreaktor',cell:'hujayra modeli',dna:'DNK modeli'}[name]||name);$('sceneHint').textContent='Tanlangan obyekt: '+name;const c=state.controls;if(name==='cell'){c.target.set(4,2.1,0);c.radius=7;}else if(name==='dna'){c.target.set(-4,3, -1);c.radius=7;}else if(name==='bioreactor'){c.target.set(0,2.2,-1.4);c.radius=7;}else if(name==='microscope'){c.target.set(2.65,2.2,-.4);c.radius=7;}else if(name==='pipette'||name==='plate'){c.target.set(-.8,1.6,0);c.radius=7;} }
   function onPointerUpClick(e){if(!state.renderer||!state.raycaster)return;const rect=state.renderer.domElement.getBoundingClientRect();state.pointer.set(((e.clientX-rect.left)/rect.width)*2-1,-((e.clientY-rect.top)/rect.height)*2+1);state.raycaster.setFromCamera(state.pointer,state.camera);const hits=state.raycaster.intersectObjects(state.scene.children,true);for(const hit of hits){let o=hit.object;while(o&& !o.userData?.selectable && !o.userData?.parentName)o=o.parent;if(o?.userData?.parentName){focusObject(o.userData.parentName);return;}if(o?.userData?.selectable){focusObject(o.userData.name);return;}}}
   // Pointer selection is separated from camera drag so touch rotation remains natural.
   let downPoint=null;function onPointerDown(e){state.controls.drag=true;state.controls.x=e.clientX;state.controls.y=e.clientY;downPoint={x:e.clientX,y:e.clientY};state.renderer.domElement.setPointerCapture?.(e.pointerId);}
