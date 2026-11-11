@@ -283,6 +283,30 @@ def _db_init():
             last_active_at TIMESTAMPTZ NOT NULL, is_revoked BOOLEAN NOT NULL DEFAULT FALSE
         )""")
         conn.execute("CREATE INDEX IF NOT EXISTS idx_user_sessions_user_active ON user_sessions(user_id,is_revoked)")
+        conn.execute("""CREATE TABLE IF NOT EXISTS scientific_docking_jobs (
+            id BIGSERIAL PRIMARY KEY,
+            job_id TEXT NOT NULL UNIQUE,
+            user_id UUID NOT NULL,
+            owner_username TEXT NOT NULL,
+            target_pdb TEXT NOT NULL,
+            target_name TEXT NOT NULL,
+            ligand_name TEXT NOT NULL,
+            ligand_smiles TEXT NOT NULL,
+            binding_affinity_kcal_mol DOUBLE PRECISION NOT NULL,
+            hbonds_count INTEGER NOT NULL DEFAULT 0,
+            lipinski_violations INTEGER NOT NULL DEFAULT 0,
+            admet_data JSONB NOT NULL DEFAULT '{}'::jsonb,
+            result_data JSONB NOT NULL,
+            status TEXT NOT NULL DEFAULT 'completed',
+            created_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
+        )""")
+        conn.execute("CREATE INDEX IF NOT EXISTS idx_scientific_docking_jobs_user_created ON scientific_docking_jobs(user_id,created_at DESC)")
+        conn.execute("ALTER TABLE scientific_docking_jobs ENABLE ROW LEVEL SECURITY")
+        conn.execute("ALTER TABLE scientific_docking_jobs FORCE ROW LEVEL SECURITY")
+        conn.execute("DROP POLICY IF EXISTS medgen_docking_owner_policy ON scientific_docking_jobs")
+        conn.execute("""CREATE POLICY medgen_docking_owner_policy ON scientific_docking_jobs
+            USING (user_id = NULLIF(current_setting('app.user_id', true), '')::uuid)
+            WITH CHECK (user_id = NULLIF(current_setting('app.user_id', true), '')::uuid)""")
         conn.commit()
 
 def _db_load():
@@ -664,7 +688,16 @@ def get_current_user(
         if session_id: _revoke_session_record(session_id, username)
         raise HTTPException(status_code=401, detail="Token expired")
 
-    profile = user_profiles.get(username, {})
+    profile = user_profiles.setdefault(username, {})
+    # Durable UUID for this authenticated MedGen account (the platform uses its own
+    # session system rather than Supabase Auth identities).
+    platform_user_id = profile.get("user_id")
+    try:
+        platform_user_id = str(uuid.UUID(str(platform_user_id)))
+    except (ValueError, TypeError, AttributeError):
+        platform_user_id = str(uuid.uuid4())
+        profile["user_id"] = platform_user_id
+        _db_save()
     # The configured platform owner account must not be locked out by a stale
     # persisted role_status value. Other accounts still respect admin disablement.
     is_primary_admin = str(username).strip().casefold() == str(ADMIN_USERNAME).strip().casefold()
@@ -678,6 +711,7 @@ def get_current_user(
         stored_role = "SUPER_ADMIN"
     return {
         "username": username,
+        "user_id": platform_user_id,
         "role": stored_role,
         "roles": approved_roles,
     }
@@ -8176,6 +8210,41 @@ def review_opportunity(identifier: str, publish: bool, user=Depends(get_current_
     return {'item':updated}
 
 
+
+def _persist_scientific_docking_job(*, user, payload, result, job_id):
+    """Persist a completed Vina job under the authenticated MedGen account UUID."""
+    if not PERSISTENCE_ENABLED:
+        raise RuntimeError("PostgreSQL persistence is not configured; result was not saved.")
+    try:
+        owner_id = str(uuid.UUID(str(user.get("user_id") or "")))
+        affinity = float(result["affinity_kcal_mol"])
+        if not (affinity == affinity and abs(affinity) < 1e6):
+            raise ValueError("Invalid Vina affinity.")
+        lipinski = result.get("lipinski") or {}
+        with psycopg.connect(DATABASE_URL) as conn:
+            conn.execute("SELECT set_config('app.user_id', %s, true)", (owner_id,))
+            conn.execute(
+                """INSERT INTO scientific_docking_jobs
+                (job_id,user_id,owner_username,target_pdb,target_name,ligand_name,ligand_smiles,
+                 binding_affinity_kcal_mol,hbonds_count,lipinski_violations,admet_data,result_data,status)
+                VALUES (%s,%s::uuid,%s,%s,%s,%s,%s,%s,%s,%s,%s::jsonb,%s::jsonb,'completed')
+                ON CONFLICT (job_id) DO UPDATE SET
+                  binding_affinity_kcal_mol=EXCLUDED.binding_affinity_kcal_mol,
+                  hbonds_count=EXCLUDED.hbonds_count,
+                  lipinski_violations=EXCLUDED.lipinski_violations,
+                  admet_data=EXCLUDED.admet_data,
+                  result_data=EXCLUDED.result_data,
+                  status='completed'
+                WHERE scientific_docking_jobs.user_id=EXCLUDED.user_id""",
+                (job_id,owner_id,user["username"],result["target_pdb"],result["target_name"],
+                 payload.name,payload.smiles,affinity,int(result.get("hydrogen_bond_count") or 0),
+                 int(lipinski.get("violations") or 0),json.dumps({"lipinski":lipinski},ensure_ascii=False),
+                 json.dumps(result,ensure_ascii=False))
+            )
+            conn.commit()
+    except Exception as exc:
+        raise RuntimeError("scientific_docking_jobs jadvaliga saqlash amalga oshmadi.") from exc
+
 # =========================================================
 # MEDGEN DRUG DISCOVERY — CURATED TARGETS + RDKit/Meeko PREP
 # =========================================================
@@ -8205,8 +8274,9 @@ def _require_drug_discovery_role(user):
 @app.get("/api/v1/drug-discovery/targets")
 def drug_discovery_targets(user=Depends(get_current_user)):
     _require_drug_discovery_role(user)
-    return {"status": "ok", "targets": list_targets(),
-            "notice": "PDB ID biologik targetni belgilaydi; receptor PDBQT va docking grid alohida tayyorlanib tekshirilishi shart."}
+    curated = [item for item in list_targets() if item.get("pdb_id") == "1HSG"]
+    return {"status": "ok", "targets": curated,
+            "notice": "Standart rejim: faqat HIV-1 Protease (1HSG). EGFR/KRAS koordinatalari to‘liq validatsiyagacha eksperimental katalogda."}
 
 
 @app.get("/api/v1/drug-discovery/targets/{target_id}/receptor")
@@ -8271,4 +8341,5 @@ app.include_router(create_hiv_router(
     target_dir=TARGET_DIR,
     jobs_store=docking_jobs_store,
     save_state=_db_save,
+    persist_completed=_persist_scientific_docking_job,
 ))
