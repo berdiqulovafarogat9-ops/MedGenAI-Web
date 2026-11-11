@@ -17,9 +17,9 @@
     const host=$('lab3d');
     if(!window.THREE){$('sceneLoading').innerHTML='<b>3D kutubxona yuklanmadi</b><small>Internet ulanishini tekshirib sahifani yangilang.</small>';return;}
     const T=window.THREE, scene=new T.Scene(); scene.background=new T.Color(0x070b12); scene.fog=new T.Fog(0x070b12,15,30);
-    const camera=new T.PerspectiveCamera(42,host.clientWidth/host.clientHeight,.1,100);camera.position.set(8,6.5,10);
+    const camera=new T.PerspectiveCamera(48,host.clientWidth/host.clientHeight,.1,100);camera.position.set(2.8,3.2,4.5);
     const renderer=new T.WebGLRenderer({antialias:true,alpha:false});renderer.setPixelRatio(Math.min(devicePixelRatio||1,2));renderer.setSize(host.clientWidth,host.clientHeight);renderer.shadowMap.enabled=true;renderer.shadowMap.type=T.PCFSoftShadowMap;if('outputColorSpace' in renderer && T.SRGBColorSpace)renderer.outputColorSpace=T.SRGBColorSpace;else if('outputEncoding' in renderer && T.sRGBEncoding)renderer.outputEncoding=T.sRGBEncoding;renderer.toneMapping=T.ACESFilmicToneMapping;renderer.toneMappingExposure=1.08;host.prepend(renderer.domElement);
-    const controls={target:new T.Vector3(0,1.3,0),drag:false,x:0,y:0,theta:Math.atan2(8,10),phi:1.02,radius:14};
+    const controls={target:new T.Vector3(0,.8,0),drag:false,x:0,y:0,theta:Math.atan2(2.8,4.5),phi:1.14,radius:10.8};
     const ambient=new T.AmbientLight(0x38bdf8,.42);scene.add(ambient);
     const hemi=new T.HemisphereLight(0x9bdcf5,0x101a2b,.62);scene.add(hemi);
     const key=new T.DirectionalLight(0xeaf7ff,2.15);key.position.set(5,10,6);key.castShadow=true;key.shadow.mapSize.set(1536,1536);scene.add(key);
@@ -59,19 +59,32 @@
     part(microscope,new T.CylinderGeometry(.08,.08,.26,24),dark,.12,.8,.08);
     part(microscope,new T.CylinderGeometry(.11,.11,.28,24),steel,-.08,1.72,-.12,-.48);
     part(microscope,new T.CylinderGeometry(.14,.14,.08,24),dark,-.08,1.87,-.12,-.48);
-    // Glass bioreactor with jacket, control head, ports and visible impeller.
-    const reactorGroup=new T.Group();reactorGroup.position.set(0,1.42,-1.45);reactorGroup.userData={name:'bioreactor',selectable:true};scene.add(reactorGroup);state.objects.bioreactor=reactorGroup;
-    const vessel= new T.Group();reactorGroup.add(vessel);state.vessel=reactorGroup;
-    const vesselGlass= new T.Mesh(new T.CylinderGeometry(.58,.58,1.62,48,1,true),glass);vesselGlass.position.y=.88;vesselGlass.castShadow=true;vessel.add(vesselGlass);
-    part(reactorGroup,new T.CylinderGeometry(.64,.64,.13,48),steel,0,.12,0);
-    part(reactorGroup,new T.CylinderGeometry(.58,.58,.09,48),steel,0,1.72,0);
-    const liquid=new T.Mesh(new T.CylinderGeometry(.51,.51,.56,48),mat(0x0eaaa4,.1,.2,true,.72));liquid.position.y=.58;reactorGroup.add(liquid);
-    part(reactorGroup,new T.CylinderGeometry(.045,.045,1.18,16),steel,0,.93,0);
-    for(let y of [.5,.82,1.14])part(reactorGroup,new T.BoxGeometry(.62,.055,.07),gold,0,y,0);
-    for(let x of [-.43,.43])part(reactorGroup,new T.CylinderGeometry(.035,.035,.42,16),blue,x,1.98,0,x*.12);
-    part(reactorGroup,new T.BoxGeometry(.38,.34,.1),dark,.48,1.28,.42);
-    part(reactorGroup,new T.BoxGeometry(.26,.2,.025),green,.48,1.3,.48);
-    for(let i=0;i<4;i++){const bubble=new T.Mesh(new T.SphereGeometry(.035,10,8),mat(0x9cecf0,.05,.18,true,.72));bubble.position.set(Math.sin(i*2.1)*.25,.35+(i%3)*.17,Math.cos(i*1.7)*.25);reactorGroup.add(bubble);state.bubbles.push(bubble);}
+    // Procedural stirred-tank bioreactor: transparent glass vessel, cyan culture medium and metal drive head.
+    const reactorGroup=new T.Group();reactorGroup.position.set(0,1.42,-1.45);reactorGroup.userData={name:'bioreactor',selectable:true};scene.add(reactorGroup);state.objects.bioreactor=reactorGroup;state.vessel=reactorGroup;
+    const reactorGlass=new T.MeshStandardMaterial({color:0x9cecf4,metalness:.08,roughness:.12,transparent:true,opacity:.4,side:T.DoubleSide,depthWrite:false});
+    const jacketGlass=new T.MeshStandardMaterial({color:0x3aa9bf,metalness:.22,roughness:.2,transparent:true,opacity:.16,side:T.DoubleSide,depthWrite:false});
+    // Double-wall cylindrical glass body with rounded lower vessel.
+    const jacket=new T.Mesh(new T.CylinderGeometry(.69,.69,1.72,56,1,true),jacketGlass);jacket.position.y=.91;reactorGroup.add(jacket);
+    const body=new T.Mesh(new T.CylinderGeometry(.58,.58,1.58,56,1,true),reactorGlass);body.position.y=.91;body.castShadow=true;reactorGroup.add(body);
+    const bottomDome=new T.Mesh(new T.SphereGeometry(.58,40,20,0,Math.PI*2,Math.PI/2,Math.PI/2),reactorGlass);bottomDome.position.y=.12;reactorGroup.add(bottomDome);
+    part(reactorGroup,new T.CylinderGeometry(.72,.72,.14,56),steel,0,.08,0);
+    part(reactorGroup,new T.CylinderGeometry(.69,.69,.12,56),steel,0,1.79,0);
+    // Clearly visible cyan liquid fill and surface meniscus.
+    const liquidMat=new T.MeshStandardMaterial({color:0x00f0ff,emissive:0x003e4b,emissiveIntensity:.35,roughness:.2,metalness:.04,transparent:true,opacity:.72});
+    const liquid=new T.Mesh(new T.CylinderGeometry(.515,.515,.62,48),liquidMat);liquid.position.y=.55;reactorGroup.add(liquid);
+    const liquidSurface=new T.Mesh(new T.CircleGeometry(.515,48),new T.MeshStandardMaterial({color:0x39f4ff,emissive:0x087987,emissiveIntensity:.5,transparent:true,opacity:.7,side:T.DoubleSide}));liquidSurface.rotation.x=-Math.PI/2;liquidSurface.position.y=.865;reactorGroup.add(liquidSurface);
+    // Stainless lid, motor housing, shaft and three-blade impeller.
+    part(reactorGroup,new T.CylinderGeometry(.61,.61,.13,48),steel,0,1.88,0);
+    part(reactorGroup,new T.CylinderGeometry(.24,.28,.3,32),dark,0,2.08,0);
+    part(reactorGroup,new T.CylinderGeometry(.16,.19,.12,32),steel,0,2.29,0);
+    part(reactorGroup,new T.CylinderGeometry(.045,.045,1.3,16),steel,0,1.1,0);
+    for(let i=0;i<3;i++){const blade=part(reactorGroup,new T.BoxGeometry(.48,.045,.09),gold,0,.56,0);blade.rotation.y=i*Math.PI/3;}
+    // Four internal baffles, sampling/air ports and a compact control display.
+    for(let i=0;i<4;i++){const a=i*Math.PI/2;const baffle=part(reactorGroup,new T.BoxGeometry(.055,1.22,.12),steel,Math.sin(a)*.49,.92,Math.cos(a)*.49);baffle.rotation.y=a;}
+    for(let x of [-.43,.43]){part(reactorGroup,new T.CylinderGeometry(.045,.045,.38,16),steel,x,2.04,0,x*.12);part(reactorGroup,new T.CylinderGeometry(.075,.075,.08,16),gold,x,2.25,0);}
+    part(reactorGroup,new T.BoxGeometry(.38,.34,.1),dark,.55,1.28,.38);
+    part(reactorGroup,new T.BoxGeometry(.27,.21,.025),green,.55,1.3,.44);
+    for(let i=0;i<5;i++){const bubble=new T.Mesh(new T.SphereGeometry(.032,10,8),new T.MeshStandardMaterial({color:0xc6fbff,emissive:0x1b8795,transparent:true,opacity:.78}));bubble.position.set(Math.sin(i*2.1)*.25,.28+(i%3)*.17,Math.cos(i*1.7)*.25);reactorGroup.add(bubble);state.bubbles.push(bubble);}
     // Teaching cell cross-section: membrane, cytoplasm, nucleus and organelles.
     const cellGroup=new T.Group();cellGroup.position.set(4.1,2.1,.1);cellGroup.userData={name:'cell',selectable:true};scene.add(cellGroup);state.objects.cell=cellGroup;
     const membrane=new T.Mesh(new T.SphereGeometry(1.05,40,32),mat(0x38bdf8,.18,.24,true,.22));membrane.scale.set(1.35,.9,.85);membrane.castShadow=true;cellGroup.add(membrane);
@@ -178,7 +191,7 @@
   }
   async function persistExperiment(result){
     const token=sessionStorage.getItem('medgen_access_token');
-    if(!token){$('syncStatus').textContent='Kirish talab qilinadi';return {saved:false,reason:'MedGen hisobiga kirmagansiz. Natija faqat ushbu brauzer sessiyasida ko‘rsatiladi.'};}
+    if(!token){setSyncStatus('Kirish talab qilinadi','warning');return {saved:false,reason:'MedGen hisobiga kirmagansiz. Natija faqat ushbu brauzer sessiyasida ko‘rsatiladi.'};}
     let sequenceAnalysis=null;
     if(result.sequence){
       try{
@@ -195,27 +208,28 @@
       parameters:{simulation_mode:state.mode,educational_simulation:true,model_version:'0.1'},
       results:{status:'completed',educational_only:true,metrics:result.metrics.map(m=>m.replace(/<[^>]*>/g,'')),interpretation:result.note,scientific_limitations:experiments[state.mode].note,sequence_analysis:sequenceAnalysis}
     };
-    const response=await fetch(API_BASE+'/experiments',{method:'POST',headers:{'Content-Type':'application/json','Authorization':'Bearer '+token},body:JSON.stringify(payload)});
-    if(!response.ok){const message=await response.text();throw new Error('Serverga saqlash amalga oshmadi (HTTP '+response.status+'): '+message.slice(0,220));}
-    const data=await response.json();$('syncStatus').textContent='Serverga saqlandi';return {saved:true,id:data.id||'saqlandi',sequenceAnalysis};
+    setSyncStatus('Saqlanmoqda…','pending');const response=await fetch(API_BASE+'/experiments',{method:'POST',headers:{'Content-Type':'application/json','Authorization':'Bearer '+token},body:JSON.stringify(payload)});
+    if(!response.ok){const message=await response.text();setSyncStatus('Saqlanmadi','warning');throw new Error('Serverga saqlash amalga oshmadi (HTTP '+response.status+'): '+message.slice(0,220));}
+    const data=await response.json();setSyncStatus('✓ Saqlandi','success');return {saved:true,id:data.id||'saqlandi',sequenceAnalysis};
   }
   async function runExperiment(){
     if(state.running)return;state.running=true;const button=$('runExperiment');button.disabled=true;button.textContent='⏳ HISOBLANMOQDA…';$('experimentState').textContent='ISHLAMOQDA';$('labStatus').textContent='RUNNING';
     try{
       const result=calculate();await animateExperiment(state.mode);$('resultPanel').innerHTML='<div class="result-empty"><span>◌</span><b>Hisoblash yakunlandi</b><small>Natija tayyorlanmoqda…</small></div>';
-      let saved={saved:false};try{saved=await persistExperiment(result);}catch(err){$('syncStatus').textContent='Server xatosi';saved={saved:false,reason:err.message};}
+      let saved={saved:false};try{saved=await persistExperiment(result);}catch(err){setSyncStatus('Saqlanmadi','warning');saved={saved:false,reason:err.message};}
       const cards=result.metrics.join('');$('resultPanel').innerHTML='<h3 style="font-size:11px;margin:0 0 9px">'+result.title+'</h3><div class="metric-grid">'+cards+'</div><p class="result-note">'+result.note+'</p><p class="result-note"><strong>'+(saved.saved?'✓ MedGen hisobiga saqlandi':'! Server sinxronlashuvi bajarilmadi')+'</strong> · '+(saved.saved?'ID: '+escapeHtml(saved.id):escapeHtml(saved.reason||'Natija lokal ko‘rinishda.'))+'</p>';
       state.runs++;$('runCount').textContent=state.runs;$('experimentState').textContent='YAKUNLANDI';$('labStatus').textContent='COMPLETED';addHistory(result.title,saved.saved?'Serverga saqlandi':'Lokal natija');if(state.mode==='pcr'||state.mode==='crispr')focusObject('dna');else if(state.mode==='cell')focusObject('cell');else focusObject('bioreactor');
     }catch(err){$('resultPanel').innerHTML='<p class="result-note"><strong>Tekshiruv xatosi:</strong> '+escapeHtml(err.message)+'</p>';$('experimentState').textContent='XATO';$('labStatus').textContent='CHECK INPUT';}
     finally{state.running=false;button.disabled=false;button.textContent='▶ TAJRIBANI ISHGA TUSHIRISH';}
   }
+  function setSyncStatus(label,status){const el=$('syncStatus');if(!el)return;el.textContent=label;el.dataset.status=status||'idle';}
   function addHistory(title,status){const host=$('historyList'),item=document.createElement('div');item.className='history-item';const b=document.createElement('b');b.textContent=title;const small=document.createElement('small');small.textContent=new Date().toLocaleString()+' · '+status;item.append(b,small);host.prepend(item);while(host.children.length>5)host.lastElementChild.remove();}
   function init(){
     document.querySelectorAll('.module-choice').forEach(b=>b.addEventListener('click',()=>showMode(b.dataset.experiment)));
     document.querySelectorAll('[data-focus]').forEach(b=>b.addEventListener('click',()=>focusObject(b.dataset.focus)));
     $('runExperiment').addEventListener('click',runExperiment);
-    $('resetExperiment').addEventListener('click',()=>{showMode(state.mode);$('syncStatus').textContent='Kutilmoqda';$('labStatus').textContent='READY';});
-    $('resetView').addEventListener('click',()=>{if(!state.controls)return;state.controls.target.set(0,1.3,0);state.controls.theta=.675;state.controls.phi=1.02;state.controls.radius=14;});
+    $('resetExperiment').addEventListener('click',()=>{showMode(state.mode);setSyncStatus('Kutilmoqda','idle');$('labStatus').textContent='READY';});
+    $('resetView').addEventListener('click',()=>{if(!state.controls)return;state.controls.target.set(0,.8,0);state.controls.theta=Math.atan2(2.8,4.5);state.controls.phi=1.14;state.controls.radius=10.8;});
     $('toggleLabels').addEventListener('click',()=>{state.showLabels=!state.showLabels;state.labels.forEach(l=>l.visible=state.showLabels);});
     try{buildScene();}catch(error){console.error('Biotechnology 3D scene failed:',error);const detail=String(error?.message||error||'Noma’lum xato');$('sceneLoading').style.display='grid';$('sceneLoading').innerHTML='<b>3D sahna ishga tushmadi</b><small>'+escapeHtml(detail)+' · WebGL/GPU va Three.js mosligini tekshiring.</small>'; }showMode('pcr');
   }
