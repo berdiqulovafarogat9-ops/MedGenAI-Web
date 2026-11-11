@@ -1,0 +1,29 @@
+const fs = require('node:fs');
+const assert = require('node:assert/strict');
+
+const read = (path) => fs.readFileSync(path, 'utf8');
+const html = read('biotechnology-lab.html');
+const js = read('biotechnology-lab.js');
+const index = read('index-final.html');
+const app = read('app.js');
+const docker = read('Dockerfile');
+
+assert.match(html, /\/vendor\/three\.min\.js/, '3D engine must use the bundled production asset');
+assert.match(html, /biotechnology-lab\.js/, 'lab page must load its controller');
+assert.match(html, /biotechnology-lab\.css/, 'lab page must load its styles');
+assert.match(js, /function onPointerMove/, '3D camera must support drag rotation');
+assert.match(js, /function onWheel/, '3D camera must support zoom');
+for (const mode of ['pcr', 'cell', 'bioreactor', 'crispr']) {
+  assert.match(js, new RegExp(mode + ':\\{'), 'missing experiment mode: ' + mode);
+}
+assert.match(js, /API_BASE\+'\/experiments'/, 'simulation results must use the persisted experiment API');
+assert.match(js, /API_BASE\+'\/bioinformatics\/analyze'/, 'nucleotide inputs must use the sequence-analysis API');
+assert.match(js, /educational_only:true/, 'saved results must be labelled educational');
+assert.match(js, /genome_editing_performed:false/, 'CRISPR demo must not claim to edit a genome');
+assert.match(index, /data-module="Biotechnology 3D Lab"/, 'dashboard entry is missing');
+assert.match(index, /'Biotechnology 3D Lab'/, 'role-aware module registry is missing');
+assert.match(app, /window\.location\.assign\('\/biotechnology-lab\.html'\)/, 'module routing is missing');
+for (const asset of ['biotechnology-lab.html', 'biotechnology-lab.js', 'biotechnology-lab.css']) {
+  assert.ok(docker.includes(asset), 'Docker image does not include ' + asset);
+}
+console.log('PASS biotechnology lab contract: assets, routing, role registry, 3D controls, experiment modes, and persistence');
