@@ -2266,7 +2266,7 @@ def _vit_public(case_id):
     }
 
 
-def _vit_replay(case_id, log, diagnosis):
+def _vit_replay(case_id, log, diagnosis, elapsed_seconds=VITALS_MAX_SECONDS):
     case = VITALS_CASES[case_id]
     by_id = {a["id"]: a for a in case["actions"]}
     st = {k: float(v) for k, v in case["init"].items()}
@@ -2274,7 +2274,12 @@ def _vit_replay(case_id, log, diagnosis):
     for item in sorted(log, key=lambda e: e["t"]):  # stable: keeps order inside the same second
         by_t.setdefault(item["t"], []).append(item["id"])
     used, audit, stab_s = set(), [], None
-    for s in range(VITALS_MAX_SECONDS):
+    # elapsed_seconds is the client stop-time. Process actions at that second,
+    # but do not apply another deterioration tick after a manual early finish.
+    # At the full 180-second limit, actionable seconds remain 0..179.
+    stop_s = min(max(int(elapsed_seconds), 0), VITALS_MAX_SECONDS)
+    last_actionable_s = min(stop_s, VITALS_MAX_SECONDS - 1)
+    for s in range(last_actionable_s + 1):
         for aid in by_t.get(s, []):
             action = by_id[aid]
             if aid in used:
@@ -2287,8 +2292,9 @@ def _vit_replay(case_id, log, diagnosis):
         if _vit_normal(st):
             stab_s = s
             break
-        _vit_apply(st, case["worsen"])
-    seconds_used = stab_s if stab_s is not None else VITALS_MAX_SECONDS
+        if s < stop_s:
+            _vit_apply(st, case["worsen"])
+    seconds_used = stab_s if stab_s is not None else stop_s
     required = [a for a in case["actions"] if a["grade"] == "required"]
     for a in required:
         if a["id"] not in used:
@@ -2314,14 +2320,23 @@ def _vit_replay(case_id, log, diagnosis):
 
 class VitalsLogItem(BaseModel):
     id: str = Field(max_length=40)
-    t: int = Field(ge=0, le=VITALS_MAX_SECONDS)
+    t: int = Field(ge=0, le=VITALS_MAX_SECONDS - 1)
 
 
 class VitalsReportRequest(BaseModel):
     case_id: str = Field(max_length=40)
     diagnosis: int = Field(default=-1, ge=-1, le=10)
     actions: list[VitalsLogItem] = Field(default_factory=list, max_length=80)
+    elapsed_seconds: int = Field(default=VITALS_MAX_SECONDS, ge=0, le=VITALS_MAX_SECONDS)
     tab_switches: int = Field(default=0, ge=0, le=50)
+
+
+def _vit_validate_report_timeline(actions, elapsed_seconds, stabilized_at=None):
+    """Reject client action logs that extend beyond the submitted/stabilized timeline."""
+    if any(item.t > elapsed_seconds for item in actions):
+        raise HTTPException(status_code=400, detail="Action timestamp exceeds simulation stop time.")
+    if stabilized_at is not None and any(item.t > stabilized_at for item in actions):
+        raise HTTPException(status_code=400, detail="Action timestamp occurs after clinical stabilization.")
 
 
 @app.get("/api/v1/clinical/vitals/cases")
@@ -2337,8 +2352,10 @@ def clinical_vitals_report(data: VitalsReportRequest, user=Depends(get_current_u
     known = {a["id"] for a in case["actions"]}
     if any(item.id not in known for item in data.actions):
         raise HTTPException(status_code=400, detail="Unknown action in log.")
+    r = _vit_replay(data.case_id, [{"id": i.id, "t": i.t} for i in data.actions], data.diagnosis, data.elapsed_seconds)
+    # Reject impossible client timelines before consuming subscription quota.
+    _vit_validate_report_timeline(data.actions, data.elapsed_seconds, r["stab_s"])
     quota = _consume_subscription_quota(user["username"], user.get("role"), "physiology_lab_analyses")
-    r = _vit_replay(data.case_id, [{"id": i.id, "t": i.t} for i in data.actions], data.diagnosis)
     penalty = VITALS_TAB_PENALTY * data.tab_switches
     raw = r["req_pts"] + r["harm_pts"] + r["diag_pts"] + r["stab_pts"] - penalty
     score = max(0, min(100, raw))

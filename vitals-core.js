@@ -21,6 +21,9 @@
     def.actions.forEach(function (a) { byId[a.id] = a; });
     var sim = { s: 0, state: st, used: {}, log: [], ended: false, stabilized: false, stabAt: null, def: def };
 
+    // Read-only action state for UI/3D synchronization; the simulation owns acceptance.
+    sim.hasAction = function (id) { return !!sim.used[id]; };
+
     sim.act = function (id) {
       if (sim.ended || sim.s >= MAX) return { ok: false, reason: "ended" };
       var a = byId[id];

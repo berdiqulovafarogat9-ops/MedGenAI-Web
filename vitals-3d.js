@@ -61,8 +61,8 @@
 
     scene.add(room);
     // Preserve existing camera controller-free scene; frame bed and room from a wider angle.
-    camera.fov=48;
-    camera.position.set(3.05,2.35,4.55);
+    camera.fov=56;
+    camera.position.set(0,2.35,4.55);
     camera.lookAt(0,.78,-.30);
     camera.updateProjectionMatrix();
     var w=Math.max(viewport.clientWidth,1),h=Math.max(viewport.clientHeight,1);

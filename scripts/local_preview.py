@@ -19,9 +19,13 @@ def preview():
 
 @main.app.get('/{asset}')
 def static_asset(asset: str):
-    if asset not in {'app.js', 'ux.js', 'opportunities.js', 'styles.css', 'legal.html', 'phase1-academy.js', 'phase1-controller.js', 'phase1-shell.js'}:
+    # Serve only existing top-level project assets; reject path traversal.
+    if Path(asset).name != asset:
         raise main.HTTPException(404)
-    return FileResponse(ROOT / asset)
+    candidate = ROOT / asset
+    if not candidate.is_file():
+        raise main.HTTPException(404)
+    return FileResponse(candidate)
 
 if __name__ == '__main__':
     import uvicorn

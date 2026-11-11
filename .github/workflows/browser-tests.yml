@@ -1,12 +1,13 @@
 name: Browser login tests
 on:
   pull_request:
+    types: [opened, synchronize, reopened, edited]
   push:
     branches: [main]
   workflow_dispatch:
 jobs:
   browser:
-    runs-on: ubuntu-24.04 
+    runs-on: ubuntu-24.04
     timeout-minutes: 15
     steps:
       - uses: actions/checkout@v4
@@ -19,7 +20,9 @@ jobs:
       - name: Install preview and browser dependencies
         run: |
           pip install fastapi uvicorn httpx rdkit 'pwdlib[argon2]'
-          npm install --prefix /tmp/medgen-browser playwright@1.58.2 --no-audit --no-fund
+          npm install --prefix /tmp/medgen-browser playwright@1.58.2 three@0.128.0 --no-audit --no-fund
+          curl -fLsS --retry 2 --retry-delay 2 "https://dbkxgbeisgyjilflkneq.supabase.co/storage/v1/object/public/models/Casual%20Character%20by%20Quaternius%20-%20kZ3DmIoGip.glb" -o /tmp/medgen-browser/medgen-patient.glb
+          test "$(head -c 4 /tmp/medgen-browser/medgen-patient.glb)" = "glTF"
           node /tmp/medgen-browser/node_modules/playwright/cli.js install --with-deps chromium
       - name: Test desktop and mobile login
         env:
@@ -34,6 +37,8 @@ jobs:
           done
           node tests/browser-login.cjs
           node tests/browser-academy.cjs
+          node tests/browser-clinical-simulator.cjs
+          MEDGEN_TEST_PATIENT_GLB=/tmp/medgen-browser/medgen-patient.glb node tests/browser-clinical-simulator.cjs
           node tests/browser-workspaces.cjs
           node tests/browser-ux.cjs
           node tests/browser-opportunities.cjs
