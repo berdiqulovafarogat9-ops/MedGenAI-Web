@@ -65,7 +65,7 @@ def test_pdbqt_conversion_selects_only_first_docking_pose():
         f"{1.0:8.3f}{2.0:8.3f}{3.0:8.3f}{1.0:6.2f}{0.0:6.2f}"
         f"          {'C':>2s}  C\n"
     )
-    second = first.replace("  1.000", " 99.000")
+    second = first.replace(f"{1.0:8.3f}", f"{99.0:8.3f}")
     pdb = _pdbqt_to_pdb("MODEL 1\n" + first + "ENDMDL\nMODEL 2\n" + second + "ENDMDL\n", first_model_only=True)
     assert "  1.000" in pdb
     assert " 99.000" not in pdb
