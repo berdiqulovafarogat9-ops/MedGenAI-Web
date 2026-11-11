@@ -18,6 +18,18 @@ CREATE TABLE IF NOT EXISTS public.scientific_docking_jobs (
     status TEXT NOT NULL DEFAULT 'completed',
     created_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
 );
+-- Backward-compatible upgrade from the earlier draft schema.
+ALTER TABLE public.scientific_docking_jobs
+    DROP CONSTRAINT IF EXISTS scientific_docking_jobs_user_id_fkey;
+ALTER TABLE public.scientific_docking_jobs ADD COLUMN IF NOT EXISTS job_id TEXT;
+ALTER TABLE public.scientific_docking_jobs ADD COLUMN IF NOT EXISTS owner_username TEXT NOT NULL DEFAULT 'legacy';
+ALTER TABLE public.scientific_docking_jobs ADD COLUMN IF NOT EXISTS ligand_name TEXT NOT NULL DEFAULT 'legacy ligand';
+ALTER TABLE public.scientific_docking_jobs ADD COLUMN IF NOT EXISTS result_data JSONB NOT NULL DEFAULT '{}'::jsonb;
+ALTER TABLE public.scientific_docking_jobs ADD COLUMN IF NOT EXISTS status TEXT NOT NULL DEFAULT 'completed';
+UPDATE public.scientific_docking_jobs SET job_id='legacy-' || id::text WHERE job_id IS NULL;
+ALTER TABLE public.scientific_docking_jobs ALTER COLUMN job_id SET NOT NULL;
+CREATE UNIQUE INDEX IF NOT EXISTS idx_scientific_docking_jobs_job_id
+    ON public.scientific_docking_jobs(job_id);
 CREATE INDEX IF NOT EXISTS idx_scientific_docking_jobs_user_created
     ON public.scientific_docking_jobs(user_id, created_at DESC);
 ALTER TABLE public.scientific_docking_jobs ENABLE ROW LEVEL SECURITY;
