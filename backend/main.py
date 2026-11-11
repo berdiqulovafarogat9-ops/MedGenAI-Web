@@ -7325,6 +7325,7 @@ def run_prepared_docking(data: PreparedDockingRequest, user=Depends(get_current_
     try:
         # Ignore unvalidated client coordinates. Derive the search box from
         # the deposited MK1 co-crystal ligand in 1HSG on the server.
+        get_or_prepare_receptor("1HSG")
         validated_grid = _co_crystal_box(TARGET_DIR / "1HSG.raw.pdb", "MK1")
     except Exception as exc:
         raise HTTPException(status_code=503, detail="1HSG co-crystal grid tayyorlanmadi; docking to‘xtatildi.") from exc
@@ -7332,6 +7333,7 @@ def run_prepared_docking(data: PreparedDockingRequest, user=Depends(get_current_
         "center_x": validated_grid["center"][0], "center_y": validated_grid["center"][1],
         "center_z": validated_grid["center"][2], "size_x": validated_grid["size"][0],
         "size_y": validated_grid["size"][1], "size_z": validated_grid["size"][2],
+        "receptor_pdbqt": "",
     }
     normalized = data.model_copy(update=updates) if hasattr(data, "model_copy") else data.copy(update=updates)
     response = _execute_prepared_docking(normalized, user, persist=False)
