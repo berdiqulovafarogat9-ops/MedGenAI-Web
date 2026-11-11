@@ -67,6 +67,8 @@ class DockingResult(BaseModel):
     poses_pdbqt: str
     receptor_pdb: str
     best_pose_pdb: str
+    hydrogen_bond_count: int
+    hydrogen_bonds: list
     polar_contacts_estimate: int | None
     lipinski: LipinskiReport
     scientific_summary: str
@@ -75,6 +77,86 @@ class DockingResult(BaseModel):
     warning: str
 
 
+
+
+def _pdbqt_atoms(text: str) -> list[dict]:
+    atoms = []
+    for line in text.splitlines():
+        if not line.startswith(("ATOM  ", "HETATM")):
+            continue
+        try:
+            xyz = (float(line[30:38]), float(line[38:46]), float(line[46:54]))
+        except (ValueError, IndexError):
+            continue
+        fields = line.split()
+        atom_type = fields[-1].upper() if fields else ""
+        atoms.append({
+            "name": line[12:16].strip(), "residue": line[17:20].strip(),
+            "chain": line[21:22].strip(), "resid": line[22:26].strip(),
+            "type": atom_type, "xyz": xyz,
+        })
+    return atoms
+
+
+def _verified_hydrogen_bonds(receptor_pdbqt: str, ligand_pdbqt: str) -> list[dict]:
+    """Count donor-H...acceptor contacts using distance and D-H-A angle criteria."""
+    import math
+
+    receptor, ligand = _pdbqt_atoms(receptor_pdbqt), _pdbqt_atoms(ligand_pdbqt)
+    donor_heavy_types = {"N", "NA", "O", "OA", "S", "SA"}
+    acceptor_types = {"NA", "OA"}
+
+    def donors(atoms):
+        heavy = [a for a in atoms if a["type"] in donor_heavy_types]
+        result = []
+        for hydrogen in (a for a in atoms if a["type"] == "HD"):
+            nearest = None
+            nearest_distance = float("inf")
+            for atom in heavy:
+                d = math.dist(atom["xyz"], hydrogen["xyz"])
+                if d < nearest_distance:
+                    nearest, nearest_distance = atom, d
+            if nearest is not None and nearest_distance <= 1.25:
+                result.append((nearest, hydrogen))
+        return result
+
+    def label(atom):
+        return ":".join(part for part in (atom["chain"], atom["residue"], atom["resid"], atom["name"]) if part)
+
+    hits, seen = [], set()
+    for donor_atoms, acceptor_atoms in ((donors(receptor), ligand), (donors(ligand), receptor)):
+        for donor, hydrogen in donor_atoms:
+            hx, hy, hz = hydrogen["xyz"]
+            dx, dy, dz = donor["xyz"]
+            v1 = (dx - hx, dy - hy, dz - hz)
+            for acceptor in acceptor_atoms:
+                if acceptor["type"] not in acceptor_types:
+                    continue
+                ax, ay, az = acceptor["xyz"]
+                v2 = (ax - hx, ay - hy, az - hz)
+                h_a = math.dist(hydrogen["xyz"], acceptor["xyz"])
+                d_a = math.dist(donor["xyz"], acceptor["xyz"])
+                if h_a > 2.6 or d_a > 3.5:
+                    continue
+                norm1 = math.sqrt(sum(v * v for v in v1))
+                norm2 = math.sqrt(sum(v * v for v in v2))
+                if not norm1 or not norm2:
+                    continue
+                cosine = max(-1.0, min(1.0, sum(a * b for a, b in zip(v1, v2)) / (norm1 * norm2)))
+                angle = math.degrees(math.acos(cosine))
+                if angle < 120.0:
+                    continue
+                key = (label(donor), label(acceptor))
+                if key in seen:
+                    continue
+                seen.add(key)
+                hits.append({
+                    "donor": key[0], "acceptor": key[1],
+                    "donor_acceptor_distance_angstrom": round(d_a, 3),
+                    "hydrogen_acceptor_distance_angstrom": round(h_a, 3),
+                    "donor_hydrogen_acceptor_angle_degrees": round(angle, 1),
+                })
+    return hits
 
 def _pdbqt_to_pdb(text: str, *, first_model_only: bool = False) -> str:
     """Convert AutoDock PDBQT atom records to ordinary PDB for 3Dmol.js."""
@@ -314,6 +396,7 @@ def create_hiv_router(
                 raise RuntimeError("AutoDock Vina hech qanday pose qaytarmadi.")
             first_pose = poses_pdbqt.split("ENDMDL", 1)[0] if isinstance(poses_pdbqt, str) else ""
             polar_contacts = polar_contact_estimator(receptor_pdbqt, first_pose) if first_pose else None
+            hydrogen_bonds = _verified_hydrogen_bonds(receptor_pdbqt, first_pose) if first_pose else []
         except Exception as exc:
             raise HTTPException(status_code=422, detail=f"AutoDock Vina docking bajarilmadi: {exc}")
         finally:
@@ -339,6 +422,8 @@ def create_hiv_router(
             poses_pdbqt=poses_pdbqt,
             receptor_pdb=receptor_pdb,
             best_pose_pdb=best_pose_pdb,
+            hydrogen_bond_count=len(hydrogen_bonds),
+            hydrogen_bonds=hydrogen_bonds,
             polar_contacts_estimate=polar_contacts,
             lipinski=lipinski,
             scientific_summary=summary,
