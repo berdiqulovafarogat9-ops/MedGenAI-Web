@@ -14,8 +14,10 @@ assert.match(html, /biotechnology-lab\.css/, 'lab page must load its styles');
 assert.match(js, /function onPointerMove/, '3D camera must support drag rotation');
 assert.match(js, /function onWheel/, '3D camera must support zoom');
 assert.match(js, /function animateExperiment/, 'experiment actions must animate the 3D scene');
+assert.match(js, /field_of_view_um/, 'microscopy must calculate field of view');
+assert.match(js, /objective_magnification/, 'microscopy must report optical magnification');
 assert.match(js, /await animateExperiment\(state\.mode\)/, 'running a workflow must trigger its 3D animation');
-for (const mode of ['pcr', 'cell', 'bioreactor', 'crispr']) {
+for (const mode of ['pcr', 'cell', 'bioreactor', 'crispr', 'microscope']) {
   assert.match(js, new RegExp(mode + ':\\{'), 'missing experiment mode: ' + mode);
 }
 assert.match(js, /API_BASE\+'\/experiments'/, 'simulation results must use the persisted experiment API');
