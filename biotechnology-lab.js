@@ -102,29 +102,43 @@
     if(state.mode==='pcr'){
       const seq=dnaSequence(),cycles=Number($('pcrCycles').value);if(!validateDna(seq))throw new Error('DNK ketma-ketligi 10–5000 ta A/T/G/C nukleotiddan iborat bo‘lishi kerak.');if(!Number.isInteger(cycles)||cycles<1||cycles>40)throw new Error('PCR sikli 1 dan 40 gacha butun son bo‘lishi kerak.');
       const gc=(seq.match(/[GC]/g)||[]).length,percent=gc/seq.length*100,copies=2**cycles;
-      return {title:'PCR nazariy hisoboti',metrics:[metric(seq.length+' bp','KETMA-KETLIK UZUNLIGI'),metric(percent.toFixed(1)+'%','GC TARKIBI'),metric(cycles,'PCR SIKLLARI'),metric(copies.toLocaleString('en-US'),'NAZARIY NUSXALAR')],note:'Hisob: boshlang‘ich 1 nusxa va har siklda 100% ikki baravar ko‘payish farazi (2ⁿ). Haqiqiy PCR samaradorligi odatda bundan farq qiladi.',sequence:seq};
+      return {title:'PCR nazariy hisoboti',metrics:[metric(seq.length+' bp','KETMA-KETLIK UZUNLIGI'),metric(percent.toFixed(1)+'%','GC TARKIBI'),metric(cycles,'PCR SIKLLARI'),metric(copies.toLocaleString('en-US'),'NAZARIY NUSXALAR')],note:'Hisob: boshlang‘ich 1 nusxa va har siklda 100% ikki baravar ko‘payish farazi (2ⁿ). Haqiqiy PCR samaradorligi odatda bundan farq qiladi.',sequence:seq,parameters:{sequence_length:seq.length,cycles,denaturation_temperature_c:95}};
     }
     if(state.mode==='cell'){
       const ph=Number($('cellPh').value),temp=Number($('cellTemp').value),days=Number($('cellDays').value),medium=$('cellMedium').value;if(ph<4||ph>10||temp<20||temp>42||days<1||days>14)throw new Error('pH, harorat yoki inkubatsiya qiymati ruxsat etilgan oraliqdan tashqarida.');
       const phScore=Math.max(0,1-Math.abs(ph-7.2)/2),tempScore=Math.max(0,1-Math.abs(temp-37)/12),mediumScore=medium==='serum'?.95:medium==='standard'?.88:.72;const index=Math.round(100*phScore*tempScore*mediumScore);
-      return {title:'Hujayra kulturasi — o‘quv modeli',metrics:[metric(index+'/100','SHARTLI MUHIT MOSLIGI'),metric(ph.toFixed(1),'pH'),metric(temp+' °C','HARORAT'),metric(days+' kun','INKUBATSIYA')],note:'Bu indeks faqat kiritilgan uchta parametrdan hisoblangan didaktik ko‘rsatkich. Hujayra viability yoki o‘sish tezligi o‘lchanmadi.'};
+      return {title:'Hujayra kulturasi — o‘quv modeli',metrics:[metric(index+'/100','SHARTLI MUHIT MOSLIGI'),metric(ph.toFixed(1),'pH'),metric(temp+' °C','HARORAT'),metric(days+' kun','INKUBATSIYA')],note:'Bu indeks faqat kiritilgan uchta parametrdan hisoblangan didaktik ko‘rsatkich. Hujayra viability yoki o‘sish tezligi o‘lchanmadi.',parameters:{ph,temp,incubation_days:days,medium}};
     }
     if(state.mode==='bioreactor'){
       const ph=Number($('reactorPh').value),temp=Number($('reactorTemp').value),doPct=Number($('reactorDo').value),feed=Number($('reactorFeed').value);if(ph<4||ph>9||temp<15||temp>45||doPct<0||doPct>100||feed<0||feed>100)throw new Error('Bioreaktor parametrlari ruxsat etilgan oraliqdan tashqarida.');
       const p=Math.max(0,1-Math.abs(ph-6.8)/2.2),t=Math.max(0,1-Math.abs(temp-30)/15),o=Math.max(0,1-Math.abs(doPct-45)/55),f=Math.max(0,1-Math.abs(feed-35)/65),index=Math.round(100*(p*.3+t*.25+o*.25+f*.2));
-      return {title:'Bioreaktor — shartli jarayon tahlili',metrics:[metric(index+'/100','SHARTLI JARAYON INDEKSI'),metric(ph.toFixed(1),'pH'),metric(temp+' °C','HARORAT'),metric(doPct+'%','ERIGAN O₂')],note:'Bu soddalashtirilgan o‘quv indeksi. Mikroorganizm turi, kLa, aeratsiya, aralashtirish, substrat va mahsulot titri modellashtirilmagan.'};
+      return {title:'Bioreaktor — shartli jarayon tahlili',metrics:[metric(index+'/100','SHARTLI JARAYON INDEKSI'),metric(ph.toFixed(1),'pH'),metric(temp+' °C','HARORAT'),metric(doPct+'%','ERIGAN O₂')],note:'Bu soddalashtirilgan o‘quv indeksi. Mikroorganizm turi, kLa, aeratsiya, aralashtirish, substrat va mahsulot titri modellashtirilmagan.',parameters:{ph,temp,dissolved_oxygen_percent:doPct,feed_percent:feed}};
     }
     const seq=dnaSequence(),target=String($('crisprTarget').value||'').toUpperCase().replace(/\s+/g,'');if(!validateDna(seq))throw new Error('Namunaviy DNK 10–5000 ta A/T/G/C nukleotiddan iborat bo‘lishi kerak.');if(!/^[ATGC]{10,20}$/.test(target))throw new Error('Motiv 10–20 ta A/T/G/C nukleotiddan iborat bo‘lishi kerak.');const pos=seq.indexOf(target);
-    return {title:'CRISPR-Cas9 — konseptual qidiruv',metrics:[metric(pos>=0?'TOPILDI':'TOPILMADI','MOTIV MOSLIGI'),metric(pos>=0?(pos+1)+' bp':'—','BOSHLANISH POZITSIYASI'),metric(target.length+' nt','MOTIV UZUNLIGI'),metric('0','GENOM TAHRIRI')],note:pos>=0?'Kiritilgan motiv namuna ichida topildi. Bu guide RNA samaradorligi yoki Cas9 kesish faolligini tasdiqlamaydi.':'Kiritilgan motiv ushbu namuna ichida topilmadi. Bu genom bo‘yicha to‘liq qidiruv emas.'};
+    return {title:'CRISPR-Cas9 — konseptual qidiruv',metrics:[metric(pos>=0?'TOPILDI':'TOPILMADI','MOTIV MOSLIGI'),metric(pos>=0?(pos+1)+' bp':'—','BOSHLANISH POZITSIYASI'),metric(target.length+' nt','MOTIV UZUNLIGI'),metric('0','GENOM TAHRIRI')],note:pos>=0?'Kiritilgan motiv namuna ichida topildi. Bu guide RNA samaradorligi yoki Cas9 kesish faolligini tasdiqlamaydi.':'Kiritilgan motiv ushbu namuna ichida topilmadi. Bu genom bo‘yicha to‘liq qidiruv emas.',sequence:seq,parameters:{target_motif:target,match_position_1based:pos>=0?pos+1:null,genome_editing_performed:false}};
   }
   async function persistExperiment(result){
-    if(state.mode!=='pcr')return {saved:false,reason:'Ushbu tajriba turi uchun alohida backend natija modeli hali ulanmagan. Natija simulyator oynasida hisoblandi.'};
-    const token=sessionStorage.getItem('medgen_access_token');if(!token){$('syncStatus').textContent='Kirish talab qilinadi';return {saved:false,reason:'MedGen hisobiga kirmagansiz. Natija faqat ushbu brauzer sessiyasida ko‘rsatiladi.'};}
-    const sequence=result.sequence||DNA_DEFAULT;
-    const payload={name:'Biotechnology Lab — '+experiments[state.mode].title,target:'Biotechnology / '+state.mode,sequence,steps:['sequence_analysis','report'],parameters:{experiment:state.mode,metrics:result.metrics.map(m=>m.replace(/<[^>]*>/g,'')),educational_simulation:true,scientific_limitations:experiments[state.mode].note}};
-    const response=await fetch(API_BASE+'/lab/pipeline',{method:'POST',headers:{'Content-Type':'application/json','Authorization:'Bearer '+token},body:JSON.stringify(payload)});
+    const token=sessionStorage.getItem('medgen_access_token');
+    if(!token){$('syncStatus').textContent='Kirish talab qilinadi';return {saved:false,reason:'MedGen hisobiga kirmagansiz. Natija faqat ushbu brauzer sessiyasida ko‘rsatiladi.'};}
+    let sequenceAnalysis=null;
+    if(result.sequence){
+      try{
+        const analysisResponse=await fetch(API_BASE+'/bioinformatics/analyze',{method:'POST',headers:{'Content-Type':'application/json','Authorization':'Bearer '+token},body:JSON.stringify({sequence:result.sequence,sequence_type:'DNA'})});
+        if(analysisResponse.ok)sequenceAnalysis=await analysisResponse.json();
+        else sequenceAnalysis={status:'not_available',http_status:analysisResponse.status};
+      }catch(_){sequenceAnalysis={status:'not_available',reason:'Sequence analysis endpoint unavailable'};}
+    }
+    const payload={
+      name:'Biotechnology Lab — '+experiments[state.mode].title,
+      workflow_type:'biotechnology_'+state.mode,
+      target:'Biotechnology / '+state.mode,
+      input:{sequence:result.sequence||null,...(result.parameters||{})},
+      parameters:{simulation_mode:state.mode,educational_simulation:true,model_version:'0.1'},
+      results:{status:'completed',educational_only:true,metrics:result.metrics.map(m=>m.replace(/<[^>]*>/g,'')),interpretation:result.note,scientific_limitations:experiments[state.mode].note,sequence_analysis:sequenceAnalysis}
+    };
+    const response=await fetch(API_BASE+'/experiments',{method:'POST',headers:{'Content-Type':'application/json','Authorization':'Bearer '+token},body:JSON.stringify(payload)});
     if(!response.ok){const message=await response.text();throw new Error('Serverga saqlash amalga oshmadi (HTTP '+response.status+'): '+message.slice(0,220));}
-    const data=await response.json();$('syncStatus').textContent='Serverga saqlandi';return {saved:true,id:data.experiment?.id||data.pipeline_id||'saqlandi'};
+    const data=await response.json();$('syncStatus').textContent='Serverga saqlandi';return {saved:true,id:data.id||'saqlandi',sequenceAnalysis};
   }
   async function runExperiment(){
     if(state.running)return;state.running=true;const button=$('runExperiment');button.disabled=true;button.textContent='⏳ HISOBLANMOQDA…';$('experimentState').textContent='ISHLAMOQDA';$('labStatus').textContent='RUNNING';
