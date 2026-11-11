@@ -7,6 +7,9 @@ receptor preparation would remove essential nucleic-acid/cofactor context.
 """
 from pathlib import Path
 import tempfile
+import threading
+import secrets
+from datetime import datetime, timezone
 from typing import Callable, List
 
 from fastapi import APIRouter, Depends, HTTPException
@@ -113,6 +116,8 @@ def create_hiv_router(
     prepare_receptor: Callable,
     polar_contact_estimator: Callable,
     target_dir: Path,
+    jobs_store: dict | None = None,
+    save_state: Callable | None = None,
 ) -> APIRouter:
     router = APIRouter(prefix="/api/v1/hiv-lab", tags=["HIV Drug Discovery"])
 
@@ -124,6 +129,64 @@ def create_hiv_router(
             "targets": [{"pdb_id": key, **value} for key, value in HIV_TARGETS.items()],
             "notice": "Faqat ilmiy jihatdan mos receptor va tekshirilgan grid mavjud targetlar docking uchun yoqiladi.",
         }
+
+    # Async job API: the existing /docking endpoint remains backward-compatible.
+    job_store = jobs_store if jobs_store is not None else {}
+
+    def _persist_jobs():
+        if callable(save_state):
+            try:
+                save_state()
+            except Exception:
+                # A completed scientific calculation remains visible in-process;
+                # persistence errors are recorded without crashing the worker.
+                pass
+
+    @router.post("/docking/jobs")
+    def create_docking_job(payload: LigandRequest, user=Depends(get_current_user)):
+        role_guard(user)
+        job_id = secrets.token_hex(12)
+        job_store[job_id] = {
+            "job_id": job_id, "status": "queued", "user": user["username"],
+            "created_at": datetime.now(timezone.utc).isoformat(),
+            "target_pdb": payload.target_pdb.upper(), "ligand_name": payload.name,
+        }
+        _persist_jobs()
+
+        def _worker():
+            job = job_store.get(job_id)
+            if not job:
+                return
+            job["status"] = "running"
+            job["started_at"] = datetime.now(timezone.utc).isoformat()
+            _persist_jobs()
+            try:
+                result = analyze_hiv_ligand(payload, user)
+                job["result"] = result.model_dump() if hasattr(result, "model_dump") else result.dict()
+                job["status"] = "completed"
+                job["completed_at"] = datetime.now(timezone.utc).isoformat()
+            except HTTPException as exc:
+                job["status"] = "failed"
+                job["error"] = str(exc.detail)
+                job["completed_at"] = datetime.now(timezone.utc).isoformat()
+            except Exception as exc:
+                job["status"] = "failed"
+                job["error"] = f"Docking worker xatosi: {type(exc).__name__}"
+                job["completed_at"] = datetime.now(timezone.utc).isoformat()
+            _persist_jobs()
+
+        threading.Thread(target=_worker, name=f"hiv-docking-{job_id}", daemon=True).start()
+        return {"job_id": job_id, "status": "queued", "poll_url": f"/api/v1/hiv-lab/docking/jobs/{job_id}"}
+
+    @router.get("/docking/jobs/{job_id}")
+    def get_docking_job(job_id: str, user=Depends(get_current_user)):
+        role_guard(user)
+        job = job_store.get(job_id)
+        if not job:
+            raise HTTPException(status_code=404, detail="Docking job topilmadi.")
+        if job.get("user") != user.get("username") and str(user.get("role", "")).upper() != "SUPER_ADMIN":
+            raise HTTPException(status_code=403, detail="Bu docking vazifasiga ruxsat yo'q.")
+        return {k: v for k, v in job.items() if k != "user"}
 
     @router.post("/docking", response_model=DockingResult)
     def analyze_hiv_ligand(payload: LigandRequest, user=Depends(get_current_user)):
