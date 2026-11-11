@@ -5,6 +5,7 @@ from backend.discovery_presets import (
     list_target_presets,
 )
 from backend.admet_pipeline import calculate_admet_descriptors
+from backend.targets_database import get_target, list_targets
 
 
 def test_required_target_presets_are_present_and_scientifically_gated():
@@ -49,3 +50,10 @@ def test_admet_rejects_invalid_smiles():
 
     with pytest.raises(ValueError):
         calculate_admet_descriptors("this-is-not-smiles")
+
+
+def test_8a27_pdb_alias_resolves_without_duplicate_catalog_entry():
+    target = get_target("8A27")
+    assert target["pdb_id"] == "8A27"
+    assert target["co_crystal_ligand"] == "KY9"
+    assert sum(item["pdb_id"] == "8A27" for item in list_targets()) == 1
