@@ -1,0 +1,37 @@
+name: Biotechnology Virtual Lab Checks
+
+on:
+  pull_request:
+    paths:
+      - 'biotechnology-lab.html'
+      - 'biotechnology-lab.js'
+      - 'biotechnology-lab.css'
+      - 'index-final.html'
+      - 'app.js'
+      - 'Dockerfile'
+      - 'tests/biotechnology-lab-contract.cjs'
+      - '.github/workflows/biotechnology-lab.yml'
+  push:
+    branches: [main]
+    paths:
+      - 'biotechnology-lab.html'
+      - 'biotechnology-lab.js'
+      - 'biotechnology-lab.css'
+      - 'index-final.html'
+      - 'app.js'
+      - 'Dockerfile'
+      - 'tests/biotechnology-lab-contract.cjs'
+      - '.github/workflows/biotechnology-lab.yml'
+
+jobs:
+  contract:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+      - name: Check JavaScript syntax
+        run: node --check biotechnology-lab.js
+      - name: Check integration contract
+        run: node tests/biotechnology-lab-contract.cjs

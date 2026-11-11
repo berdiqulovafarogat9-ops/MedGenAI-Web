@@ -23,7 +23,7 @@ RUN apk add --no-cache curl \
  && test -s /usr/share/nginx/html/vendor/draco_wasm_wrapper.js \
  && test -s /usr/share/nginx/html/vendor/draco_decoder.js \
  && apk del curl
-COPY legal.html app.js ux.js opportunities.js styles.css phase1-academy.js phase1-shell.js phase1-controller.js security-2fa.js visuals.js billing.js reports-pdf.js screening.js notice.js academy-plus.js vitals-core.js medgen-3d-clinic.js vitals-3d.js vitals-sim.js clinical-adapter.js clinical-3dock-override.css anatomy-quiz.js anatomy-3d.js anatomy-muscles.js medical-chemistry.js medical-biology.js drug-discovery-workspace.js /usr/share/nginx/html/
+COPY biotechnology-lab.html biotechnology-lab.js biotechnology-lab.css legal.html app.js ux.js opportunities.js styles.css phase1-academy.js phase1-shell.js phase1-controller.js security-2fa.js visuals.js billing.js reports-pdf.js screening.js notice.js academy-plus.js vitals-core.js medgen-3d-clinic.js vitals-3d.js vitals-sim.js clinical-adapter.js clinical-3dock-override.css anatomy-quiz.js anatomy-3d.js anatomy-muscles.js medical-chemistry.js medical-biology.js drug-discovery-workspace.js /usr/share/nginx/html/
 COPY index-final.html /usr/share/nginx/html/index.html
 COPY nginx.conf /etc/nginx/conf.d/default.conf
 EXPOSE 8080
