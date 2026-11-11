@@ -3380,11 +3380,14 @@ function renderDockingAdmet(data) {
   panel.replaceChildren();
   panel.hidden = false;
   const lipinski = data && data.lipinski ? data.lipinski : {};
-  const rows = [['Molekulyar og‘irlik (MW)', lipinski.mw == null ? '—' : Number(lipinski.mw).toFixed(2) + ' g/mol'], ['LogP', lipinski.logp == null ? '—' : Number(lipinski.logp).toFixed(2)], ['HBD', lipinski.hbd ?? '—'], ['HBA', lipinski.hba ?? '—'], ['Lipinski buzilishlari', lipinski.violations ?? '—'], ['Lipinski holati', lipinski.is_drug_like == null ? 'Aniqlanmadi' : (lipinski.is_drug_like ? 'Mos' : 'Cheklov mavjud')]];
+  const admet = data && data.admet ? data.admet : {};
+  const rows = [['Molekulyar og‘irlik (MW)', admet.molecular_weight_g_mol == null ? (lipinski.mw == null ? '—' : Number(lipinski.mw).toFixed(2)) : admet.molecular_weight_g_mol + ' g/mol'], ['LogP', admet.logp == null ? (lipinski.logp ?? '—') : admet.logp], ['HBD', admet.hbd ?? lipinski.hbd ?? '—'], ['HBA', admet.hba ?? lipinski.hba ?? '—'], ['Lipinski buzilishlari', admet.lipinski_violations ?? lipinski.violations ?? '—'], ['Lipinski holati', admet.lipinski_compliant == null ? (lipinski.is_drug_like == null ? 'Aniqlanmadi' : (lipinski.is_drug_like ? 'Mos' : 'Cheklov mavjud')) : (admet.lipinski_compliant ? 'Mos' : 'Cheklov mavjud')]];
   const grid = document.createElement('div'); grid.className = 'docking-admet-grid';
   rows.forEach(([label, value]) => { const item = document.createElement('div'); const heading = document.createElement('strong'); const text = document.createElement('span'); heading.textContent = label; text.textContent = String(value); item.append(heading, text); grid.appendChild(item); });
   const note = document.createElement('p'); note.className = 'muted docking-admet-note';
-  note.textContent = 'Gepatotoksiklik: validatsiyalangan model ulanmagan — baholanmadi. CYP3A4 substrat/inhibitor tahlili: model ulanmagan — bashorat berilmadi. Lipinski qoidasi klinik xavfsizlikni tasdiqlamaydi.';
+  const liverStatus = admet.hepatotoxicity && admet.hepatotoxicity.status === 'not_assessed' ? 'baholanmadi' : 'model natijasi mavjud';
+  const cypStatus = admet.cyp3a4 && admet.cyp3a4.status === 'not_assessed' ? 'baholanmadi' : 'model natijasi mavjud';
+  note.textContent = 'Gepatotoksiklik: ' + liverStatus + '. CYP3A4 substrat/inhibitor tahlili: ' + cypStatus + '. ' + ((admet.limitations || ['Lipinski qoidasi klinik xavfsizlikni tasdiqlamaydi.']).join(' '));
   panel.append(grid, note);
 }
 
