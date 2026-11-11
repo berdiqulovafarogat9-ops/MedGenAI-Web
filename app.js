@@ -2380,6 +2380,10 @@ function openModule(moduleName) {
   if (!enforceProfileCompletion() && !(moduleName === 'Medical Academy' && state.user?.consent_complete === true)) return;
 
   window.__MEDGEN_OPENED_MODULE = moduleName;
+  if (moduleName === 'Biotechnology 3D Lab') {
+    window.location.assign('/biotechnology-lab.html');
+    return;
+  }
   $('roleDashboard')?.classList.add('hidden');
   $('userDirectoryDashboard')?.classList.add('hidden');
   $('securityCenter')?.classList.add('hidden');
