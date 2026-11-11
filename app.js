@@ -3283,28 +3283,94 @@ async function createDiscoverySession() {
    MOLECULAR DOCKING
 ========================================================= */
 
-function renderDockingPose(data) {
-  const host = $('dockingPoseViewer');
+async function renderDockingPose(data) {
+  const host = $('dockingPoseViewer') || document.getElementById('docking-3d-viewport') ||
+    document.querySelector('.docking-viewer-container');
   const notice = $('dockingPoseStatus');
   if (!host) return;
-  if (!window.$3Dmol || !data?.receptor_pdb || !data?.best_pose_pdb) {
-    if (notice) notice.textContent = '3D ko‘rinish uchun PDB koordinatalari yoki 3Dmol kutubxonasi mavjud emas.';
-    return;
-  }
+
+  // Hidden tabs/panels can make WebGL initialize with a 0×0 drawing surface.
+  host.style.width = '100%';
+  host.style.height = '420px';
+  host.style.minHeight = '320px';
+  host.style.position = 'relative';
+  host.style.display = 'block';
+  host.style.visibility = 'visible';
+  host.style.background = '#070b12';
+  host.replaceChildren();
+
   try {
+    if (!window.$3Dmol) {
+      throw new Error('3Dmol.js kutubxonasi yuklanmagan. Sahifani yangilang va qayta urinib ko‘ring.');
+    }
+
+    let receptorPdb = typeof data?.receptor_pdb === 'string' ? data.receptor_pdb.trim() : '';
+    const ligandPdb = typeof data?.best_pose_pdb === 'string' ? data.best_pose_pdb.trim() : '';
+    if (!receptorPdb) {
+      if (notice) notice.textContent = '1HSG oqsil strukturasi RCSB PDB dan yuklanmoqda...';
+      const response = await fetch('https://files.rcsb.org/download/1HSG.pdb');
+      if (!response.ok) throw new Error('RCSB 1HSG PDB faylini yuklab bo‘lmadi (HTTP ' + response.status + ').');
+      receptorPdb = (await response.text()).trim();
+    }
+    if (!receptorPdb || !/^HEADER|^ATOM|^TITLE/m.test(receptorPdb)) {
+      throw new Error('Retseptor PDB matni bo‘sh yoki noto‘g‘ri formatda.');
+    }
+    if (!ligandPdb) {
+      throw new Error('Server ligandning PDB formatidagi pozasini yubormadi. PDBQT ni bevosita PDB deb o‘qish mumkin emas.');
+    }
+
+    // Wait until layout has applied the explicit dimensions before creating WebGL.
+    await new Promise(resolve => requestAnimationFrame(() => requestAnimationFrame(resolve)));
+    if (host.clientWidth < 10 || host.clientHeight < 10) {
+      throw new Error('3D oynaning o‘lchami aniqlanmadi. Docking bo‘limini ochib qayta urinib ko‘ring.');
+    }
+
     if (window.medgenDockingViewer?.clear) window.medgenDockingViewer.clear();
-    host.replaceChildren();
-    const viewer = window.$3Dmol.createViewer(host, { backgroundColor: '#07111f', antialias: true });
-    const receptor = viewer.addModel(data.receptor_pdb, 'pdb');
-    receptor.setStyle({}, { cartoon: { color: '#b8c1cc', opacity: 0.92 } });
-    const ligand = viewer.addModel(data.best_pose_pdb, 'pdb');
-    ligand.setStyle({}, { stick: { radius: 0.18, colorscheme: 'Jmol' }, sphere: { scale: 0.22, colorscheme: 'Jmol' } });
+    const viewer = window.$3Dmol.createViewer(host, {
+      backgroundColor: '#070b12',
+      antialias: true
+    });
+    const receptor = viewer.addModel(receptorPdb, 'pdb');
+    receptor.setStyle({}, { cartoon: { color: '#94a3b8', opacity: 0.88 } });
+
+    // Backend supplies best_pose_pdb converted from Vina PDBQT. 3Dmol gets PDB here.
+    const ligand = viewer.addModel(ligandPdb, 'pdb');
+    ligand.setStyle({}, {
+      stick: { radius: 0.24, colorscheme: 'greenCarbon' },
+      sphere: { scale: 0.22, colorscheme: 'Jmol' }
+    });
+
     viewer.zoomTo();
+    viewer.resize();
     viewer.render();
     window.medgenDockingViewer = viewer;
-    if (notice) notice.textContent = '1HSG receptor va eng yaxshi ligand pozasi ko‘rsatildi. Sichqoncha yoki sensor orqali aylantiring va yaqinlashtiring.';
+
+    if (window.medgenDockingResizeObserver) {
+      window.medgenDockingResizeObserver.disconnect();
+    }
+    if (window.ResizeObserver) {
+      window.medgenDockingResizeObserver = new ResizeObserver(() => {
+        if (host.clientWidth > 0 && host.clientHeight > 0) {
+          viewer.resize();
+          viewer.render();
+        }
+      });
+      window.medgenDockingResizeObserver.observe(host);
+    }
+    if (!window.medgenDockingResizeHandler) {
+      window.medgenDockingResizeHandler = () => {
+        const activeViewer = window.medgenDockingViewer;
+        if (activeViewer && host.clientWidth > 0 && host.clientHeight > 0) {
+          activeViewer.resize();
+          activeViewer.render();
+        }
+      };
+      window.addEventListener('resize', window.medgenDockingResizeHandler, { passive: true });
+    }
+    if (notice) notice.textContent = '1HSG oqsil tasmasi va ligandning eng yaxshi docking pozasi ko‘rsatildi. Oynani sensor orqali aylantiring va yaqinlashtiring.';
   } catch (error) {
-    if (notice) notice.textContent = '3D ko‘rinishni chizishda xato: ' + (error?.message || 'noma’lum xato');
+    console.error('MedGen docking 3D viewer error:', error);
+    if (notice) notice.textContent = '3D ko‘rinish xatosi: ' + (error?.message || 'noma’lum xato');
   }
 }
 
