@@ -25,6 +25,14 @@ HIV_TARGETS = {
         "docking_enabled": True,
         "scientific_note": "X-ray structure of HIV-1 protease with co-crystallized inhibitor MK1.",
     },
+    "8A27": {
+        "name": "EGFR kinase domain (wild type)",
+        "resolution": "1.07 Å",
+        "active_site": ["ATP-binding kinase pocket"],
+        "co_crystal_ligand": "KY9",
+        "docking_enabled": True,
+        "scientific_note": "RCSB 8A27 is wild-type human EGFR kinase domain with co-crystallized ligand KY9; its own ligand-derived search grid is used.",
+    },
     "1RTD": {
         "name": "HIV-1 Reverse Transcriptase (catalytic complex)",
         "resolution": "3.20 Å",
@@ -378,7 +386,7 @@ def create_hiv_router(
 
         try:
             receptor_pdbqt = prepare_receptor(pdb_id)
-            grid = _co_crystal_box(Path(target_dir) / f"{pdb_id}.raw.pdb", "MK1")
+            grid = _co_crystal_box(Path(target_dir) / f"{pdb_id}.raw.pdb", target["co_crystal_ligand"])
         except Exception as exc:
             raise HTTPException(status_code=503, detail=f"Receptor/grid tayyorlash xatosi: {exc}")
 
