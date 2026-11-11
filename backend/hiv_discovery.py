@@ -261,6 +261,8 @@ def create_hiv_router(
 
     # Async job API: the existing /docking endpoint remains backward-compatible.
     job_store = jobs_store if jobs_store is not None else {}
+    job_lock = threading.RLock()
+    max_queued_or_running_jobs = 8
 
     def _persist_jobs():
         if callable(save_state):
@@ -275,33 +277,48 @@ def create_hiv_router(
     def create_docking_job(payload: LigandRequest, user=Depends(get_current_user)):
         role_guard(user)
         job_id = secrets.token_hex(12)
-        job_store[job_id] = {
-            "job_id": job_id, "status": "queued", "user": user["username"],
-            "created_at": datetime.now(timezone.utc).isoformat(),
-            "target_pdb": payload.target_pdb.upper(), "ligand_name": payload.name,
-        }
+        with job_lock:
+            pending = sum(
+                1 for item in job_store.values()
+                if item.get("status") in {"queued", "running"}
+            )
+            if pending >= max_queued_or_running_jobs:
+                raise HTTPException(
+                    status_code=429,
+                    detail="Docking navbati to'la. Bir oz kutib, qayta urinib ko'ring.",
+                )
+            job_store[job_id] = {
+                "job_id": job_id, "status": "queued", "user": user["username"],
+                "created_at": datetime.now(timezone.utc).isoformat(),
+                "target_pdb": payload.target_pdb.upper(), "ligand_name": payload.name,
+            }
         _persist_jobs()
 
         def _worker():
-            job = job_store.get(job_id)
-            if not job:
-                return
-            job["status"] = "running"
-            job["started_at"] = datetime.now(timezone.utc).isoformat()
+            with job_lock:
+                job = job_store.get(job_id)
+                if not job:
+                    return
+                job["status"] = "running"
+                job["started_at"] = datetime.now(timezone.utc).isoformat()
             _persist_jobs()
             try:
                 result = analyze_hiv_ligand(payload, user)
-                job["result"] = result.model_dump() if hasattr(result, "model_dump") else result.dict()
-                job["status"] = "completed"
-                job["completed_at"] = datetime.now(timezone.utc).isoformat()
+                serialized = result.model_dump() if hasattr(result, "model_dump") else result.dict()
+                with job_lock:
+                    job["result"] = serialized
+                    job["status"] = "completed"
+                    job["completed_at"] = datetime.now(timezone.utc).isoformat()
             except HTTPException as exc:
-                job["status"] = "failed"
-                job["error"] = str(exc.detail)
-                job["completed_at"] = datetime.now(timezone.utc).isoformat()
+                with job_lock:
+                    job["status"] = "failed"
+                    job["error"] = str(exc.detail)
+                    job["completed_at"] = datetime.now(timezone.utc).isoformat()
             except Exception as exc:
-                job["status"] = "failed"
-                job["error"] = f"Docking worker xatosi: {type(exc).__name__}"
-                job["completed_at"] = datetime.now(timezone.utc).isoformat()
+                with job_lock:
+                    job["status"] = "failed"
+                    job["error"] = f"Docking worker xatosi: {type(exc).__name__}"
+                    job["completed_at"] = datetime.now(timezone.utc).isoformat()
             _persist_jobs()
 
         threading.Thread(target=_worker, name=f"hiv-docking-{job_id}", daemon=True).start()
