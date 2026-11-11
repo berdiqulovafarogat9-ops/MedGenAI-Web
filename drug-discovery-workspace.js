@@ -206,7 +206,7 @@
       const posesPdbqt = data.result && data.result.poses_pdbqt;
       const hbondEstimate = data.result && data.result.hbond_contacts_estimate;
       if (!poses.length) {
-        byId("mgdd-results").textContent = JSON.stringify(data, null, 2);
+        byId("mgdd-results").textContent = "Vina endpointi pose ma’lumotini qaytarmadi. Hisoblash natijasi tasdiqlanmagan.";
       } else {
         byId("mgdd-results").innerHTML = `<p><b>Taxminiy polar / H-bond kontaktlari:</b> ${hbondEstimate == null ? "hisoblanmadi" : esc(hbondEstimate) + " (masofa mezoni; burchak tekshiruvisiz)"}</p>` + poses.map((pose, i) => `<article class="mgdd-pose"><b>Pose ${i+1}</b><strong>${esc(pose.affinity_kcal_mol)} kcal/mol</strong><small>Intermolecular: ${esc(pose.intermolecular_energy_kcal_mol)} · Intramolecular: ${esc(pose.intramolecular_energy_kcal_mol)}</small></article>`).join("");
       }
@@ -255,7 +255,7 @@
     ];
     const contacts = Array.isArray(data.catalytic_contacts) ? data.catalytic_contacts : [];
     const contactText = contacts.length
-      ? contacts.map(x => esc(typeof x === "string" ? x : (x.residue || x.name || JSON.stringify(x)))).join(", ")
+      ? contacts.map(x => esc(typeof x === "string" ? x : (x.residue || x.name || "Kontakt"))).join(", ")
       : "Asp25 / Asp25′ bilan vodorod bog‘i atom-darajasida alohida tasdiqlanmadi.";
     let html = '<div class="mgdd-metric-grid" style="display:grid;grid-template-columns:repeat(auto-fit,minmax(210px,1fr));gap:12px;margin:12px 0">';
     html += '<article class="mgdd-pose" style="padding:16px;border:1px solid #1d7656;border-radius:14px;background:#06251d"><small style="color:#9bd8bd">Vina afiniteti · ΔG bashorati</small><div style="font-size:34px;font-weight:900;color:#4ade80">' + (Number.isFinite(score) ? score.toFixed(2) + ' kkal/mol' : '—') + '</div><small style="color:#b8d7c8">' + esc(sourceLabel || data.engine || "AutoDock Vina") + '</small></article>';
