@@ -84,3 +84,29 @@ body.biotech-lab-viewport .protocol-drawer summary{padding:2px 4px}
  body.biotech-lab-viewport .protocol-drawer[open]{left:8px;max-height:38dvh}
  body.biotech-lab-viewport .protocol-content{grid-template-columns:1fr}
 }
+
+
+/* Zen mode: preserve the immersive renderer and a single exit control. */
+body.biotech-lab-viewport .zen-toggle{border:1px solid rgba(56,189,248,.55);background:rgba(8,25,39,.82);color:#c9f7ff;border-radius:999px;padding:8px 13px;font:600 11px/1.2 system-ui,sans-serif;cursor:pointer;white-space:nowrap;box-shadow:0 0 18px rgba(56,189,248,.12)}
+body.biotech-lab-viewport .zen-toggle:hover{background:rgba(14,55,76,.95)}
+body.biotech-lab-viewport .lab-left-dock,body.biotech-lab-viewport .lab-right-drawer{transition:transform .35s ease,opacity .25s ease}
+body.biotech-lab-viewport.zen-mode .left-rail{transform:translateX(-120%);opacity:0;pointer-events:none}
+body.biotech-lab-viewport.zen-mode .right-panel{transform:translateX(120%);opacity:0;pointer-events:none}
+body.biotech-lab-viewport.zen-mode .stage-toolbar,
+body.biotech-lab-viewport.zen-mode .scene-legend,
+body.biotech-lab-viewport.zen-mode .equipment-strip,
+body.biotech-lab-viewport.zen-mode .protocol-drawer,
+body.biotech-lab-viewport.zen-mode .scene-crosshair,
+body.biotech-lab-viewport.zen-mode .scene-compass{opacity:0;visibility:hidden;pointer-events:none;transition:opacity .2s ease}
+body.biotech-lab-viewport.zen-mode .topbar{background:linear-gradient(180deg,rgba(5,10,18,.55),transparent)}
+body.biotech-lab-viewport.zen-mode .topbar .brand,
+body.biotech-lab-viewport.zen-mode .topbar .live-dot,
+body.biotech-lab-viewport.zen-mode .topbar .back-link{opacity:0;pointer-events:none}
+body.biotech-lab-viewport.zen-mode .topbar{pointer-events:none}
+body.biotech-lab-viewport.zen-mode .topbar .top-actions,
+body.biotech-lab-viewport.zen-mode .topbar .zen-toggle{pointer-events:auto}
+body.biotech-lab-viewport.zen-mode .topbar .zen-toggle{opacity:1;position:fixed;top:12px;right:14px;z-index:100}
+@media(max-width:620px){
+ body.biotech-lab-viewport .zen-toggle{font-size:9px;padding:7px 9px}
+ body.biotech-lab-viewport.zen-mode .topbar .zen-toggle{top:8px;right:8px}
+}
