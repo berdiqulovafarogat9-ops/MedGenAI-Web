@@ -66,6 +66,7 @@
       if (raf) cancelAnimationFrame(raf);
       if (clinicRaf) cancelAnimationFrame(clinicRaf); clinicRaf = null;
       if (clinicResizeObserver) clinicResizeObserver.disconnect();
+      if (typeof clinicControls!=="undefined" && clinicControls) { clinicControls.dispose(); clinicControls=null; }
       if (clinicRenderer) { clinicRenderer.dispose(); clinicRenderer.domElement.remove(); clinicRenderer = null; }
       clinicSync = null;
       document.removeEventListener("visibilitychange", onVis);
@@ -358,9 +359,11 @@
         examItem("🩻","Rentgen","Ko‘krak qafasi rentgeni",function(){showResult("Rentgen tasviri ushbu keys uchun ulanmagan; tasvir yoki radiologik xulosa mavjud emas.");});
                 try {
           var sc=new THREE.Scene(); sc.background=new THREE.Color(0x071521);
-          var cam=new THREE.PerspectiveCamera(38,1,0.1,100); cam.position.set(0,1.8,2.2); cam.lookAt(0,1.0,0);
+          var cam=new THREE.PerspectiveCamera(42,1,0.1,100); cam.position.set(0.35,2.25,4.45); cam.lookAt(0,1.0,-.35);
+          var clinicControls=null;
           clinicRenderer=new THREE.WebGLRenderer({antialias:true,alpha:false}); clinicRenderer.setPixelRatio(Math.min(window.devicePixelRatio||1,1.75)); clinicRenderer.shadowMap.enabled=true; clinicRenderer.shadowMap.type=THREE.PCFSoftShadowMap; clinicRenderer.outputEncoding=THREE.sRGBEncoding; clinicRenderer.toneMapping=THREE.ACESFilmicToneMapping; clinicRenderer.toneMappingExposure=1.12; view3.appendChild(clinicRenderer.domElement);
-          clinicRenderer.domElement.id="three-canvas";clinicRenderer.domElement.style.cssText="width:100%;height:100%;display:block;background-color:#080d14";
+          clinicRenderer.domElement.id="three-canvas";clinicRenderer.domElement.style.cssText="width:100%;height:100%;display:block;background-color:#080d14;touch-action:none";
+          if(THREE.OrbitControls){clinicControls=new THREE.OrbitControls(cam,clinicRenderer.domElement);clinicControls.target.set(0,1.0,-.35);clinicControls.enableDamping=true;clinicControls.dampingFactor=.06;clinicControls.minDistance=2.35;clinicControls.maxDistance=6.5;clinicControls.maxPolarAngle=Math.PI*.49;}
           sc.add(new THREE.HemisphereLight(0xffffff,0x334455,2));
           var light=new THREE.DirectionalLight(0xfff2e6,2.2); light.position.set(-2,5,3); light.castShadow=true; light.shadow.mapSize.set(1024,1024); sc.add(light); var fillLight=new THREE.DirectionalLight(0x9bc9e8,.75); fillLight.position.set(3,2,-2); sc.add(fillLight);
           var floor=new THREE.Mesh(new THREE.PlaneGeometry(10,10),new THREE.MeshStandardMaterial({color:0x263b49,roughness:.94})); floor.rotation.x=-Math.PI/2; floor.receiveShadow=true; sc.add(floor);
@@ -436,13 +439,55 @@
           roomBox(.22,.18,.08,1.8,1.85,-2.12,new THREE.MeshStandardMaterial({color:0x3ba6a0,metalness:.2}));
           roomBox(1.2,.045,.35,0,2.8,-.8,new THREE.MeshStandardMaterial({color:0xe6f1f5,emissive:0x52616b,emissiveIntensity:.45}));
           var roomLight=new THREE.PointLight(0xd8efff,1.2,7);roomLight.position.set(0,2.6,1.2);sc.add(roomLight);
+          // Enclosed emergency department architecture and privacy curtain.
+          var wallMat=new THREE.MeshStandardMaterial({color:0xdce7e9,roughness:.94}),lowerWallMat=new THREE.MeshStandardMaterial({color:0x78999c,roughness:.9}),glassRoomMat=new THREE.MeshStandardMaterial({color:0x8bc9df,transparent:true,opacity:.20,roughness:.12,side:THREE.DoubleSide});
+          roomBox(7,3,.12,0,1.52,-2.32,wallMat);roomBox(7,.82,.14,0,.43,-2.22,lowerWallMat);roomBox(.12,3,4.7,-3.45,1.52,-.05,wallMat);roomBox(.12,3,4.7,3.45,1.52,-.05,wallMat);
+          roomBox(.04,1.25,1.75,-3.36,2.0,-.45,metal);roomBox(.025,1.12,1.62,-3.32,2.0,-.45,glassRoomMat);
+          [-1.2,1.2].forEach(function(x){roomBox(1.25,.045,.5,x,2.82,-.35,new THREE.MeshStandardMaterial({color:0xf8fbff,emissive:0xb8d9e8,emissiveIntensity:.45,roughness:.3}));});
+          roomBox(1.9,.035,.035,2.25,2.55,-.15,metal);
+          var curtain=new THREE.Mesh(new THREE.PlaneGeometry(1.65,2.05,12,12),new THREE.MeshStandardMaterial({color:0x9bcbd3,transparent:true,opacity:.26,side:THREE.DoubleSide,roughness:.95}));curtain.position.set(2.45,1.48,-.05);curtain.rotation.y=-.12;sc.add(curtain);
+          // 3D training avatars (stylized geometry, not photoreal scans).
+          function staffAvatar(x,z,coat,accent,role){
+            var g=new THREE.Group();g.position.set(x,0,z);sc.add(g);
+            var coatMat=new THREE.MeshStandardMaterial({color:coat,roughness:.82}),accentMat=new THREE.MeshStandardMaterial({color:accent,roughness:.75}),skinMat=new THREE.MeshStandardMaterial({color:0xc99172,roughness:.78}),darkMat=new THREE.MeshStandardMaterial({color:0x263746,roughness:.85});
+            function part(parent,geo,mat,px,py,pz,sx,sy,sz){var m=new THREE.Mesh(geo,mat);m.position.set(px,py,pz);m.scale.set(sx||1,sy||1,sz||1);m.castShadow=true;m.receiveShadow=true;parent.add(m);return m;}
+            var torso=part(g,new THREE.CylinderGeometry(.19,.24,.66,18),coatMat,0,1.12,0,1,1,.72);
+            var headPivot=new THREE.Group();headPivot.position.set(0,1.48,0);g.add(headPivot);
+            part(headPivot,new THREE.SphereGeometry(.145,20,16),skinMat,0,.14,0,1,1.08,.95);
+            part(headPivot,new THREE.CylinderGeometry(.055,.06,.16,12),skinMat,0,0,0);
+            var arms=[];
+            [-.21,.21].forEach(function(ax,index){
+              var shoulder=new THREE.Group();shoulder.position.set(ax,1.36,0);g.add(shoulder);arms.push(shoulder);
+              part(shoulder,new THREE.CylinderGeometry(.055,.075,.58,12),coatMat,0,-.29,0);
+              part(shoulder,new THREE.SphereGeometry(.065,12,10),skinMat,0,-.61,.015);
+              part(g,new THREE.CylinderGeometry(.07,.08,.72,12),darkMat,ax,.28,0);
+              part(g,new THREE.BoxGeometry(.18,.08,.32),darkMat,ax,.035,.035);
+            });
+            part(g,new THREE.BoxGeometry(.035,.28,.018),accentMat,-.055,1.15,.173);
+            part(g,new THREE.BoxGeometry(.035,.28,.018),accentMat,.055,1.15,.173);
+            part(g,new THREE.BoxGeometry(.16,.1,.025),accentMat,0,1.38,.14);
+            if(role==="DOCTOR")part(g,new THREE.SphereGeometry(.15,16,10),accentMat,0,1.75,0,1,.28,1);
+            else part(g,new THREE.CylinderGeometry(.16,.16,.08,18),accentMat,0,1.72,0);
+            g.userData.staffMotion={head:headPivot,arms:arms,torso:torso,role:role,phase:x<0?0:Math.PI};
+            return g;
+          }
+          var doctorAvatar=staffAvatar(-2.25,.15,0xf1f5f9,0x2563eb,"DOCTOR");
+          var nurseAvatar=staffAvatar(2.25,.1,0x0f766e,0x99f6e4,"NURSE");
+          function triggerStaffTask(role,task){
+            var avatar=role==="DOCTOR"?doctorAvatar:nurseAvatar;
+            if(!avatar||!avatar.userData.staffMotion)return;
+            avatar.userData.staffMotion.task=task;
+            avatar.userData.staffMotion.taskUntil=Date.now()+2600;
+          }
+          roomBox(2.4,.26,.08,0,1.86,-2.20,dark);[0x38bdf8,0x22c55e,0xf59e0b,0xe2e8f0].forEach(function(col,i){var outlet=new THREE.Mesh(new THREE.CylinderGeometry(.055,.055,.025,18),new THREE.MeshStandardMaterial({color:col,metalness:.25,roughness:.35}));outlet.rotation.x=Math.PI/2;outlet.position.set(-.78+i*.52,1.86,-2.14);sc.add(outlet);});
           // Patient GLB: supplied CDN model, with a procedural fallback if the CDN is unreachable.
           var patient=new THREE.Group(); patient.rotation.z=Math.PI/2; patient.scale.setScalar(.9); patient.position.set(-0.05,.62,-.45); sc.add(patient);
-          var skinMats=[],patientModel=null,patientChest=null,faceMesh=null,faceTint=null,chestBaseRotation=null,chestBaseScale=null,chestBreathMeshes=[],recoveryStarted=0,recoveryFrom=new THREE.Color(0x94a3b8),recoveryTo=new THREE.Color(0xfbcfe8);
+          var skinMats=[],patientModel=null,patientChest=null,faceMesh=null,faceTint=null,chestBaseRotation=null,chestBaseScale=null,chestBreathMeshes=[],recoveryStarted=0,recoveryFrom=new THREE.Color(0x94a3b8),recoveryTo=new THREE.Color(0xfbcfe8),oxygenFlowDots=[],ivFlowDots=[],oxygenCurve=null,ivCurve=null,ivDrop=null,ivChamberGlow=null,oxygenFlowGlow=null;
           var loader=new THREE.GLTFLoader();
           // GRADD xona GLB vaqtincha o‘chirildi: asset geometriyasi mobil kamerada oq/katta ko‘rinmoqda. Mavjud procedural xona saqlanadi.
           // Quaternius bemor modeli mavjud supine patient wrapper ichiga yuklanadi.
           // Parent transform karavot koordinatalari va amaldagi raycaster bilan mos qoladi.
+          view3.dataset.patientModelStatus="loading";
           loader.load("/models/medgen-patient.glb",function(gltf){
             if(!clinicRenderer)return;
             patientModel=gltf.scene;
@@ -479,13 +524,29 @@
             mark("arm",-.34,chestY-.08,frontZ,0x34d399);mark("thigh",.2,thighY,frontZ,0xfb7185);
             mask.position.set(0,faceY,frontZ+.08);
             var faceWorld=patient.localToWorld(new THREE.Vector3(0,faceY,frontZ+.08));
-            var oxygenCurve=new THREE.CatmullRomCurve3([new THREE.Vector3(1.75,.9,.25),new THREE.Vector3(1.25,1.25,.35),new THREE.Vector3(.65,1.2,.15),faceWorld.clone()]);
+            oxygenCurve=new THREE.CatmullRomCurve3([new THREE.Vector3(1.75,.9,.25),new THREE.Vector3(1.25,1.25,.35),new THREE.Vector3(.65,1.2,.15),faceWorld.clone()]);
             var oxygenTube=new THREE.Mesh(new THREE.TubeGeometry(oxygenCurve,32,.012,7,false),new THREE.MeshStandardMaterial({color:0xbdeaff,transparent:true,opacity:.55,roughness:.2}));sc.add(oxygenTube);
             var armWorld=patient.localToWorld(new THREE.Vector3(-.34,chestY-.08,frontZ));
-            var ivCurve=new THREE.CatmullRomCurve3([new THREE.Vector3(-1.45,1.62,-.35),new THREE.Vector3(-1.25,1.35,-.25),new THREE.Vector3(-.85,1.05,-.2),armWorld.clone()]);
+            ivCurve=new THREE.CatmullRomCurve3([new THREE.Vector3(-1.45,1.62,-.35),new THREE.Vector3(-1.25,1.35,-.25),new THREE.Vector3(-.85,1.05,-.2),armWorld.clone()]);
             var ivTube=new THREE.Mesh(new THREE.TubeGeometry(ivCurve,28,.009,6,false),new THREE.MeshStandardMaterial({color:0x9bd5ed,transparent:true,opacity:.55,roughness:.2}));sc.add(ivTube);
+            // Animated educational flow cues: remain dormant until the matching
+            // clinical action is accepted by sim.act(); no flow-rate is implied.
+            var flowDotMatO2=new THREE.MeshBasicMaterial({color:0x7dd3fc,transparent:true,opacity:.95});
+            var flowDotMatIV=new THREE.MeshBasicMaterial({color:0x38bdf8,transparent:true,opacity:.95});
+            for(var oi=0;oi<4;oi++){var od=new THREE.Mesh(new THREE.SphereGeometry(.024,8,8),flowDotMatO2);od.visible=false;sc.add(od);oxygenFlowDots.push(od);}
+            for(var ii=0;ii<4;ii++){var idot=new THREE.Mesh(new THREE.SphereGeometry(.018,8,8),flowDotMatIV);idot.visible=false;sc.add(idot);ivFlowDots.push(idot);}
+            ivDrop=new THREE.Mesh(new THREE.SphereGeometry(.022,9,8),flowDotMatIV);ivDrop.visible=false;sc.add(ivDrop);
+            ivChamberGlow=new THREE.Mesh(new THREE.SphereGeometry(.052,10,8),new THREE.MeshBasicMaterial({color:0x38bdf8,transparent:true,opacity:.0}));ivChamberGlow.position.set(-1.45,1.55,-.29);sc.add(ivChamberGlow);
+            oxygenFlowGlow=new THREE.Mesh(new THREE.SphereGeometry(.07,10,8),new THREE.MeshBasicMaterial({color:0x7dd3fc,transparent:true,opacity:.0}));oxygenFlowGlow.position.copy(faceWorld);sc.add(oxygenFlowGlow);
+
             clinicRenderer.render(sc,cam);
-          },undefined,function(err){console.warn("Patient GLB yuklanmadi; oldindan chizilgan fallback maneken saqlanadi.",err);var note=el("div","position:absolute;right:9px;bottom:8px;padding:5px 8px;border-radius:6px;background:rgba(3,15,28,.88);color:#fcd34d;font-size:11px","Zaxira geometrik maneken · GLB yuklanmadi");view3.appendChild(note);clinicRenderer.render(sc,cam);});
+            view3.dataset.patientModelStatus="loaded";
+          },undefined,function(err){
+            view3.dataset.patientModelStatus="fallback";
+            console.warn("Patient GLB yuklanmadi; oldindan chizilgan fallback maneken saqlanadi.",err);
+            var note=el("div","position:absolute;right:9px;bottom:8px;padding:5px 8px;border-radius:6px;background:rgba(3,15,28,.88);color:#fcd34d;font-size:11px","Zaxira geometrik maneken · GLB yuklanmadi");
+            view3.appendChild(note);clinicRenderer.render(sc,cam);
+          });
           // IV fluid bag, drip chamber and clear oxygen mask.
           var clearMat=new THREE.MeshStandardMaterial({color:0xbdeaff,transparent:true,opacity:.24,roughness:.12,metalness:0,depthWrite:false});
           var ivBag=new THREE.Mesh(new THREE.BoxGeometry(.2,.3,.09),clearMat);ivBag.position.set(-1.45,1.78,-.35);sc.add(ivBag);
@@ -495,34 +556,94 @@
 
           var drip=new THREE.Mesh(new THREE.CylinderGeometry(.025,.025,.18,8),new THREE.MeshStandardMaterial({color:0x9bd5ed,transparent:true,opacity:.55}));drip.position.set(-1.45,1.55,-.35);sc.add(drip);
           var mask=new THREE.Mesh(new THREE.SphereGeometry(.13,16,10,0,Math.PI*2,0,Math.PI/2),new THREE.MeshStandardMaterial({color:0xc7f0ff,transparent:true,opacity:.3,side:THREE.DoubleSide,depthWrite:false,roughness:.1}));mask.position.set(0,1.53,.25);mask.rotation.x=Math.PI/2;patient.add(mask); var maskTube=new THREE.Mesh(new THREE.TorusGeometry(.16,.008,6,32),new THREE.MeshStandardMaterial({color:0xc7f0ff,transparent:true,opacity:.45}));maskTube.position.set(0,1.53,.12);patient.add(maskTube);
-          var targets=[];
-          function mark(zone,x,y,z,color){var o=new THREE.Mesh(new THREE.TorusGeometry(.105,.018,6,18),new THREE.MeshBasicMaterial({color:color,transparent:true,opacity:.9}));o.position.set(x,y,z);o.userData.zone=zone;if(zone==="thigh")o.userData.actionKey="epi_thigh";patient.add(o);targets.push(o);}
+          var targets=[];var equipmentTargets=[];
+          function equipmentHotspot(zone,x,y,z,color){var ring=new THREE.Mesh(new THREE.TorusGeometry(.13,.026,7,22),new THREE.MeshBasicMaterial({color:color,transparent:true,opacity:.92}));ring.position.set(x,y,z);ring.userData.zone=zone;ring.userData.equipment=true;sc.add(ring);equipmentTargets.push(ring);return ring;}
+          equipmentHotspot("monitor",1.35,1.72,-.08,0x38bdf8);equipmentHotspot("oxygen",1.45,1.12,.28,0x22c55e);equipmentHotspot("defibrillator",-1.45,.78,.72,0xfbbf24);equipmentHotspot("iv",-1.25,1.88,-.3,0xa78bfa);
+          function mark(zone,x,y,z,color){var o=new THREE.Mesh(new THREE.TorusGeometry(.105,.028,6,18),new THREE.MeshBasicMaterial({color:color,transparent:true,opacity:.9}));o.position.set(x,y,z);o.userData.zone=zone;if(zone==="thigh")o.userData.actionKey="epi_thigh";patient.add(o);targets.push(o);}
           // GLB kechiksa yoki brauzerda yuklanmasa ham bemor ko‘rinishi va hotspotlar darhol mavjud.
           var fallbackPatient=window.ClinicalUIAdapter?window.ClinicalUIAdapter.renderFallbackMannequin(sc,patient):null;
           mark("face",0,.68,.19,0x38bdf8);mark("chest",0,.12,.18,0xfbbf24);mark("arm",-.38,.08,.12,0x34d399);mark("thigh",.13,-.68,.12,0xfb7185);
           mask.position.set(0,.68,.27);
           // Hotspots are positioned from the loaded supine model bounds after GLB load.
           function clinicAnimate(){if(!clinicRenderer)return;clinicRaf=requestAnimationFrame(clinicAnimate);
+            var staffTime=Date.now()/1000;
+             // The simulation core is the sole source of accepted-action state.
+             var oxygenFlowActive=sim.hasAction("oxygen_high");
+             var ivFlowActive=sim.hasAction("crystalloid_bolus");
+             // Traveling particles make the connected oxygen line and IV line legible in 3D.
+             oxygenFlowDots.forEach(function(dot,index){
+               var active=oxygenFlowActive&&!!oxygenCurve;
+               dot.visible=active;
+               if(active){var u=(staffTime*.42+index/oxygenFlowDots.length)%1;dot.position.copy(oxygenCurve.getPointAt(u));}
+             });
+             if(oxygenFlowGlow&&oxygenFlowGlow.material)oxygenFlowGlow.material.opacity=oxygenFlowActive?(.12+Math.sin(staffTime*5)*.08):0;
+             ivFlowDots.forEach(function(dot,index){
+               var active=ivFlowActive&&!!ivCurve;
+               dot.visible=active;
+               if(active){var u=(staffTime*.3+index/ivFlowDots.length)%1;dot.position.copy(ivCurve.getPointAt(u));}
+             });
+             if(ivDrop){ivDrop.visible=ivFlowActive&&!!ivCurve;
+               if(ivDrop.visible){var dropPhase=(staffTime*1.25)%1;ivDrop.position.set(-1.45,1.61-dropPhase*.12,-.29);}
+               else ivDrop.position.set(-1.45,1.61,-.29);
+             }
+             if(ivChamberGlow&&ivChamberGlow.material)ivChamberGlow.material.opacity=ivFlowActive?(.12+Math.sin(staffTime*6)*.08):0;
+
+            [doctorAvatar,nurseAvatar].forEach(function(avatar){
+              var motion=avatar.userData.staffMotion,phase=staffTime*1.15+motion.phase;
+              var remaining=motion.taskUntil-Date.now(),elapsed=2600-remaining,working=remaining>0;
+              var reach=working?Math.min(1,elapsed/320,remaining/420)*.72:0;
+              avatar.position.y=Math.sin(phase)*.012;
+              avatar.rotation.y=Math.sin(phase*.55)*.035;
+              motion.head.rotation.x=Math.sin(phase*.8)*.045+(working?-.12:0);
+              motion.arms[0].rotation.z=.08+Math.sin(phase)*.12-(working?reach*.62:0);
+              motion.arms[1].rotation.z=-.08+Math.sin(phase+1.2)*.1+(working?reach*.62:0);
+              motion.arms[0].rotation.x=Math.sin(phase*.7)*.035+(working?-.48:0);
+              motion.arms[1].rotation.x=Math.sin(phase*.7+1)*.035+(working?-.48:0);
+              if(!working)motion.task=null;
+            });
             var breath=1+Math.sin(Date.now()/1000*Math.max(.2,sim.state.rr/60)*Math.PI*2)*.012;
             targets.forEach(function(target){if(target.userData&&target.userData.zone==="thigh"){var p=1+Math.sin(Date.now()/260)*.13;target.scale.set(p,p,p);target.material.opacity=.62+Math.sin(Date.now()/260)*.28;}});
             var chestMotion=Math.sin(Date.now()/1000*Math.max(.2,sim.state.rr/60)*Math.PI*2)*.008;chestBreathMeshes.forEach(function(item){var a=item.geometry.attributes.position;for(var vi=0;vi<item.weights.length;vi++){var k=vi*3,w=item.weights[vi]*chestMotion;a.array[k]=item.base[k]+item.axis.x*w;a.array[k+1]=item.base[k+1]+item.axis.y*w;a.array[k+2]=item.base[k+2]+item.axis.z*w;}a.needsUpdate=true;}); if(patientChest){if(chestBaseRotation!==null)patientChest.rotation.x=chestBaseRotation+chestMotion*.7;else if(chestBaseScale!==null)patientChest.scale.z=chestBaseScale*(1+chestMotion);}
             if(recoveryStarted){var t=Math.min(1,(Date.now()-recoveryStarted)/3000),col=recoveryFrom.clone().lerp(recoveryTo,t);skinMats.forEach(function(m){if(m&&m.color)m.color.copy(col);});if(faceTint){faceTint.material.color.copy(col);faceTint.material.opacity=.28*(1-t)+.06*t;}}
-            clinicRenderer.render(sc,cam);
+            if(clinicControls)clinicControls.update();
+            // Refresh the bedside monitor on the same animation frame as the 3D scene.
+            // clinicSync reads sim.state, so ECG rate and displayed vitals share one source.
+            if(clinicSync)clinicSync(sim.state);else clinicRenderer.render(sc,cam);
           }
           clinicAnimate();          // Live bedside monitor: same simulated vitals and ECG rhythm as the HUD.
           clinicSync=function(v){
             if(!clinicRenderer)return;
-            var pulse=1+Math.sin(Date.now()/1000*Math.max(.5,v.rr/60)*Math.PI*2)*.018;
+            var now=Date.now()/1000;
+            var oxygenOn=sim.hasAction("oxygen_high");
+            var ivOn=sim.hasAction("crystalloid_bolus");
             monitorCtx.fillStyle="#03100f";monitorCtx.fillRect(0,0,512,320);
-            monitorCtx.fillStyle="#65f5d0";monitorCtx.font="bold 34px monospace";
-            monitorCtx.fillText("HR "+Math.round(v.hr),18,48);
-            monitorCtx.fillStyle="#f4d36b";monitorCtx.font="bold 28px monospace";
-            monitorCtx.fillText("BP "+Math.round(v.sbp)+"/"+Math.round(v.dbp),18,88);
-            monitorCtx.fillStyle="#71d8ff";monitorCtx.fillText("SpO2 "+Math.round(v.spo2)+"%",18,126);
-            monitorCtx.fillStyle="#b6f28b";monitorCtx.fillText("RR "+Math.round(v.rr)+"/min",18,164);
-            monitorCtx.strokeStyle="#47e7c1";monitorCtx.lineWidth=4;monitorCtx.beginPath();
-            for(var j=0;j<470;j++){var phase=(j/470*2.4)+(Date.now()/1000)*(v.hr/60)*2*Math.PI;var y=236-ecgValue(phase,c.ecg==="st_elev")*62;if(j===0)monitorCtx.moveTo(18+j,y);else monitorCtx.lineTo(18+j,y);}
-            monitorCtx.stroke();monitorTexture.needsUpdate=true;clinicRenderer.render(sc,cam);
+            monitorCtx.fillStyle="#65f5d0";monitorCtx.font="bold 32px monospace";
+            monitorCtx.fillText("HR "+Math.round(v.hr),18,42);
+            monitorCtx.fillStyle="#f4d36b";monitorCtx.font="bold 27px monospace";
+            monitorCtx.fillText("BP "+Math.round(v.sbp)+"/"+Math.round(v.dbp),18,78);
+            monitorCtx.fillStyle="#71d8ff";monitorCtx.fillText("SpO2 "+Math.round(v.spo2)+"%",18,114);
+            monitorCtx.fillStyle="#b6f28b";monitorCtx.fillText("RR "+Math.round(v.rr)+"/min",18,150);
+            monitorCtx.font="bold 17px monospace";
+            monitorCtx.fillStyle=oxygenOn?"#65f5d0":"#94a3b8";
+            monitorCtx.fillText(oxygenOn?"O2 CONNECTED":"O2 STANDBY",18,178);
+            monitorCtx.fillStyle=ivOn?"#c4b5fd":"#94a3b8";
+            monitorCtx.fillText(ivOn?"IV INFUSION ACTIVE":"IV STANDBY",270,178);
+            // Three synchronized bedside traces: ECG follows HR, pleth follows pulse,
+            // and respiration follows RR. These are educational waveforms, not diagnostic signals.
+            monitorCtx.font="12px monospace";monitorCtx.fillStyle="#65f5d0";monitorCtx.fillText("ECG",18,198);
+            monitorCtx.strokeStyle="#47e7c1";monitorCtx.lineWidth=3;monitorCtx.beginPath();
+            for(var j=0;j<470;j++){var phase=(j/470*2.4)+now*(v.hr/60)*2*Math.PI;var y=214-ecgValue(phase,c.ecg==="st_elev")*13;if(j===0)monitorCtx.moveTo(18+j,y);else monitorCtx.lineTo(18+j,y);}
+            monitorCtx.stroke();
+            monitorCtx.fillStyle="#71d8ff";monitorCtx.fillText("PLETH",18,239);
+            monitorCtx.strokeStyle="#71d8ff";monitorCtx.lineWidth=2.5;monitorCtx.beginPath();
+            for(var k=0;k<470;k++){var p=((k/470*2.4)+now*(v.hr/60)*2.4)%1;var peak=Math.exp(-Math.pow((p-.22)/.075,2));var notch=Math.exp(-Math.pow((p-.43)/.055,2));var py=258-(peak*.9+notch*.12)*13;if(k===0)monitorCtx.moveTo(18+k,py);else monitorCtx.lineTo(18+k,py);}
+            monitorCtx.stroke();
+            monitorCtx.fillStyle="#b6f28b";monitorCtx.fillText("RESP",18,282);
+            monitorCtx.strokeStyle="#a3e635";monitorCtx.lineWidth=2.5;monitorCtx.beginPath();
+            for(var m=0;m<470;m++){var rp=(m/470*2.4)+now*(v.rr/60)*2*Math.PI;var ry=302-Math.sin(rp)*10;if(m===0)monitorCtx.moveTo(18+m,ry);else monitorCtx.lineTo(18+m,ry);}
+            monitorCtx.stroke();
+            if(alarmLed&&alarmLed.material){alarmLed.material.color.setHex(v.spo2<90?0xef4444:(v.spo2<94?0xf59e0b:0x22c55e));}
+            monitorTexture.needsUpdate=true;clinicRenderer.render(sc,cam);
           };
           clinicSync(sim.state);
           // Additive Full Code room/camera calibration. Existing patient GLB,
@@ -530,28 +651,91 @@
           if(window.MedGenVitals3D&&typeof window.MedGenVitals3D.apply==="function"){
             window.MedGenVitals3D.apply(sc,cam,clinicRenderer,view3);
           }
-          var ray=new THREE.Raycaster(),pt=new THREE.Vector2();
+          var ray=new THREE.Raycaster(),pt=new THREE.Vector2(),lastRaycastZone=null,lastActionResult=null,lastHandlerDebug=null;
           function resize3(){var w=Math.max(view3.clientWidth,1),h=Math.max(view3.clientHeight,1);cam.aspect=w/h;cam.updateProjectionMatrix();clinicRenderer.setSize(w,h,false);clinicRenderer.render(sc,cam);}
           if(window.ResizeObserver){clinicResizeObserver=new ResizeObserver(resize3);clinicResizeObserver.observe(view3);} else window.addEventListener("resize",resize3);
           resize3();
-          clinicRenderer.domElement.addEventListener("click",function(ev){
+          function handleClinicalCanvasClick(ev){
             var r=clinicRenderer.domElement.getBoundingClientRect();pt.x=(ev.clientX-r.left)/r.width*2-1;pt.y=-(ev.clientY-r.top)/r.height*2+1;ray.setFromCamera(pt,cam);
-            var hit=ray.intersectObjects(targets,false)[0];if(!hit){flash("Anatomik nishonni tanlang.");return;}
+            var handlerHits=ray.intersectObjects(targets.concat(equipmentTargets),false);lastHandlerDebug={clientX:ev.clientX,clientY:ev.clientY,rect:{left:r.left,top:r.top,width:r.width,height:r.height},ndc:{x:pt.x,y:pt.y},hits:handlerHits.slice(0,4).map(function(h){return h.object&&h.object.userData?h.object.userData.zone:null;})};
+            var hit=handlerHits[0];if(!hit){flash("Bemor yoki jihozdagi yoritilgan nishonni tanlang.");return;}
             var z=hit.object.userData.zone,id=null;
+            if(window.__MEDGEN_TEST_MODE===true&&window.__medgenClinicalTest)window.__medgenClinicalTest.lastHitZone=z;lastRaycastZone=z;lastActionResult=null;
+            if(hit.object.userData.equipment){
+              if(z==="monitor"){var v=sim.state;showResult("BEDSIDE MONITOR · HR "+Math.round(v.hr)+" /min · BP "+Math.round(v.sbp)+"/"+Math.round(v.dbp)+" mmHg · SpO₂ "+Math.round(v.spo2)+"% · RR "+Math.round(v.rr)+"/min. EKG va ko‘rsatkichlar simulyatsiya bilan jonli sinxron.");return;}
+              if(z==="defibrillator"){showResult("DEFIBRILLYATOR: qurilma tanlandi. Avval ritmni baholang. Ushbu anafilaksiya keysida zarba ko‘rsatilmagan; VF/pVT aniqlanmagan holatda razryad bermang.");return;}
+              var actionId=z==="oxygen"?"oxygen_high":z==="iv"?"crystalloid_bolus":null;
+              if(!actionId){showResult("Jihoz tanlandi.");return;}
+              var actionResult=sim.act(actionId);
+              if(!actionResult.ok){flash("Bu klinik harakat bajarilgan yoki keys yakunlangan.");return;}
+              actionsBox.querySelectorAll("button[data-id]").forEach(function(b){if(b.dataset.id===actionId){b.disabled=true;b.style.opacity=".45";}});
+              logBox.appendChild(el("div","","["+sim.s+" s] "+actionResult.label+" · 3D jihoz orqali"));
+              triggerStaffTask("NURSE",actionId==="oxygen_high"?"oxygen":"iv");
+              if(actionId==="oxygen_high")recoveryStarted=Date.now();
+              showResult(actionId==="oxygen_high"?"Hamshira kislorod tizimini uladi. Monitor SpO₂ qiymatini klinik simulyatsiya holatiga muvofiq yangilaydi.":"Hamshira periferik venoz infuziyani boshladi. Kristalloid yuborish klinik keysga qayd etildi.");
+              render();
+              return;
+            }
             if(chosen==="head"&&z==="face"){if(faceTint){faceTint.material.color.setHex(0x6b9cae);faceTint.material.opacity=.34;}if(faceMesh&&faceMesh.material){var hm=Array.isArray(faceMesh.material)?faceMesh.material:[faceMesh.material];hm.forEach(function(m){if(m&&m.color)m.color.setHex(0x6b9cae);});}showResult("BOSH / BO‘YIN: yuz ko‘karishi, lab-til shishi va yuqori nafas yo‘li torayishi ko‘rinadi. Stridor/bo‘g‘ilish — xavf belgisi. O‘quv simulyatsiyasi.");return;}
             if(chosen==="stethoscope"&&z==="chest"){showResult("STETOSKOP — o‘pka: diffuz ekspirator hushtaksimon xirillashlar va havo kirishi pasayishi mumkin. Matnli simulyatsiya.");return;}
             if(chosen==="epi"&&z==="thigh")id="epi_thigh";
             if(chosen==="oxygen"&&z==="face")id="oxygen_high";
             if(chosen==="iv"&&z==="arm")id="crystalloid_bolus";
             if(!id){flash("Tanlangan asbob uchun mos hotspotni bosing.");return;}
-            var result=sim.act(id);if(!result.ok){flash("Bu harakat bajarilgan yoki keys tugagan.");return;}
+            var result=sim.act(id);lastActionResult={id:id,ok:result.ok,reason:result.reason||null,seconds:sim.s};if(!result.ok){flash("Bu harakat bajarilgan yoki keys tugagan.");return;}
             actionsBox.querySelectorAll("button[data-id]").forEach(function(b){if(b.dataset.id===id){b.disabled=true;b.style.opacity=".45";}});
             logBox.appendChild(el("div","","["+sim.s+" s] "+result.label+" · 3D nishon: "+z));
-            if(id==="epi_thigh"){recoveryStarted=Date.now();showResult("Adrenalin IM sonning old-yon qismiga yuborildi. Yuz terisi rangi 3 soniya davomida asta-sekin o‘zgaradi; bu klinik natija emas, vizual simulyatsiya.");}
+            if(id==="epi_thigh"){triggerStaffTask("DOCTOR","adrenaline");recoveryStarted=Date.now();showResult("Shifokor adrenalin IM ni sonning old-yon qismiga yubordi. Yuz terisi rangi 3 soniya davomida asta-sekin o‘zgaradi; bu klinik natija emas, vizual simulyatsiya.");}
             else if(id==="crystalloid_bolus")showResult("IV periferik kirish va kristalloid bolus bajarildi (simulyatsiya).");
-            else {if(id==="oxygen_high")recoveryStarted=Date.now();showResult("Kislorod berish bosqichi bajarildi (simulyatsiya).");}
+            else {if(id==="oxygen_high"){triggerStaffTask("NURSE","oxygen");recoveryStarted=Date.now();}showResult("Kislorod berish bosqichi bajarildi (simulyatsiya).");}
             render();
-          });
+          }
+          clinicRenderer.domElement.addEventListener("click",handleClinicalCanvasClick);
+
+          // Test-only raycast bridge: exercise the same canvas click handler without
+          // exposing scene internals in normal learner sessions.
+          if(window.__MEDGEN_TEST_MODE===true){
+            window.__medgenClinicalTest={
+              lastHitZone:null,
+              clickZone:function(zone){
+                var allTargets=targets.concat(equipmentTargets);
+                var target=allTargets.find(function(item){return item.userData&&item.userData.zone===zone;});
+                if(!target||!clinicRenderer||!clinicRenderer.domElement)return false;
+                sc.updateMatrixWorld(true);cam.updateMatrixWorld(true);
+                var params=target.geometry&&target.geometry.parameters?target.geometry.parameters:{};
+                var radius=(params.radius||.1)+(params.tube||.018)*.55;
+                var raycaster=new THREE.Raycaster(),chosenPoint=null;
+                var diagnostic={zone:zone,candidates:0,onScreen:0,nearestZones:[],camera:{x:cam.position.x,y:cam.position.y,z:cam.position.z,fov:cam.fov,aspect:cam.aspect}};
+                // Sample around the visible torus rim so overlapping hotspots do not
+                // make a valid target appear unclickable after orbit/zoom.
+                for(var angle=0;angle<Math.PI*2;angle+=Math.PI/12){
+                  var localPoint=new THREE.Vector3(Math.cos(angle)*radius,Math.sin(angle)*radius,0);
+                  var worldPoint=target.localToWorld(localPoint);worldPoint.project(cam);diagnostic.candidates++;
+                  if(worldPoint.z< -1||worldPoint.z>1||Math.abs(worldPoint.x)>1||Math.abs(worldPoint.y)>1)continue;
+                  diagnostic.onScreen++;
+                  raycaster.setFromCamera(new THREE.Vector2(worldPoint.x,worldPoint.y),cam);
+                  var nearest=raycaster.intersectObjects(allTargets,false)[0];
+                  diagnostic.nearestZones.push(nearest&&nearest.object&&nearest.object.userData?nearest.object.userData.zone:null);
+                  if(nearest&&nearest.object===target){chosenPoint=worldPoint;break;}
+                }
+                this.lastClickDiagnostic=diagnostic;
+                if(!chosenPoint)return false;
+                var rect=clinicRenderer.domElement.getBoundingClientRect();
+                var clientX=rect.left+(chosenPoint.x+1)*.5*rect.width;
+                var clientY=rect.top+(1-chosenPoint.y)*.5*rect.height;
+                this.lastHitZone=null;lastRaycastZone=null;lastActionResult=null;
+                handleClinicalCanvasClick({clientX:clientX,clientY:clientY});
+                diagnostic.selectedPoint={x:chosenPoint.x,y:chosenPoint.y,z:chosenPoint.z};diagnostic.handler=lastHandlerDebug;
+                this.lastClickDiagnostic=diagnostic;
+                return true;
+              },
+              lastInteraction:function(){return {zone:lastRaycastZone,action:lastActionResult,selected:chosen,seconds:sim?sim.s:null};},
+              hasAction:function(id){return !!(sim&&sim.hasAction(id));},
+              resultText:function(){return examOut.textContent;},
+              cameraState:function(){return {x:cam.position.x,y:cam.position.y,z:cam.position.z,distance:clinicControls?cam.position.distanceTo(clinicControls.target):0};},
+              resetCamera:function(){if(clinicControls){clinicControls.target.set(0,.78,-.30);cam.position.set(0,2.35,4.55);clinicControls.update();}else{cam.position.set(0,2.35,4.55);cam.lookAt(0,.78,-.30);cam.updateMatrixWorld(true);}}
+            };
+          }
         } catch(err){console.error("3D Virtual Clinic",err);clinic.appendChild(el("p","color:#fca5a5;font-size:12px","3D sahna ochilmadi. Harakatlar ro‘yxati orqali davom eting."));}
       }
 
@@ -630,7 +814,7 @@
         clock.appendChild(el("span","","Qolgan vaqt: "));clock.appendChild(hud.time);hud.time.className="fc-clock-val";
         topRight.appendChild(clock);topRight.appendChild(hud.pen);
         var hand=el("button","padding:7px 10px;background:#0284c7;color:#fff;border:0;border-radius:5px;font-weight:700;cursor:pointer","Topshirish");
-        hand.type="button";hand.onclick=function(){setRightTab("handoff");};
+        hand.type="button";hand.onclick=function(){if(typeof fullCodeSetTab==="function")fullCodeSetTab("handoff");};
         topRight.appendChild(hand);
         var exitBtn=el("button","padding:7px 10px;background:#334155;color:#e2e8f0;border:1px solid #475569;border-radius:5px;font-weight:700;cursor:pointer","Kabinetga qaytish");
         exitBtn.type="button";exitBtn.onclick=function(){if(running){if(!window.confirm("Simulyatsiyadan chiqilsinmi? Joriy urinish yakunlanmagan bo‘ladi."))return;}exitToDashboard();};
@@ -692,7 +876,7 @@
               (name === "actions" ? "intervene" : name === "log" ? "audit" : name));
           });
         };
-        function tab(key,label,icon){var b=el("button","",icon+"  "+label);b.type="button";b.className="fc-v-tab"+(key==="intervene"?" active":"");b.setAttribute("data-tab",key);b.onclick=function(){setRightTab(key==="intervene"?"actions":key==="investigate"?"investigate":key==="audit"?"log":key==="anatomy"?"anatomy":key==="surgery"?"surgery":"handoff");};nav.appendChild(b);}
+        function tab(key,label,icon){var b=el("button","",icon+"  "+label);b.type="button";b.className="fc-v-tab"+(key==="intervene"?" active":"");b.setAttribute("data-tab",key);b.onclick=function(){var target=key==="intervene"?"actions":key==="investigate"?"investigate":key==="audit"?"log":key==="anatomy"?"anatomy":key==="surgery"?"surgery":"handoff";if(typeof fullCodeSetTab==="function")fullCodeSetTab(target);};nav.appendChild(b);}
         tab("intervene","Muolaja","💉");tab("investigate","Tekshiruv","🔍");tab("anatomy","Anatomiya","🫀");tab("surgery","Jarrohlik","🩺");tab("audit","Jurnal","📑");tab("handoff","Topshirish","📋");
         paneIntervene.appendChild(el("h4","","Shoshilinch muolajalar"));
         if(actionsBox){actionsBox.style.display="flex";actionsBox.style.flexDirection="column";paneIntervene.appendChild(actionsBox);}
@@ -748,7 +932,7 @@
         fullCodeFinishBtn.onclick=function(){
           if(running && sim && !sim.ended){finish();}
           else if(endBox){
-            setRightTab("handoff");
+            if(typeof fullCodeSetTab==="function")fullCodeSetTab("handoff");
             endBox.scrollIntoView({behavior:"smooth",block:"nearest"});
           } else {
             flash("Yakunlash uchun faol klinik simulyatsiya topilmadi.");
@@ -783,7 +967,7 @@
               var leftPane=workspace.querySelector(".fc-left-scroll");
               if(leftPane)leftPane.scrollTo({top:0,behavior:"smooth"});
             } else {
-              setRightTab(item[1]);
+              if(typeof fullCodeSetTab==="function")fullCodeSetTab(item[1]);
             }
           };
           bodyDock.appendChild(b);
@@ -886,9 +1070,9 @@
         "Barqarorlashuv qayd etildi (" + (report.stabilized_at_s || 0) + " soniya)." :
         "Simulyatsiya yakunida barqarorlashuv mezoniga erishilmadi.";
 
-      epicrisisOverlay = el("div", "position:fixed;inset:0;background:rgba(2,8,16,.84);display:flex;align-items:center;justify-content:center;padding:14px;z-index:100000");
+      epicrisisOverlay = el("div", "position:fixed;inset:0;background:rgba(2,8,16,.84);display:flex;align-items:center;justify-content:center;padding:14px;box-sizing:border-box;overflow-y:auto;z-index:100000");
       epicrisisOverlay.className = "mg-sbar-overlay";
-      var paper = el("section", "width:min(96vw,820px);max-height:94vh;overflow:auto;background:#f8fafc;color:#14202b;border-radius:16px;padding:22px;box-shadow:0 20px 70px rgba(0,0,0,.5)");
+      var paper = el("section", "width:min(96vw,820px);max-width:100%;max-height:94vh;box-sizing:border-box;overflow:auto;background:#f8fafc;color:#14202b;border-radius:16px;padding:22px;box-shadow:0 20px 70px rgba(0,0,0,.5)");
       paper.className = "mg-sbar-paper";
       paper.appendChild(el("div", "font-size:11px;letter-spacing:1.5px;color:#526579;font-weight:800", "MEDGEN AI · KLINIK SIMULYATSIYA"));
       paper.appendChild(el("h2", "margin:6px 0 4px;font-size:24px;color:#102a43", "SBAR — Reanimatsiyaga topshirish epikrizi"));
@@ -974,10 +1158,27 @@
         try {
           var rep = await call("/clinical/vitals/report", "POST", {
             case_id: sim.def.id, diagnosis: picked ? parseInt(picked.value, 10) : -1,
-            actions: sim.log, tab_switches: penalty
+            // Send the exact client stop second so the server replays the same timeline.
+            actions: sim.log, elapsed_seconds: sim.s, tab_switches: penalty
           });
+          // The clinical report is already authoritative and persisted at this point.
+          // Academy score synchronization is secondary and must never hide the report
+          // or cause the user to submit the clinical report (and consume quota) twice.
+          var academySyncError = null;
           if (typeof window.submitStudentScore === "function") {
-            await window.submitStudentScore(rep.score, sim.def.id === "anaphylaxis_jasur" ? "Clinical SBAR — Jasur anafilaktik shok" : "Patient_" + sim.def.id);
+            try {
+              var academySyncResult = await window.submitStudentScore(rep.score, sim.def.id === "anaphylaxis_jasur" ? "Clinical SBAR — Jasur anafilaktik shok" : "Patient_" + sim.def.id);
+              // The shared helper currently resolves to null on HTTP/network errors.
+              // Treat that as a failed sync so the already-saved clinical report
+              // clearly tells the learner that Academy points were not confirmed.
+              if (!academySyncResult || academySyncResult.status !== "saved") {
+                academySyncError = new Error("Academy balli server tomonidan tasdiqlanmadi.");
+              }
+            } catch (scoreError) {
+              academySyncError = scoreError;
+            }
+          } else {
+            academySyncError = new Error("Academy ballini saqlash xizmati mavjud emas.");
           }
           // Show the authoritative backend audit report only.
           // Do not place the legacy white learning-summary overlay above it.
@@ -989,12 +1190,19 @@
           document.querySelectorAll("#medgen-epikriz-modal, .learning-summary-modal").forEach(function(node) {
             node.remove();
           });
+          submit.disabled = true;
+          submit.textContent = "Hisobot saqlandi";
           showReport(rep);
           if (sim.def.id === "anaphylaxis_jasur") showJasurEpicrisis(rep);
+          if (academySyncError) {
+            var syncNotice = el("div", "width:min(980px,calc(100% - 32px));margin:0 auto 24px;padding:12px;border:1px solid #92400e;border-radius:10px;background:#451a03;color:#fde68a;font-size:13px;line-height:1.5",
+              "Klinik hisobot serverda saqlandi. Academy ballini sinxronlashda xatolik yuz berdi; klinik hisobot qayta yuborilmadi. " + (academySyncError.message || "Noma’lum xatolik"));
+            card.appendChild(syncNotice);
+          }
         } catch (e) { submit.disabled = false; alertBox.style.background = "#b00020"; flash(e.message); }
       };
       endBox.appendChild(submit);
-      setRightTab("handoff");
+      if(typeof fullCodeSetTab==="function")fullCodeSetTab("handoff");
       // Epikriz modal opens after the server returns the real scored report.
     }
 

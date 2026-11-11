@@ -24,13 +24,18 @@ jobs:
           node --check anatomy-3d.js
           node --check screening.js
           node --check virtual-patient.js
+          node --check vitals-core.js
           node --check vitals-sim.js
+          node --check vitals-3d.js
+          node --check medgen-3d-clinic.js
       - name: Install DOM test dependency
         run: npm install --prefix /tmp/medgen-ui-check jsdom@30.1.3 --no-audit --no-fund
       - name: Run UI and proxy regressions
         env:
           NODE_PATH: /tmp/medgen-ui-check/node_modules
         run: |
+          node tests/vitals-core.cjs
+          node tests/vitals-report-flow.cjs
           node tests/school-ui-removal.cjs
           node tests/learning-hub.cjs
           node tests/cloudflare-proxy.mjs
