@@ -65,6 +65,8 @@ class DockingResult(BaseModel):
     affinity_kcal_mol: float
     poses: list
     poses_pdbqt: str
+    receptor_pdb: str
+    best_pose_pdb: str
     polar_contacts_estimate: int | None
     lipinski: LipinskiReport
     scientific_summary: str
@@ -72,6 +74,51 @@ class DockingResult(BaseModel):
     engine: str
     warning: str
 
+
+
+def _pdbqt_to_pdb(text: str, *, first_model_only: bool = False) -> str:
+    """Convert AutoDock PDBQT atom records to ordinary PDB for 3Dmol.js."""
+    output = []
+    in_first_model = True
+    serial_fallback = 1
+    element_map = {"A": "C", "C": "C", "N": "N", "NA": "N", "OA": "O", "O": "O", "SA": "S", "S": "S", "P": "P", "HD": "H", "F": "F", "CL": "CL", "BR": "BR", "I": "I"}
+    for line in text.splitlines():
+        if line.startswith("MODEL"):
+            if first_model_only and output:
+                in_first_model = False
+            continue
+        if line.startswith("ENDMDL"):
+            if first_model_only:
+                break
+            continue
+        if not in_first_model or not line.startswith(("ATOM  ", "HETATM")):
+            continue
+        try:
+            serial = int(line[6:11].strip() or serial_fallback)
+            atom_name = line[12:16]
+            altloc = line[16:17] or " "
+            resname = (line[17:20].strip() or "LIG")[:3]
+            chain = line[21:22] or "A"
+            resseq = int(line[22:26].strip() or 1)
+            x, y, z = float(line[30:38]), float(line[38:46]), float(line[46:54])
+            occupancy = float(line[54:60].strip() or 1.0) if len(line) >= 60 else 1.0
+            bfactor = float(line[60:66].strip() or 0.0) if len(line) >= 66 else 0.0
+        except (ValueError, IndexError):
+            continue
+        atom_type = line[77:79].strip().upper() if len(line) >= 79 else ""
+        element = element_map.get(atom_type, "")
+        if not element:
+            letters = "".join(ch for ch in atom_name.strip() if ch.isalpha()).upper()
+            element = letters[:1] or "C"
+        output.append(
+            f"{line[:6]:<6}{serial:5d} {atom_name:4s}{altloc[:1]}{resname:>3s} "
+            f"{chain[:1]}{resseq:4d}    {x:8.3f}{y:8.3f}{z:8.3f}"
+            f"{occupancy:6.2f}{bfactor:6.2f}          {element:>2s}  \n"
+        )
+        serial_fallback += 1
+    if not output:
+        raise RuntimeError("PDBQT ma'lumotidan 3D ko'rinish uchun atom koordinatalari olinmadi.")
+    return "".join(output) + "END\n"
 
 def _co_crystal_box(pdb_path: Path, ligand_resname: str = "MK1") -> dict:
     """Derive a reproducible search box from the deposited co-crystal ligand."""
@@ -252,6 +299,8 @@ def create_hiv_router(
             engine.dock(exhaustiveness=payload.exhaustiveness, n_poses=payload.n_poses)
             energies = engine.energies(n_poses=payload.n_poses)
             poses_pdbqt = engine.poses(n_poses=payload.n_poses)
+            receptor_pdb = _pdbqt_to_pdb(receptor_pdbqt)
+            best_pose_pdb = _pdbqt_to_pdb(poses_pdbqt, first_model_only=True)
             energy_columns = [
                 "affinity_kcal_mol", "intermolecular_energy_kcal_mol",
                 "intramolecular_energy_kcal_mol", "torsional_energy_kcal_mol",
@@ -288,6 +337,8 @@ def create_hiv_router(
             affinity_kcal_mol=best,
             poses=poses,
             poses_pdbqt=poses_pdbqt,
+            receptor_pdb=receptor_pdb,
+            best_pose_pdb=best_pose_pdb,
             polar_contacts_estimate=polar_contacts,
             lipinski=lipinski,
             scientific_summary=summary,
