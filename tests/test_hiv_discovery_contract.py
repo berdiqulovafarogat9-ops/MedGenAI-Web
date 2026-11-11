@@ -3,7 +3,7 @@ from pathlib import Path
 
 import pytest
 
-from backend.hiv_discovery import HIV_TARGETS, _co_crystal_box
+from backend.hiv_discovery import HIV_TARGETS, _co_crystal_box, _pdbqt_to_pdb
 
 
 def _hetatm(serial, atom, residue, x, y, z, altloc=" "):
@@ -43,3 +43,29 @@ def test_grid_ignores_non_primary_altloc_and_rejects_missing_ligand(tmp_path):
     )
     with pytest.raises(RuntimeError, match="co-crystal ligand"):
         _co_crystal_box(pdb, "MK1")
+
+
+def test_pdbqt_conversion_produces_pdb_atoms_for_3d_viewer():
+    atom = (
+        f"ATOM  {1:5d} {'CA':<4s} GLY A{1:4d}    "
+        f"{1.25:8.3f}{-2.5:8.3f}{3.75:8.3f}{1.0:6.2f}{0.0:6.2f}"
+        f"          {'C':>2s}  C\\n"
+    )
+    pdb = _pdbqt_to_pdb(atom)
+    assert pdb.startswith("ATOM  ")
+    assert pdb.rstrip().endswith("END")
+    assert float(pdb[30:38]) == 1.25
+    assert float(pdb[38:46]) == -2.5
+    assert pdb[76:78].strip() == "C"
+
+
+def test_pdbqt_conversion_selects_only_first_docking_pose():
+    first = (
+        f"ATOM  {1:5d} {'C1':<4s} LIG A{1:4d}    "
+        f"{1.0:8.3f}{2.0:8.3f}{3.0:8.3f}{1.0:6.2f}{0.0:6.2f}"
+        f"          {'C':>2s}  C\\n"
+    )
+    second = first.replace("  1.000", " 99.000")
+    pdb = _pdbqt_to_pdb("MODEL 1\\n" + first + "ENDMDL\\nMODEL 2\\n" + second + "ENDMDL\\n", first_model_only=True)
+    assert "  1.000" in pdb
+    assert " 99.000" not in pdb
