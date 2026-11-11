@@ -152,7 +152,6 @@
    let downPoint=null;function onPointerDown(e){const c=state.controls;c.pointers.set(e.pointerId,{x:e.clientX,y:e.clientY});if(c.pointers.size===1){c.drag=true;c.x=e.clientX;c.y=e.clientY;downPoint={x:e.clientX,y:e.clientY,id:e.pointerId};}else{c.drag=false;downPoint=null;c.pinchDistance=pointerDistance(c.pointers);}state.renderer.domElement.setPointerCapture?.(e.pointerId);}
    function onPointerUp(e){const c=state.controls,moved=downPoint&&downPoint.id===e.pointerId&&Math.hypot(e.clientX-downPoint.x,e.clientY-downPoint.y)<7&&c.pointers.size===1;c.pointers.delete(e.pointerId);c.pinchDistance=c.pointers.size>=2?pointerDistance(c.pointers):0;c.drag=c.pointers.size===1;if(c.drag){const p=[...c.pointers.values()][0];c.x=p.x;c.y=p.y;}if(moved&&e.button!==2)onPointerUpClick(e);downPoint=null;}
    function onPointerCancel(e){const c=state.controls;c.pointers.delete(e.pointerId);c.pinchDistance=c.pointers.size>=2?pointerDistance(c.pointers):0;c.drag=c.pointers.size===1;downPoint=null;}
-  function onPointerUp(e){const moved=downPoint&&Math.hypot(e.clientX-downPoint.x,e.clientY-downPoint.y)<7;state.controls.drag=false;state.controls.pan=false;if(moved&&e.button!==2)onPointerUpClick(e);downPoint=null;}
 
   function renderControls(){
     const c=$('controls');
