@@ -308,6 +308,8 @@ def _db_init():
         conn.execute("ALTER TABLE scientific_docking_jobs ADD COLUMN IF NOT EXISTS status TEXT NOT NULL DEFAULT 'completed'")
         conn.execute("UPDATE scientific_docking_jobs SET job_id='legacy-' || id::text WHERE job_id IS NULL")
         conn.execute("ALTER TABLE scientific_docking_jobs ALTER COLUMN job_id SET NOT NULL")
+        conn.execute("ALTER TABLE scientific_docking_jobs ALTER COLUMN hbonds_count DROP NOT NULL")
+        conn.execute("ALTER TABLE scientific_docking_jobs ALTER COLUMN lipinski_violations DROP NOT NULL")
         conn.execute("CREATE UNIQUE INDEX IF NOT EXISTS idx_scientific_docking_jobs_job_id ON scientific_docking_jobs(job_id)")
         conn.execute("CREATE INDEX IF NOT EXISTS idx_scientific_docking_jobs_user_created ON scientific_docking_jobs(user_id,created_at DESC)")
         conn.execute("ALTER TABLE scientific_docking_jobs ENABLE ROW LEVEL SECURITY")
