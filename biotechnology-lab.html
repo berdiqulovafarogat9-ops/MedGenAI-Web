@@ -7,7 +7,7 @@
 <title>MedGen AI — Biotechnology 3D Virtual Lab</title>
 <link rel="stylesheet" href="/biotechnology-lab.css?v=20261111-08">
 <script src="/vendor/three.min.js" defer></script>
-<script src="/biotechnology-lab.js?v=20261111-13" defer></script>
+<script src="/biotechnology-lab.js?v=20261111-14" defer></script>
 </head>
 <body class="biotech-lab-viewport">
 <header class="topbar">
@@ -37,7 +37,7 @@
         <div id="sceneLoading" class="scene-loading"><span class="loader"></span><b>3D laboratoriya yuklanmoqda…</b><small>Three.js WebGL renderer</small></div>
         <div class="scene-crosshair">MEDGEN / 3D SPACE</div>
         <div class="scene-compass">N</div>
-        <div class="lab-zoom-controls" aria-label="3D masshtab boshqaruvi"><button id="zoomIn" type="button" aria-label="Kattalashtirish" title="Kattalashtirish">+</button><button id="zoomOut" type="button" aria-label="Kichraytirish" title="Kichraytirish">−</button></div>
+        <div class="lab-zoom-controls" aria-label="3D masshtab boshqaruvi"><button id="zoomIn" type="button" aria-label="Kattalashtirish" title="Kattalashtirish">+</button><button id="zoomOut" type="button" aria-label="Kichraytirish" title="Kichraytirish">−</button><button id="resetLabCamera" type="button" aria-label="Kamerani markazga qaytarish" title="Markazga qaytish">🎯</button></div>
       </div>
       <div class="scene-legend"><span><i class="legend-dot cyan"></i> Tanlanadigan jihoz</span><span><i class="legend-dot green"></i> Faol jarayon</span><span><i class="legend-dot amber"></i> Kiritish / sozlash</span><span id="selectedObject">Tanlangan: laboratoriya</span></div>
       <div class="equipment-strip">
