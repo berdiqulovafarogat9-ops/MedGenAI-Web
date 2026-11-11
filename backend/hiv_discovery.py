@@ -15,15 +15,28 @@ from typing import Callable, List
 from fastapi import APIRouter, Depends, HTTPException
 from pydantic import BaseModel, Field
 
+try:
+    from .admet_pipeline import calculate_admet_descriptors
+except ImportError:
+    from admet_pipeline import calculate_admet_descriptors
+
 
 HIV_TARGETS = {
     "1HSG": {
         "name": "HIV-1 Protease (homodimer)",
         "resolution": "2.00 Å",
         "active_site": ["ASP25 (Chain A)", "ASP25 (Chain B)", "GLY27", "ILE50"],
-        "co_crystal_ligand": "MK1 (L-735,524)",
+        "co_crystal_ligand": "MK1",
         "docking_enabled": True,
         "scientific_note": "X-ray structure of HIV-1 protease with co-crystallized inhibitor MK1.",
+    },
+    "8A27": {
+        "name": "EGFR kinase domain (wild type)",
+        "resolution": "1.07 Å",
+        "active_site": ["ATP-binding kinase pocket"],
+        "co_crystal_ligand": "KY9",
+        "docking_enabled": True,
+        "scientific_note": "RCSB 8A27 is wild-type human EGFR kinase domain with co-crystallized ligand KY9; its own ligand-derived search grid is used.",
     },
     "1RTD": {
         "name": "HIV-1 Reverse Transcriptase (catalytic complex)",
@@ -71,6 +84,7 @@ class DockingResult(BaseModel):
     hydrogen_bonds: list
     polar_contacts_estimate: int | None
     lipinski: LipinskiReport
+    admet: dict
     scientific_summary: str
     docking_box: dict
     engine: str
@@ -366,6 +380,7 @@ def create_hiv_router(
                 mw=mw, logp=logp, hbd=hbd, hba=hba,
                 violations=int(violations), is_drug_like=bool(violations == 0),
             )
+            admet = calculate_admet_descriptors(payload.smiles)
         except ValueError as exc:
             raise HTTPException(status_code=422, detail=str(exc))
         except Exception as exc:
@@ -378,7 +393,7 @@ def create_hiv_router(
 
         try:
             receptor_pdbqt = prepare_receptor(pdb_id)
-            grid = _co_crystal_box(Path(target_dir) / f"{pdb_id}.raw.pdb", "MK1")
+            grid = _co_crystal_box(Path(target_dir) / f"{pdb_id}.raw.pdb", target["co_crystal_ligand"])
         except Exception as exc:
             raise HTTPException(status_code=503, detail=f"Receptor/grid tayyorlash xatosi: {exc}")
 
@@ -443,6 +458,7 @@ def create_hiv_router(
             hydrogen_bonds=hydrogen_bonds,
             polar_contacts_estimate=polar_contacts,
             lipinski=lipinski,
+            admet=admet,
             scientific_summary=summary,
             docking_box=grid,
             engine="AutoDock Vina",

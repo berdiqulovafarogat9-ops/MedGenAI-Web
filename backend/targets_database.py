@@ -66,6 +66,8 @@ CANCER_HIV_TARGETS = {
 
 def get_target(target_id: str):
     key = str(target_id or "").strip().upper()
+    if key == "8A27":
+        key = "EGFR_KINASE_WT"
     if key not in CANCER_HIV_TARGETS:
         raise KeyError(key)
     return deepcopy(CANCER_HIV_TARGETS[key])

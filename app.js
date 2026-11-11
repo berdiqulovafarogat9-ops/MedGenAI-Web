@@ -3307,9 +3307,9 @@ async function renderDockingPose(data) {
     let receptorPdb = typeof data?.receptor_pdb === 'string' ? data.receptor_pdb.trim() : '';
     const ligandPdb = typeof data?.best_pose_pdb === 'string' ? data.best_pose_pdb.trim() : '';
     if (!receptorPdb) {
-      if (notice) notice.textContent = '1HSG oqsil strukturasi RCSB PDB dan yuklanmoqda...';
-      const response = await fetch('https://files.rcsb.org/download/1HSG.pdb');
-      if (!response.ok) throw new Error('RCSB 1HSG PDB faylini yuklab bo‘lmadi (HTTP ' + response.status + ').');
+      if (notice) notice.textContent = (data.target_pdb || '1HSG') + ' oqsil strukturasi RCSB PDB dan yuklanmoqda...';
+      const response = await fetch('https://files.rcsb.org/download/' + encodeURIComponent(data.target_pdb || '1HSG') + '.pdb');
+      if (!response.ok) throw new Error('RCSB ' + (data.target_pdb || '1HSG') + ' PDB faylini yuklab bo‘lmadi (HTTP ' + response.status + ').');
       receptorPdb = (await response.text()).trim();
     }
     if (!receptorPdb || !/^HEADER|^ATOM|^TITLE/m.test(receptorPdb)) {
@@ -3367,11 +3367,53 @@ async function renderDockingPose(data) {
       };
       window.addEventListener('resize', window.medgenDockingResizeHandler, { passive: true });
     }
-    if (notice) notice.textContent = '1HSG oqsil tasmasi va ligandning eng yaxshi docking pozasi ko‘rsatildi. Oynani sensor orqali aylantiring va yaqinlashtiring.';
+    if (notice) notice.textContent = (data.target_pdb || '1HSG') + ' oqsil tasmasi va ligandning eng yaxshi docking pozasi ko‘rsatildi. Oynani sensor orqali aylantiring va yaqinlashtiring.';
   } catch (error) {
     console.error('MedGen docking 3D viewer error:', error);
     if (notice) notice.textContent = '3D ko‘rinish xatosi: ' + (error?.message || 'noma’lum xato');
   }
+}
+
+function renderDockingAdmet(data) {
+  const panel = $('dockingAdmetPanel');
+  if (!panel) return;
+  panel.replaceChildren();
+  panel.hidden = false;
+  const lipinski = data && data.lipinski ? data.lipinski : {};
+  const admet = data && data.admet ? data.admet : {};
+  const rows = [['Molekulyar og‘irlik (MW)', admet.molecular_weight_g_mol == null ? (lipinski.mw == null ? '—' : Number(lipinski.mw).toFixed(2)) : admet.molecular_weight_g_mol + ' g/mol'], ['LogP', admet.logp == null ? (lipinski.logp ?? '—') : admet.logp], ['HBD', admet.hbd ?? lipinski.hbd ?? '—'], ['HBA', admet.hba ?? lipinski.hba ?? '—'], ['Lipinski buzilishlari', admet.lipinski_violations ?? lipinski.violations ?? '—'], ['Lipinski holati', admet.lipinski_compliant == null ? (lipinski.is_drug_like == null ? 'Aniqlanmadi' : (lipinski.is_drug_like ? 'Mos' : 'Cheklov mavjud')) : (admet.lipinski_compliant ? 'Mos' : 'Cheklov mavjud')]];
+  const grid = document.createElement('div'); grid.className = 'docking-admet-grid';
+  rows.forEach(([label, value]) => { const item = document.createElement('div'); const heading = document.createElement('strong'); const text = document.createElement('span'); heading.textContent = label; text.textContent = String(value); item.append(heading, text); grid.appendChild(item); });
+  const note = document.createElement('p'); note.className = 'muted docking-admet-note';
+  const liverStatus = admet.hepatotoxicity && admet.hepatotoxicity.status === 'not_assessed' ? 'baholanmadi' : 'model natijasi mavjud';
+  const cypStatus = admet.cyp3a4 && admet.cyp3a4.status === 'not_assessed' ? 'baholanmadi' : 'model natijasi mavjud';
+  note.textContent = 'Gepatotoksiklik: ' + liverStatus + '. CYP3A4 substrat/inhibitor tahlili: ' + cypStatus + '. ' + ((admet.limitations || ['Lipinski qoidasi klinik xavfsizlikni tasdiqlamaydi.']).join(' '));
+  panel.append(grid, note);
+}
+
+function applyDiscoveryLigandPreset(presetId) {
+  const presets = {
+    indinavir: 'CC(C)(C)NC(=O)[C@@H]1CN(CCN1C[C@H](C[C@@H](CC2=CC=CC=C2)C(=O)N[C@@H]3[C@@H](CC4=CC=CC=C34)O)O)CC5=CN=CC=C5',
+    darunavir: 'CC(C)CN(C[C@H]([C@H](CC1=CC=CC=C1)NC(=O)O[C@H]2CO[C@@H]3[C@H]2CCO3)O)S(=O)(=O)C4=CC=C(C=C4)N',
+    aspirin: 'CC(=O)OC1=CC=CC=C1C(=O)O'
+  };
+  const input = $('dockingInput'); if (!input || !presets[presetId]) return;
+  const target = $('dockingTargetPreset') ? $('dockingTargetPreset').value : '1HSG';
+  input.value = target + ' | ' + presets[presetId];
+}
+
+document.addEventListener('click', function(event) {
+  const button = event.target && event.target.closest ? event.target.closest('[data-discovery-ligand]') : null;
+  if (button) applyDiscoveryLigandPreset(button.getAttribute('data-discovery-ligand'));
+});
+
+function applyDiscoveryTargetPreset() {
+  const input = $('dockingInput'); const target = $('dockingTargetPreset') ? $('dockingTargetPreset').value : '1HSG';
+  if (!input) return;
+  const split = input.value.indexOf('|'); const smiles = split >= 0 ? input.value.slice(split + 1).trim() : 'CCO';
+  input.value = target + ' | ' + smiles;
+  const status = $('dockingPresetNotice');
+  if (status) status.textContent = target === '1RTD' ? '1RTD — tadqiqot rejimi; standart docking o‘chirilgan.' : target === '8A27' ? '8A27 EGFR WT: KY9 co-crystal ligandidan alohida qidiruv qutisi hosil qilinadi.' : '1HSG HIV-1 proteaza tanlandi.';
 }
 
 async function runDocking() {
@@ -3384,19 +3426,24 @@ async function runDocking() {
   if (splitAt < 0) { if (status) status.textContent = 'Format: 1HSG | CCO'; return; }
   const target_pdb = input.slice(0, splitAt).trim().toUpperCase();
   const smiles = input.slice(splitAt + 1).trim();
-  if (target_pdb !== '1HSG') {
-    if (status) status.textContent = 'Hozir avtomatik docking uchun faqat 1HSG (HIV-1 proteaza) validatsiya qilingan.';
+  if (target_pdb === '1RTD') {
+    if (status) status.textContent = '1RTD tadqiqot rejimida: DNA, TTP va Mg katalitik muhiti sabab standart docking o‘chirilgan.';
+    return;
+  }
+  if (!['1HSG', '8A27'].includes(target_pdb)) {
+    if (status) status.textContent = 'Mavjud avtomatik nishonlar: 1HSG va 8A27. 1RTD — tadqiqot rejimi.';
     return;
   }
   if (!smiles) { if (status) status.textContent = 'Ligand SMILES kiriting.'; return; }
   if (result) result.textContent = '';
+  const admetPanel = $('dockingAdmetPanel'); if (admetPanel) admetPanel.hidden = true;
   if (button) button.disabled = true;
   if (status) status.textContent = 'Ligand tekshirilmoqda va docking vazifasi navbatga qo‘yilmoqda...';
   try {
     const created = await api('/hiv-lab/docking/jobs', {
       method: 'POST',
       body: JSON.stringify({
-        name: 'MedGen candidate',
+        name: target_pdb + ' candidate',
         smiles,
         target_pdb,
         exhaustiveness: 8,
@@ -3433,6 +3480,7 @@ async function runDocking() {
           data.warning || ''
         ].join('\n');
         if (result) result.textContent = summary;
+        renderDockingAdmet(data);
         renderDockingPose(data);
         if (status) status.textContent = 'Docking yakunlandi. Natija hisobiy; eksperimental tasdiq emas.';
         return;
