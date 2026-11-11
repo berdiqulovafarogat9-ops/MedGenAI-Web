@@ -222,7 +222,8 @@
     }catch(err){$('resultPanel').innerHTML='<p class="result-note"><strong>Tekshiruv xatosi:</strong> '+escapeHtml(err.message)+'</p>';$('experimentState').textContent='XATO';$('labStatus').textContent='CHECK INPUT';}
     finally{state.running=false;button.disabled=false;button.textContent='▶ TAJRIBANI ISHGA TUSHIRISH';}
   }
-  function setSyncStatus(label,status){const el=$('syncStatus');if(!el)return;el.textContent=label;el.dataset.status=status||'idle';}\n  function addHistory(title,status){const host=$('historyList'),item=document.createElement('div');item.className='history-item';const b=document.createElement('b');b.textContent=title;const small=document.createElement('small');small.textContent=new Date().toLocaleString()+' · '+status;item.append(b,small);host.prepend(item);while(host.children.length>5)host.lastElementChild.remove();}
+  function setSyncStatus(label,status){const el=$('syncStatus');if(!el)return;el.textContent=label;el.dataset.status=status||'idle';}
+  function addHistory(title,status){const host=$('historyList'),item=document.createElement('div');item.className='history-item';const b=document.createElement('b');b.textContent=title;const small=document.createElement('small');small.textContent=new Date().toLocaleString()+' · '+status;item.append(b,small);host.prepend(item);while(host.children.length>5)host.lastElementChild.remove();}
   function init(){
     document.querySelectorAll('.module-choice').forEach(b=>b.addEventListener('click',()=>showMode(b.dataset.experiment)));
     document.querySelectorAll('[data-focus]').forEach(b=>b.addEventListener('click',()=>focusObject(b.dataset.focus)));
