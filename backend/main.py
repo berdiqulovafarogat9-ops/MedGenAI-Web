@@ -7318,7 +7318,21 @@ def _estimate_polar_contacts(receptor_pdbqt: str, ligand_pose_pdbqt: str):
 @app.post("/api/v1/docking/run")
 def run_prepared_docking(data: PreparedDockingRequest, user=Depends(get_current_user)):
     _require_drug_discovery_role(user)
-    return _execute_prepared_docking(data, user)
+    if str(data.target_id or "").strip().upper() != "HIV_1_PROTEASE":
+        raise HTTPException(status_code=409, detail="Standart docking rejimida faqat 1HSG HIV-1 Protease yoqilgan.")
+    try:
+        # Ignore unvalidated client coordinates. Derive the search box from
+        # the deposited MK1 co-crystal ligand in 1HSG on the server.
+        validated_grid = _co_crystal_box(TARGET_DIR / "1HSG.raw.pdb", "MK1")
+    except Exception as exc:
+        raise HTTPException(status_code=503, detail="1HSG co-crystal grid tayyorlanmadi; docking to‘xtatildi.") from exc
+    updates = {
+        "center_x": validated_grid["center"][0], "center_y": validated_grid["center"][1],
+        "center_z": validated_grid["center"][2], "size_x": validated_grid["size"][0],
+        "size_y": validated_grid["size"][1], "size_z": validated_grid["size"][2],
+    }
+    normalized = data.model_copy(update=updates) if hasattr(data, "model_copy") else data.copy(update=updates)
+    return _execute_prepared_docking(normalized, user)
 
 
 def _execute_prepared_docking(data: PreparedDockingRequest, user, *, persist=True):
@@ -8356,9 +8370,9 @@ def drug_discovery_prepare_ligand(data: DrugDiscoveryLigandPrepareRequest, user=
 # HIV LAB — REAL RDKit / MEEKO / AUTODOCK VINA ROUTER
 # =========================================================
 try:
-    from .hiv_discovery import create_hiv_router
+    from .hiv_discovery import create_hiv_router, _co_crystal_box
 except ImportError:
-    from hiv_discovery import create_hiv_router
+    from hiv_discovery import create_hiv_router, _co_crystal_box
 
 app.include_router(create_hiv_router(
     get_current_user=get_current_user,
