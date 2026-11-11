@@ -78,6 +78,7 @@
     function animate(){if(!state.renderer)return;requestAnimationFrame(animate);cellGroup.rotation.y+=.002;dnaGroup.rotation.y+=.0025;state.vessel.rotation.y+=.001;updateCamera();renderer.render(scene,camera);}
     function updateCamera(){const c=state.controls;c.phi=Math.max(.25,Math.min(1.48,c.phi));camera.position.set(c.target.x+c.radius*Math.sin(c.phi)*Math.sin(c.theta),c.target.y+c.radius*Math.cos(c.phi),c.target.z+c.radius*Math.sin(c.phi)*Math.cos(c.theta));camera.lookAt(c.target);}
   }
+  function onPointerMove(e){if(!state.controls?.drag)return;const c=state.controls,dx=e.clientX-c.x,dy=e.clientY-c.y;c.x=e.clientX;c.y=e.clientY;c.theta-=dx*.006;c.phi+=dy*.005;}
   function onWheel(e){e.preventDefault();state.controls.radius=Math.max(6,Math.min(20,state.controls.radius+e.deltaY*.012));}
   function resizeScene(){const h=$('lab3d');if(!state.renderer||!h)return;state.camera.aspect=h.clientWidth/h.clientHeight;state.camera.updateProjectionMatrix();state.renderer.setSize(h.clientWidth,h.clientHeight);}
   function focusObject(name){const obj=state.objects[name];if(!obj)return;state.selected=name;$('selectedObject').textContent='Tanlangan: '+({microscope:'mikroskop',pipette:'pipetka',plate:'mikroplastinka',bioreactor:'bioreaktor',cell:'hujayra modeli',dna:'DNK modeli'}[name]||name);$('sceneHint').textContent='Tanlangan obyekt: '+name;const c=state.controls;if(name==='cell'){c.target.set(4,2.1,0);c.radius=7;}else if(name==='dna'){c.target.set(-4,3, -1);c.radius=7;}else if(name==='bioreactor'){c.target.set(0,2,-1.4);c.radius=7;}else if(name==='microscope'){c.target.set(2.6,2,-.4);c.radius=7;}else if(name==='pipette'||name==='plate'){c.target.set(-.8,1.6,0);c.radius=7;} }
@@ -117,6 +118,7 @@
     return {title:'CRISPR-Cas9 — konseptual qidiruv',metrics:[metric(pos>=0?'TOPILDI':'TOPILMADI','MOTIV MOSLIGI'),metric(pos>=0?(pos+1)+' bp':'—','BOSHLANISH POZITSIYASI'),metric(target.length+' nt','MOTIV UZUNLIGI'),metric('0','GENOM TAHRIRI')],note:pos>=0?'Kiritilgan motiv namuna ichida topildi. Bu guide RNA samaradorligi yoki Cas9 kesish faolligini tasdiqlamaydi.':'Kiritilgan motiv ushbu namuna ichida topilmadi. Bu genom bo‘yicha to‘liq qidiruv emas.'};
   }
   async function persistExperiment(result){
+    if(state.mode!=='pcr')return {saved:false,reason:'Ushbu tajriba turi uchun alohida backend natija modeli hali ulanmagan. Natija simulyator oynasida hisoblandi.'};
     const token=sessionStorage.getItem('medgen_access_token');if(!token){$('syncStatus').textContent='Kirish talab qilinadi';return {saved:false,reason:'MedGen hisobiga kirmagansiz. Natija faqat ushbu brauzer sessiyasida ko‘rsatiladi.'};}
     const sequence=result.sequence||DNA_DEFAULT;
     const payload={name:'Biotechnology Lab — '+experiments[state.mode].title,target:'Biotechnology / '+state.mode,sequence,steps:['sequence_analysis','report'],parameters:{experiment:state.mode,metrics:result.metrics.map(m=>m.replace(/<[^>]*>/g,'')),educational_simulation:true,scientific_limitations:experiments[state.mode].note}};
