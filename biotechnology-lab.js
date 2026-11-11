@@ -1,7 +1,7 @@
 (() => {
   'use strict';
   const $ = (id) => document.getElementById(id);
-  const state = { mode:'pcr', scene:null, camera:null, renderer:null, raycaster:null, pointer:null, objects:{}, labels:[], selected:null, running:false, runs:0, showLabels:true, history:[] };
+  const state = { mode:'pcr', scene:null, camera:null, renderer:null, raycaster:null, pointer:null, objects:{}, labels:[], selected:null, running:false, runs:0, showLabels:true, history:[], bubbles:[] };
   const API_BASE = window.MEDGEN_API_BASE || 'https://medgenai-web-1.onrender.com/api/v1';
   const DNA_DEFAULT = 'ATGCGTACGTAGCTAGCTAGGCTAACGTTAGCGATCGTACGATCG';
 
@@ -50,6 +50,7 @@
     const vessel=cylinder('bioreactor',.62,.62,1.75,0,2.25,-1.45,glass,true,48);
     cylinder('reactor-base',.72,.72,.16,0,1.42,-1.45,steel);
     cylinder('reactor-liquid',.54,.54,.62,0,1.93,-1.45,mat(0x1c9c99,.1,.18,true,.78),false,48);
+    for(let i=0;i<6;i++){const bubble=new T.Mesh(new T.SphereGeometry(.045,10,8),mat(0x9cecf0,.05,.18,true,.72));bubble.position.set(Math.sin(i*2.1)*.28,1.65+(i%3)*.18,-1.45+Math.cos(i*1.7)*.28);scene.add(bubble);state.bubbles.push(bubble);}
     cylinder('reactor-cap',.68,.68,.16,0,3.2,-1.45,steel);
     for(let j=0;j<3;j++){const tube=cylinder('reactor-port',.045,.045,.7,-.38+j*.38,3.55,-1.45,blue);tube.rotation.z=.12*(j-1);}
     // Cell model, with membrane, nucleus, mitochondria
@@ -75,7 +76,7 @@
     renderer.domElement.addEventListener('wheel',onWheel,{passive:false});
     window.addEventListener('resize',resizeScene);
     animate();
-    function animate(){if(!state.renderer)return;requestAnimationFrame(animate);cellGroup.rotation.y+=.002;dnaGroup.rotation.y+=.0025;state.vessel.rotation.y+=.001;updateCamera();renderer.render(scene,camera);}
+    function animate(){if(!state.renderer)return;requestAnimationFrame(animate);cellGroup.rotation.y+=.002;dnaGroup.rotation.y+=.0025;state.vessel.rotation.y+=.001;state.bubbles.forEach((b,i)=>{b.position.y+=.004+(i%2)*.001;if(b.position.y>2.25)b.position.y=1.68;});updateCamera();renderer.render(scene,camera);}
     function updateCamera(){const c=state.controls;c.phi=Math.max(.25,Math.min(1.48,c.phi));camera.position.set(c.target.x+c.radius*Math.sin(c.phi)*Math.sin(c.theta),c.target.y+c.radius*Math.cos(c.phi),c.target.z+c.radius*Math.sin(c.phi)*Math.cos(c.theta));camera.lookAt(c.target);}
   }
   function onPointerMove(e){if(!state.controls?.drag)return;const c=state.controls,dx=e.clientX-c.x,dy=e.clientY-c.y;c.x=e.clientX;c.y=e.clientY;c.theta-=dx*.006;c.phi+=dy*.005;}
@@ -95,6 +96,32 @@
     if(state.mode==='crispr')c.innerHTML='<label class="field-label" for="sequenceInput">Namunaviy DNK (5′ → 3′)</label><textarea id="sequenceInput" rows="4" spellcheck="false">ATGCGTACGTAGCTAGCTAGGCTAACGTTAGCGATCGTACGATCG</textarea><label class="field-label" for="crisprTarget">Qidiriladigan 20 nt motiv</label><input id="crisprTarget" value="GCTAACGTTAGCGATCGTAC" maxlength="20"><div class="control-hint">Faqat matnli motiv qidiruvi. PAM, off-target yoki real editing hisoblanmaydi.</div>';
   }
   function showMode(mode){if(!experiments[mode])return;state.mode=mode;document.querySelectorAll('.module-choice').forEach(b=>b.classList.toggle('active',b.dataset.experiment===mode));const e=experiments[mode];$('experimentTitle').textContent=e.title;$('experimentDescription').textContent=e.description;$('protocolTitle').textContent=e.protocol;$('protocolSteps').innerHTML=e.steps.map(x=>'<li>'+x+'</li>').join('');$('scientistNote').textContent=e.note;$('experimentState').textContent='TAYYOR';$('resultPanel').innerHTML='<div class="result-empty"><span>◎</span><b>Natija kutilmoqda</b><small>Parametrlarni tekshirib, tajribani ishga tushiring.</small></div>';renderControls();if(mode==='cell')focusObject('cell');if(mode==='bioreactor')focusObject('bioreactor');if(mode==='crispr')focusObject('dna');if(mode==='pcr')focusObject('plate');}
+  function animateExperiment(mode){
+    return new Promise(resolve=>{
+      const started=performance.now(),duration=1250;
+      const pipette=state.objects.pipette,plate=state.objects.plate,cell=state.cellGroup,reactor=state.objects.bioreactor,dna=state.dnaGroup;
+      const originalY=pipette?.position.y,originalScale=cell?.scale.clone(),originalEmissive=plate?.material?.emissive?.getHex?.()||0;
+      $('sceneHint').textContent=experiments[mode].title+' · 3D jarayon animatsiyasi';
+      function frame(now){
+        const t=Math.min(1,(now-started)/duration),pulse=Math.sin(Math.PI*t);
+        if(mode==='pcr'&&pipette&&plate){pipette.position.y=originalY-pulse*.34;plate.material.emissive?.setHex?.(0x0c5260);plate.material.emissiveIntensity=pulse*.65;}
+        if(mode==='cell'&&cell){const scale=1+pulse*.075;cell.scale.set(scale,scale,scale);}
+        if(mode==='bioreactor'&&reactor){reactor.rotation.y+=.035;state.bubbles.forEach((b,i)=>{b.scale.setScalar(1+pulse*.4);});}
+        if(mode==='crispr'&&dna){dna.rotation.y+=.018;dna.scale.set(1+pulse*.045,1,1+pulse*.045);}
+        if(t<1)requestAnimationFrame(frame);
+        else{
+          if(pipette)pipette.position.y=originalY;
+          if(plate){plate.material.emissive?.setHex?.(originalEmissive);plate.material.emissiveIntensity=0;}
+          if(cell&&originalScale)cell.scale.copy(originalScale);
+          if(dna)dna.scale.set(1,1,1);
+          state.bubbles.forEach(b=>b.scale.setScalar(1));
+          $('sceneHint').textContent='Jarayon animatsiyasi yakunlandi · obyektni tanlash uchun ustiga bosing';
+          resolve();
+        }
+      }
+      requestAnimationFrame(frame);
+    });
+  }
   function escapeHtml(value){return String(value).replace(/[&<>\"']/g,ch=>({'&':'&amp;','<':'&lt;','>':'&gt;','\"':'&quot;',"'":'&#39;'}[ch]));}
   function metric(value,label){return '<div class="metric"><b>'+value+'</b><span>'+label+'</span></div>';}
   function dnaSequence(){return String($('sequenceInput')?.value||'').toUpperCase().replace(/\s+/g,'');}
@@ -144,7 +171,7 @@
   async function runExperiment(){
     if(state.running)return;state.running=true;const button=$('runExperiment');button.disabled=true;button.textContent='⏳ HISOBLANMOQDA…';$('experimentState').textContent='ISHLAMOQDA';$('labStatus').textContent='RUNNING';
     try{
-      const result=calculate();$('resultPanel').innerHTML='<div class="result-empty"><span>◌</span><b>Hisoblash yakunlandi</b><small>Natija tayyorlanmoqda…</small></div>';
+      const result=calculate();await animateExperiment(state.mode);$('resultPanel').innerHTML='<div class="result-empty"><span>◌</span><b>Hisoblash yakunlandi</b><small>Natija tayyorlanmoqda…</small></div>';
       let saved={saved:false};try{saved=await persistExperiment(result);}catch(err){$('syncStatus').textContent='Server xatosi';saved={saved:false,reason:err.message};}
       const cards=result.metrics.join('');$('resultPanel').innerHTML='<h3 style="font-size:11px;margin:0 0 9px">'+result.title+'</h3><div class="metric-grid">'+cards+'</div><p class="result-note">'+result.note+'</p><p class="result-note"><strong>'+(saved.saved?'✓ MedGen hisobiga saqlandi':'! Server sinxronlashuvi bajarilmadi')+'</strong> · '+(saved.saved?'ID: '+escapeHtml(saved.id):escapeHtml(saved.reason||'Natija lokal ko‘rinishda.'))+'</p>';
       state.runs++;$('runCount').textContent=state.runs;$('experimentState').textContent='YAKUNLANDI';$('labStatus').textContent='COMPLETED';addHistory(result.title,saved.saved?'Serverga saqlandi':'Lokal natija');if(state.mode==='pcr'||state.mode==='crispr')focusObject('dna');else if(state.mode==='cell')focusObject('cell');else focusObject('bioreactor');
