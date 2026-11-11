@@ -904,11 +904,20 @@ frame-ancestors 'none'">
           AutoDock Vina laboratoriyasi: 1HSG | ligand SMILES
         </p>
 
+        <label class="workspace-field-label" for="dockingTargetPreset">Tayyor nishon</label>
+        <select id="dockingTargetPreset" onchange="applyDiscoveryTargetPreset()">
+          <option value="1HSG">1HSG — OIV-1 proteazasi (avtomatik docking)</option>
+          <option value="8A27">8A27 — EGFR kinaza WT (avtomatik docking)</option>
+          <option value="1RTD">1RTD — OIV-1 revers transkriptaza (tadqiqot rejimi)</option>
+        </select>
+        <div class="docking-preset-buttons" aria-label="Tayyor dori SMILES shablonlari">
+          <button type="button" class="ghost small" data-discovery-ligand="indinavir">Indinavir</button>
+          <button type="button" class="ghost small" data-discovery-ligand="darunavir">Darunavir</button>
+          <button type="button" class="ghost small" data-discovery-ligand="aspirin">Aspirin</button>
+        </div>
+        <p id="dockingPresetNotice" class="muted">Tayyor dori shablonini tanlang yoki SMILES kiriting.</p>
         <label class="workspace-field-label" for="dockingInput">Docking uchun nishon va SMILES</label>
-        <input
-          id="dockingInput"
-          placeholder="1HSG | CCO"
-          aria-label="1HSG target va ligand SMILES">
+        <input id="dockingInput" placeholder="1HSG | CCO" aria-label="PDB nishoni va ligand SMILES">
 
         <details class="advanced-analysis hidden">
           <summary>Docking kirish ma’lumotlari</summary>
@@ -944,6 +953,11 @@ frame-ancestors 'none'">
           id="dockingResult"
           class="result">
         </pre>
+
+        <section id="dockingAdmetPanel" class="docking-admet-panel" hidden aria-label="Hisoblangan molekulyar xususiyatlar">
+          <h3>ADMET / Molekulyar xususiyatlar</h3>
+          <div class="docking-admet-grid"></div>
+        </section>
 
         <section class="docking-visual-panel" aria-label="Docking 3D ko‘rinishi">
           <h3>3D docking ko‘rinishi</h3>
