@@ -116,3 +116,10 @@ body.biotech-lab-viewport.zen-mode .topbar .zen-toggle{opacity:1;position:fixed;
 body.biotech-lab-viewport .left-rail,body.biotech-lab-viewport .right-panel{transition:transform .3s ease,opacity .3s ease;will-change:transform,opacity}
 body.biotech-lab-viewport .lab3d{background:#070b12}
 body.biotech-lab-viewport .lab3d canvas{touch-action:none}
+
+
+/* Zoom HUD and multi-touch camera gestures. */
+body.biotech-lab-viewport .lab3d,body.biotech-lab-viewport .lab3d canvas{touch-action:none!important;overscroll-behavior:contain}
+.lab-zoom-controls{position:absolute;right:18px;bottom:18px;z-index:8;display:flex;flex-direction:column;gap:7px}
+.lab-zoom-controls button{width:40px;height:40px;border:1px solid #38bdf8;border-radius:9px;background:rgba(15,23,42,.88);color:#fff;font-size:22px;line-height:1;cursor:pointer;box-shadow:0 4px 16px rgba(0,0,0,.28)}
+.lab-zoom-controls button:active{transform:scale(.94);background:#164e63}
