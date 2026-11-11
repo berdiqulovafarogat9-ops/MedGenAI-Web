@@ -247,6 +247,8 @@ def create_hiv_router(
     target_dir: Path,
     jobs_store: dict | None = None,
     save_state: Callable | None = None,
+    persist_completed: Callable | None = None,
+    list_completed: Callable | None = None,
 ) -> APIRouter:
     router = APIRouter(prefix="/api/v1/hiv-lab", tags=["HIV Drug Discovery"])
 
@@ -266,12 +268,7 @@ def create_hiv_router(
 
     def _persist_jobs():
         if callable(save_state):
-            try:
-                save_state()
-            except Exception:
-                # A completed scientific calculation remains visible in-process;
-                # persistence errors are recorded without crashing the worker.
-                pass
+            save_state()
 
     @router.post("/docking/jobs")
     def create_docking_job(payload: LigandRequest, user=Depends(get_current_user)):
@@ -288,11 +285,16 @@ def create_hiv_router(
                     detail="Docking navbati to'la. Bir oz kutib, qayta urinib ko'ring.",
                 )
             job_store[job_id] = {
-                "job_id": job_id, "status": "queued", "user": user["username"],
+                "job_id": job_id, "status": "queued", "user": user["username"], "user_id": str(user["user_id"]),
                 "created_at": datetime.now(timezone.utc).isoformat(),
                 "target_pdb": payload.target_pdb.upper(), "ligand_name": payload.name,
             }
-        _persist_jobs()
+        try:
+            _persist_jobs()
+        except Exception:
+            with job_lock:
+                job_store.pop(job_id, None)
+            raise
 
         def _worker():
             with job_lock:
@@ -301,13 +303,16 @@ def create_hiv_router(
                     return
                 job["status"] = "running"
                 job["started_at"] = datetime.now(timezone.utc).isoformat()
-            _persist_jobs()
             try:
+                _persist_jobs()
                 result = analyze_hiv_ligand(payload, user)
                 serialized = result.model_dump() if hasattr(result, "model_dump") else result.dict()
+                if callable(persist_completed):
+                    persist_completed(user=user, payload=payload, result=serialized, job_id=job_id)
                 with job_lock:
                     job["result"] = serialized
                     job["status"] = "completed"
+                    job["persistence_status"] = "saved" if callable(persist_completed) else "not_configured"
                     job["completed_at"] = datetime.now(timezone.utc).isoformat()
             except HTTPException as exc:
                 with job_lock:
@@ -317,7 +322,7 @@ def create_hiv_router(
             except Exception as exc:
                 with job_lock:
                     job["status"] = "failed"
-                    job["error"] = f"Docking worker xatosi: {type(exc).__name__}"
+                    job["error"] = f"Docking yoki PostgreSQL persistence xatosi: {type(exc).__name__}"
                     job["completed_at"] = datetime.now(timezone.utc).isoformat()
             _persist_jobs()
 
@@ -330,9 +335,18 @@ def create_hiv_router(
         job = job_store.get(job_id)
         if not job:
             raise HTTPException(status_code=404, detail="Docking job topilmadi.")
-        if job.get("user") != user.get("username") and str(user.get("role", "")).upper() != "SUPER_ADMIN":
+        if job.get("user_id") != str(user.get("user_id")) and str(user.get("role", "")).upper() != "SUPER_ADMIN":
             raise HTTPException(status_code=403, detail="Bu docking vazifasiga ruxsat yo'q.")
-        return {k: v for k, v in job.items() if k != "user"}
+        return {k: v for k, v in job.items() if k not in {"user", "user_id"}}
+
+    @router.get("/docking/history")
+    def get_docking_history(limit: int = 20, user=Depends(get_current_user)):
+        role_guard(user)
+        if not 1 <= limit <= 100:
+            raise HTTPException(status_code=400, detail="Limit 1 dan 100 gacha bo‘lishi kerak.")
+        if not callable(list_completed):
+            raise HTTPException(status_code=503, detail="Docking history persistence sozlanmagan.")
+        return {"items": list_completed(user=user, limit=limit)}
 
     @router.post("/docking", response_model=DockingResult)
     def analyze_hiv_ligand(payload: LigandRequest, user=Depends(get_current_user)):
