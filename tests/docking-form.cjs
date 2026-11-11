@@ -21,6 +21,8 @@ vm.runInContext("const $=id=>document.getElementById(id);const api=window.testAp
   assert.equal(calls[0].body.target_pdb,'1HSG');
   assert.equal(calls[0].body.smiles,'CCO');
   assert.equal(pollCount,1,'job state should be polled');
+  assert.equal(w.renderedDockingPose.target_pdb,'1HSG');
+  assert.ok(w.renderedDockingPose.best_pose_pdb,'best ligand pose should reach the 3D renderer');
   assert.match(w.document.getElementById('dockingResult').textContent,/−?8\.250 kcal\/mol/);
   assert.match(w.document.getElementById('dockingResult').textContent,/polar kontaktlar/i);
   assert.equal(w.document.getElementById('dockingRun').disabled,false);
