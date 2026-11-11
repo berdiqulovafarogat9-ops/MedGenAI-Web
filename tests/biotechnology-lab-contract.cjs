@@ -22,6 +22,17 @@ assert.match(js, /educational_only:true/, 'saved results must be labelled educat
 assert.match(js, /genome_editing_performed:false/, 'CRISPR demo must not claim to edit a genome');
 assert.match(index, /data-module="Biotechnology 3D Lab"/, 'dashboard entry is missing');
 assert.match(index, /'Biotechnology 3D Lab'/, 'role-aware module registry is missing');
+for (const role of ['student', 'researcher', 'professor', 'lab', 'biotech', 'pharma', 'bioinformatician', 'company']) {
+  const start = index.indexOf(role + ':[');
+  const end = start < 0 ? -1 : index.indexOf(']', start);
+  assert.ok(start >= 0 && end > start && index.slice(start, end).includes("'Biotechnology 3D Lab'"), role + ' role cannot see the biotechnology lab');
+}
+const medgenRolesStart = app.indexOf('const MEDGEN_ROLES');
+for (const role of ['student', 'researcher', 'professor', 'lab', 'biotech', 'pharma', 'bioinformatician', 'company']) {
+  const start = app.indexOf(role + ':{', medgenRolesStart);
+  const end = start < 0 ? -1 : app.indexOf('},', start);
+  assert.ok(start >= 0 && end > start && app.slice(start, end).includes("'Biotechnology 3D Lab'"), 'app role registry missing biotechnology lab for ' + role);
+}
 assert.match(app, /window\.location\.assign\('\/biotechnology-lab\.html'\)/, 'module routing is missing');
 for (const asset of ['biotechnology-lab.html', 'biotechnology-lab.js', 'biotechnology-lab.css']) {
   assert.ok(docker.includes(asset), 'Docker image does not include ' + asset);
