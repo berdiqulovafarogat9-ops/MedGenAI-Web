@@ -8245,6 +8245,27 @@ def _persist_scientific_docking_job(*, user, payload, result, job_id):
     except Exception as exc:
         raise RuntimeError("scientific_docking_jobs jadvaliga saqlash amalga oshmadi.") from exc
 
+
+def _list_scientific_docking_jobs(*, user, limit=20):
+    if not PERSISTENCE_ENABLED:
+        raise HTTPException(status_code=503, detail="PostgreSQL persistence is not configured.")
+    try:
+        owner_id = str(uuid.UUID(str(user.get("user_id") or "")))
+        with psycopg.connect(DATABASE_URL) as conn:
+            conn.execute("SELECT set_config('app.user_id', %s, true)", (owner_id,))
+            rows = conn.execute(
+                """SELECT job_id,target_pdb,target_name,ligand_name,binding_affinity_kcal_mol,
+                          hbonds_count,lipinski_violations,result_data,created_at
+                   FROM scientific_docking_jobs WHERE user_id=%s::uuid
+                   ORDER BY created_at DESC LIMIT %s""",
+                (owner_id, int(limit))
+            ).fetchall()
+        return [{"job_id":r[0],"target_pdb":r[1],"target_name":r[2],"ligand_name":r[3],
+                 "affinity_kcal_mol":r[4],"hydrogen_bond_count":r[5],"lipinski_violations":r[6],
+                 "result":r[7],"created_at":r[8].isoformat() if r[8] else None} for r in rows]
+    except Exception as exc:
+        raise HTTPException(status_code=503, detail="Docking history bazadan olinmadi.") from exc
+
 # =========================================================
 # MEDGEN DRUG DISCOVERY — CURATED TARGETS + RDKit/Meeko PREP
 # =========================================================
@@ -8342,4 +8363,5 @@ app.include_router(create_hiv_router(
     jobs_store=docking_jobs_store,
     save_state=_db_save,
     persist_completed=_persist_scientific_docking_job,
+    list_completed=_list_scientific_docking_jobs,
 ))
