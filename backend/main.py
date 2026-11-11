@@ -8361,6 +8361,8 @@ def drug_discovery_receptor(target_id: str, user=Depends(get_current_user)):
     _require_drug_discovery_role(user)
     try:
         target = get_target(target_id)
+        if target.get("pdb_id") != "1HSG":
+            raise HTTPException(status_code=409, detail="EGFR/KRAS receptor preparation experimental rejimda; standart docking faqat 1HSG.")
         pdbqt = get_or_prepare_receptor(target["pdb_id"])
     except KeyError:
         raise HTTPException(status_code=404, detail="Target katalogda topilmadi.")
