@@ -1,0 +1,69 @@
+<!doctype html>
+<html lang="uz">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<meta name="theme-color" content="#071522">
+<title>MedGen AI — Biotechnology 3D Virtual Lab</title>
+<link rel="stylesheet" href="/biotechnology-lab.css?v=20261111-01">
+<script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/0.160.0/three.min.js" defer></script>
+<script src="/biotechnology-lab.js?v=20261111-01" defer></script>
+</head>
+<body>
+<header class="topbar">
+  <a class="brand" href="/"><span class="brand-mark">M</span><span>MEDGEN <b>AI</b><small>BIOTECHNOLOGY DIVISION</small></span></a>
+  <div class="top-actions"><span class="live-dot">3D LAB ONLINE</span><a class="back-link" href="/">← Platformaga qaytish</a></div>
+</header>
+<main class="lab-shell">
+  <section class="hero">
+    <div><p class="eyebrow">VIRTUAL SCIENCE ENVIRONMENT · PHASE 2</p><h1>Biotechnology <em>Virtual Lab</em></h1><p class="hero-copy">3D laboratoriya muhitida tajriba jarayonlarini boshqaring, parametrlarni o‘zgartiring va hisoblangan natijalarni ilmiy izoh bilan oling.</p></div>
+    <div class="hero-stats"><div><b id="labStatus">READY</b><span>LAB STATUS</span></div><div><b>3D</b><span>INTERACTIVE SPACE</span></div><div><b id="runCount">0</b><span>SESSIONS</span></div></div>
+  </section>
+
+  <div class="lab-layout">
+    <aside class="left-rail">
+      <div class="rail-heading">LABORATORY MODULES</div>
+      <button class="module-choice active" data-experiment="pcr"><span>🧬</span><span><b>PCR & Genomika</b><small>Ketma-ketlik tahlili</small></span><i>›</i></button>
+      <button class="module-choice" data-experiment="cell"><span>🧫</span><span><b>Hujayra kulturasi</b><small>O‘sish muhiti modeli</small></span><i>›</i></button>
+      <button class="module-choice" data-experiment="bioreactor"><span>⚗️</span><span><b>Bioreaktor</b><small>Fermentatsiya modeli</small></span><i>›</i></button>
+      <button class="module-choice" data-experiment="crispr"><span>✂️</span><span><b>CRISPR-Cas9</b><small>Gen tahrirlash konsepti</small></span><i>›</i></button>
+      <div class="rail-note"><b>Ilmiy aniqlik</b><p>Bu versiya o‘quv va hisoblash simulyatsiyasidir. Natijalar real laboratoriya o‘lchovi, klinik xulosa yoki biologik samaradorlik kafolati emas.</p></div>
+    </aside>
+
+    <section class="center-stage">
+      <div class="stage-toolbar"><div><span class="live-dot"></span><b>MAIN LAB · 3D SCENE</b><small id="sceneHint">Obyektni tanlash uchun ustiga bosing</small></div><div class="scene-tools"><button id="resetView" title="Kamerani tiklash">↺ View</button><button id="toggleLabels" title="Yorliqlar">Labels</button></div></div>
+      <div id="lab3d" class="lab3d" aria-label="Interaktiv uch o‘lchamli biotexnologiya laboratoriyasi">
+        <div id="sceneLoading" class="scene-loading"><span class="loader"></span><b>3D laboratoriya yuklanmoqda…</b><small>Three.js WebGL renderer</small></div>
+        <div class="scene-crosshair">MEDGEN / 3D SPACE</div>
+        <div class="scene-compass">N</div>
+      </div>
+      <div class="scene-legend"><span><i class="legend-dot cyan"></i> Tanlanadigan jihoz</span><span><i class="legend-dot green"></i> Faol jarayon</span><span><i class="legend-dot amber"></i> Kiritish / sozlash</span><span id="selectedObject">Tanlangan: laboratoriya</span></div>
+      <div class="equipment-strip">
+        <button data-focus="microscope">🔬 Mikroskop</button><button data-focus="pipette">🧪 Pipetka</button><button data-focus="plate">▦ Mikroplastinka</button><button data-focus="bioreactor">⚗️ Bioreaktor</button><button data-focus="cell">🧬 Hujayra modeli</button>
+      </div>
+    </section>
+
+    <aside class="right-panel">
+      <div class="panel-head"><div><p class="eyebrow">EXPERIMENT CONTROL</p><h2 id="experimentTitle">PCR & Genomika</h2></div><span class="state-pill" id="experimentState">TAYYOR</span></div>
+      <p class="panel-description" id="experimentDescription">DNK ketma-ketligini tekshiring, GC tarkibini hisoblang va PCR sikllarining nazariy ko‘payish modelini ko‘ring.</p>
+      <div id="controls" class="controls">
+        <label class="field-label" for="sequenceInput">DNK ketma-ketligi (5′ → 3′)</label>
+        <textarea id="sequenceInput" rows="4" spellcheck="false">ATGCGTACGTAGCTAGCTAGGCTAACGTTAGCGATCGTACGATCG</textarea>
+        <div class="field-row"><label>Sikl soni<input id="pcrCycles" type="number" min="1" max="40" value="30"></label><label>Denaturatsiya °C<input type="number" value="95" disabled></label></div>
+        <div class="control-hint">Ketma-ketlik A, T, G, C harflaridan iborat bo‘lishi kerak. Hisob nazariy modelga asoslanadi.</div>
+      </div>
+      <div class="run-row"><button id="runExperiment" class="run-button">▶ TAJRIBANI ISHGA TUSHIRISH</button><button id="resetExperiment" class="reset-button" title="Parametrlarni tiklash">↺</button></div>
+      <div id="resultPanel" class="result-panel"><div class="result-empty"><span>◎</span><b>Natija kutilmoqda</b><small>Parametrlarni tekshirib, tajribani ishga tushiring.</small></div></div>
+      <div class="panel-foot"><span>🔒 Hisobingiz bilan sinxronlash</span><b id="syncStatus">Kutilmoqda</b></div>
+    </aside>
+  </div>
+
+  <section class="lower-grid">
+    <article class="info-card"><div class="card-icon">📋</div><div><p class="eyebrow">PROTOCOL</p><h3 id="protocolTitle">PCR ish jarayoni</h3><ol id="protocolSteps"><li>DNK ketma-ketligini tekshirish</li><li>GC tarkibi va uzunligini hisoblash</li><li>Sikl bo‘yicha nazariy amplifikatsiyani baholash</li><li>Natijani ilmiy hisobotga saqlash</li></ol></div></article>
+    <article class="info-card"><div class="card-icon">🧠</div><div><p class="eyebrow">AI SCIENTIST NOTE</p><h3>Natijani to‘g‘ri talqin qiling</h3><p id="scientistNote">PCR nazariy nusxa soni real amplifikatsiya samaradorligiga teng emas. Primerlar, ferment, reagentlar va sikl sharoitlari natijaga ta’sir qiladi.</p></div></article>
+    <article class="info-card"><div class="card-icon">🗂️</div><div><p class="eyebrow">EXPERIMENT HISTORY</p><h3>Oxirgi sessiyalar</h3><div id="historyList" class="history-list"><span>Hali tajriba bajarilmadi.</span></div></div></article>
+  </section>
+  <footer>MedGen AI · Biotechnology Virtual Lab · Educational computational simulation · v0.1</footer>
+</main>
+</body>
+</html>
