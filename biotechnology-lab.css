@@ -130,3 +130,9 @@ body.biotech-lab-viewport .lab3d canvas{z-index:1;pointer-events:auto!important;
 body.biotech-lab-viewport .scene-crosshair,body.biotech-lab-viewport .scene-compass,body.biotech-lab-viewport .scene-loading{pointer-events:none}
 body.biotech-lab-viewport .lab-zoom-controls{z-index:20;pointer-events:none}
 body.biotech-lab-viewport .lab-zoom-controls button{pointer-events:auto;touch-action:manipulation}
+
+
+/* FOCUS MODE: no room, floor, walls, shared bench, or decorative equipment rail. */
+body.biotech-lab-viewport .scene-legend,body.biotech-lab-viewport .equipment-strip{display:none!important}
+body.biotech-lab-viewport .lab3d{background:#05080e;border:0;border-radius:0}
+body.biotech-lab-viewport .lab3d canvas{background:transparent}
