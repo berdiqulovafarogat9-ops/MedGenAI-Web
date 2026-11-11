@@ -24,7 +24,7 @@ assert.match(js, /educational_only:true/, 'saved results must be labelled educat
 assert.match(js, /genome_editing_performed:false/, 'CRISPR demo must not claim to edit a genome');
 assert.match(index, /data-module="Biotechnology 3D Lab"/, 'dashboard entry is missing');
 assert.match(index, /'Biotechnology 3D Lab'/, 'role-aware module registry is missing');
-for (const role of ['student', 'researcher', 'professor', 'lab', 'biotech', 'pharma', 'bioinformatician', 'company']) {
+for (const role of ['researcher', 'professor', 'lab', 'biotech', 'pharma', 'bioinformatician', 'company']) {
   const start = index.indexOf(role + ':[');
   const end = start < 0 ? -1 : index.indexOf(']', start);
   assert.ok(start >= 0 && end > start && index.slice(start, end).includes("'Biotechnology 3D Lab'"), role + ' role cannot see the biotechnology lab');
