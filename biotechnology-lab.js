@@ -17,9 +17,9 @@
     const host=$('lab3d');
     if(!window.THREE){$('sceneLoading').innerHTML='<b>3D kutubxona yuklanmadi</b><small>Internet ulanishini tekshirib sahifani yangilang.</small>';return;}
     const T=window.THREE, scene=new T.Scene(); scene.background=new T.Color(0x070b12); scene.fog=new T.Fog(0x070b12,15,30);
-    const camera=new T.PerspectiveCamera(68,host.clientWidth/host.clientHeight,.1,100);camera.position.set(0,2.2,3.4);
+    const camera=new T.PerspectiveCamera(68,host.clientWidth/host.clientHeight,.1,100);camera.position.set(0,2.4,3.8);
     const renderer=new T.WebGLRenderer({antialias:true,alpha:false});renderer.setPixelRatio(Math.min(devicePixelRatio||1,2));renderer.setSize(host.clientWidth,host.clientHeight);renderer.shadowMap.enabled=true;renderer.shadowMap.type=T.PCFSoftShadowMap;if('outputColorSpace' in renderer && T.SRGBColorSpace)renderer.outputColorSpace=T.SRGBColorSpace;else if('outputEncoding' in renderer && T.sRGBEncoding)renderer.outputEncoding=T.sRGBEncoding;renderer.toneMapping=T.ACESFilmicToneMapping;renderer.toneMappingExposure=1.08;host.prepend(renderer.domElement);
-    const initialRadius=Math.sqrt(3.4*3.4+1.6*1.6);const controls={target:new T.Vector3(0,.6,0),drag:false,x:0,y:0,theta:0,phi:Math.acos(1.6/initialRadius),radius:initialRadius,minDistance:1.8,maxDistance:5.5,maxPolarAngle:Math.PI/2.05};
+    const initialRadius=Math.sqrt(3.8*3.8+(2.4-.65)*(2.4-.65));const controls={target:new T.Vector3(0,.65,0),drag:false,x:0,y:0,theta:0,phi:Math.acos((2.4-.65)/initialRadius),radius:initialRadius,minDistance:1.8,maxDistance:5.5,maxPolarAngle:Math.PI/2.05};
     const ambient=new T.AmbientLight(0x38bdf8,.42);scene.add(ambient);
     const hemi=new T.HemisphereLight(0x9bdcf5,0x101a2b,.62);scene.add(hemi);
     const key=new T.DirectionalLight(0xeaf7ff,2.15);key.position.set(5,10,6);key.castShadow=true;key.shadow.mapSize.set(1536,1536);scene.add(key);
@@ -44,12 +44,12 @@
     const pip=box('pipette',.2,.24,1.2,-1.2,2.0,.5,blue,true);pip.rotation.x=-.2;pip.rotation.z=-.12;
     cylinder('pipette-button',.13,.13,.18,-1.2,2.22,.5,gold);
     const tip=cylinder('pipette-tip',.015,.11,.6,-1.2,1.57,.5,mat(0xb8e8ed,.1,.2,true,.65),false,20);tip.rotation.z=Math.PI;
-    const pcrGroup=new T.Group();pcrGroup.position.set(-.75,1.21,.25);pcrGroup.userData={name:'pcr',selectable:true};scene.add(pcrGroup);state.objects.pcr=pcrGroup;
+    const pcrGroup=new T.Group();pcrGroup.position.set(-1.0,1.19,.3);pcrGroup.userData={name:'pcr',selectable:true};scene.add(pcrGroup);state.objects.pcr=pcrGroup;
     const pcrParts=scene.children.filter(o=>o===state.objects.plate||o===state.objects.pipette||['pipette-button','pipette-tip','well'].includes(o.userData?.name)||o.userData?.parentName==='plate');
     pcrParts.forEach(o=>{scene.remove(o);o.position.x+=1.1;o.position.y-=1.19;o.position.z-=.4;pcrGroup.add(o);});
     state.objects.plate.userData.parentName='pcr';state.objects.pipette.userData.parentName='pcr';
     // Recognizable compound microscope: foot, upright arm, stage, tube and objectives.
-    const microscope=new T.Group();microscope.position.set(.75,1.27,.25);microscope.userData={name:'microscope',selectable:true};scene.add(microscope);state.objects.microscope=microscope;
+    const microscope=new T.Group();microscope.position.set(1.0,1.27,.3);microscope.userData={name:'microscope',selectable:true};scene.add(microscope);state.objects.microscope=microscope;
     function part(parent,geometry,material,x,y,z,rz=0){const m=new T.Mesh(geometry,material);m.position.set(x,y,z);m.rotation.z=rz;m.castShadow=true;m.receiveShadow=true;parent.add(m);return m;}
     part(microscope,new T.BoxGeometry(1.35,.16,.78),dark,0,0,0);
     part(microscope,new T.BoxGeometry(.18,.92,.22),steel,-.42,.52,-.12,-.12);
@@ -64,7 +64,7 @@
     part(microscope,new T.CylinderGeometry(.11,.11,.28,24),steel,-.08,1.72,-.12,-.48);
     part(microscope,new T.CylinderGeometry(.14,.14,.08,24),dark,-.08,1.87,-.12,-.48);
     // Procedural stirred-tank bioreactor: transparent glass vessel, cyan culture medium and metal drive head.
-    const reactorGroup=new T.Group();reactorGroup.position.set(0,1.18,-.25);reactorGroup.userData={name:'bioreactor',selectable:true};scene.add(reactorGroup);state.objects.bioreactor=reactorGroup;state.vessel=reactorGroup;
+    const reactorGroup=new T.Group();reactorGroup.position.set(0,1.18,0);reactorGroup.userData={name:'bioreactor',selectable:true};scene.add(reactorGroup);state.objects.bioreactor=reactorGroup;state.vessel=reactorGroup;
     const reactorGlass=new T.MeshStandardMaterial({color:0x9cecf4,metalness:.08,roughness:.12,transparent:true,opacity:.4,side:T.DoubleSide,depthWrite:false});
     const jacketGlass=new T.MeshStandardMaterial({color:0x3aa9bf,metalness:.22,roughness:.2,transparent:true,opacity:.16,side:T.DoubleSide,depthWrite:false});
     // Double-wall cylindrical glass body with rounded lower vessel.
@@ -90,7 +90,7 @@
     part(reactorGroup,new T.BoxGeometry(.27,.21,.025),green,.55,1.3,.44);
     for(let i=0;i<5;i++){const bubble=new T.Mesh(new T.SphereGeometry(.032,10,8),new T.MeshStandardMaterial({color:0xc6fbff,emissive:0x1b8795,transparent:true,opacity:.78}));bubble.position.set(Math.sin(i*2.1)*.25,.28+(i%3)*.17,Math.cos(i*1.7)*.25);reactorGroup.add(bubble);state.bubbles.push(bubble);}
     // Teaching cell cross-section: membrane, cytoplasm, nucleus and organelles.
-    const cellGroup=new T.Group();cellGroup.position.set(1.15,1.715,-.2);cellGroup.scale.set(.5,.5,.5);cellGroup.userData={name:'cell',selectable:true};scene.add(cellGroup);state.objects.cell=cellGroup;
+    const cellGroup=new T.Group();cellGroup.position.set(1.5,1.715,-.4);cellGroup.scale.set(.5,.5,.5);cellGroup.userData={name:'cell',selectable:true};scene.add(cellGroup);state.objects.cell=cellGroup;
     const membrane=new T.Mesh(new T.SphereGeometry(1.05,40,32),mat(0x38bdf8,.18,.24,true,.22));membrane.scale.set(1.35,.9,.85);membrane.castShadow=true;cellGroup.add(membrane);
     const membraneEdge=new T.Mesh(new T.SphereGeometry(1.055,40,32),new T.MeshBasicMaterial({color:0x4dd9e8,wireframe:true,transparent:true,opacity:.22}));membraneEdge.scale.copy(membrane.scale);cellGroup.add(membraneEdge);
     const cytoplasm=new T.Mesh(new T.SphereGeometry(.82,32,24),mat(0x1c7f8a,.05,.5,true,.2));cytoplasm.scale.set(1.3,.82,.82);cellGroup.add(cytoplasm);
@@ -98,13 +98,13 @@
     const nucleolus=new T.Mesh(new T.SphereGeometry(.15,20,16),mat(0xe9bd70));nucleolus.position.set(.2,.12,.36);cellGroup.add(nucleolus);
     function makeMitochondrion(material){if(typeof T.CapsuleGeometry==='function')return new T.Mesh(new T.CapsuleGeometry(.075,.22,4,10),material);const g=new T.Group();const shaft=new T.Mesh(new T.CylinderGeometry(.075,.075,.22,12),material);g.add(shaft);for(const y of [-.11,.11]){const cap=new T.Mesh(new T.SphereGeometry(.075,12,10),material);cap.position.y=y;g.add(cap);}return g;}for(let i=0;i<7;i++){const mito=makeMitochondrion(mat(i%2?0x58c995:0xe5a96b));const a=i*2.4;mito.scale.set(1.4,.65,.75);mito.position.set(Math.cos(a)*.78,Math.sin(a)*.45,Math.sin(a*1.7)*.4);mito.rotation.z=a;cellGroup.add(mito);}
     // DNA double helix display stand
-    const dnaGroup=new T.Group();dnaGroup.position.set(-1.3,1.19,0);dnaGroup.scale.set(.7,.7,.7);scene.add(dnaGroup);state.objects.dna=dnaGroup;dnaGroup.userData={name:'dna',selectable:true};
+    const dnaGroup=new T.Group();dnaGroup.position.set(-1.6,1.19,-.4);dnaGroup.scale.set(.7,.7,.7);scene.add(dnaGroup);state.objects.dna=dnaGroup;dnaGroup.userData={name:'dna',selectable:true};
     for(let i=0;i<32;i++){const y=i*.105;const a=i*.42;for(const sign of [-1,1]){const bead=new T.Mesh(new T.SphereGeometry(.075,12,10),sign<0?blue:green);bead.position.set(Math.cos(a+Math.PI*(sign>0))*0.48,y,Math.sin(a+Math.PI*(sign>0))*.48);dnaGroup.add(bead);}const rung=new T.Mesh(new T.CylinderGeometry(.025,.025,.72,8),gold);rung.position.y=y;rung.rotation.z=Math.PI/2;dnaGroup.add(rung);}
     const dnaStand=cylinder('dna-stand',.42,.42,.12,-1.3,1.26,0,steel);scene.remove(dnaStand);dnaStand.position.set(0,.07,0);dnaGroup.add(dnaStand);
     // Overhead light panels
     for(let x of [-3,0,3]){const light=box('ceiling-light',1.8,.05,.55,x,6.1,-2.7,mat(0x9beeff,.1,.2));const glow=new T.PointLight(0x70dce8,8,8);glow.position.set(x,5.7,-2.5);scene.add(glow);}
     // Equipment labels as canvas sprites
-    function label(text,parent,x,y,z,module){const c=document.createElement('canvas');c.width=256;c.height=64;const ctx=c.getContext('2d');ctx.fillStyle='rgba(5,20,30,.88)';ctx.strokeStyle='#3e9bad';ctx.lineWidth=2;ctx.beginPath();ctx.roundRect(2,2,252,60,12);ctx.fill();ctx.stroke();ctx.font='bold 22px Arial';ctx.fillStyle='#c7edf2';ctx.textAlign='center';ctx.fillText(text,128,40);const tex=new T.CanvasTexture(c);const sprite=new T.Sprite(new T.SpriteMaterial({map:tex,transparent:true,depthWrite:false,depthTest:false}));sprite.scale.set(1.5,.38,1);sprite.position.set(x,.5/(parent.scale?.y||1),z);sprite.userData.label=true;sprite.userData.module=module||'';parent.add(sprite);state.labels.push(sprite);return sprite;}
+    function label(text,parent,x,y,z,module){const c=document.createElement('canvas');c.width=512;c.height=96;const ctx=c.getContext('2d');ctx.fillStyle='rgba(15,23,42,.92)';ctx.strokeStyle='#38bdf8';ctx.lineWidth=3;ctx.beginPath();ctx.roundRect(3,3,506,90,14);ctx.fill();ctx.stroke();ctx.font='700 28px Arial';ctx.fillStyle='#ffffff';ctx.textAlign='center';ctx.letterSpacing='0.5px';ctx.shadowColor='rgba(0,0,0,.6)';ctx.shadowBlur=8;ctx.shadowOffsetY=2;ctx.fillText(text,256,59);const tex=new T.CanvasTexture(c);const sprite=new T.Sprite(new T.SpriteMaterial({map:tex,transparent:true,depthWrite:false,depthTest:false}));sprite.scale.set(1.65,.31,1);const topByModule={pcr:1.03,microscope:1.91,bioreactor:2.36,cell:1.05,crispr:2.35};const localTop=topByModule[module]??.5;sprite.position.set(x,(localTop+.75)/(parent.scale?.y||1),z);sprite.userData.label=true;sprite.userData.module=module||'';parent.add(sprite);state.labels.push(sprite);return sprite;}
     label('PCR MICROPLATE',pcrGroup,0,.5,0,'pcr');label('MICROSCOPE',microscope,0,.5,0,'microscope');label('BIOREACTOR',reactorGroup,0,.5,0,'bioreactor');label('CELL CULTURE',cellGroup,0,.5,0,'cell');label('DNA MODEL',dnaGroup,0,.5,0,'crispr');
     state.scene=scene;state.camera=camera;state.renderer=renderer;state.raycaster=new T.Raycaster();state.pointer=new T.Vector2();state.controls=controls;state.cellGroup=cellGroup;state.pcrGroup=pcrGroup;state.vessel=reactorGroup;state.dnaGroup=dnaGroup;
     $('sceneLoading').style.display='none';
@@ -234,7 +234,7 @@
     document.querySelectorAll('[data-focus]').forEach(b=>b.addEventListener('click',()=>focusObject(b.dataset.focus)));
     $('runExperiment').addEventListener('click',runExperiment);
     $('resetExperiment').addEventListener('click',()=>{showMode(state.mode);setSyncStatus('Kutilmoqda','idle');$('labStatus').textContent='READY';});
-    $('resetView').addEventListener('click',()=>{if(!state.controls)return;state.controls.target.set(0,.6,0);state.controls.theta=0;state.controls.phi=Math.acos(1.6/Math.sqrt(3.4*3.4+1.6*1.6));state.controls.radius=Math.sqrt(3.4*3.4+1.6*1.6);});
+    $('resetView').addEventListener('click',()=>{if(!state.controls)return;state.controls.target.set(0,.65,0);state.controls.theta=0;state.controls.phi=Math.acos(1.75/Math.sqrt(3.8*3.8+1.75*1.75));state.controls.radius=Math.sqrt(3.8*3.8+1.75*1.75);});
     $('toggleLabels').addEventListener('click',()=>{state.showLabels=!state.showLabels;syncActiveLabel(state.mode);});
     try{buildScene();}catch(error){console.error('Biotechnology 3D scene failed:',error);const detail=String(error?.message||error||'Noma’lum xato');$('sceneLoading').style.display='grid';$('sceneLoading').innerHTML='<b>3D sahna ishga tushmadi</b><small>'+escapeHtml(detail)+' · WebGL/GPU va Three.js mosligini tekshiring.</small>'; }showMode('pcr');
   }
