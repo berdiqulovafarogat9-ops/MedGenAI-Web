@@ -21,7 +21,7 @@ HIV_TARGETS = {
         "name": "HIV-1 Protease (homodimer)",
         "resolution": "2.00 Å",
         "active_site": ["ASP25 (Chain A)", "ASP25 (Chain B)", "GLY27", "ILE50"],
-        "co_crystal_ligand": "MK1 (L-735,524)",
+        "co_crystal_ligand": "MK1",
         "docking_enabled": True,
         "scientific_note": "X-ray structure of HIV-1 protease with co-crystallized inhibitor MK1.",
     },
