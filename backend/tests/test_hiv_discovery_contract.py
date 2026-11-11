@@ -3,7 +3,7 @@ from pathlib import Path
 
 import pytest
 
-from backend.hiv_discovery import HIV_TARGETS, _co_crystal_box, _pdbqt_to_pdb
+from backend.hiv_discovery import HIV_TARGETS, _co_crystal_box, _pdbqt_to_pdb, _verified_hydrogen_bonds
 
 
 def _hetatm(serial, atom, residue, x, y, z, altloc=" "):
@@ -69,3 +69,25 @@ def test_pdbqt_conversion_selects_only_first_docking_pose():
     pdb = _pdbqt_to_pdb("MODEL 1\n" + first + "ENDMDL\nMODEL 2\n" + second + "ENDMDL\n", first_model_only=True)
     assert "  1.000" in pdb
     assert " 99.000" not in pdb
+
+
+def _pdbqt_atom(serial, atom_name, residue, chain, x, y, z, atom_type):
+    return (
+        f"ATOM  {serial:5d} {atom_name:<4s} {residue:>3s} {chain}{1:4d}    "
+        f"{x:8.3f}{y:8.3f}{z:8.3f}{1.0:6.2f}{0.0:6.2f}    {0.0:6.3f} {atom_type}\n"
+    )
+
+
+def test_hydrogen_bonds_require_distance_and_donor_angle_geometry():
+    receptor = (
+        _pdbqt_atom(1, "ND1", "HIS", "A", 0.0, 0.0, 0.0, "N")
+        + _pdbqt_atom(2, "HD1", "HIS", "A", 1.0, 0.0, 0.0, "HD")
+    )
+    aligned_acceptor = _pdbqt_atom(3, "O1", "LIG", "L", 2.8, 0.0, 0.0, "OA")
+    bent_acceptor = _pdbqt_atom(3, "O1", "LIG", "L", 1.0, 2.0, 0.0, "OA")
+
+    aligned = _verified_hydrogen_bonds(receptor, aligned_acceptor)
+    bent = _verified_hydrogen_bonds(receptor, bent_acceptor)
+    assert len(aligned) == 1
+    assert aligned[0]["donor_hydrogen_acceptor_angle_degrees"] == 180.0
+    assert bent == []
