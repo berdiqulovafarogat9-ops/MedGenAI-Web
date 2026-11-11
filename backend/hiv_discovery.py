@@ -431,8 +431,10 @@ def create_hiv_router(
             engine="AutoDock Vina",
             warning=(
                 "Vina score — hisobiy docking natijasi, tajribada o'lchangan binding affinity emas. "
-                "Polar contact soni taxminiy N/O atom masofasi bo'yicha; haqiqiy vodorod bog'i "
-                "geometriyasi emas. 1HSG proteaza monomeri/dimer konteksti va receptor protonatsiyasi "
+                "Polar contact soni taxminiy N/O atom masofasi bo'yicha. Vodorod bog'lari PDBQT polar "
+                "gidrogenlari, donor-akseptor masofasi va D-H-A burchagi (>=120 daraja) bo'yicha geometrik "
+                "saralanadi; bu energetik yoki eksperimental tasdiq emas. 1HSG proteaza monomeri/dimer "
+                "konteksti va receptor protonatsiyasi "
                 "natijaga ta'sir qilishi mumkin; eksperimental validatsiya talab etiladi."
             ),
         )
