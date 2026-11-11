@@ -15,6 +15,11 @@ from typing import Callable, List
 from fastapi import APIRouter, Depends, HTTPException
 from pydantic import BaseModel, Field
 
+try:
+    from .admet_pipeline import calculate_admet_descriptors
+except ImportError:
+    from admet_pipeline import calculate_admet_descriptors
+
 
 HIV_TARGETS = {
     "1HSG": {
@@ -79,6 +84,7 @@ class DockingResult(BaseModel):
     hydrogen_bonds: list
     polar_contacts_estimate: int | None
     lipinski: LipinskiReport
+    admet: dict
     scientific_summary: str
     docking_box: dict
     engine: str
@@ -374,6 +380,7 @@ def create_hiv_router(
                 mw=mw, logp=logp, hbd=hbd, hba=hba,
                 violations=int(violations), is_drug_like=bool(violations == 0),
             )
+            admet = calculate_admet_descriptors(payload.smiles)
         except ValueError as exc:
             raise HTTPException(status_code=422, detail=str(exc))
         except Exception as exc:
@@ -451,6 +458,7 @@ def create_hiv_router(
             hydrogen_bonds=hydrogen_bonds,
             polar_contacts_estimate=polar_contacts,
             lipinski=lipinski,
+            admet=admet,
             scientific_summary=summary,
             docking_box=grid,
             engine="AutoDock Vina",
