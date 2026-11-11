@@ -10,7 +10,7 @@ w.testApi=async(path,opts)=>{
   }};
 };
 w.setTimeout=(fn)=>{fn();return 1;};
-vm.runInContext("const $=id=>document.getElementById(id);const api=window.testApi;function renderResult(){};"+source.slice(start,end),dom.getInternalVMContext());
+vm.runInContext("const $=id=>document.getElementById(id);const api=window.testApi;function renderResult(){};function renderDockingPose(data){window.renderedDockingPose=data;};"+source.slice(start,end),dom.getInternalVMContext());
 (async()=>{
   w.document.getElementById('dockingInput').value='EGFR | CCO';
   await w.runDocking();assert.equal(calls.length,0,'unsupported targets must be rejected before submission');
