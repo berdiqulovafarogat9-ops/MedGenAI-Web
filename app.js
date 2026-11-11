@@ -3399,6 +3399,11 @@ function applyDiscoveryLigandPreset(presetId) {
   input.value = target + ' | ' + presets[presetId];
 }
 
+document.addEventListener('click', function(event) {
+  const button = event.target && event.target.closest ? event.target.closest('[data-discovery-ligand]') : null;
+  if (button) applyDiscoveryLigandPreset(button.getAttribute('data-discovery-ligand'));
+});
+
 function applyDiscoveryTargetPreset() {
   const input = $('dockingInput'); const target = $('dockingTargetPreset') ? $('dockingTargetPreset').value : '1HSG';
   if (!input) return;
