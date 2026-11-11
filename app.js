@@ -3287,41 +3287,70 @@ async function runDocking() {
   const input = $('dockingInput')?.value?.trim() || '';
   const status = $('dockingStatus');
   const result = $('dockingResult');
-  if (!input) { if(status) status.textContent='Target | ligand SMILES kiriting.'; return; }
-  const parts=input.split('|').map(x=>x.trim());
-  const target=parts[0]||'';
-  const ligand_smiles=parts[1]||'';
-  if(!target||!ligand_smiles){if(status)status.textContent='Format: Target | ligand SMILES';return;}
-  const receptor_pdbqt=$('dockingReceptor')?.value?.trim();
-  const ligand_pdbqt=$('dockingLigand')?.value?.trim();
-  if(!receptor_pdbqt||!ligand_pdbqt){if(status)status.textContent='Docking uchun prepared receptor va ligand PDBQT kerak.';return;}
-  const parameters = {};
-  for (const [key,id,min,max,integer] of [
-    ['center_x','dockingCenterX',-Infinity,Infinity,false], ['center_y','dockingCenterY',-Infinity,Infinity,false], ['center_z','dockingCenterZ',-Infinity,Infinity,false],
-    ['size_x','dockingSizeX',0.1,100,false], ['size_y','dockingSizeY',0.1,100,false], ['size_z','dockingSizeZ',0.1,100,false],
-    ['exhaustiveness','dockingExhaustiveness',1,64,true], ['n_poses','dockingPoses',1,20,true]
-  ]) {
-    const field = $(id), raw = field?.value?.trim(), value = Number(raw);
-    if (!raw || !Number.isFinite(value) || value < min || value > max || (integer && !Number.isInteger(value))) {
-      if(status)status.textContent='Docking parametrini to‘g‘ri kiriting: '+key;
-      field?.focus(); return;
-    }
-    parameters[key] = value;
+  const button = $('dockingRun');
+  if (!input) { if (status) status.textContent = '1HSG | ligand SMILES kiriting.'; return; }
+  const splitAt = input.indexOf('|');
+  if (splitAt < 0) { if (status) status.textContent = 'Format: 1HSG | CCO'; return; }
+  const target_pdb = input.slice(0, splitAt).trim().toUpperCase();
+  const smiles = input.slice(splitAt + 1).trim();
+  if (target_pdb !== '1HSG') {
+    if (status) status.textContent = 'Hozir avtomatik docking uchun faqat 1HSG (HIV-1 proteaza) validatsiya qilingan.';
+    return;
   }
-  if(result)result.textContent='';
-  const button=$('dockingRun'); if(button)button.disabled=true;
-  if(status)status.textContent='AutoDock Vina ishga tushmoqda...';
-  try{
-    const data=await api('/docking/run',{method:'POST',body:JSON.stringify({
-      target,ligand_smiles,receptor_pdbqt,ligand_pdbqt,
-      ...parameters
-    })});
-    renderResult(result,data);
-    if(status)status.textContent='Docking completed.';
-  }catch(error){if(status)status.textContent=error.message;}
-  finally{if(button)button.disabled=false;}
+  if (!smiles) { if (status) status.textContent = 'Ligand SMILES kiriting.'; return; }
+  if (result) result.textContent = '';
+  if (button) button.disabled = true;
+  if (status) status.textContent = 'Ligand tekshirilmoqda va docking vazifasi navbatga qo‘yilmoqda...';
+  try {
+    const created = await api('/hiv-lab/docking/jobs', {
+      method: 'POST',
+      body: JSON.stringify({
+        name: 'MedGen candidate',
+        smiles,
+        target_pdb,
+        exhaustiveness: 8,
+        n_poses: 5
+      })
+    });
+    const jobId = created?.job_id;
+    if (!jobId) throw new Error('Server docking job ID qaytarmadi.');
+    if (status) status.textContent = 'Vazifa navbatda. ID: ' + jobId;
+    const deadline = Date.now() + 15 * 60 * 1000;
+    while (Date.now() < deadline) {
+      await new Promise(resolve => setTimeout(resolve, 1800));
+      const job = await api('/hiv-lab/docking/jobs/' + encodeURIComponent(jobId));
+      if (job.status === 'queued') {
+        if (status) status.textContent = 'Docking navbatda...';
+        continue;
+      }
+      if (job.status === 'running') {
+        if (status) status.textContent = 'RDKit + Meeko + AutoDock Vina hisoblamoqda...';
+        continue;
+      }
+      if (job.status === 'failed') throw new Error(job.error || 'Docking bajarilmadi.');
+      if (job.status === 'completed') {
+        const data = job.result || {};
+        const summary = [
+          'AutoDock Vina — ' + (data.target_pdb || target_pdb),
+          'Eng yaxshi docking score (ΔG): ' + Number(data.affinity_kcal_mol).toFixed(3) + ' kcal/mol',
+          'Taxminiy polar kontaktlar: ' + (data.polar_contacts_estimate ?? 'hisoblanmadi'),
+          'Lipinski buzilishlari: ' + (data.lipinski?.violations ?? '—'),
+          '',
+          'Ilmiy izoh: polar kontaktlar haqiqiy vodorod bog‘lari sifatida tasdiqlanmagan.',
+          data.warning || ''
+        ].join('\n');
+        if (result) result.textContent = summary;
+        if (status) status.textContent = 'Docking yakunlandi. Natija hisobiy; eksperimental tasdiq emas.';
+        return;
+      }
+    }
+    throw new Error('Docking 15 daqiqada yakunlanmadi. Job ID: ' + jobId);
+  } catch (error) {
+    if (status) status.textContent = error.message;
+  } finally {
+    if (button) button.disabled = false;
+  }
 }
-
 
 /* =========================================================
    JOB STATUS
