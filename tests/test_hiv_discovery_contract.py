@@ -1,0 +1,45 @@
+"""Scientific contract tests for the HIV docking target and grid derivation."""
+from pathlib import Path
+
+import pytest
+
+from backend.hiv_discovery import HIV_TARGETS, _co_crystal_box
+
+
+def _hetatm(serial, atom, residue, x, y, z, altloc=" "):
+    return (
+        f"HETATM{serial:5d} {atom:<4s}{altloc}{residue:>3s} A{101:4d}    "
+        f"{x:8.3f}{y:8.3f}{z:8.3f}{1.00:6.2f}{20.00:6.2f}          C\n"
+    )
+
+
+def test_only_scientifically_supported_hiv_target_is_enabled():
+    assert HIV_TARGETS["1HSG"]["docking_enabled"] is True
+    assert HIV_TARGETS["1RTD"]["docking_enabled"] is False
+
+
+def test_grid_is_derived_from_co_crystal_ligand_coordinates(tmp_path):
+    pdb = tmp_path / "1HSG.raw.pdb"
+    lines = [
+        _hetatm(i + 1, "C1", "MK1", 10 + i, 20 + i * 0.5, -2 + i * 0.25)
+        for i in range(8)
+    ]
+    # An unrelated ligand must not contaminate the MK1 search box.
+    lines.append(_hetatm(99, "C1", "HOH", 999, 999, 999))
+    pdb.write_text("".join(lines), encoding="utf-8")
+
+    box = _co_crystal_box(pdb, "MK1")
+    assert box["ligand_atom_count"] == 8
+    assert box["center"] == [13.5, 21.75, -1.125]
+    assert box["derived_from"] == "RCSB 1HSG co-crystal ligand MK1"
+    assert all(20.0 <= size <= 30.0 for size in box["size"])
+
+
+def test_grid_ignores_non_primary_altloc_and_rejects_missing_ligand(tmp_path):
+    pdb = tmp_path / "missing.raw.pdb"
+    pdb.write_text(
+        "".join(_hetatm(i + 1, "C1", "MK1", i, i, i, altloc="B") for i in range(10)),
+        encoding="utf-8",
+    )
+    with pytest.raises(RuntimeError, match="co-crystal ligand"):
+        _co_crystal_box(pdb, "MK1")
