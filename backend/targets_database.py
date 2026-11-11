@@ -64,6 +64,10 @@ CANCER_HIV_TARGETS = {
 }
 
 
+# PDB-ID alias used by the Discovery Wing docking API.
+CANCER_HIV_TARGETS["8A27"] = deepcopy(CANCER_HIV_TARGETS["EGFR_KINASE_WT"])
+
+
 def get_target(target_id: str):
     key = str(target_id or "").strip().upper()
     if key not in CANCER_HIV_TARGETS:
