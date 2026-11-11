@@ -17,7 +17,7 @@
     if(!window.THREE){$('sceneLoading').innerHTML='<b>3D kutubxona yuklanmadi</b><small>Internet ulanishini tekshirib sahifani yangilang.</small>';return;}
     const T=window.THREE, scene=new T.Scene(); scene.background=new T.Color(0x081724); scene.fog=new T.Fog(0x081724,12,25);
     const camera=new T.PerspectiveCamera(42,host.clientWidth/host.clientHeight,.1,100);camera.position.set(8,6.5,10);
-    const renderer=new T.WebGLRenderer({antialias:true,alpha:false});renderer.setPixelRatio(Math.min(devicePixelRatio||1,2));renderer.setSize(host.clientWidth,host.clientHeight);renderer.shadowMap.enabled=true;renderer.shadowMap.type=T.PCFSoftShadowMap;renderer.outputColorSpace=T.SRGBColorSpace;renderer.toneMapping=T.ACESFilmicToneMapping;renderer.toneMappingExposure=1.25;host.prepend(renderer.domElement);
+    const renderer=new T.WebGLRenderer({antialias:true,alpha:false});renderer.setPixelRatio(Math.min(devicePixelRatio||1,2));renderer.setSize(host.clientWidth,host.clientHeight);renderer.shadowMap.enabled=true;renderer.shadowMap.type=T.PCFSoftShadowMap;if('outputColorSpace' in renderer && T.SRGBColorSpace)renderer.outputColorSpace=T.SRGBColorSpace;else if('outputEncoding' in renderer && T.sRGBEncoding)renderer.outputEncoding=T.sRGBEncoding;renderer.toneMapping=T.ACESFilmicToneMapping;renderer.toneMappingExposure=1.25;host.prepend(renderer.domElement);
     const controls={target:new T.Vector3(0,1.3,0),drag:false,x:0,y:0,theta:Math.atan2(8,10),phi:1.02,radius:14};
     const ambient=new T.HemisphereLight(0xb9e9ff,0x162434,2.1);scene.add(ambient);
     const key=new T.DirectionalLight(0xffffff,3.1);key.position.set(5,10,6);key.castShadow=true;key.shadow.mapSize.set(1024,1024);scene.add(key);
@@ -78,9 +78,6 @@
     function animate(){if(!state.renderer)return;requestAnimationFrame(animate);cellGroup.rotation.y+=.002;dnaGroup.rotation.y+=.0025;state.vessel.rotation.y+=.001;updateCamera();renderer.render(scene,camera);}
     function updateCamera(){const c=state.controls;c.phi=Math.max(.25,Math.min(1.48,c.phi));camera.position.set(c.target.x+c.radius*Math.sin(c.phi)*Math.sin(c.theta),c.target.y+c.radius*Math.cos(c.phi),c.target.z+c.radius*Math.sin(c.phi)*Math.cos(c.theta));camera.lookAt(c.target);}
   }
-  function onPointerDown(e){const c=state.controls;c.drag=true;c.x=e.clientX;c.y=e.clientY;state.renderer.domElement.setPointerCapture?.(e.pointerId);}
-  function onPointerMove(e){if(!state.controls?.drag)return;const c=state.controls,dx=e.clientX-c.x,dy=e.clientY-c.y;c.x=e.clientX;c.y=e.clientY;c.theta-=dx*.006;c.phi+=dy*.005;}
-  function onPointerUp(){if(state.controls)state.controls.drag=false;}
   function onWheel(e){e.preventDefault();state.controls.radius=Math.max(6,Math.min(20,state.controls.radius+e.deltaY*.012));}
   function resizeScene(){const h=$('lab3d');if(!state.renderer||!h)return;state.camera.aspect=h.clientWidth/h.clientHeight;state.camera.updateProjectionMatrix();state.renderer.setSize(h.clientWidth,h.clientHeight);}
   function focusObject(name){const obj=state.objects[name];if(!obj)return;state.selected=name;$('selectedObject').textContent='Tanlangan: '+({microscope:'mikroskop',pipette:'pipetka',plate:'mikroplastinka',bioreactor:'bioreaktor',cell:'hujayra modeli',dna:'DNK modeli'}[name]||name);$('sceneHint').textContent='Tanlangan obyekt: '+name;const c=state.controls;if(name==='cell'){c.target.set(4,2.1,0);c.radius=7;}else if(name==='dna'){c.target.set(-4,3, -1);c.radius=7;}else if(name==='bioreactor'){c.target.set(0,2,-1.4);c.radius=7;}else if(name==='microscope'){c.target.set(2.6,2,-.4);c.radius=7;}else if(name==='pipette'||name==='plate'){c.target.set(-.8,1.6,0);c.radius=7;} }
