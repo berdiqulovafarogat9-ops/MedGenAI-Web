@@ -230,7 +230,7 @@ def _co_crystal_box(pdb_path: Path, ligand_resname: str = "MK1") -> dict:
     return {
         "center": [round(v, 3) for v in center],
         "size": [round(v, 3) for v in size],
-        "derived_from": f"RCSB {pdb_path.stem} co-crystal ligand {ligand_resname}",
+        "derived_from": f"RCSB {pdb_path.stem.removesuffix('.raw')} co-crystal ligand {ligand_resname}",
         "ligand_atom_count": len(coords),
     }
 
