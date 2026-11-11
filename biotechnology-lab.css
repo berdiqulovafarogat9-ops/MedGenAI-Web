@@ -110,3 +110,9 @@ body.biotech-lab-viewport.zen-mode .topbar .zen-toggle{opacity:1;position:fixed;
  body.biotech-lab-viewport .zen-toggle{font-size:9px;padding:7px 9px}
  body.biotech-lab-viewport.zen-mode .topbar .zen-toggle{top:8px;right:8px}
 }
+
+
+/* Camera-safe dark contrast and reliable Zen dock transitions. */
+body.biotech-lab-viewport .left-rail,body.biotech-lab-viewport .right-panel{transition:transform .3s ease,opacity .3s ease;will-change:transform,opacity}
+body.biotech-lab-viewport .lab3d{background:#070b12}
+body.biotech-lab-viewport .lab3d canvas{touch-action:none}
