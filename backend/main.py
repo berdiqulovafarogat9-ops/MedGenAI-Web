@@ -7332,7 +7332,9 @@ def run_prepared_docking(data: PreparedDockingRequest, user=Depends(get_current_
         "size_y": validated_grid["size"][1], "size_z": validated_grid["size"][2],
     }
     normalized = data.model_copy(update=updates) if hasattr(data, "model_copy") else data.copy(update=updates)
-    return _execute_prepared_docking(normalized, user)
+    response = _execute_prepared_docking(normalized, user, persist=False)
+    _persist_prepared_docking_job(user=user, payload=normalized, response=response)
+    return response
 
 
 def _execute_prepared_docking(data: PreparedDockingRequest, user, *, persist=True):
@@ -8268,6 +8270,35 @@ def _persist_scientific_docking_job(*, user, payload, result, job_id):
     except Exception as exc:
         raise RuntimeError("scientific_docking_jobs jadvaliga saqlash amalga oshmadi.") from exc
 
+
+
+def _persist_prepared_docking_job(*, user, payload, response):
+    """Persist the synchronous prepared-docking endpoint using only Vina output."""
+    if not PERSISTENCE_ENABLED:
+        raise HTTPException(status_code=503, detail="PostgreSQL persistence is not configured.")
+    try:
+        owner_id = str(uuid.UUID(str(user.get("user_id") or "")))
+        result = response["result"]
+        poses = result.get("poses") or []
+        if not poses:
+            raise ValueError("Vina returned no pose energy.")
+        affinity = float(poses[0]["affinity_kcal_mol"])
+        target = get_target(payload.target_id)
+        with psycopg.connect(DATABASE_URL) as conn:
+            conn.execute("SELECT set_config('app.user_id', %s, true)", (owner_id,))
+            conn.execute(
+                """INSERT INTO scientific_docking_jobs
+                (job_id,user_id,owner_username,target_pdb,target_name,ligand_name,ligand_smiles,
+                 binding_affinity_kcal_mol,hbonds_count,lipinski_violations,admet_data,result_data,status)
+                VALUES (%s,%s::uuid,%s,'1HSG',%s,'Prepared ligand',%s,%s,NULL,NULL,
+                        '{"hydrogen_bonds":"not_calculated","admet":"not_calculated"}'::jsonb,
+                        %s::jsonb,'completed')""",
+                (response["job_id"],owner_id,user["username"],target["target_name"],
+                 payload.ligand_smiles,affinity,json.dumps(result,ensure_ascii=False))
+            )
+            conn.commit()
+    except Exception as exc:
+        raise HTTPException(status_code=503, detail="Vina natijasi scientific_docking_jobs jadvaliga saqlanmadi.") from exc
 
 def _list_scientific_docking_jobs(*, user, limit=20):
     if not PERSISTENCE_ENABLED:
