@@ -3358,6 +3358,8 @@ async function runDocking() {
         const summary = [
           'AutoDock Vina — ' + (data.target_pdb || target_pdb),
           'Eng yaxshi docking score (ΔG): ' + Number(data.affinity_kcal_mol).toFixed(3) + ' kcal/mol',
+          'Geometriya bilan tekshirilgan vodorod bog‘lari: ' + (data.hydrogen_bond_count ?? 0),
+          ...(data.hydrogen_bonds || []).map((bond, index) => `${index + 1}. ${bond.donor} → ${bond.acceptor} (${bond.donor_acceptor_distance_angstrom} Å; ${bond.donor_hydrogen_acceptor_angle_degrees}°)`),
           'Taxminiy polar kontaktlar: ' + (data.polar_contacts_estimate ?? 'hisoblanmadi'),
           'Lipinski buzilishlari: ' + (data.lipinski?.violations ?? '—'),
           '',
