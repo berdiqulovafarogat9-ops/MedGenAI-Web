@@ -33,6 +33,7 @@ jobs:
             sleep 1
           done
           node tests/browser-login.cjs
+          node tests/browser-academy.cjs
           node tests/browser-workspaces.cjs
           node tests/browser-ux.cjs
           node tests/browser-opportunities.cjs
