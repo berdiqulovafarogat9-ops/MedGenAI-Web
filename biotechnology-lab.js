@@ -17,7 +17,7 @@
     const host=$('lab3d');
     if(!window.THREE){$('sceneLoading').innerHTML='<b>3D kutubxona yuklanmadi</b><small>Internet ulanishini tekshirib sahifani yangilang.</small>';return;}
     const T=window.THREE, scene=new T.Scene(); scene.background=new T.Color(0x070b12); scene.fog=new T.Fog(0x070b12,15,30);
-    const camera=new T.PerspectiveCamera(48,host.clientWidth/host.clientHeight,.1,100);camera.position.set(0,2.6,4.2);
+    const camera=new T.PerspectiveCamera(68,host.clientWidth/host.clientHeight,.1,100);camera.position.set(0,2.6,4.2);
     const renderer=new T.WebGLRenderer({antialias:true,alpha:false});renderer.setPixelRatio(Math.min(devicePixelRatio||1,2));renderer.setSize(host.clientWidth,host.clientHeight);renderer.shadowMap.enabled=true;renderer.shadowMap.type=T.PCFSoftShadowMap;if('outputColorSpace' in renderer && T.SRGBColorSpace)renderer.outputColorSpace=T.SRGBColorSpace;else if('outputEncoding' in renderer && T.sRGBEncoding)renderer.outputEncoding=T.sRGBEncoding;renderer.toneMapping=T.ACESFilmicToneMapping;renderer.toneMappingExposure=1.08;host.prepend(renderer.domElement);
     const controls={target:new T.Vector3(0,.7,0),drag:false,x:0,y:0,theta:0,phi:Math.acos(1.9/Math.sqrt(4.2*4.2+1.9*1.9)),radius:Math.sqrt(4.2*4.2+1.9*1.9)};
     const ambient=new T.AmbientLight(0x38bdf8,.42);scene.add(ambient);
@@ -90,7 +90,7 @@
     part(reactorGroup,new T.BoxGeometry(.27,.21,.025),green,.55,1.3,.44);
     for(let i=0;i<5;i++){const bubble=new T.Mesh(new T.SphereGeometry(.032,10,8),new T.MeshStandardMaterial({color:0xc6fbff,emissive:0x1b8795,transparent:true,opacity:.78}));bubble.position.set(Math.sin(i*2.1)*.25,.28+(i%3)*.17,Math.cos(i*1.7)*.25);reactorGroup.add(bubble);state.bubbles.push(bubble);}
     // Teaching cell cross-section: membrane, cytoplasm, nucleus and organelles.
-    const cellGroup=new T.Group();cellGroup.position.set(2,2.1,-.7);cellGroup.userData={name:'cell',selectable:true};scene.add(cellGroup);state.objects.cell=cellGroup;
+    const cellGroup=new T.Group();cellGroup.position.set(2,2.14,-.7);cellGroup.userData={name:'cell',selectable:true};scene.add(cellGroup);state.objects.cell=cellGroup;
     const membrane=new T.Mesh(new T.SphereGeometry(1.05,40,32),mat(0x38bdf8,.18,.24,true,.22));membrane.scale.set(1.35,.9,.85);membrane.castShadow=true;cellGroup.add(membrane);
     const membraneEdge=new T.Mesh(new T.SphereGeometry(1.055,40,32),new T.MeshBasicMaterial({color:0x4dd9e8,wireframe:true,transparent:true,opacity:.22}));membraneEdge.scale.copy(membrane.scale);cellGroup.add(membraneEdge);
     const cytoplasm=new T.Mesh(new T.SphereGeometry(.82,32,24),mat(0x1c7f8a,.05,.5,true,.2));cytoplasm.scale.set(1.3,.82,.82);cellGroup.add(cytoplasm);
@@ -118,7 +118,7 @@
     function updateCamera(){const c=state.controls;c.phi=Math.max(.25,Math.min(1.48,c.phi));camera.position.set(c.target.x+c.radius*Math.sin(c.phi)*Math.sin(c.theta),c.target.y+c.radius*Math.cos(c.phi),c.target.z+c.radius*Math.sin(c.phi)*Math.cos(c.theta));camera.lookAt(c.target);}
   }
   function onPointerMove(e){if(!state.controls?.drag)return;const c=state.controls,dx=e.clientX-c.x,dy=e.clientY-c.y;c.x=e.clientX;c.y=e.clientY;c.theta-=dx*.006;c.phi+=dy*.005;}
-  function onWheel(e){e.preventDefault();state.controls.radius=Math.max(6,Math.min(20,state.controls.radius+e.deltaY*.012));}
+  function onWheel(e){e.preventDefault();state.controls.radius=Math.max(3.5,Math.min(20,state.controls.radius+e.deltaY*.012));}
   function resizeScene(){const h=$('lab3d');if(!state.renderer||!h)return;state.camera.aspect=h.clientWidth/h.clientHeight;state.camera.updateProjectionMatrix();state.renderer.setSize(h.clientWidth,h.clientHeight);}
   function focusObject(name){const obj=state.objects[name];if(!obj)return;state.selected=name;const activeMode=['pcr','plate','pipette'].includes(name)?'pcr':name==='cell'?'cell':name==='bioreactor'?'bioreactor':name==='microscope'?'microscope':name==='dna'?'crispr':state.mode;state.labels.forEach(l=>{l.material.opacity=l.userData.module===activeMode?1:.3;l.visible=state.showLabels;});$('selectedObject').textContent='Tanlangan: '+({microscope:'mikroskop',pipette:'pipetka',plate:'mikroplastinka',bioreactor:'bioreaktor',cell:'hujayra modeli',dna:'DNK modeli'}[name]||name);$('sceneHint').textContent='Tanlangan obyekt: '+name;const c=state.controls;if(name==='cell'){c.target.set(2,2.05,-.7);c.radius=6.8;}else if(name==='dna'){c.target.set(-2.2,2.8,-.8);c.radius=6.8;}else if(name==='bioreactor'){c.target.set(0,2.25,-.7);c.radius=6.8;}else if(name==='microscope'){c.target.set(1.1,2.2,.3);c.radius=6.8;}else if(name==='pipette'||name==='plate'||name==='pcr'){c.target.set(-1.1,1.8,.4);c.radius=6.8;} }
   function onPointerUpClick(e){if(!state.renderer||!state.raycaster)return;const rect=state.renderer.domElement.getBoundingClientRect();state.pointer.set(((e.clientX-rect.left)/rect.width)*2-1,-((e.clientY-rect.top)/rect.height)*2+1);state.raycaster.setFromCamera(state.pointer,state.camera);const hits=state.raycaster.intersectObjects(state.scene.children,true);for(const hit of hits){let o=hit.object;while(o&& !o.userData?.selectable && !o.userData?.parentName)o=o.parent;if(o?.userData?.parentName){focusObject(o.userData.parentName);return;}if(o?.userData?.selectable){focusObject(o.userData.name);return;}}}
