@@ -79,7 +79,7 @@
     const cytoplasm=new T.Mesh(new T.SphereGeometry(.82,32,24),mat(0x1c7f8a,.05,.5,true,.2));cytoplasm.scale.set(1.3,.82,.82);cellGroup.add(cytoplasm);
     const nucleus=new T.Mesh(new T.SphereGeometry(.43,32,24),mat(0x855fc1,.15,.3));nucleus.position.set(.12,.08,0);cellGroup.add(nucleus);
     const nucleolus=new T.Mesh(new T.SphereGeometry(.15,20,16),mat(0xe9bd70));nucleolus.position.set(.2,.12,.36);cellGroup.add(nucleolus);
-    for(let i=0;i<7;i++){const mito=new T.Mesh(new T.CapsuleGeometry(.075,.22,4,10),mat(i%2?0x58c995:0xe5a96b));const a=i*2.4;mito.scale.set(1.4,.65,.75);mito.position.set(Math.cos(a)*.78,Math.sin(a)*.45,Math.sin(a*1.7)*.4);mito.rotation.z=a;cellGroup.add(mito);}
+    function makeMitochondrion(material){if(typeof T.CapsuleGeometry==='function')return new T.Mesh(new T.CapsuleGeometry(.075,.22,4,10),material);const g=new T.Group();const shaft=new T.Mesh(new T.CylinderGeometry(.075,.075,.22,12),material);g.add(shaft);for(const y of [-.11,.11]){const cap=new T.Mesh(new T.SphereGeometry(.075,12,10),material);cap.position.y=y;g.add(cap);}return g;}for(let i=0;i<7;i++){const mito=makeMitochondrion(mat(i%2?0x58c995:0xe5a96b));const a=i*2.4;mito.scale.set(1.4,.65,.75);mito.position.set(Math.cos(a)*.78,Math.sin(a)*.45,Math.sin(a*1.7)*.4);mito.rotation.z=a;cellGroup.add(mito);}
     // DNA double helix display stand
     const dnaGroup=new T.Group();dnaGroup.position.set(-4,1.5,-1.25);scene.add(dnaGroup);state.objects.dna=dnaGroup;dnaGroup.userData={name:'dna',selectable:true};
     for(let i=0;i<32;i++){const y=i*.105;const a=i*.42;for(const sign of [-1,1]){const bead=new T.Mesh(new T.SphereGeometry(.075,12,10),sign<0?blue:green);bead.position.set(Math.cos(a+Math.PI*(sign>0))*0.48,y,Math.sin(a+Math.PI*(sign>0))*.48);dnaGroup.add(bead);}const rung=new T.Mesh(new T.CylinderGeometry(.025,.025,.72,8),gold);rung.position.y=y;rung.rotation.z=Math.PI/2;dnaGroup.add(rung);}
@@ -217,7 +217,7 @@
     $('resetExperiment').addEventListener('click',()=>{showMode(state.mode);$('syncStatus').textContent='Kutilmoqda';$('labStatus').textContent='READY';});
     $('resetView').addEventListener('click',()=>{if(!state.controls)return;state.controls.target.set(0,1.3,0);state.controls.theta=.675;state.controls.phi=1.02;state.controls.radius=14;});
     $('toggleLabels').addEventListener('click',()=>{state.showLabels=!state.showLabels;state.labels.forEach(l=>l.visible=state.showLabels);});
-    try{buildScene();}catch(error){console.error('Biotechnology 3D scene failed:',error);$('sceneLoading').innerHTML='<b>3D sahna ishga tushmadi</b><small>WebGL yoki GPU imkoniyatini tekshiring. Tajriba boshqaruvi 3D sahnasiz ham ishlashi mumkin.</small>'; }showMode('pcr');
+    try{buildScene();}catch(error){console.error('Biotechnology 3D scene failed:',error);const detail=String(error?.message||error||'Noma’lum xato');$('sceneLoading').style.display='grid';$('sceneLoading').innerHTML='<b>3D sahna ishga tushmadi</b><small>'+escapeHtml(detail)+' · WebGL/GPU va Three.js mosligini tekshiring.</small>'; }showMode('pcr');
   }
   document.addEventListener('DOMContentLoaded',init);
 })();
