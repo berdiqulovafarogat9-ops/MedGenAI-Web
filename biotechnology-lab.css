@@ -123,3 +123,10 @@ body.biotech-lab-viewport .lab3d,body.biotech-lab-viewport .lab3d canvas{touch-a
 .lab-zoom-controls{position:absolute;right:18px;bottom:18px;z-index:8;display:flex;flex-direction:column;gap:7px}
 .lab-zoom-controls button{width:40px;height:40px;border:1px solid #38bdf8;border-radius:9px;background:rgba(15,23,42,.88);color:#fff;font-size:22px;line-height:1;cursor:pointer;box-shadow:0 4px 16px rgba(0,0,0,.28)}
 .lab-zoom-controls button:active{transform:scale(.94);background:#164e63}
+
+
+/* Pointer input recovery: keep non-interactive HUD layers from intercepting canvas gestures. */
+body.biotech-lab-viewport .lab3d canvas{z-index:1;pointer-events:auto!important;touch-action:none!important;user-select:none;-webkit-user-select:none}
+body.biotech-lab-viewport .scene-crosshair,body.biotech-lab-viewport .scene-compass,body.biotech-lab-viewport .scene-loading{pointer-events:none}
+body.biotech-lab-viewport .lab-zoom-controls{z-index:20;pointer-events:none}
+body.biotech-lab-viewport .lab-zoom-controls button{pointer-events:auto;touch-action:manipulation}
