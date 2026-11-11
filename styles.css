@@ -694,3 +694,15 @@ body[data-theme="light"] :is(.card-box,.auth-box,.login-card) {
 .academy-v2 .q input[type="radio"],.q input[type="radio"]{display:inline-block!important;width:auto!important;flex:0 0 auto!important;margin:0!important;}
 
 .admin-data-table{width:100%;border-collapse:collapse;margin:10px 0;font-size:13px}.admin-data-table th,.admin-data-table td{padding:9px 10px;text-align:left;vertical-align:top;border:1px solid var(--line)}.admin-data-table th{background:var(--surface-alt);color:var(--text)}
+
+
+/* Discovery Wing preset controls and compact ADMET summary */
+.docking-preset-buttons{display:flex;flex-wrap:wrap;gap:8px;margin:10px 0}
+.docking-admet-panel{margin:16px 0;padding:16px;border:1px solid rgba(255,255,255,.13);border-radius:14px;background:rgba(9,24,39,.92)}
+.docking-admet-panel[hidden]{display:none!important}
+.docking-admet-grid{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:10px;margin-top:12px}
+.docking-admet-grid>div{display:flex;flex-direction:column;gap:5px;padding:12px;border:1px solid rgba(255,255,255,.09);border-radius:10px;background:rgba(255,255,255,.035)}
+.docking-admet-grid strong{font-size:11px;opacity:.7}
+.docking-admet-grid span{font-size:16px;font-weight:700}
+.docking-admet-note{margin-top:12px;line-height:1.5}
+@media(max-width:620px){.docking-admet-grid{grid-template-columns:repeat(2,minmax(0,1fr))}}
