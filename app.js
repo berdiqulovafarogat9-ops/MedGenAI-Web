@@ -4337,7 +4337,7 @@ function renderStudentOsce(){
    ROLE-BASED PLATFORM ARCHITECTURE
 ========================================================= */
 const MEDGEN_ROLES = {
-  student:{title:'Talaba',icon:'🎓',desc:'Medical Academy: tibbiy fanlar, klinik simulyatsiyalar va virtual laboratoriya.',modules:['Medical Academy','Virtual Laboratory','Biotechnology 3D Lab']},
+  student:{title:'Talaba',icon:'🎓',desc:'Medical Academy: tibbiy fanlar, klinik simulyatsiyalar va virtual laboratoriya.',modules:['Medical Academy','Virtual Laboratory']},
   doctor:{title:'Shifokor',icon:'👨‍⚕️',desc:'Clinical Workspace: klinik case, diagnostika, differensial tashxis, medical knowledge va simulation.',modules:['Clinical Reference','Clinical Simulation','Research Assistant','Reports & History']},
   researcher:{title:'Olim / Researcher',icon:'🔬',desc:'Research Workspace: ilmiy izlanish, bioinformatics, molecular analysis, target va docking.',modules:['Research Assistant','Bioinformatics','Drug Discovery','PDB & Structure','Molecular Analysis','Virtual Laboratory','Biotechnology 3D Lab','Reports & History']},
   professor:{title:'Professor',icon:'👨‍🏫',desc:'Teaching Workspace: kurslar, student progress, cases, OSCE va research.',modules:['Medical Academy','Research Assistant','Biotechnology 3D Lab','Reports & History']},
