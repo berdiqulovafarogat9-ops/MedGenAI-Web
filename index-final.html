@@ -901,15 +901,16 @@ frame-ancestors 'none'">
         <hr>
 
         <p class="muted">
-          AutoDock Vina test: target | SMILES
+          AutoDock Vina laboratoriyasi: 1HSG | ligand SMILES
         </p>
 
         <label class="workspace-field-label" for="dockingInput">Docking uchun nishon va SMILES</label>
         <input
           id="dockingInput"
-          placeholder="EGFR | CCO">
+          placeholder="1HSG | CCO"
+          aria-label="1HSG target va ligand SMILES">
 
-        <details class="advanced-analysis" open>
+        <details class="advanced-analysis hidden">
           <summary>Docking kirish ma’lumotlari</summary>
           <p class="muted">Tayyorlangan receptor va ligand PDBQT matni hamda aynan shu nishonga mos qidiruv qutisi koordinatalarini kiriting.</p>
           <label for="dockingReceptor">Receptor PDBQT</label>
