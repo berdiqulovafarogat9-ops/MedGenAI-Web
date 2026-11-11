@@ -247,6 +247,7 @@ def create_hiv_router(
     target_dir: Path,
     jobs_store: dict | None = None,
     save_state: Callable | None = None,
+    persist_completed: Callable | None = None,
 ) -> APIRouter:
     router = APIRouter(prefix="/api/v1/hiv-lab", tags=["HIV Drug Discovery"])
 
@@ -266,12 +267,7 @@ def create_hiv_router(
 
     def _persist_jobs():
         if callable(save_state):
-            try:
-                save_state()
-            except Exception:
-                # A completed scientific calculation remains visible in-process;
-                # persistence errors are recorded without crashing the worker.
-                pass
+            save_state()
 
     @router.post("/docking/jobs")
     def create_docking_job(payload: LigandRequest, user=Depends(get_current_user)):
@@ -288,7 +284,7 @@ def create_hiv_router(
                     detail="Docking navbati to'la. Bir oz kutib, qayta urinib ko'ring.",
                 )
             job_store[job_id] = {
-                "job_id": job_id, "status": "queued", "user": user["username"],
+                "job_id": job_id, "status": "queued", "user": user["username"], "user_id": str(user["user_id"]),
                 "created_at": datetime.now(timezone.utc).isoformat(),
                 "target_pdb": payload.target_pdb.upper(), "ligand_name": payload.name,
             }
@@ -305,9 +301,12 @@ def create_hiv_router(
             try:
                 result = analyze_hiv_ligand(payload, user)
                 serialized = result.model_dump() if hasattr(result, "model_dump") else result.dict()
+                if callable(persist_completed):
+                    persist_completed(user=user, payload=payload, result=serialized, job_id=job_id)
                 with job_lock:
                     job["result"] = serialized
                     job["status"] = "completed"
+                    job["persistence_status"] = "saved" if callable(persist_completed) else "not_configured"
                     job["completed_at"] = datetime.now(timezone.utc).isoformat()
             except HTTPException as exc:
                 with job_lock:
