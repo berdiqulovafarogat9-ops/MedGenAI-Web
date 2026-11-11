@@ -13,8 +13,10 @@ def _hetatm(serial, atom, residue, x, y, z, altloc=" "):
     )
 
 
-def test_only_scientifically_supported_hiv_target_is_enabled():
+def test_supported_targets_and_research_only_target_are_gated():
     assert HIV_TARGETS["1HSG"]["docking_enabled"] is True
+    assert HIV_TARGETS["8A27"]["docking_enabled"] is True
+    assert HIV_TARGETS["8A27"]["co_crystal_ligand"] == "KY9"
     assert HIV_TARGETS["1RTD"]["docking_enabled"] is False
 
 
@@ -33,6 +35,14 @@ def test_grid_is_derived_from_co_crystal_ligand_coordinates(tmp_path):
     assert box["center"] == [13.5, 21.75, -1.125]
     assert box["derived_from"] == "RCSB 1HSG co-crystal ligand MK1"
     assert all(20.0 <= size <= 30.0 for size in box["size"])
+
+
+def test_egfr_grid_is_derived_from_8a27_kY9_co_crystal_ligand(tmp_path):
+    pdb = tmp_path / "8A27.raw.pdb"
+    pdb.write_text("".join(_hetatm(i + 1, "C1", "KY9", 5 + i, 8 + i * 0.5, -1 + i * 0.25) for i in range(8)), encoding="utf-8")
+    box = _co_crystal_box(pdb, "KY9")
+    assert box["ligand_atom_count"] == 8
+    assert box["derived_from"] == "RCSB 8A27 co-crystal ligand KY9"
 
 
 def test_grid_ignores_non_primary_altloc_and_rejects_missing_ligand(tmp_path):
