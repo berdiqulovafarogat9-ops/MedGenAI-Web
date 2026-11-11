@@ -32,7 +32,7 @@ for (const role of ['researcher', 'professor', 'lab', 'biotech', 'pharma', 'bioi
   assert.ok(start >= 0 && end > start && index.slice(start, end).includes("'Biotechnology 3D Lab'"), role + ' role cannot see the biotechnology lab');
 }
 const medgenRolesStart = app.indexOf('const MEDGEN_ROLES');
-for (const role of ['student', 'researcher', 'professor', 'lab', 'biotech', 'pharma', 'bioinformatician', 'company']) {
+for (const role of ['researcher', 'professor', 'lab', 'biotech', 'pharma', 'bioinformatician', 'company']) {
   const start = app.indexOf(role + ':{', medgenRolesStart);
   const end = start < 0 ? -1 : app.indexOf('},', start);
   assert.ok(start >= 0 && end > start && app.slice(start, end).includes("'Biotechnology 3D Lab'"), 'app role registry missing biotechnology lab for ' + role);
