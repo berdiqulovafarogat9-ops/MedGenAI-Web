@@ -139,7 +139,8 @@
         const val = [box.center_x,box.center_y,box.center_z,box.size_x,box.size_y,box.size_z][i];
         if (val != null) field.value = val;
       });
-      byId("mgdd-target-info").textContent += box.validated ? " | Grid tasdiqlangan." : " | DIQQAT: grid koordinatalari tasdiqlanmagan — dockingdan oldin tekshiring.";
+      byId("mgdd-target-info").textContent += box.validated ? " | Grid tasdiqlangan." : " | Grid serverda 1HSG co-crystal MK1 koordinatalaridan qayta hisoblanadi; bu maydonlardagi taklif qiymatlari ishlatilmaydi.";
+      ["cx","cy","cz","sx","sy","sz"].forEach(key => { byId("mgdd-" + key).readOnly = true; });
     } else {
       ["cx","cy","cz"].forEach(key => byId("mgdd-" + key).value = "");
       byId("mgdd-target-info").textContent += " | Grid box yo‘q: co-crystal ligand cho‘ntagiga qarab koordinatalarni kiriting.";
@@ -246,7 +247,7 @@
 
   function renderHivMetrics(data, sourceLabel) {
     const lip = data.lipinski || {};
-    const score = Number(data.affinity_kcal_mol);
+    const score = typeof data.affinity_kcal_mol === "number" && Number.isFinite(data.affinity_kcal_mol) ? data.affinity_kcal_mol : NaN;
     const rows = [
       ["Molekulyar og‘irlik (MW ≤ 500)", lip.mw, "Da", Number(lip.mw) <= 500],
       ["Lipofillik (LogP ≤ 5)", lip.logp, "", Number(lip.logp) <= 5],
