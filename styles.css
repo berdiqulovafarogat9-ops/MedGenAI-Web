@@ -694,3 +694,13 @@ body[data-theme="light"] :is(.card-box,.auth-box,.login-card) {
 .academy-v2 .q input[type="radio"],.q input[type="radio"]{display:inline-block!important;width:auto!important;flex:0 0 auto!important;margin:0!important;}
 
 .admin-data-table{width:100%;border-collapse:collapse;margin:10px 0;font-size:13px}.admin-data-table th,.admin-data-table td{padding:9px 10px;text-align:left;vertical-align:top;border:1px solid var(--line)}.admin-data-table th{background:var(--surface-alt);color:var(--text)}
+
+
+/* Drug Discovery 3D viewer: stable sizing across tablet, desktop and mobile */
+.mgdd-viewer-wrap{position:relative;width:100%;min-width:0;min-height:280px;overflow:hidden}
+.mgdd-viewer-wrap>div{width:100%;height:clamp(300px,48vw,520px);min-height:280px;max-width:100%}
+#mgdd-hiv-viewer{height:clamp(300px,48vw,520px)!important;min-height:280px;width:100%;max-width:100%}
+.mgdd-grid{grid-template-columns:repeat(2,minmax(0,1fr))}
+.mgdd-card{min-width:0}
+@media(max-width:760px){.mgdd-grid{grid-template-columns:1fr}.mgdd-viewer-wrap>div,#mgdd-hiv-viewer{height:360px;min-height:280px}}
+@media(max-width:420px){.mgdd-viewer-wrap>div,#mgdd-hiv-viewer{height:320px;min-height:260px}}
