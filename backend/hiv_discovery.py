@@ -289,7 +289,12 @@ def create_hiv_router(
                 "created_at": datetime.now(timezone.utc).isoformat(),
                 "target_pdb": payload.target_pdb.upper(), "ligand_name": payload.name,
             }
-        _persist_jobs()
+        try:
+            _persist_jobs()
+        except Exception:
+            with job_lock:
+                job_store.pop(job_id, None)
+            raise
 
         def _worker():
             with job_lock:
@@ -317,7 +322,7 @@ def create_hiv_router(
             except Exception as exc:
                 with job_lock:
                     job["status"] = "failed"
-                    job["error"] = f"Docking worker xatosi: {type(exc).__name__}"
+                    job["error"] = f"Docking yoki PostgreSQL persistence xatosi: {type(exc).__name__}"
                     job["completed_at"] = datetime.now(timezone.utc).isoformat()
             _persist_jobs()
 
