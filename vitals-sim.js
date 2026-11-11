@@ -1074,14 +1074,8 @@
     showStart();
   }
 
-  function init() {
-    var logout = document.getElementById("logoutBtn");
-    if (!logout || document.getElementById("vitalsBtn")) return;
-    var b = document.createElement("button");
-    b.id = "vitalsBtn"; b.type = "button"; b.className = logout.className; b.textContent = "Virtual bemor";
-    b.addEventListener("click", open);
-    logout.parentNode.insertBefore(b, logout);
-  }
+  // The role workspace launch button is supplied by virtual-patient.js.
+  // Avoid adding a second, duplicate navbar entry.
   window.medgenOpenVitalsSimulation = open;
   // Bridge used by the existing 3D anatomy / Virtual patient workspace.
   // Keep the simulation embedded in its panel when that panel is visible.
@@ -1095,5 +1089,4 @@
     if (!root || root.nodeType !== 1) throw new Error("Virtual bemor paneli topilmadi.");
     open(root, caseId || "anaphylaxis");
   };
-  if (document.readyState === "loading") document.addEventListener("DOMContentLoaded", init); else init();
 })();

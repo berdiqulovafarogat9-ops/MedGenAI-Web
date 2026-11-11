@@ -9,7 +9,15 @@
       const response=await fetch(apiBase+'/academy/score',{method:'POST',headers:{'Content-Type':'application/json','Authorization':'Bearer '+token},body:JSON.stringify({score:Number(score),module:String(moduleName||'Learning module'),completed_at:new Date().toISOString()})});
       const data=await response.json().catch(()=>({}));
       if(!response.ok)throw new Error(data.detail||('HTTP '+response.status));
-      alert('Ball saqlandi! +'+Number(score)+' ball reytingingizga qo‘shildi.');
+      const notice=document.createElement('div');
+      notice.setAttribute('role','status');
+      notice.style.cssText='position:fixed;inset:0;z-index:100300;background:rgba(2,8,16,.72);display:grid;place-items:center;padding:18px';
+      const card=document.createElement('section');
+      card.style.cssText='width:min(92vw,420px);background:#fff;color:#102033;border:1px solid #cbd5e1;border-radius:18px;padding:22px;box-shadow:0 20px 60px #0005;font:15px system-ui';
+      const title=document.createElement('h3');title.textContent='Natija saqlandi';
+      const message=document.createElement('p');message.textContent='+'+Number(score)+' ball reytingingizga qo‘shildi.';
+      const close=document.createElement('button');close.type='button';close.textContent='Yopish';close.style.cssText='padding:10px 16px;border:0;border-radius:10px;background:#0f766e;color:#fff;font-weight:700';
+      close.onclick=()=>notice.remove();card.append(title,message,close);notice.append(card);document.body.append(notice);
       return data;
     }catch(err){console.error('Ball saqlashda xatolik:',err);return null;}
   };
@@ -56,22 +64,7 @@
         const c=$('.container'); if(c){const b=document.createElement('button');b.id='virtualPatientLaunch';b.className='primary small';b.type='button';b.textContent='🫀 Virtual bemor / Jonli monitor';c.prepend(b);}
       }
     }
-    if(!$('#virtualPatientPanel')){
-      const panel=document.createElement('section');panel.id='virtualPatientPanel';panel.className='vp-panel hidden';
-      panel.innerHTML=`
-        <div class="vp-head"><div><p class="eyebrow">C BOSQICH · KLINIK SIMULYATOR</p><h2>Virtual bemor va jonli Vital Monitor</h2><p class="muted">3 daqiqalik o‘quv simulyatsiyasi · barcha qiymatlar simulyatsiya qilingan.</p></div><button id="vpClose" class="ghost" type="button">Yopish</button></div>
-        <div class="vp-controls"><label>Keys <select id="vpCase"><option value="anaphylaxis">1 · Anafilaktik shok</option><option value="mi">2 · Miokard infarkti</option><option value="pneumonia">3 · Og‘ir pnevmoniya / gipoksiya</option></select></label><button id="vpStart" class="primary small" type="button">Imtihonni boshlash</button><div id="vpTimer" class="vp-timer">03:00</div><div id="vpStatus" role="status">Keysni tanlab, boshlang.</div></div>
-        <div id="vpExam" class="hidden">
-          <div class="vp-monitor"><div class="vp-monitor-head"><b>ECG · LEAD II <small>SIMULATSIYA</small></b><span id="vpRhythm">MONITOR STANDBY</span></div><canvas id="vpEcg" height="150" aria-label="Dinamik simulyatsion EKG chizig‘i"></canvas>
-          <div class="vp-vitals"><div><small>HR / PULS</small><strong id="vpHr">—</strong><span>bpm</span></div><div><small>BP / QON BOSIMI</small><strong id="vpBp">—</strong><span>mmHg</span></div><div><small>SpO₂</small><strong id="vpSpo2">—</strong><span>%</span></div><div><small>RR / NAFAS</small><strong id="vpRr">—</strong><span>/daq</span></div></div></div>
-          <div class="vp-columns"><section class="vp-card"><h3>Bemor holati</h3><div id="vpClues" class="vp-clues"></div><h3>Tashxisni tanlang</h3><div id="vpDiagnoses" class="vp-actions"></div><div id="vpDiagnosisFeedback" class="vp-feedback"></div></section>
-          <section class="vp-card"><h3>Klinik harakatlar</h3><p class="muted">Harakatlar simulyatsiyadagi vitallarni o‘zgartiradi. Avval xavfsiz, hayot saqlovchi choralarni bajaring.</p><div id="vpActions" class="vp-actions"></div><div id="vpActionFeedback" class="vp-feedback"></div></section></div>
-        </div>
-        <div id="vpReport" class="vp-report hidden"></div>
-        <section class="vp-card vp-leaderboard"><div class="vp-leaderboard-head"><h3>🏆 Talabalar reytingi</h3><button id="vpLoadLeaderboard" class="ghost small" type="button">Reytingni yangilash</button></div><div id="vpLeaderboard" class="muted" aria-live="polite">Reytingni ko‘rish uchun tizimga kiring.</div></section>
-        <p class="vp-disclaimer">O‘quv maqsadida. Bu haqiqiy bemorni boshqarish vositasi emas. Dori, doza va muolajalar mahalliy klinik protokol hamda malakali mutaxassis ko‘rsatmasiga muvofiq tekshirilishi shart.</p>`;
-      const container=$('#roleDashboard')?.parentElement||$('.container'); if(container) container.appendChild(panel);
-    }
+    // Legacy text/ECG-only panel removed. All virtual-patient cases now open the shared 3D Full Code simulator.
   }
   function setStatus(t,bad=false){const e=$('#vpStatus');if(e){e.textContent=t;e.classList.toggle('bad',bad)}}
   function selectedCase(){return CASES.find(c=>c.id===$('#vpCase').value)||CASES[0]}
@@ -145,6 +138,6 @@
   function penalty(){if(finished||!state||blurPenaltyApplied)return;blurPenaltyApplied=true;state.tabPenalty++;state.score-=15;state.errors.push('Brauzer oynasidan chiqish: −15 jarima balli.');const warning=$('#vpWarning')||document.createElement('div');warning.id='vpWarning';warning.className='vp-warning';warning.setAttribute('role','alert');warning.textContent='⚠️ Anti-cheat: boshqa oyna/ilovaga o‘tish aniqlandi. −15 ball.';$('#virtualPatientPanel').prepend(warning);setTimeout(()=>{warning.remove();blurPenaltyApplied=false},5000)}
   document.addEventListener('visibilitychange',()=>{if(document.visibilityState==='hidden')penalty()});
   window.addEventListener('blur',()=>{if($('#virtualPatientPanel')&&!$('#virtualPatientPanel').classList.contains('hidden'))penalty()});
-  document.addEventListener('click',e=>{if(e.target.closest('#virtualPatientLaunch')){inject();$('#virtualPatientPanel').classList.remove('hidden');$('#virtualPatientPanel').scrollIntoView({behavior:'smooth',block:'start'});loadLeaderboard()}if(e.target.closest('#vpClose'))$('#virtualPatientPanel').classList.add('hidden');if(e.target.closest('#vpStart'))start();if(e.target.closest('#vpLoadLeaderboard'))loadLeaderboard()});
+  document.addEventListener('click',e=>{if(e.target.closest('#virtualPatientLaunch')){if(typeof window.medgenOpenVitalsSimulation==='function'){window.medgenOpenVitalsSimulation();}else{console.error('3D Full Code simulator is not loaded.');}}});
   document.addEventListener('DOMContentLoaded',inject);setInterval(inject,1500);
 })();

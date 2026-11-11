@@ -20,6 +20,11 @@ jobs:
           node --check phase1-academy.js
           node --check phase1-controller.js
           node --check phase1-shell.js
+          node --check anatomy-quiz.js
+          node --check anatomy-3d.js
+          node --check screening.js
+          node --check virtual-patient.js
+          node --check vitals-sim.js
       - name: Install DOM test dependency
         run: npm install --prefix /tmp/medgen-ui-check jsdom@30.1.3 --no-audit --no-fund
       - name: Run UI and proxy regressions

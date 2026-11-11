@@ -71,7 +71,7 @@
     card.appendChild(grid);
     var gridNote = el("div", "font-size:12px;color:#56dcc0;margin-top:2px", "1HSG standart grid: markaz (16, 25, 4) Å · o‘lcham 20 × 20 × 20 Å"); card.appendChild(gridNote);
     function applyHivDefaults() { var t = target.value.toLowerCase(); if (t.indexOf("hiv") !== -1 || t.indexOf("oiv") !== -1 || t.indexOf("1hsg") !== -1 || t.indexOf("protease") !== -1) { ["16.0","25.0","4.0","20","20","20"].forEach(function(v,i){ inputs[ids[i]].value = v; }); gridNote.textContent = "HIV-1 proteaza (1HSG): standart grid avtomatik qo‘llanmoqda."; } }
-    target.addEventListener("change", applyHivDefaults); target.addEventListener("input", applyHivDefaults);
+    target.addEventListener("change", applyHivDefaults); target.addEventListener("input", applyHivDefaults); applyHivDefaults();
 
     card.appendChild(el("label", LBL, "Ligandlar: SMILES (har qatorda bittadan: nom,SMILES yoki faqat SMILES)"));
     var smi = el("textarea", FIELD + ";min-height:80px;font-family:monospace"); smi.placeholder = "aspirin,CC(=O)OC1=CC=CC=C1C(=O)O\nibuprofen,CC(C)CC1=CC=C(C=C1)C(C)C(=O)O"; card.appendChild(smi);
@@ -103,7 +103,7 @@
       details.appendChild(el("summary", "cursor:pointer;color:#9fb3c4", "Xom demo JSON / metodik izoh"));
       var pre = el("pre", "white-space:pre-wrap;overflow-wrap:anywhere;max-height:260px;overflow:auto;font-size:11px;color:#b8c7d6");
       pre.textContent = JSON.stringify({mode:"SHOWCASE_PRECOMPUTED",target:"HIV-1 protease 1HSG",ligands:[{name:"Indinavir",affinity_kcal_mol:-5.77,source:"user-provided demo preset"},{name:"Aspirin",role:"reference control",affinity_kcal_mol:null}],note:"Not a live docking run; validate all scientific claims independently."},null,2);
-      details.appendChild(pre); out.appendChild(details);
+      details.appendChild(pre); details.style.display = "none"; out.appendChild(details);
     };
     card.appendChild(showcase);
 
@@ -142,7 +142,7 @@
       out.appendChild(table);
       var raw = el("details", "margin-top:10px;border:1px solid #294052;border-radius:10px;padding:10px");
       raw.appendChild(el("summary", "cursor:pointer;color:#9fb3c4", "Xom JSON / texnik tafsilotlar"));
-      var pre = el("pre", "white-space:pre-wrap;overflow-wrap:anywhere;max-height:280px;overflow:auto;font-size:11px;color:#b8c7d6"); pre.textContent = JSON.stringify(job, null, 2); raw.appendChild(pre); out.appendChild(raw);
+      var pre = el("pre", "white-space:pre-wrap;overflow-wrap:anywhere;max-height:280px;overflow:auto;font-size:11px;color:#b8c7d6"); pre.textContent = JSON.stringify(job, null, 2); raw.appendChild(pre); raw.style.display = "none"; out.appendChild(raw);
       if (bad.length) out.appendChild(el("p", "color:#ff8a8a;font-size:12px", "Bajarilmadi: " + bad.map(function (b) { return b.name + " (" + b.error + ")"; }).join(", ")));
       if (ok.length) {
         var csv = el("button", BTN2, "CSV yuklab olish");
