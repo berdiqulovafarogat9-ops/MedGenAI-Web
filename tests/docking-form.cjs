@@ -5,7 +5,7 @@ const calls=[];let pollCount=0;
 w.testApi=async(path,opts)=>{
   if(opts?.method==='POST'){calls.push({path,body:JSON.parse(opts.body)});return {job_id:'job-test-1',status:'queued'};}
   pollCount++;return {job_id:'job-test-1',status:'completed',result:{
-    target_pdb:'1HSG',affinity_kcal_mol:-8.25,polar_contacts_estimate:4,
+    target_pdb:'1HSG',affinity_kcal_mol:-8.25,receptor_pdb:'ATOM test receptor',best_pose_pdb:'ATOM test ligand',hydrogen_bond_count:1,hydrogen_bonds:[],polar_contacts_estimate:4,
     lipinski:{violations:1},warning:'Computational score only.'
   }};
 };
