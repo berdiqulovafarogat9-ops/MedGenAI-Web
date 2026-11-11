@@ -8269,4 +8269,6 @@ app.include_router(create_hiv_router(
     prepare_receptor=get_or_prepare_receptor,
     polar_contact_estimator=_estimate_polar_contacts,
     target_dir=TARGET_DIR,
+    jobs_store=docking_jobs_store,
+    save_state=_db_save,
 ))

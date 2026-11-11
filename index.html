@@ -906,15 +906,15 @@ frame-ancestors 'none'">
         <hr>
 
         <p class="muted">
-          AutoDock Vina test: target | SMILES
+          AutoDock Vina laboratoriyasi: 1HSG | ligand SMILES
         </p>
 
         <label class="workspace-field-label" for="dockingInput">Docking uchun nishon va SMILES</label>
         <input
           id="dockingInput"
-          placeholder="EGFR | CCO">
+          placeholder="1HSG | CCO">
 
-        <details class="advanced-analysis" open>
+        <details class="advanced-analysis hidden">
           <summary>Docking kirish ma’lumotlari</summary>
           <p class="muted">Tayyorlangan receptor va ligand PDBQT matni hamda aynan shu nishonga mos qidiruv qutisi koordinatalarini kiriting.</p>
           <label for="dockingReceptor">Receptor PDBQT</label>
@@ -948,6 +948,13 @@ frame-ancestors 'none'">
           id="dockingResult"
           class="result">
         </pre>
+
+        <section class="docking-visual-panel" aria-label="Docking 3D ko‘rinishi">
+          <h3>3D docking ko‘rinishi</h3>
+          <p class="muted">Oqsil kulrang cartoon, ligand esa rangli stick ko‘rinishida.</p>
+          <div id="dockingPoseViewer" role="img" aria-label="HIV-1 proteaza va ligand docking pozasi" style="width:100%;height:420px;min-height:320px;border:1px solid #cbd5e1;border-radius:14px;overflow:hidden;background:#07111f"></div>
+          <p id="dockingPoseStatus" class="status" aria-live="polite"></p>
+        </section>
 
       </div>
 
