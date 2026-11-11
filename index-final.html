@@ -646,6 +646,8 @@ frame-ancestors 'none'">
     </button>
 
 
+    <button class="module" data-module="Biotechnology 3D Lab"><b>🧬</b><strong>Biotechnology 3D Lab</strong><span>3D genomics, cell culture, CRISPR concepts and bioreactor simulations</span></button>
+
     <button class="module" data-module="Medical Academy"><b>🎓</b><strong>Medical Academy</strong><span>Virtual patients, anatomy, clinical reasoning and OSCE</span></button>
 
     <button class="module" data-module="Global Platform">
@@ -2399,7 +2401,7 @@ document.addEventListener("DOMContentLoaded", function () {
     if(candidates.includes('student'))return 'student';
     return 'student';
   };
-  const ALL_MODULES=['Medical Academy','Clinical Simulation','Bioinformatics','Molecular Analysis','PDB & Structure','Drug Discovery','Scientific Jobs','Research Assistant','Virtual Laboratory','Reports & History','Global Platform'];
+  const ALL_MODULES=['Medical Academy','Clinical Simulation','Bioinformatics','Molecular Analysis','PDB & Structure','Drug Discovery','Scientific Jobs','Research Assistant','Virtual Laboratory','Biotechnology 3D Lab','Reports & History','Global Platform'];
   const ROLE_MODULES={
     SUPER_ADMIN:ALL_MODULES,
     admin:ALL_MODULES,
@@ -2407,14 +2409,14 @@ document.addEventListener("DOMContentLoaded", function () {
 
 
     doctor:['Clinical Reference','Clinical Simulation','Research Assistant','Reports & History'],
-    researcher:['Research Assistant','Bioinformatics','Virtual Laboratory','Reports & History'],
+    researcher:['Research Assistant','Bioinformatics','Virtual Laboratory','Biotechnology 3D Lab','Reports & History'],
     professor:['Medical Academy','Research Assistant','Reports & History'],
-    lab:['Virtual Laboratory','Molecular Analysis','Reports & History'],
-    biotech:['Bioinformatics','Molecular Analysis','PDB & Structure','Virtual Laboratory'],
+    lab:['Virtual Laboratory','Biotechnology 3D Lab','Molecular Analysis','Reports & History'],
+    biotech:['Bioinformatics','Molecular Analysis','PDB & Structure','Virtual Laboratory','Biotechnology 3D Lab'],
     pharma:['Drug Discovery','PDB & Structure','Molecular Analysis','Reports & History'],
     bioinformatician:['Bioinformatics','Research Assistant','Reports & History'],
     hospital:['Medical Academy','Reports & History'],
-    company:['Drug Discovery','Research Assistant','Virtual Laboratory','Global Platform','Reports & History']
+    company:['Drug Discovery','Research Assistant','Virtual Laboratory','Biotechnology 3D Lab','Global Platform','Reports & History']
   };
   const FINAL_I18N={
     en:{menu:'MENU',dashboard:'Dashboard',profile:'My Profile',scientific:'SCIENTIFIC WORKSPACES',support:'Help Center',assistant:'MedGen AI Assistant',community:'Community',security:'Security Center',owner:'OWNER CONTROL',ownerDash:'Super Admin Dashboard',workspace:'Workspace',open:'Open →',core:'CORE SCIENCE',research:'RESEARCH & DISCOVERY',platform:'PLATFORM',welcome:'Personal Scientific Workspace',role:'ROLE',back:'← Dashboard',supportTitle:'Help Center',supportDesc:'Get help with your account, platform or scientific modules.',aiTitle:'AI Assistant',aiDesc:'Biomedical platform and research workflow assistant.',communityTitle:'Community',communityDesc:'Connect with researchers and professionals in your role community.',securityTitle:'Security Center',securityDesc:'Privacy, consent, identity and account security.'},
