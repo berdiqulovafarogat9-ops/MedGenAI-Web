@@ -1,5 +1,5 @@
 -- MedGen AI scientific docking persistence.
--- owner_id is the durable UUID assigned by MedGen's own account/session system.
+-- user_id is the durable UUID assigned by MedGen's own account/session system.
 -- It is intentionally NOT auth.users(id): current MedGen sessions are not Supabase Auth JWTs.
 CREATE TABLE IF NOT EXISTS public.scientific_docking_jobs (
     id BIGSERIAL PRIMARY KEY,
