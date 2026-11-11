@@ -95,7 +95,7 @@
     if(state.mode==='crispr')c.innerHTML='<label class="field-label" for="sequenceInput">Namunaviy DNK (5′ → 3′)</label><textarea id="sequenceInput" rows="4" spellcheck="false">ATGCGTACGTAGCTAGCTAGGCTAACGTTAGCGATCGTACGATCG</textarea><label class="field-label" for="crisprTarget">Qidiriladigan 20 nt motiv</label><input id="crisprTarget" value="GCTAACGTTAGCGATCGTAC" maxlength="20"><div class="control-hint">Faqat matnli motiv qidiruvi. PAM, off-target yoki real editing hisoblanmaydi.</div>';
   }
   function showMode(mode){if(!experiments[mode])return;state.mode=mode;document.querySelectorAll('.module-choice').forEach(b=>b.classList.toggle('active',b.dataset.experiment===mode));const e=experiments[mode];$('experimentTitle').textContent=e.title;$('experimentDescription').textContent=e.description;$('protocolTitle').textContent=e.protocol;$('protocolSteps').innerHTML=e.steps.map(x=>'<li>'+x+'</li>').join('');$('scientistNote').textContent=e.note;$('experimentState').textContent='TAYYOR';$('resultPanel').innerHTML='<div class="result-empty"><span>◎</span><b>Natija kutilmoqda</b><small>Parametrlarni tekshirib, tajribani ishga tushiring.</small></div>';renderControls();if(mode==='cell')focusObject('cell');if(mode==='bioreactor')focusObject('bioreactor');if(mode==='crispr')focusObject('dna');if(mode==='pcr')focusObject('plate');}
-  function metric(value,label){return '<div class="metric"><b>'+value+'</b><span>'+label+'</span></div>';}
+  function escapeHtml(value){return String(value).replace(/[&<>\"']/g,ch=>({'&':'&amp;','<':'&lt;','>':'&gt;','\"':'&quot;',"'":'&#39;'}[ch]));}\n  function metric(value,label){return '<div class="metric"><b>'+value+'</b><span>'+label+'</span></div>';}
   function dnaSequence(){return String($('sequenceInput')?.value||'').toUpperCase().replace(/\s+/g,'');}
   function validateDna(seq){return /^[ATGC]+$/.test(seq)&&seq.length>=10&&seq.length<=5000;}
   function calculate(){
@@ -145,9 +145,9 @@
     try{
       const result=calculate();$('resultPanel').innerHTML='<div class="result-empty"><span>◌</span><b>Hisoblash yakunlandi</b><small>Natija tayyorlanmoqda…</small></div>';
       let saved={saved:false};try{saved=await persistExperiment(result);}catch(err){$('syncStatus').textContent='Server xatosi';saved={saved:false,reason:err.message};}
-      const cards=result.metrics.join('');$('resultPanel').innerHTML='<h3 style="font-size:11px;margin:0 0 9px">'+result.title+'</h3><div class="metric-grid">'+cards+'</div><p class="result-note">'+result.note+'</p><p class="result-note"><strong>'+(saved.saved?'✓ MedGen hisobiga saqlandi':'! Server sinxronlashuvi bajarilmadi')+'</strong> · '+(saved.saved?'ID: '+saved.id:saved.reason||'Natija lokal ko‘rinishda.')+'</p>';
+      const cards=result.metrics.join('');$('resultPanel').innerHTML='<h3 style="font-size:11px;margin:0 0 9px">'+result.title+'</h3><div class="metric-grid">'+cards+'</div><p class="result-note">'+result.note+'</p><p class="result-note"><strong>'+(saved.saved?'✓ MedGen hisobiga saqlandi':'! Server sinxronlashuvi bajarilmadi')+'</strong> · '+(saved.saved?'ID: '+escapeHtml(saved.id):escapeHtml(saved.reason||'Natija lokal ko‘rinishda.'))+'</p>';
       state.runs++;$('runCount').textContent=state.runs;$('experimentState').textContent='YAKUNLANDI';$('labStatus').textContent='COMPLETED';addHistory(result.title,saved.saved?'Serverga saqlandi':'Lokal natija');if(state.mode==='pcr'||state.mode==='crispr')focusObject('dna');else if(state.mode==='cell')focusObject('cell');else focusObject('bioreactor');
-    }catch(err){$('resultPanel').innerHTML='<p class="result-note"><strong>Tekshiruv xatosi:</strong> '+String(err.message).replace(/[<>]/g,'')+'</p>';$('experimentState').textContent='XATO';$('labStatus').textContent='CHECK INPUT';}
+    }catch(err){$('resultPanel').innerHTML='<p class="result-note"><strong>Tekshiruv xatosi:</strong> '+escapeHtml(err.message)+'</p>';$('experimentState').textContent='XATO';$('labStatus').textContent='CHECK INPUT';}
     finally{state.running=false;button.disabled=false;button.textContent='▶ TAJRIBANI ISHGA TUSHIRISH';}
   }
   function addHistory(title,status){const host=$('historyList'),item=document.createElement('div');item.className='history-item';const b=document.createElement('b');b.textContent=title;const small=document.createElement('small');small.textContent=new Date().toLocaleString()+' · '+status;item.append(b,small);host.prepend(item);while(host.children.length>5)host.lastElementChild.remove();}
@@ -158,7 +158,7 @@
     $('resetExperiment').addEventListener('click',()=>{showMode(state.mode);$('syncStatus').textContent='Kutilmoqda';$('labStatus').textContent='READY';});
     $('resetView').addEventListener('click',()=>{if(!state.controls)return;state.controls.target.set(0,1.3,0);state.controls.theta=.675;state.controls.phi=1.02;state.controls.radius=14;});
     $('toggleLabels').addEventListener('click',()=>{state.showLabels=!state.showLabels;state.labels.forEach(l=>l.visible=state.showLabels);});
-    buildScene();showMode('pcr');
+    try{buildScene();}catch(error){console.error('Biotechnology 3D scene failed:',error);$('sceneLoading').innerHTML='<b>3D sahna ishga tushmadi</b><small>WebGL yoki GPU imkoniyatini tekshiring. Tajriba boshqaruvi 3D sahnasiz ham ishlashi mumkin.</small>'; }showMode('pcr');
   }
   document.addEventListener('DOMContentLoaded',init);
 })();
