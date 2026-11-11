@@ -10,7 +10,7 @@ from backend.admet_pipeline import calculate_admet_descriptors
 def test_required_target_presets_are_present_and_scientifically_gated():
     assert {"1HSG", "8A27", "1RTD"} <= set(TARGET_PRESETS)
     assert TARGET_PRESETS["1HSG"]["docking_enabled"] is True
-    assert TARGET_PRESETS["8A27"]["docking_enabled"] is False
+    assert TARGET_PRESETS["8A27"]["docking_enabled"] is True
     assert TARGET_PRESETS["1RTD"]["docking_enabled"] is False
     assert TARGET_PRESETS["8A27"]["co_crystal_ligand"] == "KY9"
     assert "DNA" in TARGET_PRESETS["1RTD"]["warning"]
