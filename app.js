@@ -3283,6 +3283,31 @@ async function createDiscoverySession() {
    MOLECULAR DOCKING
 ========================================================= */
 
+function renderDockingPose(data) {
+  const host = $('dockingPoseViewer');
+  const notice = $('dockingPoseStatus');
+  if (!host) return;
+  if (!window.$3Dmol || !data?.receptor_pdb || !data?.best_pose_pdb) {
+    if (notice) notice.textContent = '3D ko‘rinish uchun PDB koordinatalari yoki 3Dmol kutubxonasi mavjud emas.';
+    return;
+  }
+  try {
+    if (window.medgenDockingViewer?.clear) window.medgenDockingViewer.clear();
+    host.replaceChildren();
+    const viewer = window.$3Dmol.createViewer(host, { backgroundColor: '#07111f', antialias: true });
+    const receptor = viewer.addModel(data.receptor_pdb, 'pdb');
+    receptor.setStyle({}, { cartoon: { color: '#b8c1cc', opacity: 0.92 } });
+    const ligand = viewer.addModel(data.best_pose_pdb, 'pdb');
+    ligand.setStyle({}, { stick: { radius: 0.18, colorscheme: 'Jmol' }, sphere: { scale: 0.22, colorscheme: 'Jmol' } });
+    viewer.zoomTo();
+    viewer.render();
+    window.medgenDockingViewer = viewer;
+    if (notice) notice.textContent = '1HSG receptor va eng yaxshi ligand pozasi ko‘rsatildi. Sichqoncha yoki sensor orqali aylantiring va yaqinlashtiring.';
+  } catch (error) {
+    if (notice) notice.textContent = '3D ko‘rinishni chizishda xato: ' + (error?.message || 'noma’lum xato');
+  }
+}
+
 async function runDocking() {
   const input = $('dockingInput')?.value?.trim() || '';
   const status = $('dockingStatus');
@@ -3340,6 +3365,7 @@ async function runDocking() {
           data.warning || ''
         ].join('\n');
         if (result) result.textContent = summary;
+        renderDockingPose(data);
         if (status) status.textContent = 'Docking yakunlandi. Natija hisobiy; eksperimental tasdiq emas.';
         return;
       }
