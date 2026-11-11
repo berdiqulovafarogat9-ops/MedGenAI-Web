@@ -112,7 +112,8 @@
     Object.values(modelRoots).forEach(group=>{
       group.traverse(o=>{if(o.userData?.label)o.visible=false;});
       group.updateMatrixWorld(true);
-      const bounds=new T.Box3().setFromObject(group);
+      const bounds=new T.Box3();
+      group.traverse(o=>{if(o.visible&&o.isMesh&&o.geometry){if(!o.geometry.boundingBox)o.geometry.computeBoundingBox();if(o.geometry.boundingBox)bounds.union(o.geometry.boundingBox.clone().applyMatrix4(o.matrixWorld));}});
       if(!bounds.isEmpty()){
         const center=bounds.getCenter(new T.Vector3());
         const size=bounds.getSize(new T.Vector3());
