@@ -11,6 +11,23 @@
   let hivViewer = null;
   let hivPoseModel = null;
   let mounted = false;
+  let preparedLigandPdbqt = "";
+  const viewerResizeObservers = new WeakMap();
+
+  function observeViewer(host, activeViewer, selection) {
+    if (!host || !activeViewer || typeof ResizeObserver === "undefined") return;
+    const previous = viewerResizeObservers.get(host);
+    if (previous) previous.disconnect();
+    const observer = new ResizeObserver(() => {
+      if (!host.clientWidth || !host.clientHeight) return;
+      requestAnimationFrame(() => {
+        try { activeViewer.resize(); activeViewer.zoomTo(selection || {}); activeViewer.render(); } catch (_) {}
+      });
+    });
+    observer.observe(host);
+    viewerResizeObservers.set(host, observer);
+    requestAnimationFrame(() => { try { activeViewer.resize(); activeViewer.zoomTo(selection || {}); activeViewer.render(); } catch (_) {} });
+  }
 
   async function api(path, options) {
     const response = await fetch(API + path, { ...(options || {}), headers: { ...headers(), ...((options || {}).headers || {}) } });
@@ -47,8 +64,7 @@
             <textarea id="mgdd-smiles" rows="3" spellcheck="false">CC(=O)OC1=CC=CC=C1C(=O)O</textarea>
             <button id="mgdd-prepare" type="button" class="mgdd-primary">RDKit + Meeko: ligandni PDBQT tayyorlash</button>
             <div id="mgdd-ligand-status" class="mgdd-note">SMILES kiriting va ligand tayyorlang.</div>
-            <label for="mgdd-ligand-pdbqt">Ligand PDBQT (server tayyorlagan)</label>
-            <textarea id="mgdd-ligand-pdbqt" rows="7" spellcheck="false" placeholder="PDBQT tayyorlangandan so‘ng shu yerda chiqadi"></textarea>
+            <div class="mgdd-note">Ligand koordinatalari serverda tayyorlanadi va faqat 3D ko‘rinish uchun ishlatiladi; xom PDBQT foydalanuvchi interfeysida chiqarilmaydi.</div>
           </section>
         </div>
         <section class="mgdd-card mgdd-receptor">
@@ -100,7 +116,8 @@
   async function loadTargets() {
     try {
       const data = await api("/drug-discovery/targets");
-      targets = data.targets || [];
+      targets = (data.targets || []).filter(t => String(t.pdb_id || "").toUpperCase() === "1HSG");
+      if (!targets.length) throw new Error("Standart rejim uchun 1HSG target katalogida mavjud emas.");
       const select = byId("mgdd-target");
       select.innerHTML = targets.map(t => `<option value="${esc(t.target_id)}">${esc(t.pdb_id)} — ${esc(t.target_name)}</option>`).join("");
       if (targets.length) await selectTarget(targets[0].target_id);
@@ -147,6 +164,7 @@
       viewer.addStyle({ hetflag: true }, { stick: { colorscheme: "Jmol" } });
       viewer.zoomTo();
       viewer.render();
+      observeViewer(host, viewer);
     } catch (error) {
       host.textContent = "3D strukturani yuklab bo‘lmadi: " + error.message;
     }
@@ -160,7 +178,7 @@
     byId("mgdd-ligand-status").textContent = "RDKit 3D konformatsiya va Meeko PDBQT tayyorlash…";
     try {
       const data = await api("/drug-discovery/prepare-ligand", { method: "POST", body: JSON.stringify({ smiles, ligand_name: "medgen_candidate" }) });
-      byId("mgdd-ligand-pdbqt").value = data.pdbqt || "";
+      preparedLigandPdbqt = data.pdbqt || "";
       byId("mgdd-ligand-status").textContent = "PDBQT tayyor. " + data.engine_compatibility + " uchun ligand.";
       byId("mgdd-run").hidden = false;
       setStatus("Ligand PDBQT tayyor. Endi AutoDock Vina hisoblashini boshlashingiz mumkin.");
@@ -173,7 +191,7 @@
   async function runDocking() {
     const targetId = byId("mgdd-target").value;
     const target = targets.find(t => t.target_id === targetId);
-    const ligand = byId("mgdd-ligand-pdbqt").value.trim();
+    const ligand = preparedLigandPdbqt.trim();
     if (!target || !ligand) return setStatus("Target va ligand PDBQT tayyor bo‘lishi kerak.", true);
     const num = id => Number(byId("mgdd-" + id).value);
     const params = { center_x:num("cx"), center_y:num("cy"), center_z:num("cz"), size_x:num("sx"), size_y:num("sy"), size_z:num("sz"), exhaustiveness:num("exhaust"), n_poses:num("poses") };
@@ -198,6 +216,7 @@
         if (dockedLigandModel && typeof dockedLigandModel.setStyle === "function") dockedLigandModel.setStyle({}, { stick: { colorscheme: "Jmol" } });
         viewer.zoomTo();
         viewer.render();
+        observeViewer(byId("mgdd-viewer"), viewer);
       }
       setStatus(posesPdbqt ? "Vina hisoblash tugadi; ligand pozalari 3D strukturaga qo‘shildi. Natija tajriba bilan tasdiqlanishi shart." : "Vina hisoblash tugadi. 3D pose ma’lumoti qaytmadi; natija tajriba bilan tasdiqlanishi shart.");
     } catch (error) {
@@ -220,6 +239,7 @@
       hivViewer.setStyle({ hetflag: false }, { cartoon: { color: "spectrum" } });
       hivViewer.addStyle({ resn: "MK1" }, { stick: { colorscheme: "Jmol" } });
       hivViewer.zoomTo({ hetflag: false }); hivViewer.render();
+      observeViewer(host, hivViewer, { hetflag: false });
       byId("mgdd-hiv-status").textContent = "1HSG receptor va kristall ligand MK1 yuklandi. SMILES kiriting va dockingni boshlang.";
     } catch (error) { byId("mgdd-hiv-status").textContent = "1HSG strukturasi yuklanmadi: " + error.message; }
   }
@@ -246,29 +266,48 @@
     });
     html += '<small style="display:block;margin-top:8px;color:#9fb3c4">' + (lip.is_drug_like ? "Mezonlarga mos" : "Bir yoki bir nechta mezon cheklovdan tashqarida") + '</small></article>';
     html += '<article class="mgdd-pose" style="padding:16px;border:1px solid #29465d;border-radius:14px"><b>Katalitik bog‘lanish joyi</b><p style="margin:8px 0;color:#cfe0ec">' + contactText + '</p><small style="color:#9fb3c4">Asp25 / Asp25′ — OIV-1 proteaza faol markazidagi katalitik qoldiqlar. Vodorod bog‘i xulosasi faqat atom-kontakt tahlili mavjud bo‘lsa tasdiqlanadi.</small></article></div>';
-    html += '<details style="margin-top:10px;border:1px solid #294052;border-radius:10px;padding:10px"><summary style="cursor:pointer;color:#9fb3c4">Xom JSON / texnik tafsilotlar</summary><pre style="white-space:pre-wrap;overflow-wrap:anywhere;max-height:320px;overflow:auto;font-size:11px;color:#b8c7d6">' + esc(JSON.stringify(data, null, 2)) + '</pre></details>';
     return html;
   }
 
   async function runHivDocking() {
     const button = byId("mgdd-hiv-run");
-    const payload = { name: byId("mgdd-hiv-name").value.trim() || "MedGen candidate", smiles: byId("mgdd-hiv-smiles").value.trim(), target_pdb: byId("mgdd-hiv-target").value, exhaustiveness: Number(byId("mgdd-hiv-exhaust").value), n_poses: Number(byId("mgdd-hiv-poses").value) };
+    const payload = { name: byId("mgdd-hiv-name").value.trim() || "MedGen candidate", smiles: byId("mgdd-hiv-smiles").value.trim(), target_pdb: "1HSG", exhaustiveness: Number(byId("mgdd-hiv-exhaust").value), n_poses: Number(byId("mgdd-hiv-poses").value) };
     if (!payload.smiles) { byId("mgdd-hiv-status").textContent = "Ligand SMILES kiriting."; return; }
     if (!Number.isInteger(payload.exhaustiveness) || payload.exhaustiveness < 1 || payload.exhaustiveness > 64 || !Number.isInteger(payload.n_poses) || payload.n_poses < 1 || payload.n_poses > 10) { byId("mgdd-hiv-status").textContent = "Exhaustiveness 1–64, pozalar soni 1–10 oralig‘ida bo‘lishi kerak."; return; }
-    button.disabled = true; byId("mgdd-hiv-status").textContent = "RDKit → Meeko → receptor tayyorlash → AutoDock Vina hisoblayapti…"; byId("mgdd-hiv-results").textContent = "Hisoblash bajarilmoqda…";
+    button.disabled = true;
+    byId("mgdd-hiv-status").textContent = "1HSG uchun asinxron RDKit → Meeko → AutoDock Vina navbati yaratilyapti…";
+    byId("mgdd-hiv-results").textContent = "Hisoblash bajarilmoqda…";
     try {
-      const data = await api("/hiv-lab/docking", { method: "POST", body: JSON.stringify(payload) });
-      const poses = data.poses || [];
+      const created = await api("/hiv-lab/docking/jobs", { method: "POST", body: JSON.stringify(payload) });
+      let job = null;
+      for (let attempt = 0; attempt < 180; attempt += 1) {
+        await new Promise(resolve => setTimeout(resolve, 1500));
+        job = await api("/hiv-lab/docking/jobs/" + encodeURIComponent(created.job_id));
+        if (job.status === "completed" || job.status === "failed") break;
+      }
+      if (!job || job.status !== "completed" || !job.result) {
+        throw new Error(job && job.error ? job.error : "Docking hisoblash vaqti tugadi yoki natija qaytmadi.");
+      }
+      const data = job.result;
+      const poses = Array.isArray(data.poses) ? data.poses : [];
       let html = '<h3 style="margin:4px 0;color:#e8f0f6">Hisoblash kimyosi natijalari</h3>';
       html += renderHivMetrics(data, data.target_name + " · " + data.target_pdb + " · " + data.engine);
       html += '<p class="mgdd-note">' + esc(data.scientific_summary || "") + '</p>';
       html += '<p class="mgdd-note">' + esc(data.warning || "Vina natijasi eksperimental validatsiyani talab qiladi.") + '</p>';
       html += poses.map((pose, i) => '<article class="mgdd-pose"><b>Pose ' + (i+1) + '</b><strong>' + esc(pose.affinity_kcal_mol) + ' kkal/mol</strong><small>Intermolecular: ' + esc(pose.intermolecular_energy_kcal_mol) + ' · Intramolecular: ' + esc(pose.intramolecular_energy_kcal_mol) + '</small></article>').join("");
       byId("mgdd-hiv-results").innerHTML = html;
-      if (hivViewer && data.poses_pdbqt) { if (hivPoseModel) { try { hivViewer.removeModel(hivPoseModel); } catch (_) {} } hivPoseModel = hivViewer.addModel(data.poses_pdbqt, "pdb"); if (hivPoseModel && typeof hivPoseModel.setStyle === "function") hivPoseModel.setStyle({}, { stick: { colorscheme: "greenCarbon" } }); hivViewer.zoomTo({ hetflag: false }); hivViewer.render(); }
-      byId("mgdd-hiv-status").textContent = "Docking hisoblandi. Eng yaxshi pose 3D receptor ko‘rinishiga qo‘shildi.";
-    } catch (error) { byId("mgdd-hiv-results").textContent = error.message; byId("mgdd-hiv-status").textContent = "HIV docking bajarilmadi: " + error.message; }
-    finally { button.disabled = false; }
+      if (hivViewer && data.poses_pdbqt) {
+        if (hivPoseModel) { try { hivViewer.removeModel(hivPoseModel); } catch (_) {} }
+        hivPoseModel = hivViewer.addModel(data.poses_pdbqt, "pdb");
+        if (hivPoseModel && typeof hivPoseModel.setStyle === "function") hivPoseModel.setStyle({}, { stick: { colorscheme: "greenCarbon" } });
+        hivViewer.zoomTo({ hetflag: false }); hivViewer.render();
+        observeViewer(byId("mgdd-hiv-viewer"), hivViewer, { hetflag: false });
+      }
+      byId("mgdd-hiv-status").textContent = "Vina hisoblash yakunlandi. Natija PostgreSQL persistence holati bilan qaytarildi.";
+    } catch (error) {
+      byId("mgdd-hiv-results").textContent = error.message;
+      byId("mgdd-hiv-status").textContent = "HIV docking bajarilmadi: " + error.message;
+    } finally { button.disabled = false; }
   }
 
   function mount() {
