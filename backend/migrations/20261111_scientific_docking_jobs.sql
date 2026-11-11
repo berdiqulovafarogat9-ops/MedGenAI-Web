@@ -28,6 +28,8 @@ ALTER TABLE public.scientific_docking_jobs ADD COLUMN IF NOT EXISTS result_data 
 ALTER TABLE public.scientific_docking_jobs ADD COLUMN IF NOT EXISTS status TEXT NOT NULL DEFAULT 'completed';
 UPDATE public.scientific_docking_jobs SET job_id='legacy-' || id::text WHERE job_id IS NULL;
 ALTER TABLE public.scientific_docking_jobs ALTER COLUMN job_id SET NOT NULL;
+ALTER TABLE public.scientific_docking_jobs ALTER COLUMN hbonds_count DROP NOT NULL;
+ALTER TABLE public.scientific_docking_jobs ALTER COLUMN lipinski_violations DROP NOT NULL;
 CREATE UNIQUE INDEX IF NOT EXISTS idx_scientific_docking_jobs_job_id
     ON public.scientific_docking_jobs(job_id);
 CREATE INDEX IF NOT EXISTS idx_scientific_docking_jobs_user_created
