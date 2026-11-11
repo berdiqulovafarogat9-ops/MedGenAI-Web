@@ -1,7 +1,7 @@
 (() => {
   'use strict';
   const $ = (id) => document.getElementById(id);
-  const state = { mode:'pcr', scene:null, camera:null, renderer:null, raycaster:null, pointer:null, objects:{}, labels:[], selected:null, running:false, runs:0, showLabels:true, history:[], bubbles:[] };
+  const state = { mode:'pcr', scene:null, camera:null, renderer:null, raycaster:null, pointer:null, objects:{}, modelRoots:{}, labels:[], selected:null, running:false, runs:0, showLabels:true, history:[], bubbles:[] };
   const API_BASE = window.MEDGEN_API_BASE || 'https://medgenai-web-1.onrender.com/api/v1';
   const DNA_DEFAULT = 'ATGCGTACGTAGCTAGCTAGGCTAACGTTAGCGATCGTACGATCG';
 
@@ -17,40 +17,19 @@
     const host=$('lab3d');
     if(!window.THREE){$('sceneLoading').innerHTML='<b>3D kutubxona yuklanmadi</b><small>Internet ulanishini tekshirib sahifani yangilang.</small>';return;}
     const T=window.THREE, scene=new T.Scene(); scene.background=new T.Color(0x070b12); scene.fog=new T.Fog(0x070b12,15,30);
-    const camera=new T.PerspectiveCamera(68,window.innerWidth/window.innerHeight,.1,100);camera.position.set(0,2.4,3.8);
+    const camera=new T.PerspectiveCamera(48,window.innerWidth/window.innerHeight,.05,100);camera.position.set(0,1.5,4.2);
     const renderer=new T.WebGLRenderer({antialias:true,alpha:false});renderer.setPixelRatio(Math.min(devicePixelRatio||1,2));renderer.setSize(host.clientWidth,host.clientHeight);renderer.shadowMap.enabled=true;renderer.shadowMap.type=T.PCFSoftShadowMap;if('outputColorSpace' in renderer && T.SRGBColorSpace)renderer.outputColorSpace=T.SRGBColorSpace;else if('outputEncoding' in renderer && T.sRGBEncoding)renderer.outputEncoding=T.sRGBEncoding;renderer.toneMapping=T.ACESFilmicToneMapping;renderer.toneMappingExposure=.78;host.prepend(renderer.domElement);
-    const CAMERA_TARGET_Y=.65;const initialRadius=Math.hypot(3.4,2.0-CAMERA_TARGET_Y);const controls={target:new T.Vector3(0,CAMERA_TARGET_Y,0),drag:false,pan:false,x:0,y:0,theta:0,phi:Math.acos((2.0-CAMERA_TARGET_Y)/initialRadius),radius:initialRadius,minDistance:1.3,maxDistance:4.8,minPolarAngle:.2,maxPolarAngle:Math.PI/2.05,zoomSpeed:1.2,rotateSpeed:.9,pointers:new Map(),pinchDistance:0};
+    const initialRadius=Math.hypot(4.2,1.5);const controls={target:new T.Vector3(0,0,0),drag:false,pan:false,x:0,y:0,theta:0,phi:Math.acos(1.5/initialRadius),radius:initialRadius,minDistance:.85,maxDistance:8,minPolarAngle:.08,maxPolarAngle:Math.PI-.08,zoomSpeed:1.2,rotateSpeed:.9,pointers:new Map(),pinchDistance:0};
     const ambient=new T.AmbientLight(0x0f172a,.6);scene.add(ambient);
     const hemi=new T.HemisphereLight(0x66839a,0x090e17,.22);scene.add(hemi);
     const key=new T.DirectionalLight(0xffffff,1.0);key.position.set(3,5,4);key.castShadow=true;key.shadow.mapSize.set(1536,1536);scene.add(key);
     const spot=new T.SpotLight(0xdff8ff,5,18,Math.PI/5,.55,1.5);spot.position.set(1,9,3);spot.target.position.set(0,1.2,0);spot.castShadow=true;scene.add(spot,spot.target);
     const cyan=new T.PointLight(0x38bdf8,1.2,8);cyan.position.set(-4,3,1);scene.add(cyan);
-    function buildLaboratoryRoom(targetScene){
-      const room=new T.Group();room.name='laboratory-room';
-      const floorMat=new T.MeshStandardMaterial({color:0x090e17,roughness:.5,metalness:.1});
-      const floor=new T.Mesh(new T.PlaneGeometry(14,14),floorMat);floor.rotation.x=-Math.PI/2;floor.position.y=-.035;floor.receiveShadow=true;room.add(floor);
-      const wallMat=new T.MeshStandardMaterial({color:0x090e17,roughness:.6,metalness:.12});
-      const back=new T.Mesh(new T.PlaneGeometry(14,6),wallMat);back.position.set(0,3,-7);back.receiveShadow=true;room.add(back);
-      const left=new T.Mesh(new T.PlaneGeometry(14,6),wallMat);left.position.set(-7,3,0);left.rotation.y=Math.PI/2;left.receiveShadow=true;room.add(left);
-      const right=new T.Mesh(new T.PlaneGeometry(14,6),wallMat);right.position.set(7,3,0);right.rotation.y=-Math.PI/2;right.receiveShadow=true;room.add(right);
-      const ceiling=new T.Mesh(new T.PlaneGeometry(14,14),new T.MeshBasicMaterial({color:0x060a10,side:T.DoubleSide}));ceiling.position.y=6;ceiling.rotation.x=Math.PI/2;room.add(ceiling);
-      const grid=new T.GridHelper(14,28,0x1b5368,0x122c40);grid.position.y=-.02;room.add(grid);
-      const neonMat=new T.MeshBasicMaterial({color:0x38bdf8});
-      for(const z of [-5.8,-3.4,0,3.4]){const strip=new T.Mesh(new T.BoxGeometry(6,.035,.055),neonMat);strip.position.set(0,5.92,z);room.add(strip);}
-      for(const x of [-6.92,6.92]){const strip=new T.Mesh(new T.BoxGeometry(.035,4.8,.055),neonMat);strip.position.set(x,3,-3.8);room.add(strip);}
-      const shelfMat=new T.MeshStandardMaterial({color:0x111c2e,metalness:.5,roughness:.4});
-      const shelf=new T.Mesh(new T.BoxGeometry(3.5,3.2,.6),shelfMat);shelf.position.set(2.8,1.6,-6.55);shelf.castShadow=true;shelf.receiveShadow=true;room.add(shelf);
-      const shelfTrim=new T.MeshStandardMaterial({color:0x38bdf8,emissive:0x07384a,metalness:.4,roughness:.3});
-      for(const y of [.45,1.35,2.25]){const plank=new T.Mesh(new T.BoxGeometry(3.35,.055,.72),shelfTrim);plank.position.set(2.8,y,-6.18);room.add(plank);}
-      targetScene.add(room);return room;
-    }
-    buildLaboratoryRoom(scene);
     function mat(color,metalness=.15,roughness=.35,transparent=false,opacity=1){return new T.MeshStandardMaterial({color,metalness,roughness,transparent,opacity});}
     const steel=mat(0x263b4d,.45,.42),dark=mat(0x0f172a,.35,.4),glass=mat(0x74d9e7,.1,.12,true,.28),white=mat(0x9aadb8,.05,.48),blue=mat(0x1e8ea5,.35,.28),green=mat(0x3ee0a2,.2,.25),gold=mat(0xe6b66c,.3,.3);
     function box(name,w,h,d,x,y,z,material,selectable=false){const m=new T.Mesh(new T.BoxGeometry(w,h,d),material);m.position.set(x,y,z);m.castShadow=true;m.receiveShadow=true;m.userData={name,selectable};scene.add(m);if(selectable)state.objects[name]=m;return m;}
     function cylinder(name,rt,rb,h,x,y,z,material,selectable=false,segments=32){const m=new T.Mesh(new T.CylinderGeometry(rt,rb,h,segments),material);m.position.set(x,y,z);m.castShadow=true;m.receiveShadow=true;m.userData={name,selectable};scene.add(m);if(selectable)state.objects[name]=m;return m;}
-    // Central stainless laboratory bench
-    box('bench',8,.28,3.3,0,1.05,0,steel);box('bench-front',8,.95,.16,0,.53,1.53,dark);for(const x of [-3.5,3.5])box('bench-leg',.22,1,.22,x,.5,0,steel);
+    // No virtual room or shared workbench: scientific models render in isolation.
     // Microplate with 96 visible wells
     box('plate',2.25,.18,1.55,-1.2,1.29,.5,white,true);
     for(let r=0;r<8;r++)for(let c=0;c<12;c++){const well=cylinder('well',.052,.052,.035,-2.13+c*.17,1.4,-.08+r*.165,mat((r+c)%3===0?0x2f9eae:0x236477,.1,.25),false,12);well.userData.parentName='plate';}
@@ -115,8 +94,7 @@
     const dnaGroup=new T.Group();dnaGroup.position.set(-1.6,1.19,-.4);dnaGroup.scale.set(.7,.7,.7);scene.add(dnaGroup);state.objects.dna=dnaGroup;dnaGroup.userData={name:'dna',selectable:true};
     for(let i=0;i<32;i++){const y=i*.105;const a=i*.42;for(const sign of [-1,1]){const bead=new T.Mesh(new T.SphereGeometry(.075,12,10),sign<0?blue:green);bead.position.set(Math.cos(a+Math.PI*(sign>0))*0.48,y,Math.sin(a+Math.PI*(sign>0))*.48);dnaGroup.add(bead);}const rung=new T.Mesh(new T.CylinderGeometry(.025,.025,.72,8),gold);rung.position.y=y;rung.rotation.z=Math.PI/2;dnaGroup.add(rung);}
     const dnaStand=cylinder('dna-stand',.42,.42,.12,-1.3,1.26,0,steel);scene.remove(dnaStand);dnaStand.position.set(0,.07,0);dnaGroup.add(dnaStand);
-    // Overhead light panels
-    for(let x of [-3,0,3]){const light=box('ceiling-light',1.8,.05,.55,x,6.1,-2.7,mat(0x9beeff,.1,.2));const glow=new T.PointLight(0x70dce8,.65,6);glow.position.set(x,5.7,-2.5);scene.add(glow);}
+    // Compact studio lighting only; no ceiling fixtures or room geometry.
     // Equipment placement: bench top is Y=1.19 (bench center 1.05 + half-height 0.14).
     // Keep each instrument in a dedicated footprint; Y=0.52 would place it inside the bench geometry.
     const Y_SURFACE=1.19;
@@ -128,6 +106,23 @@
     // Equipment labels as canvas sprites
     function label(text,parent,x,y,z,module){const c=document.createElement('canvas');c.width=512;c.height=96;const ctx=c.getContext('2d');ctx.fillStyle='rgba(15,23,42,.92)';ctx.strokeStyle='#38bdf8';ctx.lineWidth=3;ctx.beginPath();ctx.roundRect(3,3,506,90,14);ctx.fill();ctx.stroke();ctx.font='700 28px Arial';ctx.fillStyle='#ffffff';ctx.textAlign='center';ctx.letterSpacing='0.5px';ctx.shadowColor='rgba(0,0,0,.6)';ctx.shadowBlur=8;ctx.shadowOffsetY=2;ctx.fillText(text,256,59);const tex=new T.CanvasTexture(c);const sprite=new T.Sprite(new T.SpriteMaterial({map:tex,transparent:true,depthWrite:false,depthTest:false}));sprite.scale.set(1.65,.31,1);const topByModule={pcr:1.12,microscope:1.91,bioreactor:2.36,cell:.945,crispr:3.35};const scaleY=parent.scale?.y||1;const localTop=topByModule[module]??.5;sprite.position.set(x,localTop+.75/scaleY,z);sprite.userData.label=true;sprite.userData.module=module||'';parent.add(sprite);state.labels.push(sprite);return sprite;}
     label('PCR MICROPLATE',pcrGroup,0,.5,0,'pcr');label('MICROSCOPE',microscope,0,.5,0,'microscope');label('BIOREACTOR',reactorGroup,0,.5,0,'bioreactor');label('CELL CULTURE',cellGroup,0,.5,0,'cell');label('DNA MODEL',dnaGroup,0,.5,0,'crispr');
+    const modelRoots={pcr:pcrGroup,cell:cellGroup,bioreactor:reactorGroup,microscope,dna:dnaGroup};
+    pcrGroup.traverse(o=>{if(['pipette','pipette-button','pipette-tip'].includes(o.userData?.name))o.visible=false;});
+    // Normalize each selected model to the origin and a consistent on-screen size.
+    Object.values(modelRoots).forEach(group=>{
+      group.traverse(o=>{if(o.userData?.label)o.visible=false;});
+      group.updateMatrixWorld(true);
+      const bounds=new T.Box3().setFromObject(group);
+      if(!bounds.isEmpty()){
+        const center=bounds.getCenter(new T.Vector3());
+        const size=bounds.getSize(new T.Vector3());
+        const maxAxis=Math.max(size.x,size.y,size.z)||1;
+        group.position.sub(center);
+        group.scale.multiplyScalar(2.65/maxAxis);
+        group.updateMatrixWorld(true);
+      }
+    });
+    state.modelRoots=modelRoots;
     state.scene=scene;state.camera=camera;state.renderer=renderer;state.raycaster=new T.Raycaster();state.pointer=new T.Vector2();state.controls=controls;state.cellGroup=cellGroup;state.pcrGroup=pcrGroup;state.vessel=reactorGroup;state.dnaGroup=dnaGroup;
     $('sceneLoading').style.display='none';
     renderer.domElement.addEventListener('pointerdown',onPointerDown);
@@ -144,10 +139,16 @@
    function onPointerMove(e){const c=state.controls;if(!c)return;if(c.pointers.has(e.pointerId)){c.pointers.set(e.pointerId,{x:e.clientX,y:e.clientY});if(c.pointers.size>=2){const next=pointerDistance(c.pointers);if(c.pinchDistance>0&&next>0)c.radius=Math.max(c.minDistance,Math.min(c.maxDistance,c.radius*c.pinchDistance/next));c.pinchDistance=next;return;}}if(!c.drag||c.pointers.size!==1)return;const dx=e.clientX-c.x,dy=e.clientY-c.y;c.x=e.clientX;c.y=e.clientY;c.theta-=dx*.006*c.rotateSpeed;c.phi=Math.max(c.minPolarAngle,Math.min(c.maxPolarAngle,c.phi+dy*.005*c.rotateSpeed));}
    function onWheel(e){e.preventDefault();const c=state.controls;if(!c)return;const factor=Math.exp(Math.max(-1,Math.min(1,e.deltaY*.001))*c.zoomSpeed*.18);c.radius=Math.max(c.minDistance,Math.min(c.maxDistance,c.radius*factor));}
    function zoomLab(factor){const c=state.controls;if(!c)return;c.radius=Math.max(c.minDistance,Math.min(c.maxDistance,c.radius*factor));}
-  function resetLabCamera(){const c=state.controls;if(!c)return;c.target.set(0,.65,0);c.theta=0;c.radius=Math.max(c.minDistance,Math.min(c.maxDistance,Math.hypot(3.4,2.0-.65)));c.phi=Math.max(c.minPolarAngle,Math.min(c.maxPolarAngle,Math.acos((2.0-.65)/c.radius)));if(state.camera){state.camera.position.set(0,2.0,3.4);state.camera.lookAt(c.target);}}
+  function resetLabCamera(){const c=state.controls;if(!c)return;c.target.set(0,0,0);c.theta=0;c.radius=Math.max(c.minDistance,Math.min(c.maxDistance,Math.hypot(4.2,1.5)));c.phi=Math.max(c.minPolarAngle,Math.min(c.maxPolarAngle,Math.acos(1.5/c.radius)));if(state.camera){state.camera.position.set(0,1.5,4.2);state.camera.lookAt(c.target);}}
   function resizeScene(){const h=$('lab3d');if(!state.renderer||!h)return;const w=window.innerWidth||h.clientWidth,ht=window.innerHeight||h.clientHeight;state.camera.aspect=w/Math.max(1,ht);state.camera.updateProjectionMatrix();state.renderer.setPixelRatio(Math.min(window.devicePixelRatio||1,2));state.renderer.setSize(w,ht,false);}
+  function isolateModel(mode){
+    const key=({pcr:'pcr',cell:'cell',bioreactor:'bioreactor',microscope:'microscope',crispr:'dna'})[mode]||'pcr';
+    Object.entries(state.modelRoots||{}).forEach(([name,group])=>{group.visible=name===key;});
+    const c=state.controls;if(c){c.target.set(0,0,0);c.radius=Math.max(c.minDistance,Math.min(c.maxDistance,4.25));c.theta=0;c.phi=Math.PI/2;}
+    syncActiveLabel(mode);
+  }
   function syncActiveLabel(mode=state.mode){const selectedMode=({plate:'pcr',pipette:'pcr',pcr:'pcr',microscope:'microscope',bioreactor:'bioreactor',cell:'cell',dna:'crispr'})[state.selected];state.labels.forEach(l=>{const active=!!state.selected&&l.userData.module===selectedMode&&selectedMode===mode;l.material.opacity=active?1:0;l.visible=state.showLabels&&active;});}
-  function focusObject(name){const obj=state.objects[name];if(!obj)return;state.selected=name;const activeMode=['pcr','plate','pipette'].includes(name)?'pcr':name==='cell'?'cell':name==='bioreactor'?'bioreactor':name==='microscope'?'microscope':name==='dna'?'crispr':state.mode;syncActiveLabel(activeMode);$('selectedObject').textContent='Tanlangan: '+({microscope:'mikroskop',pipette:'pipetka',plate:'mikroplastinka',bioreactor:'bioreaktor',cell:'hujayra modeli',dna:'DNK modeli'}[name]||name);$('sceneHint').textContent='Tanlangan obyekt: '+name;/* Object selection must never move the fixed laboratory camera pivot. */ }
+  function focusObject(name){const obj=state.objects[name];if(!obj)return;state.selected=name;const activeMode=['pcr','plate','pipette'].includes(name)?'pcr':name==='cell'?'cell':name==='bioreactor'?'bioreactor':name==='microscope'?'microscope':name==='dna'?'crispr':state.mode;syncActiveLabel(activeMode);$('selectedObject').textContent='Tanlangan: '+({microscope:'mikroskop',pipette:'pipetka',plate:'mikroplastinka',bioreactor:'bioreaktor',cell:'hujayra modeli',dna:'DNK modeli'}[name]||name);$('sceneHint').textContent='Tanlangan obyekt: '+name;isolateModel(activeMode); }
   function onPointerUpClick(e){if(!state.renderer||!state.raycaster)return;const rect=state.renderer.domElement.getBoundingClientRect();state.pointer.set(((e.clientX-rect.left)/rect.width)*2-1,-((e.clientY-rect.top)/rect.height)*2+1);state.raycaster.setFromCamera(state.pointer,state.camera);const hits=state.raycaster.intersectObjects(state.scene.children,true);for(const hit of hits){let o=hit.object;while(o&& !o.userData?.selectable && !o.userData?.parentName)o=o.parent;if(o?.userData?.parentName){focusObject(o.userData.parentName);return;}if(o?.userData?.selectable){focusObject(o.userData.name);return;}}}
   // Pointer selection is separated from camera drag so touch rotation remains natural.
    let downPoint=null;function onPointerDown(e){const c=state.controls;c.pointers.set(e.pointerId,{x:e.clientX,y:e.clientY});if(c.pointers.size===1){c.drag=true;c.x=e.clientX;c.y=e.clientY;downPoint={x:e.clientX,y:e.clientY,id:e.pointerId};}else{c.drag=false;downPoint=null;c.pinchDistance=pointerDistance(c.pointers);}state.renderer.domElement.setPointerCapture?.(e.pointerId);}
@@ -162,7 +163,7 @@
     if(state.mode==='microscope')c.innerHTML='<div class="field-row"><label>Obyektiv<select id="objectivePower"><option value="4">4× · umumiy ko‘rish</option><option value="10">10× · past kattalashtirish</option><option value="40" selected>40× · yuqori kattalashtirish</option><option value="100">100× · immersion obyektiv</option></select></label><label>Okulyar<input id="ocularPower" type="number" value="10" min="5" max="20" disabled></label></div><div class="field-row"><label>Preparat<select id="specimenType"><option value="plant">O‘simlik hujayrasi · ~100 µm</option><option value="animal" selected>Hayvon hujayrasi · ~20 µm</option><option value="bacteria">Bakteriya · ~2 µm</option><option value="rbc">Eritrotsit · ~7.5 µm</option></select></label><label>Field number (mm)<input id="fieldNumber" type="number" value="18" min="10" max="25" step=".5"></label></div><div class="control-hint">100× immersion faqat obyektiv turi haqida o‘quv misoli; laboratoriya amaliyoti bo‘yicha ko‘rsatma emas.</div>';
     if(state.mode==='crispr')c.innerHTML='<label class="field-label" for="sequenceInput">Namunaviy DNK (5′ → 3′)</label><textarea id="sequenceInput" rows="4" spellcheck="false">ATGCGTACGTAGCTAGCTAGGCTAACGTTAGCGATCGTACGATCG</textarea><label class="field-label" for="crisprTarget">Qidiriladigan 20 nt motiv</label><input id="crisprTarget" value="GCTAACGTTAGCGATCGTAC" maxlength="20"><div class="control-hint">Faqat matnli motiv qidiruvi. PAM, off-target yoki real editing hisoblanmaydi.</div>';
   }
-  function showMode(mode){if(!experiments[mode])return;state.mode=mode;syncActiveLabel(mode);document.querySelectorAll('.module-choice').forEach(b=>b.classList.toggle('active',b.dataset.experiment===mode));const e=experiments[mode];$('experimentTitle').textContent=e.title;$('experimentDescription').textContent=e.description;$('protocolTitle').textContent=e.protocol;$('protocolSteps').innerHTML=e.steps.map(x=>'<li>'+x+'</li>').join('');$('scientistNote').textContent=e.note;$('experimentState').textContent='TAYYOR';$('resultPanel').innerHTML='<div class="result-empty"><span>◎</span><b>Natija kutilmoqda</b><small>Parametrlarni tekshirib, tajribani ishga tushiring.</small></div>';renderControls();syncActiveLabel(mode);}
+  function showMode(mode){if(!experiments[mode])return;state.mode=mode;isolateModel(mode);document.querySelectorAll('.module-choice').forEach(b=>b.classList.toggle('active',b.dataset.experiment===mode));const e=experiments[mode];$('experimentTitle').textContent=e.title;$('experimentDescription').textContent=e.description;$('protocolTitle').textContent=e.protocol;$('protocolSteps').innerHTML=e.steps.map(x=>'<li>'+x+'</li>').join('');$('scientistNote').textContent=e.note;$('experimentState').textContent='TAYYOR';$('resultPanel').innerHTML='<div class="result-empty"><span>◎</span><b>Natija kutilmoqda</b><small>Parametrlarni tekshirib, tajribani ishga tushiring.</small></div>';renderControls();syncActiveLabel(mode);}
   function animateExperiment(mode){
     return new Promise(resolve=>{
       const started=performance.now(),duration=1250;
