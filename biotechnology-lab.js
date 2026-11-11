@@ -19,18 +19,32 @@
     const T=window.THREE, scene=new T.Scene(); scene.background=new T.Color(0x070b12); scene.fog=new T.Fog(0x070b12,15,30);
     const camera=new T.PerspectiveCamera(68,window.innerWidth/window.innerHeight,.1,100);camera.position.set(0,2.4,3.8);
     const renderer=new T.WebGLRenderer({antialias:true,alpha:false});renderer.setPixelRatio(Math.min(devicePixelRatio||1,2));renderer.setSize(host.clientWidth,host.clientHeight);renderer.shadowMap.enabled=true;renderer.shadowMap.type=T.PCFSoftShadowMap;if('outputColorSpace' in renderer && T.SRGBColorSpace)renderer.outputColorSpace=T.SRGBColorSpace;else if('outputEncoding' in renderer && T.sRGBEncoding)renderer.outputEncoding=T.sRGBEncoding;renderer.toneMapping=T.ACESFilmicToneMapping;renderer.toneMappingExposure=1.08;host.prepend(renderer.domElement);
-    const CAMERA_TARGET_Y=.65;const initialRadius=Math.sqrt(3.8*3.8+(2.4-CAMERA_TARGET_Y)*(2.4-CAMERA_TARGET_Y));const controls={target:new T.Vector3(0,CAMERA_TARGET_Y,0),drag:false,x:0,y:0,theta:0,phi:Math.acos((2.4-CAMERA_TARGET_Y)/initialRadius),radius:initialRadius,minDistance:2.2,maxDistance:6.0,maxPolarAngle:Math.PI/2.1};
+    const CAMERA_TARGET_Y=.65;const initialRadius=Math.sqrt(3.8*3.8+(2.4-CAMERA_TARGET_Y)*(2.4-CAMERA_TARGET_Y));const controls={target:new T.Vector3(0,CAMERA_TARGET_Y,0),drag:false,pan:false,x:0,y:0,theta:0,phi:Math.acos((2.4-CAMERA_TARGET_Y)/initialRadius),radius:initialRadius,minDistance:.8,maxDistance:9.0,minPolarAngle:.05,maxPolarAngle:Math.PI-.05};
     const ambient=new T.AmbientLight(0x38bdf8,.42);scene.add(ambient);
     const hemi=new T.HemisphereLight(0x9bdcf5,0x101a2b,.62);scene.add(hemi);
     const key=new T.DirectionalLight(0xeaf7ff,2.15);key.position.set(5,10,6);key.castShadow=true;key.shadow.mapSize.set(1536,1536);scene.add(key);
     const spot=new T.SpotLight(0xdff8ff,34,22,Math.PI/5,.45,1.2);spot.position.set(1,9,3);spot.target.position.set(0,1.2,0);spot.castShadow=true;scene.add(spot,spot.target);
     const cyan=new T.PointLight(0x38bdf8,12,14);cyan.position.set(-4,3,1);scene.add(cyan);
-    const floor=new T.Mesh(new T.PlaneGeometry(30,30),new T.MeshStandardMaterial({color:0x0b1b29,roughness:.82,metalness:.15}));floor.rotation.x=-Math.PI/2;floor.position.y=-.02;floor.receiveShadow=true;scene.add(floor);
-    const grid=new T.GridHelper(24,24,0x1a4558,0x153244);grid.position.y=.005;scene.add(grid);
-    const wallMat=new T.MeshStandardMaterial({color:0x102b3c,roughness:.8,metalness:.1});
-    const back=new T.Mesh(new T.BoxGeometry(18,7,.18),wallMat);back.position.set(0,3.4,-5);scene.add(back);
-    const panelMat=new T.MeshStandardMaterial({color:0x174054,emissive:0x06212b,roughness:.5});
-    for(let x=-6;x<=6;x+=3){const p=new T.Mesh(new T.BoxGeometry(2.7,2.2,.08),panelMat);p.position.set(x,4.3,-4.88);scene.add(p);}
+    function buildLaboratoryRoom(targetScene){
+      const room=new T.Group();room.name='laboratory-room';
+      const floorMat=new T.MeshStandardMaterial({color:0x0c1524,roughness:.25,metalness:.3});
+      const floor=new T.Mesh(new T.PlaneGeometry(14,14),floorMat);floor.rotation.x=-Math.PI/2;floor.position.y=-.035;floor.receiveShadow=true;room.add(floor);
+      const wallMat=new T.MeshStandardMaterial({color:0x090e17,roughness:.6,metalness:.12});
+      const back=new T.Mesh(new T.PlaneGeometry(14,6),wallMat);back.position.set(0,3,-7);back.receiveShadow=true;room.add(back);
+      const left=new T.Mesh(new T.PlaneGeometry(14,6),wallMat);left.position.set(-7,3,0);left.rotation.y=Math.PI/2;left.receiveShadow=true;room.add(left);
+      const right=new T.Mesh(new T.PlaneGeometry(14,6),wallMat);right.position.set(7,3,0);right.rotation.y=-Math.PI/2;right.receiveShadow=true;room.add(right);
+      const ceiling=new T.Mesh(new T.PlaneGeometry(14,14),new T.MeshBasicMaterial({color:0x060a10,side:T.DoubleSide}));ceiling.position.y=6;ceiling.rotation.x=Math.PI/2;room.add(ceiling);
+      const grid=new T.GridHelper(14,28,0x1b5368,0x122c40);grid.position.y=-.02;room.add(grid);
+      const neonMat=new T.MeshBasicMaterial({color:0x38bdf8});
+      for(const z of [-5.8,-3.4,0,3.4]){const strip=new T.Mesh(new T.BoxGeometry(6,.035,.055),neonMat);strip.position.set(0,5.92,z);room.add(strip);}
+      for(const x of [-6.92,6.92]){const strip=new T.Mesh(new T.BoxGeometry(.035,4.8,.055),neonMat);strip.position.set(x,3,-3.8);room.add(strip);}
+      const shelfMat=new T.MeshStandardMaterial({color:0x111c2e,metalness:.5,roughness:.4});
+      const shelf=new T.Mesh(new T.BoxGeometry(3.5,3.2,.6),shelfMat);shelf.position.set(2.8,1.6,-6.55);shelf.castShadow=true;shelf.receiveShadow=true;room.add(shelf);
+      const shelfTrim=new T.MeshStandardMaterial({color:0x38bdf8,emissive:0x07384a,metalness:.4,roughness:.3});
+      for(const y of [.45,1.35,2.25]){const plank=new T.Mesh(new T.BoxGeometry(3.35,.055,.72),shelfTrim);plank.position.set(2.8,y,-6.18);room.add(plank);}
+      targetScene.add(room);return room;
+    }
+    buildLaboratoryRoom(scene);
     function mat(color,metalness=.15,roughness=.35,transparent=false,opacity=1){return new T.MeshStandardMaterial({color,metalness,roughness,transparent,opacity});}
     const steel=mat(0x8098a7,.72,.28),dark=mat(0x152b3a,.55,.32),glass=mat(0x74d9e7,.1,.12,true,.28),white=mat(0xd7e8ec,.1,.32),blue=mat(0x1e8ea5,.35,.28),green=mat(0x3ee0a2,.2,.25),gold=mat(0xe6b66c,.3,.3);
     function box(name,w,h,d,x,y,z,material,selectable=false){const m=new T.Mesh(new T.BoxGeometry(w,h,d),material);m.position.set(x,y,z);m.castShadow=true;m.receiveShadow=true;m.userData={name,selectable};scene.add(m);if(selectable)state.objects[name]=m;return m;}
@@ -120,20 +134,21 @@
     renderer.domElement.addEventListener('pointermove',onPointerMove);
     renderer.domElement.addEventListener('pointerup',onPointerUp);
     renderer.domElement.addEventListener('wheel',onWheel,{passive:false});
+    renderer.domElement.addEventListener('contextmenu',e=>e.preventDefault());
     window.addEventListener('resize',resizeScene);
     animate();
     function animate(){if(!state.renderer)return;requestAnimationFrame(animate);cellGroup.rotation.y+=.002;dnaGroup.rotation.y+=.0025;state.vessel.rotation.y+=.001;state.bubbles.forEach((b,i)=>{b.position.y+=.004+(i%2)*.001;if(b.position.y>2.25)b.position.y=1.68;});updateCamera();renderer.render(scene,camera);}
-    function updateCamera(){const c=state.controls;c.radius=Math.max(c.minDistance,Math.min(c.maxDistance,c.radius));c.phi=Math.max(.25,Math.min(c.maxPolarAngle,c.phi));camera.position.set(c.target.x+c.radius*Math.sin(c.phi)*Math.sin(c.theta),c.target.y+c.radius*Math.cos(c.phi),c.target.z+c.radius*Math.sin(c.phi)*Math.cos(c.theta));camera.lookAt(c.target);}
+    function updateCamera(){const c=state.controls;c.radius=Math.max(c.minDistance,Math.min(c.maxDistance,c.radius));c.phi=Math.max(c.minPolarAngle,Math.min(c.maxPolarAngle,c.phi));camera.position.set(c.target.x+c.radius*Math.sin(c.phi)*Math.sin(c.theta),c.target.y+c.radius*Math.cos(c.phi),c.target.z+c.radius*Math.sin(c.phi)*Math.cos(c.theta));camera.lookAt(c.target);}
   }
-  function onPointerMove(e){if(!state.controls?.drag)return;const c=state.controls,dx=e.clientX-c.x,dy=e.clientY-c.y;c.x=e.clientX;c.y=e.clientY;c.theta-=dx*.006;c.phi+=dy*.005;}
+  function onPointerMove(e){if(!state.controls?.drag)return;const c=state.controls,dx=e.clientX-c.x,dy=e.clientY-c.y;c.x=e.clientX;c.y=e.clientY;if(c.pan){const scale=c.radius*.0018;c.target.x-=dx*scale*Math.cos(c.theta);c.target.z+=dx*scale*Math.sin(c.theta);c.target.y+=dy*scale;}else{c.theta-=dx*.006;c.phi=Math.max(c.minPolarAngle,Math.min(c.maxPolarAngle,c.phi+dy*.005));}}
   function onWheel(e){e.preventDefault();const c=state.controls;c.radius=Math.max(c.minDistance,Math.min(c.maxDistance,c.radius+e.deltaY*.012));}
   function resizeScene(){const h=$('lab3d');if(!state.renderer||!h)return;const w=window.innerWidth||h.clientWidth,ht=window.innerHeight||h.clientHeight;state.camera.aspect=w/Math.max(1,ht);state.camera.updateProjectionMatrix();state.renderer.setPixelRatio(Math.min(window.devicePixelRatio||1,2));state.renderer.setSize(w,ht,false);}
-  function syncActiveLabel(mode=state.mode){state.labels.forEach(l=>{const active=l.userData.module===mode;l.material.opacity=active?1:0;l.visible=state.showLabels&&active;});}
+  function syncActiveLabel(mode=state.mode){const selectedMode=({plate:'pcr',pipette:'pcr',pcr:'pcr',microscope:'microscope',bioreactor:'bioreactor',cell:'cell',dna:'crispr'})[state.selected];state.labels.forEach(l=>{const active=!!state.selected&&l.userData.module===selectedMode&&selectedMode===mode;l.material.opacity=active?1:0;l.visible=state.showLabels&&active;});}
   function focusObject(name){const obj=state.objects[name];if(!obj)return;state.selected=name;const activeMode=['pcr','plate','pipette'].includes(name)?'pcr':name==='cell'?'cell':name==='bioreactor'?'bioreactor':name==='microscope'?'microscope':name==='dna'?'crispr':state.mode;syncActiveLabel(activeMode);$('selectedObject').textContent='Tanlangan: '+({microscope:'mikroskop',pipette:'pipetka',plate:'mikroplastinka',bioreactor:'bioreaktor',cell:'hujayra modeli',dna:'DNK modeli'}[name]||name);$('sceneHint').textContent='Tanlangan obyekt: '+name;const c=state.controls;if(name==='cell'){c.target.set(1.15,1.9,-.2);c.radius=3.8;}else if(name==='dna'){c.target.set(-1.3,2.15,0);c.radius=4.1;}else if(name==='bioreactor'){c.target.set(0,2.05,-.25);c.radius=4.0;}else if(name==='microscope'){c.target.set(.75,2.05,.25);c.radius=3.9;}else if(name==='pipette'||name==='plate'||name==='pcr'){c.target.set(-.75,1.65,.25);c.radius=3.8;} }
   function onPointerUpClick(e){if(!state.renderer||!state.raycaster)return;const rect=state.renderer.domElement.getBoundingClientRect();state.pointer.set(((e.clientX-rect.left)/rect.width)*2-1,-((e.clientY-rect.top)/rect.height)*2+1);state.raycaster.setFromCamera(state.pointer,state.camera);const hits=state.raycaster.intersectObjects(state.scene.children,true);for(const hit of hits){let o=hit.object;while(o&& !o.userData?.selectable && !o.userData?.parentName)o=o.parent;if(o?.userData?.parentName){focusObject(o.userData.parentName);return;}if(o?.userData?.selectable){focusObject(o.userData.name);return;}}}
   // Pointer selection is separated from camera drag so touch rotation remains natural.
-  let downPoint=null;function onPointerDown(e){state.controls.drag=true;state.controls.x=e.clientX;state.controls.y=e.clientY;downPoint={x:e.clientX,y:e.clientY};state.renderer.domElement.setPointerCapture?.(e.pointerId);}
-  function onPointerUp(e){const moved=downPoint&&Math.hypot(e.clientX-downPoint.x,e.clientY-downPoint.y)<7;state.controls.drag=false;if(moved)onPointerUpClick(e);downPoint=null;}
+  let downPoint=null;function onPointerDown(e){state.controls.drag=true;state.controls.pan=e.button===2||e.shiftKey;state.controls.x=e.clientX;state.controls.y=e.clientY;downPoint={x:e.clientX,y:e.clientY};state.renderer.domElement.setPointerCapture?.(e.pointerId);}
+  function onPointerUp(e){const moved=downPoint&&Math.hypot(e.clientX-downPoint.x,e.clientY-downPoint.y)<7;state.controls.drag=false;state.controls.pan=false;if(moved&&e.button!==2)onPointerUpClick(e);downPoint=null;}
 
   function renderControls(){
     const c=$('controls');
@@ -143,7 +158,7 @@
     if(state.mode==='microscope')c.innerHTML='<div class="field-row"><label>Obyektiv<select id="objectivePower"><option value="4">4× · umumiy ko‘rish</option><option value="10">10× · past kattalashtirish</option><option value="40" selected>40× · yuqori kattalashtirish</option><option value="100">100× · immersion obyektiv</option></select></label><label>Okulyar<input id="ocularPower" type="number" value="10" min="5" max="20" disabled></label></div><div class="field-row"><label>Preparat<select id="specimenType"><option value="plant">O‘simlik hujayrasi · ~100 µm</option><option value="animal" selected>Hayvon hujayrasi · ~20 µm</option><option value="bacteria">Bakteriya · ~2 µm</option><option value="rbc">Eritrotsit · ~7.5 µm</option></select></label><label>Field number (mm)<input id="fieldNumber" type="number" value="18" min="10" max="25" step=".5"></label></div><div class="control-hint">100× immersion faqat obyektiv turi haqida o‘quv misoli; laboratoriya amaliyoti bo‘yicha ko‘rsatma emas.</div>';
     if(state.mode==='crispr')c.innerHTML='<label class="field-label" for="sequenceInput">Namunaviy DNK (5′ → 3′)</label><textarea id="sequenceInput" rows="4" spellcheck="false">ATGCGTACGTAGCTAGCTAGGCTAACGTTAGCGATCGTACGATCG</textarea><label class="field-label" for="crisprTarget">Qidiriladigan 20 nt motiv</label><input id="crisprTarget" value="GCTAACGTTAGCGATCGTAC" maxlength="20"><div class="control-hint">Faqat matnli motiv qidiruvi. PAM, off-target yoki real editing hisoblanmaydi.</div>';
   }
-  function showMode(mode){if(!experiments[mode])return;state.mode=mode;syncActiveLabel(mode);document.querySelectorAll('.module-choice').forEach(b=>b.classList.toggle('active',b.dataset.experiment===mode));const e=experiments[mode];$('experimentTitle').textContent=e.title;$('experimentDescription').textContent=e.description;$('protocolTitle').textContent=e.protocol;$('protocolSteps').innerHTML=e.steps.map(x=>'<li>'+x+'</li>').join('');$('scientistNote').textContent=e.note;$('experimentState').textContent='TAYYOR';$('resultPanel').innerHTML='<div class="result-empty"><span>◎</span><b>Natija kutilmoqda</b><small>Parametrlarni tekshirib, tajribani ishga tushiring.</small></div>';renderControls();if(mode==='cell')focusObject('cell');if(mode==='bioreactor')focusObject('bioreactor');if(mode==='crispr')focusObject('dna');if(mode==='microscope')focusObject('microscope');if(mode==='pcr')focusObject('plate');}
+  function showMode(mode){if(!experiments[mode])return;state.mode=mode;syncActiveLabel(mode);document.querySelectorAll('.module-choice').forEach(b=>b.classList.toggle('active',b.dataset.experiment===mode));const e=experiments[mode];$('experimentTitle').textContent=e.title;$('experimentDescription').textContent=e.description;$('protocolTitle').textContent=e.protocol;$('protocolSteps').innerHTML=e.steps.map(x=>'<li>'+x+'</li>').join('');$('scientistNote').textContent=e.note;$('experimentState').textContent='TAYYOR';$('resultPanel').innerHTML='<div class="result-empty"><span>◎</span><b>Natija kutilmoqda</b><small>Parametrlarni tekshirib, tajribani ishga tushiring.</small></div>';renderControls();syncActiveLabel(mode);}
   function animateExperiment(mode){
     return new Promise(resolve=>{
       const started=performance.now(),duration=1250;
@@ -242,8 +257,9 @@
     document.querySelectorAll('[data-focus]').forEach(b=>b.addEventListener('click',()=>focusObject(b.dataset.focus)));
     $('runExperiment').addEventListener('click',runExperiment);
     $('resetExperiment').addEventListener('click',()=>{showMode(state.mode);setSyncStatus('Kutilmoqda','idle');$('labStatus').textContent='READY';});
-    $('resetView').addEventListener('click',()=>{if(!state.controls)return;state.controls.target.set(0,.65,0);state.controls.theta=0;state.controls.phi=Math.acos(1.75/Math.sqrt(3.8*3.8+1.75*1.75));state.controls.radius=Math.sqrt(3.8*3.8+1.75*1.75);});
+    $('resetView').addEventListener('click',()=>{if(!state.controls)return;state.controls.target.set(0,.65,0);state.controls.theta=0;state.controls.radius=Math.sqrt(3.8*3.8+1.75*1.75);state.controls.phi=Math.acos(1.75/state.controls.radius);});
     $('toggleLabels').addEventListener('click',()=>{state.showLabels=!state.showLabels;syncActiveLabel(state.mode);});
+    $('zenMode').addEventListener('click',()=>{const active=document.body.classList.toggle('zen-mode');$('zenMode').textContent=active?'✕ Oddiy ko‘rinish':'👁 To‘liq ko‘rish (UI yashirish)';$('zenMode').setAttribute('aria-pressed',String(active));});
     try{buildScene();}catch(error){console.error('Biotechnology 3D scene failed:',error);const detail=String(error?.message||error||'Noma’lum xato');$('sceneLoading').style.display='grid';$('sceneLoading').innerHTML='<b>3D sahna ishga tushmadi</b><small>'+escapeHtml(detail)+' · WebGL/GPU va Three.js mosligini tekshiring.</small>'; }showMode('pcr');
   }
   document.addEventListener('DOMContentLoaded',init);
