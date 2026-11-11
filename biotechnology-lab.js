@@ -89,7 +89,7 @@
     // Equipment labels as canvas sprites
     function label(text,x,y,z){const c=document.createElement('canvas');c.width=256;c.height=64;const ctx=c.getContext('2d');ctx.fillStyle='rgba(5,20,30,.82)';ctx.strokeStyle='#3e9bad';ctx.lineWidth=2;ctx.beginPath();ctx.roundRect(2,2,252,60,12);ctx.fill();ctx.stroke();ctx.font='bold 22px Arial';ctx.fillStyle='#c7edf2';ctx.textAlign='center';ctx.fillText(text,128,40);const tex=new T.CanvasTexture(c);const sprite=new T.Sprite(new T.SpriteMaterial({map:tex,transparent:true,depthWrite:false}));sprite.scale.set(1.5,.38,1);sprite.position.set(x,y,z);sprite.userData.label=true;scene.add(sprite);state.labels.push(sprite);return sprite;}
     label('PCR MICROPLATE',-2.15,2.25,-.25);label('MICROSCOPE',2.65,3.0,-.45);label('BIOREACTOR',0,4.25,-1.45);label('CELL CULTURE',4.1,3.55,.1);label('DNA MODEL',-4,5.2,-1.25);
-    state.scene=scene;state.camera=camera;state.renderer=renderer;state.raycaster=new T.Raycaster();state.pointer=new T.Vector2();state.controls=controls;state.cellGroup=cellGroup;state.vessel=vessel;state.dnaGroup=dnaGroup;
+    state.scene=scene;state.camera=camera;state.renderer=renderer;state.raycaster=new T.Raycaster();state.pointer=new T.Vector2();state.controls=controls;state.cellGroup=cellGroup;state.vessel=reactorGroup;state.dnaGroup=dnaGroup;
     $('sceneLoading').style.display='none';
     renderer.domElement.addEventListener('pointerdown',onPointerDown);
     renderer.domElement.addEventListener('pointermove',onPointerMove);
