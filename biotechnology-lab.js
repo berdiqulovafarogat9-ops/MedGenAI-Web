@@ -17,9 +17,9 @@
     const host=$('lab3d');
     if(!window.THREE){$('sceneLoading').innerHTML='<b>3D kutubxona yuklanmadi</b><small>Internet ulanishini tekshirib sahifani yangilang.</small>';return;}
     const T=window.THREE, scene=new T.Scene(); scene.background=new T.Color(0x070b12); scene.fog=new T.Fog(0x070b12,15,30);
-    const camera=new T.PerspectiveCamera(68,host.clientWidth/host.clientHeight,.1,100);camera.position.set(0,2.4,3.8);
+    const camera=new T.PerspectiveCamera(68,window.innerWidth/window.innerHeight,.1,100);camera.position.set(0,2.5,4.0);
     const renderer=new T.WebGLRenderer({antialias:true,alpha:false});renderer.setPixelRatio(Math.min(devicePixelRatio||1,2));renderer.setSize(host.clientWidth,host.clientHeight);renderer.shadowMap.enabled=true;renderer.shadowMap.type=T.PCFSoftShadowMap;if('outputColorSpace' in renderer && T.SRGBColorSpace)renderer.outputColorSpace=T.SRGBColorSpace;else if('outputEncoding' in renderer && T.sRGBEncoding)renderer.outputEncoding=T.sRGBEncoding;renderer.toneMapping=T.ACESFilmicToneMapping;renderer.toneMappingExposure=1.08;host.prepend(renderer.domElement);
-    const initialRadius=Math.sqrt(3.8*3.8+(2.4-.65)*(2.4-.65));const controls={target:new T.Vector3(0,.65,0),drag:false,x:0,y:0,theta:0,phi:Math.acos((2.4-.65)/initialRadius),radius:initialRadius,minDistance:1.8,maxDistance:5.5,maxPolarAngle:Math.PI/2.05};
+    const initialRadius=Math.sqrt(4.0*4.0+(2.5-.7)*(2.5-.7));const controls={target:new T.Vector3(0,.7,0),drag:false,x:0,y:0,theta:0,phi:Math.acos((2.5-.7)/initialRadius),radius:initialRadius,minDistance:1.8,maxDistance:5.5,maxPolarAngle:Math.PI/2.05};
     const ambient=new T.AmbientLight(0x38bdf8,.42);scene.add(ambient);
     const hemi=new T.HemisphereLight(0x9bdcf5,0x101a2b,.62);scene.add(hemi);
     const key=new T.DirectionalLight(0xeaf7ff,2.15);key.position.set(5,10,6);key.castShadow=true;key.shadow.mapSize.set(1536,1536);scene.add(key);
@@ -119,7 +119,7 @@
   }
   function onPointerMove(e){if(!state.controls?.drag)return;const c=state.controls,dx=e.clientX-c.x,dy=e.clientY-c.y;c.x=e.clientX;c.y=e.clientY;c.theta-=dx*.006;c.phi+=dy*.005;}
   function onWheel(e){e.preventDefault();const c=state.controls;c.radius=Math.max(c.minDistance,Math.min(c.maxDistance,c.radius+e.deltaY*.012));}
-  function resizeScene(){const h=$('lab3d');if(!state.renderer||!h)return;state.camera.aspect=h.clientWidth/h.clientHeight;state.camera.updateProjectionMatrix();state.renderer.setSize(h.clientWidth,h.clientHeight);}
+  function resizeScene(){const h=$('lab3d');if(!state.renderer||!h)return;const w=window.innerWidth||h.clientWidth,ht=window.innerHeight||h.clientHeight;state.camera.aspect=w/Math.max(1,ht);state.camera.updateProjectionMatrix();state.renderer.setPixelRatio(Math.min(window.devicePixelRatio||1,2));state.renderer.setSize(w,ht,false);}
   function syncActiveLabel(mode=state.mode){state.labels.forEach(l=>{const active=l.userData.module===mode;l.material.opacity=active?1:.3;l.visible=state.showLabels&&active;});}
   function focusObject(name){const obj=state.objects[name];if(!obj)return;state.selected=name;const activeMode=['pcr','plate','pipette'].includes(name)?'pcr':name==='cell'?'cell':name==='bioreactor'?'bioreactor':name==='microscope'?'microscope':name==='dna'?'crispr':state.mode;syncActiveLabel(activeMode);$('selectedObject').textContent='Tanlangan: '+({microscope:'mikroskop',pipette:'pipetka',plate:'mikroplastinka',bioreactor:'bioreaktor',cell:'hujayra modeli',dna:'DNK modeli'}[name]||name);$('sceneHint').textContent='Tanlangan obyekt: '+name;const c=state.controls;if(name==='cell'){c.target.set(1.15,1.9,-.2);c.radius=3.8;}else if(name==='dna'){c.target.set(-1.3,2.15,0);c.radius=4.1;}else if(name==='bioreactor'){c.target.set(0,2.05,-.25);c.radius=4.0;}else if(name==='microscope'){c.target.set(.75,2.05,.25);c.radius=3.9;}else if(name==='pipette'||name==='plate'||name==='pcr'){c.target.set(-.75,1.65,.25);c.radius=3.8;} }
   function onPointerUpClick(e){if(!state.renderer||!state.raycaster)return;const rect=state.renderer.domElement.getBoundingClientRect();state.pointer.set(((e.clientX-rect.left)/rect.width)*2-1,-((e.clientY-rect.top)/rect.height)*2+1);state.raycaster.setFromCamera(state.pointer,state.camera);const hits=state.raycaster.intersectObjects(state.scene.children,true);for(const hit of hits){let o=hit.object;while(o&& !o.userData?.selectable && !o.userData?.parentName)o=o.parent;if(o?.userData?.parentName){focusObject(o.userData.parentName);return;}if(o?.userData?.selectable){focusObject(o.userData.name);return;}}}
@@ -234,7 +234,7 @@
     document.querySelectorAll('[data-focus]').forEach(b=>b.addEventListener('click',()=>focusObject(b.dataset.focus)));
     $('runExperiment').addEventListener('click',runExperiment);
     $('resetExperiment').addEventListener('click',()=>{showMode(state.mode);setSyncStatus('Kutilmoqda','idle');$('labStatus').textContent='READY';});
-    $('resetView').addEventListener('click',()=>{if(!state.controls)return;state.controls.target.set(0,.65,0);state.controls.theta=0;state.controls.phi=Math.acos(1.75/Math.sqrt(3.8*3.8+1.75*1.75));state.controls.radius=Math.sqrt(3.8*3.8+1.75*1.75);});
+    $('resetView').addEventListener('click',()=>{if(!state.controls)return;state.controls.target.set(0,.7,0);state.controls.theta=0;state.controls.phi=Math.acos(1.8/Math.sqrt(4.0*4.0+1.8*1.8));state.controls.radius=Math.sqrt(4.0*4.0+1.8*1.8);});
     $('toggleLabels').addEventListener('click',()=>{state.showLabels=!state.showLabels;syncActiveLabel(state.mode);});
     try{buildScene();}catch(error){console.error('Biotechnology 3D scene failed:',error);const detail=String(error?.message||error||'Noma’lum xato');$('sceneLoading').style.display='grid';$('sceneLoading').innerHTML='<b>3D sahna ishga tushmadi</b><small>'+escapeHtml(detail)+' · WebGL/GPU va Three.js mosligini tekshiring.</small>'; }showMode('pcr');
   }
