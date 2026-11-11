@@ -3309,7 +3309,7 @@ async function renderDockingPose(data) {
     if (!receptorPdb) {
       if (notice) notice.textContent = (data.target_pdb || '1HSG') + ' oqsil strukturasi RCSB PDB dan yuklanmoqda...';
       const response = await fetch('https://files.rcsb.org/download/' + encodeURIComponent(data.target_pdb || '1HSG') + '.pdb');
-      if (!response.ok) throw new Error('RCSB 1HSG PDB faylini yuklab bo‘lmadi (HTTP ' + response.status + ').');
+      if (!response.ok) throw new Error('RCSB ' + (data.target_pdb || '1HSG') + ' PDB faylini yuklab bo‘lmadi (HTTP ' + response.status + ').');
       receptorPdb = (await response.text()).trim();
     }
     if (!receptorPdb || !/^HEADER|^ATOM|^TITLE/m.test(receptorPdb)) {
@@ -3436,6 +3436,7 @@ async function runDocking() {
   }
   if (!smiles) { if (status) status.textContent = 'Ligand SMILES kiriting.'; return; }
   if (result) result.textContent = '';
+  const admetPanel = $('dockingAdmetPanel'); if (admetPanel) admetPanel.hidden = true;
   if (button) button.disabled = true;
   if (status) status.textContent = 'Ligand tekshirilmoqda va docking vazifasi navbatga qo‘yilmoqda...';
   try {
